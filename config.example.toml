@@ -1,0 +1,9 @@
+[personalos]
+environment = "development"
+timezone = "America/Chicago"
+
+[database]
+# Development and test SQLite files must stay inside the repo-local ignored
+# runtime area. Production database configuration is intentionally absent.
+development_path = "var/dev/personalos-dev.sqlite3"
+test_path = "var/test/personalos-test.sqlite3"

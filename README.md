@@ -8,7 +8,8 @@ This repository is the private code source of truth for Personal OS. It is docum
 
 - Chris: owner, final approver, source of judgment and priorities.
 - ChatGPT: thought partner, synthesis layer, analysis layer, PRD writer, architect, and auditor.
-- Codex/Fable: software development layer.
+- Codex: primary coding agent and software development layer for repository code, tests, and documentation.
+- Fable: optional or future alternate coding agent for long-horizon software development work.
 - OpenClaw: local Personal Assistant and runtime operator on the Mac Mini.
 - Mac Mini: always-on runtime host, OpenClaw host, SQLite state host, local PersonalOS file host, scheduler, and local repo clone.
 - GitHub private repo: source of truth for code.
@@ -37,7 +38,9 @@ This repository is the private code source of truth for Personal OS. It is docum
 
 ## Dashboard Requirements
 
-The V1 dashboard is local-network only, with no public internet exposure and no login or password requirement. It should be mobile-friendly for iPhone and usable from Windows or Mac browsers on the local network.
+The V1 dashboard is local-network only, with no public internet exposure and no login or password requirement by choice. It should be mobile-friendly for iPhone and usable from Windows or Mac browsers on the local network.
+
+This is a deliberate V1 tradeoff, not an absence of risk. Risks include accidental local network access, stale browser sessions, and exposure from trusted devices on the network. Future security options may include a password, device allowlist, Tailscale/VPN access, or local-only binding.
 
 Planned sections:
 
@@ -56,7 +59,12 @@ Planned sections:
 - Markdown and Obsidian: Clarity Notes, Follow-Up Notes, logs, and protocols.
 - Mac Mini: runtime and deployment host.
 - OpenClaw: local runtime operator.
-- Codex/Fable: software developer.
+- Codex: primary software developer.
+- Fable: optional or future alternate coding agent.
+
+America/Chicago is Chris's operating timezone for briefings and routines. The Mac Mini system timezone may differ, so scheduler code must explicitly use the configured operating timezone and must not assume the host timezone.
+
+Production SQLite state lives on the Mac Mini runtime path. Development and test SQLite files live inside repo-local temporary or test paths. Codex may create and edit dev/test databases in this repository, but may not mutate production SQLite state without explicit approval. Production migrations require a backup first, and production backups should include periodic JSON and SQLite snapshots.
 
 ## Safety Boundary
 
@@ -66,16 +74,57 @@ Codex must not send email, write Todoist, write Calendar, load LaunchAgents, mod
 
 The first live-system interaction phase is Phase 0 read-only inventory.
 
+## Phase 0 Inventory Charter
+
+Phase 0 requires explicit approval before starting. It is read-only. Phase 0 may inspect specified live paths only after explicit approval for that inventory scope.
+
+Proposed read-only paths may include:
+
+- `/Users/coldstake/PersonalOS`
+- `/Users/coldstake/.openclaw`
+- `/Users/coldstake/Library/LaunchAgents`
+- `/Users/coldstake/dev/personal-os`
+
+Forbidden actions:
+
+- Sending email.
+- Executing `gog gmail send`.
+- Mutating Todoist.
+- Mutating Calendar.
+- Loading or unloading LaunchAgents.
+- Modifying production ledgers.
+- Modifying production SQLite state.
+- Reading or printing credentials.
+
+Required Phase 0 outputs:
+
+- Current file/module inventory.
+- Inventory report.
+- Protected path map.
+- Boundary map.
+- Current runtime architecture map.
+- Config, ledger, and LaunchAgent inventory.
+- Risk register.
+- Migration recommendations.
+- Recommended Phase 1 implementation plan.
+- Open questions.
+
 ## Repository Layout
+
+Existing repo scaffold paths:
 
 ```text
 docs/          Product, architecture, safety, roadmap, and Codex workflow docs.
-app/           Future local dashboard and API surfaces.
-personalos/    Future domain modules for routines, priorities, composer, integrations, reports, and evidence.
-scripts/       Reserved for later inert or approved helper scripts; no live workflow scripts in Phase -1.
-tests/         Test suites for repository code.
+app/           Placeholder for local dashboard and API surfaces.
+personalos/    Placeholder for domain modules.
+scripts/       Reserved for later inert or approved helper scripts.
+tests/         Placeholder for repository tests.
 .codex/        Codex-local project guidance and metadata.
 ```
+
+Planned future modules include routines, priorities, composer, Todoist, Calendar, Gmail, reports, evidence, dashboard views, and local API surfaces.
+
+Protected live runtime paths are outside this repository and must not be inspected or mutated without explicit approval. They include `/Users/coldstake/PersonalOS`, `/Users/coldstake/.openclaw`, LaunchAgents, credentials, production ledgers, production SQLite state, and other production runtime state.
 
 ## Current Phase
 

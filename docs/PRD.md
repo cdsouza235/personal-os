@@ -12,14 +12,16 @@ Personal OS is a modular, local-first productivity, routine, priority, and execu
 - SQLite holds structured runtime state.
 - OpenClaw operates approved local workflows.
 - ChatGPT synthesizes and audits.
-- Codex/Fable builds repository code.
+- Codex is the primary coding agent and builds repository code.
+- Fable is an optional or future alternate coding agent for long-horizon work.
 - Safety should be light in the user experience and explicit in the architecture.
 
 ## Operating Roles
 
 - Chris: owner, final approver, source of judgment and priorities.
 - ChatGPT: thought partner, synthesis layer, analysis layer, PRD writer, architect, and auditor.
-- Codex/Fable: software development layer.
+- Codex: primary coding agent and software development layer for repository code, tests, and documentation.
+- Fable: optional or future alternate coding agent for long-horizon software development work.
 - OpenClaw: local Personal Assistant and runtime operator on the Mac Mini.
 - Mac Mini: always-on runtime host, OpenClaw host, SQLite state host, local PersonalOS file host, scheduler, and local repo clone.
 - GitHub private repo: source of truth for code.
@@ -50,9 +52,14 @@ V1 should deliver a local-first operating shell and the core routines, prioritie
 
 ## Dashboard Requirements
 
-The dashboard must be local-network only. It must not be exposed to the public internet. V1 does not require login or password protection.
+The dashboard must be local-network only. It must not be exposed to the public internet. V1 does not require login or password protection by choice.
 
 The dashboard should be mobile-friendly for iPhone and usable from Windows and Mac browsers.
+
+Threat model:
+
+- Risks include accidental local network access, stale browser sessions, and exposure from trusted devices on the network.
+- Future security options may include a password, device allowlist, Tailscale/VPN access, or local-only binding.
 
 Required sections:
 
@@ -113,9 +120,32 @@ Todoist is the action rail, not the brain.
 - Self-only review, deep work, admin, and routine blocks may auto-write once validated.
 - Events involving other people or high-stakes appointments require review.
 
+## Validated Runtime Module Definition
+
+A module is validated only after:
+
+- Schema exists.
+- Unit tests exist.
+- Dry-run or no-send mode exists.
+- Dedupe behavior exists where applicable.
+- Permissions behavior is tested.
+- Logging or completion report exists.
+- One controlled live test passes if the module has side effects.
+
+## Gmail Phase Boundaries
+
+- Phase 0: no Gmail access.
+- Phase 1: no-send scheduler and email infrastructure.
+- Later: metadata or read-only access only if explicitly approved.
+- Later: draft generation.
+- Later: send-enabled only with ledger, idempotency, and permission gates.
+- Gmail send remains an OpenClaw runtime responsibility, not a Codex development responsibility.
+
 ## Briefing Cadence
 
 Timezone: America/Chicago.
+
+America/Chicago is Chris's operating timezone for briefings and routines. The Mac Mini system timezone may differ. Scheduler code must explicitly use the configured operating timezone and must not assume the host timezone.
 
 - 8am: Morning Brief.
 - 12pm: Midday Reset.
@@ -123,6 +153,33 @@ Timezone: America/Chicago.
 - 8pm: Evening Shutdown.
 
 Daily plan generation happens once in the morning. Each email is generated just-in-time before its window. Todoist and Calendar baseline writes happen in the morning. Later windows adjust based on completed tasks and updated state.
+
+## Composer Packet Schema
+
+First-pass Composer Packet input fields:
+
+- date
+- timezone
+- briefing_window
+- routines_due
+- routines_completed
+- missed_routines
+- active_priorities
+- followups
+- calendar_summary
+- todoist_summary
+- routine_rules
+- permissions
+- model_instructions
+- excluded_sensitive_context_note
+
+Composer output schema must include:
+
+- email_briefs
+- todoist_tasks
+- calendar_blocks
+- followups
+- warnings
 
 ## Notes
 
@@ -166,6 +223,41 @@ Development work should produce a diff summary, test logs, unit or integration o
 Runtime or live operations should produce a persisted completion report, ledger or log snapshot, and safety flags.
 
 Forensic bundles are reserved for incidents, production activation, high-stakes operations, or duplicate/mutation anomalies.
+
+## Phase 0 Inventory Charter
+
+Phase 0 requires explicit approval before starting. It is read-only. Phase 0 may inspect specified live paths only after explicit approval for that inventory scope.
+
+Proposed read-only paths may include:
+
+- `/Users/coldstake/PersonalOS`
+- `/Users/coldstake/.openclaw`
+- `/Users/coldstake/Library/LaunchAgents`
+- `/Users/coldstake/dev/personal-os`
+
+Forbidden actions:
+
+- Sending email.
+- Executing `gog gmail send`.
+- Mutating Todoist.
+- Mutating Calendar.
+- Loading or unloading LaunchAgents.
+- Modifying production ledgers.
+- Modifying production SQLite state.
+- Reading or printing credentials.
+
+Required Phase 0 outputs:
+
+- Current file/module inventory.
+- Inventory report.
+- Protected path map.
+- Boundary map.
+- Current runtime architecture map.
+- Config, ledger, and LaunchAgent inventory.
+- Risk register.
+- Migration recommendations.
+- Recommended Phase 1 implementation plan.
+- Open questions.
 
 ## Non-Goals for Current Documentation Phase
 

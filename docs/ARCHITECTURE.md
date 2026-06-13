@@ -12,7 +12,8 @@ Personal OS is a modular, local-first productivity, routine, priority, and execu
 - SQLite: structured runtime state.
 - Markdown, Obsidian, and PersonalOS: durable notes, logs, protocols, and reviews.
 - Todoist, Calendar, and Gmail: execution rails touched only by validated runtime modules.
-- Codex/Fable: development layer for repository code.
+- Codex: primary coding agent and development layer for repository code.
+- Fable: optional or future alternate coding agent for long-horizon development work.
 - ChatGPT: synthesis, analysis, architecture, PRD, and audit layer.
 
 ## Role Boundaries
@@ -25,9 +26,13 @@ Chris owns the system, approves high-stakes actions, and supplies judgment and p
 
 ChatGPT is the thought partner, synthesis layer, analysis layer, PRD writer, architect, and auditor. It produces structured thinking and review artifacts, not live mutations.
 
-### Codex/Fable
+### Codex
 
-Codex/Fable is the software development layer. It edits repository code, tests, and documentation after phase gates. It does not operate production workflows.
+Codex is the primary coding agent and software development layer. It edits repository code, tests, and documentation after phase gates. It does not operate production workflows.
+
+### Fable
+
+Fable is an optional or future alternate coding agent for long-horizon software development work. It has the same production boundary as Codex unless a future policy says otherwise.
 
 ### OpenClaw
 
@@ -71,9 +76,23 @@ The initial runtime state model should document and eventually implement these e
 - chart_pack_reviews
 - fitness_integration_state
 
+## SQLite Environment Separation
+
+- Production SQLite state lives on the Mac Mini runtime path.
+- Development and test SQLite files live inside repo-local temporary or test paths.
+- Codex may create and edit dev/test databases in the repository.
+- Codex may not mutate production SQLite state without explicit approval.
+- Production migrations require a backup before migration.
+- Production backups should include periodic JSON and SQLite snapshots.
+
 ## Dashboard Architecture
 
-The V1 dashboard is a local-network-only web surface. It should have no public internet exposure and no login or password requirement for V1. It should work well on iPhone and in Windows or Mac browsers.
+The V1 dashboard is a local-network-only web surface. It should have no public internet exposure and no login or password requirement for V1 by choice. It should work well on iPhone and in Windows or Mac browsers.
+
+Threat model:
+
+- Risks include accidental local network access, stale browser sessions, and exposure from trusted devices on the network.
+- Future security options may include a password, device allowlist, Tailscale/VPN access, or local-only binding.
 
 Sections:
 
@@ -121,6 +140,8 @@ Default routines:
 
 Timezone: America/Chicago.
 
+America/Chicago is Chris's operating timezone for briefings and routines. The Mac Mini system timezone may differ. Scheduler code must explicitly use the configured operating timezone and must not assume the host timezone.
+
 - 8am Morning Brief.
 - 12pm Midday Reset.
 - 4pm Afternoon Checkpoint.
@@ -134,17 +155,22 @@ The strong composer model receives only a dedicated Composer Packet.
 
 It must not receive broad filesystem access, raw notes, the full PersonalOS vault, credentials, legal/tax source documents, or unrestricted files.
 
-Allowed Composer Packet input:
+First-pass Composer Packet input:
 
-- Routine state.
-- Priority titles.
-- Selected follow-up summaries.
-- Calendar availability summary.
-- Todoist task summaries.
-- Today's schedule.
-- Routine rules.
-- Prior briefing results.
-- Completion status.
+- date
+- timezone
+- briefing_window
+- routines_due
+- routines_completed
+- missed_routines
+- active_priorities
+- followups
+- calendar_summary
+- todoist_summary
+- routine_rules
+- permissions
+- model_instructions
+- excluded_sensitive_context_note
 
 Required output:
 
@@ -160,6 +186,18 @@ Required output sections:
 - warnings
 
 No prose-only output may be used for execution.
+
+## Validated Runtime Module Definition
+
+A module is validated only after:
+
+- Schema exists.
+- Unit tests exist.
+- Dry-run or no-send mode exists.
+- Dedupe behavior exists where applicable.
+- Permissions behavior is tested.
+- Logging or completion report exists.
+- One controlled live test passes if the module has side effects.
 
 ## Model Roles
 
@@ -195,6 +233,15 @@ Calendar scheduling should use preferred windows first. Availability-aware sched
 
 Gmail is a briefing delivery rail. Gmail state and sending behavior remain protected until validated runtime modules and gates exist.
 
+Gmail phase boundaries:
+
+- Phase 0: no Gmail access.
+- Phase 1: no-send scheduler and email infrastructure.
+- Later: metadata or read-only access only if explicitly approved.
+- Later: draft generation.
+- Later: send-enabled only with ledger, idempotency, and permission gates.
+- Gmail send remains an OpenClaw runtime responsibility, not a Codex development responsibility.
+
 ## Reports and Jobs
 
 Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT define requirements. Codex builds jobs. OpenClaw runs jobs and delivers outputs.
@@ -208,3 +255,38 @@ The weekend workflow reminds Chris to produce chart packs. Chris sends chart pac
 ## Fitness Hook
 
 V1 preserves the existing CSV-based local fitness tracker and exposes a shell, link, and status. V1.5 may integrate routine prompts and recovery/training state.
+
+## Phase 0 Inventory Charter
+
+Phase 0 requires explicit approval before starting. It is read-only. Phase 0 may inspect specified live paths only after explicit approval for that inventory scope.
+
+Proposed read-only paths may include:
+
+- `/Users/coldstake/PersonalOS`
+- `/Users/coldstake/.openclaw`
+- `/Users/coldstake/Library/LaunchAgents`
+- `/Users/coldstake/dev/personal-os`
+
+Forbidden actions:
+
+- Sending email.
+- Executing `gog gmail send`.
+- Mutating Todoist.
+- Mutating Calendar.
+- Loading or unloading LaunchAgents.
+- Modifying production ledgers.
+- Modifying production SQLite state.
+- Reading or printing credentials.
+
+Required Phase 0 outputs:
+
+- Current file/module inventory.
+- Inventory report.
+- Protected path map.
+- Boundary map.
+- Current runtime architecture map.
+- Config, ledger, and LaunchAgent inventory.
+- Risk register.
+- Migration recommendations.
+- Recommended Phase 1 implementation plan.
+- Open questions.

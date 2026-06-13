@@ -31,6 +31,39 @@ Scope:
 Gate:
 
 - Requires explicit approval before starting.
+- Read-only only.
+- May inspect specified live paths only after explicit approval for that inventory scope.
+
+Proposed read-only paths:
+
+- `/Users/coldstake/PersonalOS`
+- `/Users/coldstake/.openclaw`
+- `/Users/coldstake/Library/LaunchAgents`
+- `/Users/coldstake/dev/personal-os`
+
+Forbidden actions:
+
+- Sending email.
+- Executing `gog gmail send`.
+- Mutating Todoist.
+- Mutating Calendar.
+- Loading or unloading LaunchAgents.
+- Modifying production ledgers.
+- Modifying production SQLite state.
+- Reading or printing credentials.
+
+Required outputs:
+
+- Current file/module inventory.
+- Inventory report.
+- Protected path map.
+- Boundary map.
+- Current runtime architecture map.
+- Config, ledger, and LaunchAgent inventory.
+- Risk register.
+- Migration recommendations.
+- Recommended Phase 1 implementation plan.
+- Open questions.
 
 ## Phase 1: Runtime Stabilization
 
@@ -40,6 +73,7 @@ Scope:
 - Confirm OpenClaw operator responsibilities.
 - Establish logs and system event conventions.
 - Prepare non-mutating checks around runtime readiness.
+- Build no-send scheduler and email infrastructure only; no Gmail access or send behavior.
 
 ## Phase 2: Dashboard and State Store
 
@@ -49,6 +83,8 @@ Scope:
 - Add Today View, Settings/Permissions, System Status/Logs, and module navigation.
 - Define and migrate SQLite runtime state.
 - Keep the dashboard local-network only with no public internet exposure.
+- Keep no login or password for V1 by choice, while documenting local-network risks and future options such as password, device allowlist, Tailscale/VPN, or local-only binding.
+- Keep dev/test SQLite files repo-local; require backup before any future production migration.
 
 ## Phase 3: Routine Engine
 
@@ -76,6 +112,8 @@ Scope:
 - Add validated Calendar write module for approved self-only blocks.
 - Keep high-stakes actions, messages to other people, and external calendar events behind approval.
 - Remove completed Todoist tasks from later briefings.
+- Treat a module as validated only after schema, tests, dry-run/no-send mode, dedupe where applicable, permissions tests, logging/completion report, and one controlled live test for side-effecting modules.
+- Keep Gmail send out of Codex development responsibility; Gmail send remains OpenClaw runtime responsibility after ledger, idempotency, and permission gates.
 
 ## Phase 6: Composer Model Integration
 
@@ -85,6 +123,7 @@ Scope:
 - Integrate composer_model with no broad filesystem access.
 - Require structured JSON plus readable text.
 - Enforce output sections for email_briefs, todoist_tasks, calendar_blocks, followups, and warnings.
+- Include first-pass Composer Packet fields for date, timezone, briefing_window, routines_due, routines_completed, missed_routines, active_priorities, followups, calendar_summary, todoist_summary, routine_rules, permissions, model_instructions, and excluded_sensitive_context_note.
 
 ## Phase 7: Weekly Chart Pack and Report Jobs
 

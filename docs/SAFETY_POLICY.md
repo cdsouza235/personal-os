@@ -30,28 +30,67 @@ Codex must not inspect or mutate the following without explicit approval:
 
 ## Production Operator Rule
 
-OpenClaw is the production and runtime operator. Codex/Fable builds repository code, tests, and documentation. Codex/Fable may not run live OpenClaw workflows unless a future phase explicitly grants that authority.
+OpenClaw is the production and runtime operator. Codex is the primary coding agent and builds repository code, tests, and documentation. Fable is an optional or future alternate coding agent for long-horizon software development work. Codex and Fable may not run live OpenClaw workflows unless a future phase explicitly grants that authority.
 
 ## Phase 0 Rule
 
 Phase 0 is read-only inventory first. It requires explicit approval before it starts. Its purpose is to observe approved surfaces and produce an evidence-backed map without mutation.
+
+Phase 0 may inspect specified live paths only after explicit approval for that inventory scope. Proposed read-only paths may include:
+
+- `/Users/coldstake/PersonalOS`
+- `/Users/coldstake/.openclaw`
+- `/Users/coldstake/Library/LaunchAgents`
+- `/Users/coldstake/dev/personal-os`
+
+Required Phase 0 outputs:
+
+- Current file/module inventory.
+- Inventory report.
+- Protected path map.
+- Boundary map.
+- Current runtime architecture map.
+- Config, ledger, and LaunchAgent inventory.
+- Risk register.
+- Migration recommendations.
+- Recommended Phase 1 implementation plan.
+- Open questions.
 
 ## Prohibited Codex Actions
 
 Codex may not:
 
 - Send email.
+- Execute `gog gmail send`.
 - Write Todoist.
 - Write Calendar.
+- Mutate Todoist.
+- Mutate Calendar.
 - Load or modify LaunchAgents.
+- Load or unload LaunchAgents.
 - Modify production ledgers.
 - Mutate production SQLite state.
+- Modify production SQLite state.
 - Run live OpenClaw workflows.
 - Inspect `/Users/coldstake/PersonalOS`.
 - Inspect `/Users/coldstake/.openclaw`.
 - Touch credentials.
+- Read or print credentials.
 - Touch production state.
 - Create live workflow scripts during documentation or scaffold phases.
+
+## Timezone Authority
+
+America/Chicago is Chris's operating timezone for briefings and routines. The Mac Mini system timezone may differ. Scheduler code must explicitly use the configured operating timezone and must not assume the host timezone.
+
+## SQLite Environment Separation
+
+- Production SQLite state lives on the Mac Mini runtime path.
+- Development and test SQLite files live inside repo-local temporary or test paths.
+- Codex may create and edit dev/test databases in the repository.
+- Codex may not mutate production SQLite state without explicit approval.
+- Production migrations require a backup before migration.
+- Production backups should include periodic JSON and SQLite snapshots.
 
 ## Permission Defaults
 
@@ -80,9 +119,47 @@ No vague thoughts or raw emotional notes become Todoist tasks.
 
 No prose-only model output may be used for execution.
 
+## Validated Runtime Module Definition
+
+A module is validated only after:
+
+- Schema exists.
+- Unit tests exist.
+- Dry-run or no-send mode exists.
+- Dedupe behavior exists where applicable.
+- Permissions behavior is tested.
+- Logging or completion report exists.
+- One controlled live test passes if the module has side effects.
+
+## Gmail Phase Boundaries
+
+- Phase 0: no Gmail access.
+- Phase 1: no-send scheduler and email infrastructure.
+- Later: metadata or read-only access only if explicitly approved.
+- Later: draft generation.
+- Later: send-enabled only with ledger, idempotency, and permission gates.
+- Gmail send remains an OpenClaw runtime responsibility, not a Codex development responsibility.
+
 ## Composer Safety
 
 The composer model receives only a dedicated Composer Packet. It must not receive broad filesystem access, raw notes, the full PersonalOS vault, credentials, legal/tax source documents, or unrestricted files.
+
+Composer Packet input fields:
+
+- date
+- timezone
+- briefing_window
+- routines_due
+- routines_completed
+- missed_routines
+- active_priorities
+- followups
+- calendar_summary
+- todoist_summary
+- routine_rules
+- permissions
+- model_instructions
+- excluded_sensitive_context_note
 
 Composer output must include structured JSON plus readable text. Required sections are email_briefs, todoist_tasks, calendar_blocks, followups, and warnings.
 

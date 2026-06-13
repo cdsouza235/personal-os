@@ -131,3 +131,30 @@ Protected live runtime paths are outside this repository and must not be inspect
 Phase -1 scaffold is complete and committed at `04d51891c2778971f7657eda6076a8cd80b11129`.
 
 Next recommended phase: Phase 0 read-only inventory, after explicit approval.
+
+## Phase 1 Runtime Foundation
+
+The Phase 1 runtime stabilization foundation adds repository-local Python tooling
+and dev/test-only runtime primitives. The foundation currently includes:
+
+- Python package and test scaffold.
+- Secret-free sample config and dev/test environment defaults.
+- Repo-local dev/test SQLite connection and migration helpers.
+- Migration metadata, idempotent application, and checksum drift protection.
+- Dev/test system event records.
+- Fail-closed permission defaults.
+- Dry-run/no-send validation results.
+- Inert completion report serialization.
+
+Phase 1 remains dev/test-only. It does not send email, write Todoist, write
+Calendar, call OpenClaw, start schedulers, call external APIs, or access
+production state.
+
+Local checks:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests
+```
+
+`pytest` is configured in `pyproject.toml`, but it is not installed in the
+current local environment used for this phase.

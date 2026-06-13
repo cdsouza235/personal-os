@@ -1,42 +1,84 @@
 # Personal OS
 
-Personal OS is a modular, local-first productivity, routine, priority, and execution operating system. It is designed to coordinate strategy, software, local automation, durable notes, and external execution systems behind explicit safety gates.
+Personal OS is a modular, local-first productivity, routine, priority, and execution operating system. It helps Chris think clearly, maintain routines, manage high-value priorities, generate briefings, create Todoist tasks, schedule Calendar blocks, preserve durable notes, and run reports through OpenClaw on the Mac Mini.
 
-## Operating Model
+This repository is the private code source of truth for Personal OS. It is documentation-first right now: no live workflow scripts, runtime mutations, or production integrations are enabled from this repo yet.
 
-- ChatGPT owns strategy, synthesis, PRDs, architecture review, acceptance criteria, and audit.
-- Codex owns the software development layer in this repository.
-- OpenClaw remains the approved local runtime and operator on the Mac Mini.
-- The Mac Mini is the runtime and deployment host.
-- GitHub is the source of truth for code.
-- SQLite will hold structured runtime state when the project reaches an approved runtime phase.
-- Markdown and Obsidian will hold Clarity Notes, Follow-Up Notes, logs, and protocols.
+## Operating Roles
 
-## Phase
+- Chris: owner, final approver, source of judgment and priorities.
+- ChatGPT: thought partner, synthesis layer, analysis layer, PRD writer, architect, and auditor.
+- Codex/Fable: software development layer.
+- OpenClaw: local Personal Assistant and runtime operator on the Mac Mini.
+- Mac Mini: always-on runtime host, OpenClaw host, SQLite state host, local PersonalOS file host, scheduler, and local repo clone.
+- GitHub private repo: source of truth for code.
+- SQLite: structured runtime state.
+- Markdown, Obsidian, and PersonalOS: Clarity Notes, General Follow-Up Notes, protocols, logs, and reviews.
+- Todoist, Calendar, and Gmail: execution rails, only touched by validated runtime modules.
 
-This repository is currently in Phase -1 setup. The only permitted work is repository scaffolding, documentation, and inert placeholders.
+## V1 Scope
 
-No live workflows should run from this scaffold.
+- Local dashboard shell.
+- Routine editor.
+- Today view.
+- Priority registry.
+- ChatGPT synthesis import box.
+- SQLite runtime state store.
+- 8am, 12pm, 4pm, and 8pm briefing generation.
+- Todoist auto-write for low-risk routine tasks and follow-ups.
+- Calendar auto-write for approved self-only blocks.
+- Gmail briefings.
+- PersonalOS Markdown Clarity Notes and General Follow-Up Notes.
+- Configurable permissions.
+- System status and logs.
+- Reports/jobs module shell.
+- Fitness integration hook.
+- Weekly chart pack workflow hook.
+
+## Dashboard Requirements
+
+The V1 dashboard is local-network only, with no public internet exposure and no login or password requirement. It should be mobile-friendly for iPhone and usable from Windows or Mac browsers on the local network.
+
+Planned sections:
+
+- Today View
+- Routine Editor
+- Priority Editor
+- Todoist/Calendar Preview
+- System Status/Logs
+- Settings/Permissions
+- Reports/Jobs shell
+
+## State Architecture
+
+- GitHub private repo: code source of truth.
+- SQLite on the Mac Mini: structured runtime state.
+- Markdown and Obsidian: Clarity Notes, Follow-Up Notes, logs, and protocols.
+- Mac Mini: runtime and deployment host.
+- OpenClaw: local runtime operator.
+- Codex/Fable: software developer.
 
 ## Safety Boundary
 
-Codex must not mutate live Gmail, Todoist, Calendar, LaunchAgents, production ledgers, production SQLite state, OpenClaw runtime config, credentials, or any production state without explicit approval.
+Codex may work on documentation, tests, and repository code after the appropriate phase gate, but OpenClaw remains the production/runtime operator.
 
-The first live-system interaction phase is read-only inventory only.
+Codex must not send email, write Todoist, write Calendar, load LaunchAgents, modify production ledgers, mutate production SQLite state, run live OpenClaw workflows, inspect `/Users/coldstake/PersonalOS`, inspect `/Users/coldstake/.openclaw`, touch credentials, or touch production state without explicit approval.
 
-See [docs/SAFETY_POLICY.md](docs/SAFETY_POLICY.md) for the working safety policy.
+The first live-system interaction phase is Phase 0 read-only inventory.
 
 ## Repository Layout
 
 ```text
 docs/          Product, architecture, safety, roadmap, and Codex workflow docs.
-app/           Future application surfaces such as dashboard and APIs.
+app/           Future local dashboard and API surfaces.
 personalos/    Future domain modules for routines, priorities, composer, integrations, reports, and evidence.
-scripts/       Inert helper scripts only when explicitly approved in a later phase.
+scripts/       Reserved for later inert or approved helper scripts; no live workflow scripts in Phase -1.
 tests/         Test suites for repository code.
 .codex/        Codex-local project guidance and metadata.
 ```
 
-## Next Step
+## Current Phase
 
-Review and approve the Phase 0 inventory plan before any interaction with live local systems.
+Phase -1 scaffold is complete and committed at `04d51891c2778971f7657eda6076a8cd80b11129`.
+
+Next recommended phase: Phase 0 read-only inventory, after explicit approval.

@@ -1,44 +1,104 @@
 # Safety Policy
 
-## Phase -1 Boundary
+## Purpose
 
-Phase -1 is repository setup only. Work is limited to scaffolding, placeholder documentation, and inert directory structure.
+Personal OS should feel lightweight to use while remaining safety-aware, configurable, logged, and reversible. This policy defines which systems are protected, how execution gates work, and what evidence is required.
 
-Codex must stop after scaffolding and must not proceed to inventory.
+## Current Boundary
 
-## Protected Systems
-
-Codex must not inspect or mutate the following without explicit approval:
-
-- Live Gmail state
-- Live Todoist state
-- Live Calendar state
-- LaunchAgents
-- Production ledgers
-- Production SQLite state
-- OpenClaw runtime config
-- Credentials
-- Any other production state
+This documentation update is documentation-only. It must not inspect or mutate live runtime files, credentials, external systems, production ledgers, production SQLite state, or any production state.
 
 Codex must not inspect:
 
 - `/Users/coldstake/PersonalOS`
 - `/Users/coldstake/.openclaw`
 
-## Mutation Rule
+## Protected Systems
 
-Codex must not mutate live Gmail, Todoist, Calendar, LaunchAgents, production ledgers, production SQLite state, OpenClaw runtime config, credentials, or any production state without explicit approval.
+Codex must not inspect or mutate the following without explicit approval:
 
-## First Live-System Interaction
+- Gmail
+- Todoist
+- Calendar
+- LaunchAgents
+- Production ledgers
+- Credentials
+- Production SQLite state
+- OpenClaw runtime files or runtime config
+- Live PersonalOS runtime files
+- Any other production state
 
-The first live-system interaction phase is read-only inventory only. It requires explicit approval and must produce an inventory plan before execution.
+## Production Operator Rule
 
-## Runtime Operator
+OpenClaw is the production and runtime operator. Codex/Fable builds repository code, tests, and documentation. Codex/Fable may not run live OpenClaw workflows unless a future phase explicitly grants that authority.
 
-OpenClaw remains the runtime and operator. Codex may build repository code and documentation, but OpenClaw is responsible for approved local runtime workflows.
+## Phase 0 Rule
 
-## Scripts
+Phase 0 is read-only inventory first. It requires explicit approval before it starts. Its purpose is to observe approved surfaces and produce an evidence-backed map without mutation.
 
-During Phase -1, the repository must not contain scripts that run live workflows.
+## Prohibited Codex Actions
 
-Scripts may be added in later phases only after the intended behavior, safety boundary, and approval gate are documented.
+Codex may not:
+
+- Send email.
+- Write Todoist.
+- Write Calendar.
+- Load or modify LaunchAgents.
+- Modify production ledgers.
+- Mutate production SQLite state.
+- Run live OpenClaw workflows.
+- Inspect `/Users/coldstake/PersonalOS`.
+- Inspect `/Users/coldstake/.openclaw`.
+- Touch credentials.
+- Touch production state.
+- Create live workflow scripts during documentation or scaffold phases.
+
+## Permission Defaults
+
+Permissions must be editable from the dashboard.
+
+Default permissions:
+
+- routine_todoist_tasks: auto_write
+- self_calendar_blocks: auto_write
+- high_value_review_tasks: auto_write
+- high_value_execution_actions: approval_required
+- messages_to_other_people: approval_required
+- external_calendar_events: approval_required
+
+## Execution Rules
+
+Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
+
+High-value review and follow-up Todoist tasks may auto-write after validation when they meet the task schema.
+
+High-stakes execution actions require approval.
+
+Self-only review, deep work, admin, and routine Calendar blocks may auto-write after validation. Calendar events involving other people or high-stakes appointments require review.
+
+No vague thoughts or raw emotional notes become Todoist tasks.
+
+No prose-only model output may be used for execution.
+
+## Composer Safety
+
+The composer model receives only a dedicated Composer Packet. It must not receive broad filesystem access, raw notes, the full PersonalOS vault, credentials, legal/tax source documents, or unrestricted files.
+
+Composer output must include structured JSON plus readable text. Required sections are email_briefs, todoist_tasks, calendar_blocks, followups, and warnings.
+
+## Evidence Standard
+
+Development work evidence:
+
+- Diff summary.
+- Test logs when tests exist or behavior changes.
+- Unit or integration output when applicable.
+- Brief implementation note.
+
+Runtime or live operations evidence:
+
+- Persisted completion report.
+- Ledger or log snapshot.
+- Safety flags.
+
+Forensic bundles are only required for incidents, production activation, high-stakes operations, or duplicate/mutation anomalies.

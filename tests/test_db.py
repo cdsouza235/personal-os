@@ -90,9 +90,9 @@ class SQLiteFoundationTest(unittest.TestCase):
                     f"SELECT version, name, checksum FROM {MIGRATION_METADATA_TABLE}"
                 ).fetchall()
 
-            self.assertEqual([migration.version for migration in first_applied], ["0001"])
+            self.assertEqual([migration.version for migration in first_applied], ["0001", "0002"])
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 1)
+            self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -126,11 +126,11 @@ class SQLiteFoundationTest(unittest.TestCase):
             self.assertEqual(context.exception.recorded_checksum, recorded_checksum)
             self.assertNotEqual(context.exception.current_checksum, recorded_checksum)
 
-    def test_migration_discovery_finds_bootstrap_only(self) -> None:
+    def test_migration_discovery_finds_foundation_migrations(self) -> None:
         migrations = discover_migrations()
 
-        self.assertEqual([migration.version for migration in migrations], ["0001"])
-        self.assertEqual([migration.name for migration in migrations], ["bootstrap"])
+        self.assertEqual([migration.version for migration in migrations], ["0001", "0002"])
+        self.assertEqual([migration.name for migration in migrations], ["bootstrap", "system_events"])
 
 
 def _config_for(runtime_dir: Path, environment: Environment) -> PersonalOSConfig:

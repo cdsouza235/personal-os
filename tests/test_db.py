@@ -77,6 +77,45 @@ class SQLiteFoundationTest(unittest.TestCase):
             "updated_by",
         },
     }
+    expected_phase_5_tables = {
+        "todoist_tasks": {
+            "todoist_task_id",
+            "task_title",
+            "description",
+            "source_type",
+            "source_id",
+            "project",
+            "labels_json",
+            "due_date_or_due_string",
+            "priority",
+            "risk_level",
+            "approval_mode",
+            "dedupe_key",
+            "status",
+            "external_task_id",
+            "created_at_utc",
+            "updated_at_utc",
+        },
+        "calendar_blocks": {
+            "calendar_block_id",
+            "title",
+            "description",
+            "source_type",
+            "source_id",
+            "start_time",
+            "end_time",
+            "duration_minutes",
+            "calendar_id",
+            "timezone",
+            "approval_mode",
+            "risk_level",
+            "dedupe_key",
+            "status",
+            "external_event_id",
+            "created_at_utc",
+            "updated_at_utc",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -161,10 +200,10 @@ class SQLiteFoundationTest(unittest.TestCase):
 
             self.assertEqual(
                 [migration.version for migration in first_applied],
-                ["0001", "0002", "0003"],
+                ["0001", "0002", "0003", "0004"],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 3)
+            self.assertEqual(len(rows), 4)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -184,6 +223,22 @@ class SQLiteFoundationTest(unittest.TestCase):
 
         self.assertTrue(self.expected_phase_2_tables.keys() <= table_names)
         self.assertEqual(table_columns, self.expected_phase_2_tables)
+
+    def test_phase_5_todoist_calendar_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_5_tables
+                }
+
+        self.assertTrue(self.expected_phase_5_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_5_tables)
 
     def test_migration_checksum_drift_is_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -217,10 +272,18 @@ class SQLiteFoundationTest(unittest.TestCase):
     def test_migration_discovery_finds_foundation_migrations(self) -> None:
         migrations = discover_migrations()
 
-        self.assertEqual([migration.version for migration in migrations], ["0001", "0002", "0003"])
+        self.assertEqual(
+            [migration.version for migration in migrations],
+            ["0001", "0002", "0003", "0004"],
+        )
         self.assertEqual(
             [migration.name for migration in migrations],
-            ["bootstrap", "system_events", "core_state_tables"],
+            [
+                "bootstrap",
+                "system_events",
+                "core_state_tables",
+                "todoist_calendar_module_tables",
+            ],
         )
 
 

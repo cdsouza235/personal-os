@@ -168,6 +168,72 @@ schedulers, add dashboard UI, or touch production state. Scheduler behavior,
 idempotency/send ledger rules, Todoist/Calendar modules, composer integration,
 and dashboard UI remain later-phase work.
 
+## Todoist and Calendar Module Foundation
+
+The Phase 5 Todoist and Calendar foundation is narrower than live execution.
+It adds dev/test-only module objects, validation, persistence, permission
+gates, preview flows, fake adapters, simulated write reports, and
+module-level dedupe.
+
+Todoist is the action rail, not the brain. Phase 5 stores normalized Todoist
+task proposals in `todoist_tasks` with required task/source/project fields,
+labels serialized as JSON, Todoist-like priorities 1 through 4, risk level,
+approval mode, dedupe key, status, and a nullable fake/future external task
+ID.
+
+Calendar is for real time-bound blocks and commitments. Phase 5 stores
+normalized Calendar block proposals in `calendar_blocks` with required
+title/source/window/calendar fields, timezone-aware start and end times,
+duration consistency checks, risk level, approval mode, dedupe key, status,
+and a nullable fake/future external event ID.
+
+Risk levels are:
+
+- low: routine/admin/self-only tasks or blocks.
+- medium: self-only but sensitive, ambiguous, unusually time-consuming, or tied
+  to a larger project.
+- high: legal, tax, portfolio/crypto/investment execution, health/medical
+  decisions, relationship messages, messages to other people, external
+  meetings, family-sensitive events, or large financial commitments.
+
+Approval modes are:
+
+- auto_allowed: valid only with low risk.
+- approval_required: default for medium and high risk.
+- manual_only: storable and previewable, but not routable to a write client.
+
+Phase 5 permission keys are:
+
+- `todoist_module_dev_test_read`
+- `todoist_module_dev_test_write`
+- `todoist_module_dev_test_simulated_write`
+- `calendar_module_dev_test_read`
+- `calendar_module_dev_test_write`
+- `calendar_module_dev_test_simulated_write`
+
+These keys fail closed by default. No live-write permission keys exist in
+Phase 5.
+
+Module-level dedupe is scoped to `todoist_tasks` and `calendar_blocks`.
+`dedupe_key` is required and unique within each table. When a caller omits a
+dedupe key, the modules generate one deterministically from stable normalized
+fields such as module/object type, source type, source ID, title, due date, or
+start time. Duplicate creates return the existing object explicitly and do not
+silently insert another row.
+
+Fake Todoist and Calendar clients are recording adapters for tests and
+simulated write flows only. They never read credentials, touch the network, or
+mutate external systems. Their fake external IDs are deterministic and derived
+from dedupe keys.
+
+Phase 5 does not add live Todoist writes, live Calendar writes, credentials,
+OAuth, scheduler activation, production SQLite access, Gmail integration,
+composer/model integration, dashboard UI, OpenClaw wiring, LaunchAgents,
+public internet exposure, external-user collaboration, autonomous
+legal/tax/portfolio execution, or a broader scheduler idempotency/send ledger.
+Any post-merge live smoke test is a separate OpenClaw-approved operation, not
+part of this PR.
+
 ## Briefing Architecture
 
 Timezone: America/Chicago.

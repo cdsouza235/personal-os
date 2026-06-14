@@ -128,8 +128,9 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase 4 priority engine foundation is in progress on repository code only. It
-remains dev/test-only and does not operate live Personal OS workflows.
+Phase 5 Todoist and Calendar module foundation is in progress on repository
+code only. It remains dev/test-only and does not operate live Personal OS
+workflows or call live external APIs.
 
 ## Phase 1 Runtime Foundation
 
@@ -209,8 +210,8 @@ system, or live runtime activation.
 
 ## Phase 4 Priority Engine Foundation
 
-The current Phase 4 branch adds the priority registry foundation required by
-the PRD. It includes:
+Phase 4 added the priority registry foundation required by the PRD. It
+includes:
 
 - Priority data-access helpers for get/list/count/create, field updates, and
   status transitions.
@@ -240,6 +241,69 @@ Todoist tasks, Calendar events, Gmail briefs, composer packets, OpenClaw
 actions, LaunchAgents, production SQLite, credentials, or production state.
 Scheduler behavior, idempotency/send ledger rules, Todoist/Calendar modules,
 composer integration, and dashboard UI remain deferred to later phases.
+
+## Phase 5 Todoist and Calendar Module Foundation
+
+Phase 5 adds dev/test-only foundations for the Todoist action rail and Calendar
+time-block rail. It includes:
+
+- SQLite migration `0004_todoist_calendar_module_tables.sql` with
+  `todoist_tasks` and `calendar_blocks` tables.
+- Todoist task validation for required title/source/project fields, string
+  labels, Todoist-like priority values 1 through 4, risk levels, approval
+  modes, status values, and deterministic dedupe keys.
+- Calendar block validation for required title/source/window/calendar fields,
+  timezone-aware start/end times, positive duration, duration/window
+  consistency, risk levels, approval modes, status values, and deterministic
+  dedupe keys.
+- Permission-gated read, dev/test write, and simulated-write wrappers backed
+  by `permission_settings`.
+- Preview flows that validate and return intended writes without mutating
+  SQLite or calling adapters.
+- Dev/test persistence flows that write only to the injected SQLite
+  connection and never create external Todoist tasks or Calendar events.
+- Fake recording clients for simulated Todoist and Calendar writes. Fake
+  external IDs are deterministic and derived from dedupe keys.
+- Module-level dedupe that returns an existing object instead of silently
+  creating duplicate rows.
+
+Phase 5 risk levels:
+
+- `low`: routine/admin/self-only tasks or blocks.
+- `medium`: self-only but sensitive, ambiguous, unusually time-consuming, or
+  tied to a larger project.
+- `high`: legal, tax, portfolio/crypto/investment execution, health/medical
+  decisions, relationship messages, messages to other people, external
+  meetings, family-sensitive events, or large financial commitments.
+
+Phase 5 approval modes:
+
+- `auto_allowed`: valid only for low-risk objects.
+- `approval_required`: default for medium and high risk.
+- `manual_only`: may be stored or previewed, but is not routed to a write
+  client, including fake simulated clients.
+
+Phase 5 permission keys:
+
+- `todoist_module_dev_test_read`
+- `todoist_module_dev_test_write`
+- `todoist_module_dev_test_simulated_write`
+- `calendar_module_dev_test_read`
+- `calendar_module_dev_test_write`
+- `calendar_module_dev_test_simulated_write`
+
+All Phase 5 module permissions fail closed when missing, disabled, invalid, or
+approval-only. They allow work only when the relevant dev/test key is
+explicitly set to `auto_write`.
+
+Phase 5 does not add live Todoist writes, live Calendar writes, credentials,
+OAuth, scheduler activation, production SQLite access, Gmail integration,
+composer/model integration, dashboard UI, LaunchAgents, OpenClaw wiring,
+public internet exposure, external-user collaboration, autonomous
+legal/tax/portfolio execution, or a scheduler idempotency/send ledger.
+
+Any post-merge live smoke test is a separate OpenClaw-approved operation and
+is not part of the Phase 5 PR.
 
 Local checks:
 

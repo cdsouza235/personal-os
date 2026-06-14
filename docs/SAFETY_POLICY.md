@@ -6,7 +6,7 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phase 4 implementation is repository-code-only and dev/test-only. It may edit
+Phase 5 implementation is repository-code-only and dev/test-only. It may edit
 repo-local code, tests, and documentation, and may create temporary dev/test
 SQLite databases during tests. It must not inspect or mutate live runtime files,
 credentials, external systems, production ledgers, production SQLite state, or
@@ -129,6 +129,21 @@ Priority engine read and write paths fail closed when the relevant key is
 missing, disabled, invalid, or approval-only. They allow work only when the
 relevant dev/test key is explicitly set to `auto_write`.
 
+Phase 5 Todoist and Calendar module permissions are stored in
+`permission_settings` and are separate from live integration permissions:
+
+- todoist_module_dev_test_read
+- todoist_module_dev_test_write
+- todoist_module_dev_test_simulated_write
+- calendar_module_dev_test_read
+- calendar_module_dev_test_write
+- calendar_module_dev_test_simulated_write
+
+These module read, dev/test write, and simulated-write paths fail closed when
+the relevant key is missing, disabled, invalid, or approval-only. They allow
+work only when the relevant dev/test key is explicitly set to `auto_write`.
+Phase 5 does not add live-write permission keys.
+
 ## Execution Rules
 
 Phase 3 routine completion is not live execution. In dry-run mode it validates
@@ -157,6 +172,47 @@ state.
 
 Phase 4 does not add scheduler behavior, idempotency/send ledger behavior,
 Todoist/Calendar modules, composer integration, or dashboard UI.
+
+Phase 5 Todoist and Calendar module work is not live execution. Preview flows
+validate proposed objects, calculate deterministic dedupe keys, calculate
+risk/approval results, and return intended writes without mutating SQLite or
+calling adapters. Dev/test persistence flows write only to the injected
+dev/test SQLite connection. Simulated write flows require simulated-write
+permissions, use only fake recording clients, update local dev/test rows to
+`simulated_created`, and return fake external IDs derived from dedupe keys.
+
+Phase 5 risk levels:
+
+- low: routine/admin/self-only tasks or blocks.
+- medium: self-only but sensitive, ambiguous, unusually time-consuming, or tied
+  to a larger project.
+- high: legal, tax, portfolio/crypto/investment execution, health/medical
+  decisions, relationship messages, messages to other people, external
+  meetings, family-sensitive events, or large financial commitments.
+
+Phase 5 approval modes:
+
+- auto_allowed: valid only with low risk.
+- approval_required: default for medium and high risk.
+- manual_only: may be stored or previewed but must not be routed to a write
+  client, including fake simulated clients.
+
+Phase 5 module-level dedupe is scoped to `todoist_tasks` and
+`calendar_blocks`. `dedupe_key` is required and unique within each table.
+Duplicate creates return an existing object explicitly and never silently
+create duplicate rows.
+
+Phase 5 fake Todoist and Calendar adapters never read credentials, touch the
+network, or mutate external systems. No tests or module code call live Todoist
+or Google Calendar APIs.
+
+Phase 5 does not add live Todoist writes, live Calendar writes, credentials,
+OAuth, scheduler activation, production SQLite access, Gmail integration,
+composer/model integration, dashboard UI, OpenClaw runtime wiring,
+LaunchAgents, public internet exposure, external-user collaboration,
+autonomous legal/tax/portfolio execution, or a broader scheduler
+idempotency/send ledger. Any post-merge live smoke test is a separate
+OpenClaw-approved operation, not part of this PR.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

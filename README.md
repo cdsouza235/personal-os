@@ -128,9 +128,8 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase -1 scaffold is complete and committed at `04d51891c2778971f7657eda6076a8cd80b11129`.
-
-Next recommended phase: Phase 0 read-only inventory, after explicit approval.
+Phase 2 dashboard and state store foundation is in progress on repository code
+only. It remains dev/test-only and does not operate live Personal OS workflows.
 
 ## Phase 1 Runtime Foundation
 
@@ -149,6 +148,25 @@ and dev/test-only runtime primitives. The foundation currently includes:
 Phase 1 remains dev/test-only. It does not send email, write Todoist, write
 Calendar, call OpenClaw, start schedulers, call external APIs, or access
 production state.
+
+## Phase 2 Dashboard-State Foundation
+
+The current Phase 2 branch adds a dev/test-only SQLite state foundation and
+read-model layer for future dashboard work. It currently includes:
+
+- Core state tables for `routines`, `routine_completions`, `priorities`,
+  `projects`, `followups`, and `permission_settings`.
+- State-store helpers for `permission_settings` get/list/upsert operations.
+- Read-only list/count helpers for routines, priorities, projects, and
+  followups.
+- A local status summary read model with core counts, permission settings,
+  recent system events, a generated UTC timestamp, and an optional environment
+  label.
+
+Phase 2 is not production-ready. It does not include a dashboard UI, API server,
+scheduler, Gmail/Todoist/Calendar integration, OpenClaw wiring, LaunchAgents,
+production SQLite access, credentials, external API clients, live runtime
+behavior, public internet exposure, or a login/password system.
 
 Local checks:
 

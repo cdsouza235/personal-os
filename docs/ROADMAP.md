@@ -77,6 +77,8 @@ Scope:
 
 ## Phase 2: Dashboard and State Store
 
+Status: in progress.
+
 Scope:
 
 - Build the local dashboard shell.
@@ -85,6 +87,25 @@ Scope:
 - Keep the dashboard local-network only with no public internet exposure.
 - Keep no login or password for V1 by choice, while documenting local-network risks and future options such as password, device allowlist, Tailscale/VPN, or local-only binding.
 - Keep dev/test SQLite files repo-local; require backup before any future production migration.
+
+Current foundation:
+
+- Dev/test-only SQLite tables exist for routines, routine_completions,
+  priorities, projects, followups, and permission_settings.
+- State-store helpers support permission_settings get/list/upsert operations.
+- Read-only list/count helpers exist for routines, priorities, projects, and
+  followups.
+- A status summary read model exposes core counts, permission settings, recent
+  system events, a generated UTC timestamp, and an optional environment label.
+
+Current non-goals:
+
+- No dashboard UI or API server yet.
+- No scheduler, live runtime behavior, production SQLite, credentials,
+  LaunchAgents, OpenClaw wiring, external API clients, or public internet
+  exposure.
+- No Gmail, Todoist, or Calendar integration.
+- No login/password system.
 
 ## Phase 3: Routine Engine
 

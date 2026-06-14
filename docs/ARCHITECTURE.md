@@ -146,6 +146,28 @@ Default routines:
 - Fitness / Strength: separate from Grease-the-Groove and integrated later from the existing tracker.
 - Shutdown / Review: daily evening.
 
+## Priority Engine
+
+The Phase 4 priority engine foundation is narrower than the full priority
+system. It provides dev/test-only priority registry access, validation,
+permission-gated read/write helpers, dry-run-safe create/update/status
+transition flows, and deterministic read models on top of the Phase 2 SQLite
+`priorities` table.
+
+Priority statuses are deterministic registry states:
+
+- active
+- paused
+- completed
+- archived
+
+Phase 4 does not infer priorities from raw notes, rank priorities
+automatically, score tasks, generate Todoist tasks, create Calendar blocks,
+write Gmail briefs, call OpenClaw, produce composer packets, activate
+schedulers, add dashboard UI, or touch production state. Scheduler behavior,
+idempotency/send ledger rules, Todoist/Calendar modules, composer integration,
+and dashboard UI remain later-phase work.
+
 ## Briefing Architecture
 
 Timezone: America/Chicago.

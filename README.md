@@ -128,7 +128,7 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase 3 routine engine foundation is in progress on repository code only. It
+Phase 4 priority engine foundation is in progress on repository code only. It
 remains dev/test-only and does not operate live Personal OS workflows.
 
 ## Phase 1 Runtime Foundation
@@ -170,8 +170,8 @@ behavior, public internet exposure, or a login/password system.
 
 ## Phase 3 Routine Engine Foundation
 
-The current Phase 3 branch adds a safe internal routine engine foundation on
-top of the Phase 2 tables. It includes:
+Phase 3 added a safe internal routine engine foundation on top of the Phase 2
+tables. It includes:
 
 - Routine data-access helpers for get/list/count/create and status/enabled
   updates.
@@ -205,8 +205,41 @@ The routine engine allows work only when the relevant key is explicitly set to
 Phase 3 is not a scheduler, dashboard UI, API server, OpenClaw integration,
 Todoist integration, Gmail integration, Calendar integration, LaunchAgent,
 production SQLite path, credential path, external API client, notification
-system, or live runtime activation. The Phase 3 PR must stop before merge and
-must not start Phase 4.
+system, or live runtime activation.
+
+## Phase 4 Priority Engine Foundation
+
+The current Phase 4 branch adds the priority registry foundation required by
+the PRD. It includes:
+
+- Priority data-access helpers for get/list/count/create, field updates, and
+  status transitions.
+- Priority validation for required IDs and titles, allowed status values,
+  JSON-safe metadata, notes, and timezone-aware UTC timestamp inputs.
+- Permission-gated priority-engine read and write paths backed by
+  `permission_settings`.
+- Dry-run-safe priority create, update, and status transition flows that return
+  inert preview dictionaries and do not mutate SQLite.
+- Non-dry-run dev/test flows that write only to the injected dev/test SQLite
+  connection when the write permission is explicitly enabled.
+- Deterministic read-model helpers for active priority summaries and counts by
+  status.
+
+Phase 4 permission keys:
+
+- `priority_engine_dev_test_read`
+- `priority_engine_dev_test_write`
+
+Both keys fail closed when missing, disabled, invalid, or set to approval-only.
+The priority engine allows work only when the relevant key is explicitly set to
+`auto_write` in the dev/test database.
+
+Phase 4 is not an autonomous prioritization system. It does not score, rank,
+infer, generate, or schedule priorities from raw notes. It does not write
+Todoist tasks, Calendar events, Gmail briefs, composer packets, OpenClaw
+actions, LaunchAgents, production SQLite, credentials, or production state.
+Scheduler behavior, idempotency/send ledger rules, Todoist/Calendar modules,
+composer integration, and dashboard UI remain deferred to later phases.
 
 Local checks:
 

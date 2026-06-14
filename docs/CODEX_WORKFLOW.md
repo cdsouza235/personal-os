@@ -12,8 +12,8 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phase 3 is approved for repo-local code, tests, and documentation. Codex may
-implement the dev/test-only routine engine foundation in this repository, run
+Phase 4 is approved for repo-local code, tests, and documentation. Codex may
+implement the dev/test-only priority engine foundation in this repository, run
 local tests, push the branch, and open or update the PR. Codex must stop before
 merge and must not inspect or mutate protected runtime paths, external systems,
 credentials, production ledgers, production SQLite state, or production state.
@@ -106,10 +106,26 @@ The Phase 3 routine engine foundation is internal and dev/test-only. It may:
 - Return dry-run and non-dry-run inert result dicts for tests and later
   development surfaces.
 
-Phase 3 may not start a scheduler, activate recurring automation, wire
+Phase 3 did not start a scheduler, activate recurring automation, wire
 OpenClaw, create LaunchAgents, add external API clients, touch Gmail, Todoist,
 or Calendar, write production SQLite, add credentials, expose a web surface, or
-start Phase 4.
+perform priority engine work.
+
+The Phase 4 priority engine foundation is internal and dev/test-only. It may:
+
+- Read priorities through permission-gated helpers.
+- Create priority records and update fields or status through permission-gated
+  helpers.
+- Return dry-run and non-dry-run inert result dicts for tests and later
+  development surfaces.
+- Return deterministic active-priority and counts-by-status summaries.
+
+Phase 4 may not infer priorities from raw notes, rank priorities
+automatically, generate tasks, start a scheduler, add idempotency/send ledger
+behavior, activate runtime automation, wire OpenClaw, create LaunchAgents, add
+external API clients, touch Gmail, Todoist, or Calendar, write production
+SQLite, add credentials, expose a dashboard or API surface, generate composer
+packets, or start Phase 5.
 
 ## Runtime Module Validation
 

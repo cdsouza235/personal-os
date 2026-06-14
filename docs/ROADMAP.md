@@ -145,7 +145,7 @@ Non-goals:
 
 ## Phase 4: Priority Engine
 
-Status: in progress.
+Status: complete.
 
 Scope:
 
@@ -180,14 +180,65 @@ Non-goals:
 
 ## Phase 5: Todoist and Calendar Modules
 
+Status: in progress.
+
 Scope:
 
-- Add validated Todoist write module for low-risk routine tasks and high-value review/follow-up tasks.
-- Add validated Calendar write module for approved self-only blocks.
-- Keep high-stakes actions, messages to other people, and external calendar events behind approval.
-- Remove completed Todoist tasks from later briefings.
-- Treat a module as validated only after schema, tests, dry-run/no-send mode, dedupe where applicable, permissions tests, logging/completion report, and one controlled live test for side-effecting modules.
-- Keep Gmail send out of Codex development responsibility; Gmail send remains OpenClaw runtime responsibility after ledger, idempotency, and permission gates.
+- Add dev/test SQLite tables for Todoist task proposals and Calendar block
+  proposals.
+- Add validation for required fields, risk levels, approval modes, status
+  values, Todoist-like priority values, labels, Calendar start/end windows, and
+  Calendar duration consistency.
+- Add deterministic module-level dedupe keys and prevent silent duplicate
+  creates.
+- Add permission-gated read, dev/test write, and simulated-write wrappers.
+- Add dry-run preview flows that do not mutate SQLite or call adapters.
+- Add fake recording Todoist and Calendar clients for deterministic simulated
+  write reports.
+- Keep high-risk actions, messages to other people, external meetings,
+  family-sensitive events, legal/tax/portfolio execution, and large financial
+  commitments behind approval or manual-only paths.
+
+Risk and approval semantics:
+
+- `low`: routine/admin/self-only tasks or blocks.
+- `medium`: self-only but sensitive, ambiguous, unusually time-consuming, or
+  tied to a larger project.
+- `high`: legal, tax, portfolio/crypto/investment execution, health/medical
+  decisions, relationship messages, messages to other people, external
+  meetings, family-sensitive events, or large financial commitments.
+- `auto_allowed` is valid only with `low`.
+- `medium` defaults to `approval_required`.
+- `high` must be `approval_required` or `manual_only`.
+- `manual_only` may be stored or previewed but must not be routed to a write
+  client.
+
+Permission keys:
+
+- `todoist_module_dev_test_read`
+- `todoist_module_dev_test_write`
+- `todoist_module_dev_test_simulated_write`
+- `calendar_module_dev_test_read`
+- `calendar_module_dev_test_write`
+- `calendar_module_dev_test_simulated_write`
+
+Non-goals:
+
+- No live Todoist writes.
+- No live Calendar writes.
+- No credentials or OAuth.
+- No scheduler activation.
+- No production SQLite access.
+- No Gmail integration.
+- No composer/model integration.
+- No dashboard UI or API server.
+- No LaunchAgents or OpenClaw runtime wiring.
+- No public internet exposure or external-user collaboration.
+- No autonomous legal, tax, portfolio, crypto, investment, health, medical, or
+  relationship-message execution.
+- No broader scheduler idempotency/send ledger in Phase 5.
+- Post-merge live smoke testing is a separate OpenClaw-approved operation, not
+  part of this PR.
 
 ## Phase 6: Composer Model Integration
 

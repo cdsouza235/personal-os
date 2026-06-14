@@ -12,7 +12,11 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-This update is documentation-only. Codex may update README and docs, but must not inspect or mutate protected runtime paths, external systems, credentials, production ledgers, production SQLite state, or production state.
+Phase 3 is approved for repo-local code, tests, and documentation. Codex may
+implement the dev/test-only routine engine foundation in this repository, run
+local tests, push the branch, and open or update the PR. Codex must stop before
+merge and must not inspect or mutate protected runtime paths, external systems,
+credentials, production ledgers, production SQLite state, or production state.
 
 ## Phase Rules
 
@@ -90,6 +94,22 @@ Codex may not:
 Production SQLite state lives on the Mac Mini runtime path. Development and test SQLite files live inside repo-local temporary or test paths. Codex may create and edit dev/test databases in this repository, but may not mutate production SQLite state without explicit approval.
 
 Production migrations require a backup before migration. Production backups should include periodic JSON and SQLite snapshots.
+
+## Phase 3 Routine Engine Boundary
+
+The Phase 3 routine engine foundation is internal and dev/test-only. It may:
+
+- Read routines through permission-gated helpers.
+- Create routine records and update status/enabled fields through
+  permission-gated helpers.
+- Record routine completions in an injected dev/test SQLite connection.
+- Return dry-run and non-dry-run inert result dicts for tests and later
+  development surfaces.
+
+Phase 3 may not start a scheduler, activate recurring automation, wire
+OpenClaw, create LaunchAgents, add external API clients, touch Gmail, Todoist,
+or Calendar, write production SQLite, add credentials, expose a web surface, or
+start Phase 4.
 
 ## Runtime Module Validation
 

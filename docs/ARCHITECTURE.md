@@ -113,6 +113,10 @@ It provides dev/test-only data access, validation, permission-gated read/write
 helpers, and dry-run-safe completion recording on top of the Phase 2 SQLite
 tables. It does not implement scheduling, recurrence expansion, default routine
 seeding, editor UI, dashboard UI, OpenClaw wiring, or external integrations.
+Routine completions are append-only dev/test records in Phase 3 and do not yet
+enforce idempotency by `routine_id` plus `completed_for_date`. Scheduler and
+idempotency rules are deferred to a future scheduler/runtime phase before any
+automated recurring completion loop is activated.
 
 Cadence rules:
 

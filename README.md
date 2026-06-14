@@ -187,6 +187,12 @@ top of the Phase 2 tables. It includes:
 - A non-dry-run dev/test completion flow that records a completion row only in
   the injected dev/test SQLite connection and returns an inert result dict.
 
+Phase 3 routine completions are append-only dev/test records. They do not yet
+enforce idempotency by `routine_id` plus `completed_for_date`, and this phase
+does not add a database unique constraint. Scheduler and idempotency rules are
+deferred to a future scheduler/runtime phase before any automated recurring
+completion loop is activated.
+
 Phase 3 permission keys:
 
 - `routine_engine_dev_test_read`

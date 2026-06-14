@@ -129,6 +129,12 @@ connection and returns an inert result. It does not send notifications, create
 Todoist tasks, write Calendar events, send email, call OpenClaw, or touch
 production state.
 
+Phase 3 routine completions are append-only dev/test records. They do not yet
+enforce idempotency by `routine_id` plus `completed_for_date`, and this phase
+does not add a database unique constraint. Scheduler and idempotency rules are
+deferred to a future scheduler/runtime phase before any automated recurring
+completion loop is activated.
+
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 
 High-value review and follow-up Todoist tasks may auto-write after validation when they meet the task schema.

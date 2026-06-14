@@ -108,6 +108,12 @@ Sections:
 
 Routines must be data-driven, not hardcoded. The editor must support add, edit, disable, and delete operations.
 
+The Phase 3 routine engine foundation is narrower than the full routine system.
+It provides dev/test-only data access, validation, permission-gated read/write
+helpers, and dry-run-safe completion recording on top of the Phase 2 SQLite
+tables. It does not implement scheduling, recurrence expansion, default routine
+seeding, editor UI, dashboard UI, OpenClaw wiring, or external integrations.
+
 Cadence rules:
 
 - daily

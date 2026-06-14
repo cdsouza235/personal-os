@@ -77,7 +77,7 @@ Scope:
 
 ## Phase 2: Dashboard and State Store
 
-Status: in progress.
+Status: complete.
 
 Scope:
 
@@ -109,12 +109,40 @@ Current non-goals:
 
 ## Phase 3: Routine Engine
 
+Status: in progress.
+
 Scope:
 
-- Build the data-driven routine engine.
-- Add routine editor support for add, edit, disable, and delete.
-- Implement cadence rules and missed behavior options.
-- Add defaults for cleaning, reading, prayer/meditation, Grease-the-Groove, fitness shell, and shutdown/review.
+- Build the dev/test-only routine engine foundation on top of the Phase 2
+  SQLite tables.
+- Add routine helpers for get/list/count/create and status/enabled updates.
+- Add routine completion helpers that validate the referenced routine and write
+  only to injected dev/test SQLite connections.
+- Validate routine status values, enabled flags, completion input shape,
+  missing routines, disabled routines, and inactive routines.
+- Gate routine-engine read and write paths through explicit
+  `permission_settings` keys:
+  `routine_engine_dev_test_read` and `routine_engine_dev_test_write`.
+- Support a dry-run completion flow that checks permissions and reports the
+  intended completion without writing a row.
+- Support a non-dry-run dev/test completion flow that writes only a
+  `routine_completions` row and returns an inert result.
+- Prove through unit tests that missing/disabled permissions deny action and
+  enabled dev/test permissions allow the intended routine operations.
+
+Non-goals:
+
+- No scheduler.
+- No recurring automation activation.
+- No default routine seeding.
+- No routine editor UI.
+- No dashboard UI or API server.
+- No OpenClaw runtime wiring.
+- No Gmail, Todoist, or Calendar integration.
+- No LaunchAgents, production SQLite, credentials, external API clients,
+  public internet exposure, notifications, task creation, email sending, or
+  calendar writes.
+- No Phase 4 work.
 
 ## Phase 4: Priority Engine
 

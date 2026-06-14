@@ -128,8 +128,8 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase 2 dashboard and state store foundation is in progress on repository code
-only. It remains dev/test-only and does not operate live Personal OS workflows.
+Phase 3 routine engine foundation is in progress on repository code only. It
+remains dev/test-only and does not operate live Personal OS workflows.
 
 ## Phase 1 Runtime Foundation
 
@@ -151,8 +151,8 @@ production state.
 
 ## Phase 2 Dashboard-State Foundation
 
-The current Phase 2 branch adds a dev/test-only SQLite state foundation and
-read-model layer for future dashboard work. It currently includes:
+Phase 2 added a dev/test-only SQLite state foundation and read-model layer for
+future dashboard work. It includes:
 
 - Core state tables for `routines`, `routine_completions`, `priorities`,
   `projects`, `followups`, and `permission_settings`.
@@ -167,6 +167,40 @@ Phase 2 is not production-ready. It does not include a dashboard UI, API server,
 scheduler, Gmail/Todoist/Calendar integration, OpenClaw wiring, LaunchAgents,
 production SQLite access, credentials, external API clients, live runtime
 behavior, public internet exposure, or a login/password system.
+
+## Phase 3 Routine Engine Foundation
+
+The current Phase 3 branch adds a safe internal routine engine foundation on
+top of the Phase 2 tables. It includes:
+
+- Routine data-access helpers for get/list/count/create and status/enabled
+  updates.
+- Routine validation for IDs, status values, enabled flags, completion dates,
+  JSON-safe metadata, missing routines, disabled routines, and inactive
+  routines.
+- Routine completion helpers that write only to dev/test SQLite when explicitly
+  allowed.
+- Permission-gated routine-engine read and write paths backed by
+  `permission_settings`.
+- A dry-run-safe completion flow that validates intended work and reports what
+  would be written without inserting a completion row.
+- A non-dry-run dev/test completion flow that records a completion row only in
+  the injected dev/test SQLite connection and returns an inert result dict.
+
+Phase 3 permission keys:
+
+- `routine_engine_dev_test_read`
+- `routine_engine_dev_test_write`
+
+Both keys fail closed when missing, disabled, invalid, or set to approval-only.
+The routine engine allows work only when the relevant key is explicitly set to
+`auto_write` in the dev/test database.
+
+Phase 3 is not a scheduler, dashboard UI, API server, OpenClaw integration,
+Todoist integration, Gmail integration, Calendar integration, LaunchAgent,
+production SQLite path, credential path, external API client, notification
+system, or live runtime activation. The Phase 3 PR must stop before merge and
+must not start Phase 4.
 
 Local checks:
 

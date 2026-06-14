@@ -6,7 +6,11 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-This documentation update is documentation-only. It must not inspect or mutate live runtime files, credentials, external systems, production ledgers, production SQLite state, or any production state.
+Phase 3 implementation is repository-code-only and dev/test-only. It may edit
+repo-local code, tests, and documentation, and may create temporary dev/test
+SQLite databases during tests. It must not inspect or mutate live runtime files,
+credentials, external systems, production ledgers, production SQLite state, or
+any production state.
 
 Codex must not inspect:
 
@@ -105,7 +109,25 @@ Default permissions:
 - messages_to_other_people: approval_required
 - external_calendar_events: approval_required
 
+Phase 3 routine engine permissions are stored in `permission_settings` and are
+separate from live integration permissions:
+
+- routine_engine_dev_test_read
+- routine_engine_dev_test_write
+
+Routine engine read and write paths fail closed when the relevant key is
+missing, disabled, invalid, or approval-only. They allow work only when the
+relevant dev/test key is explicitly set to `auto_write`.
+
 ## Execution Rules
+
+Phase 3 routine completion is not live execution. In dry-run mode it validates
+the intended completion, checks the dev/test permission setting, and returns
+what would be written without inserting a row. In non-dry-run dev/test mode it
+writes only a `routine_completions` row to the injected dev/test SQLite
+connection and returns an inert result. It does not send notifications, create
+Todoist tasks, write Calendar events, send email, call OpenClaw, or touch
+production state.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

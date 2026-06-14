@@ -109,7 +109,7 @@ Current non-goals:
 
 ## Phase 3: Routine Engine
 
-Status: in progress.
+Status: complete.
 
 Scope:
 
@@ -142,16 +142,41 @@ Non-goals:
 - No LaunchAgents, production SQLite, credentials, external API clients,
   public internet exposure, notifications, task creation, email sending, or
   calendar writes.
-- No Phase 4 work.
 
 ## Phase 4: Priority Engine
 
+Status: in progress.
+
 Scope:
 
-- Build the priority registry.
-- Add project and follow-up structures.
-- Support ChatGPT synthesis imports.
-- Connect priorities to briefings and review tasks.
+- Build the dev/test-only priority registry foundation on top of the Phase 2
+  SQLite `priorities` table.
+- Add priority helpers for get/list/count/create, field updates, and status
+  transitions.
+- Validate priority IDs, titles, allowed status values, JSON-safe metadata,
+  notes, and timezone-aware timestamp inputs.
+- Gate priority-engine read and write paths through explicit
+  `permission_settings` keys:
+  `priority_engine_dev_test_read` and `priority_engine_dev_test_write`.
+- Support dry-run priority creation, update, and status transition flows that
+  report intended writes without mutating SQLite.
+- Support non-dry-run dev/test priority writes only when the write permission is
+  explicitly enabled.
+- Add deterministic read models for active priorities, counts by status, and a
+  small priority dashboard summary shape.
+
+Non-goals:
+
+- No autonomous prioritization, semantic scoring, ranking, inference from raw
+  notes, or automatic task generation.
+- No project/follow-up lifecycle expansion beyond existing Phase 2 tables.
+- No ChatGPT synthesis imports or composer integration.
+- No dashboard UI or API server.
+- No scheduler behavior, recurring automation activation, idempotency/send
+  ledger, or runtime wiring.
+- No Todoist, Calendar, Gmail, OpenClaw, LaunchAgent, production SQLite,
+  credential, external API client, public internet, task creation, email
+  sending, or calendar write behavior.
 
 ## Phase 5: Todoist and Calendar Modules
 

@@ -155,6 +155,50 @@ class SQLiteFoundationTest(unittest.TestCase):
             "completed_at",
         },
     }
+    expected_phase_7_tables = {
+        "report_jobs": {
+            "id",
+            "job_type",
+            "name",
+            "description",
+            "cadence",
+            "config_json",
+            "status",
+            "last_run_at",
+            "next_due_at",
+            "created_at",
+            "updated_at",
+        },
+        "report_runs": {
+            "id",
+            "job_id",
+            "run_type",
+            "dry_run",
+            "status",
+            "input_json",
+            "output_json",
+            "error_message",
+            "created_at",
+            "completed_at",
+        },
+        "chart_pack_reviews": {
+            "id",
+            "review_date",
+            "week_start",
+            "week_end",
+            "source_type",
+            "source_id",
+            "title",
+            "thesis_context",
+            "chart_pack_json",
+            "tradingview_alerts_json",
+            "synthesis_markdown",
+            "structured_summary_json",
+            "status",
+            "created_at",
+            "updated_at",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -239,10 +283,10 @@ class SQLiteFoundationTest(unittest.TestCase):
 
             self.assertEqual(
                 [migration.version for migration in first_applied],
-                ["0001", "0002", "0003", "0004", "0005"],
+                ["0001", "0002", "0003", "0004", "0005", "0006"],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 5)
+            self.assertEqual(len(rows), 6)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -477,6 +521,218 @@ class SQLiteFoundationTest(unittest.TestCase):
                                 ),
                             )
 
+    def test_phase_7_report_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_7_tables
+                }
+
+        self.assertTrue(self.expected_phase_7_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_7_tables)
+
+    def test_phase_7_report_job_check_constraints_reject_invalid_values(self) -> None:
+        invalid_cases = (
+            ("job_type", "live_market_data"),
+            ("cadence", "hourly"),
+            ("status", "running_live"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"report-job-check-{index}",
+                            "job_type": "weekly_chart_pack_index",
+                            "name": "Weekly chart pack",
+                            "description": "Manual chart pack index.",
+                            "cadence": "weekly",
+                            "config_json": "{}",
+                            "status": "draft",
+                            "last_run_at": None,
+                            "next_due_at": "2026-06-22T10:00:00+00:00",
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO report_jobs (
+                                    id,
+                                    job_type,
+                                    name,
+                                    description,
+                                    cadence,
+                                    config_json,
+                                    status,
+                                    last_run_at,
+                                    next_due_at,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["job_type"],
+                                    values["name"],
+                                    values["description"],
+                                    values["cadence"],
+                                    values["config_json"],
+                                    values["status"],
+                                    values["last_run_at"],
+                                    values["next_due_at"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
+    def test_phase_7_report_run_check_constraints_reject_invalid_values(self) -> None:
+        invalid_cases = (
+            ("run_type", "live"),
+            ("status", "sent"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"report-run-check-{index}",
+                            "job_id": "job-check",
+                            "run_type": "dry_run",
+                            "dry_run": 1,
+                            "status": "completed",
+                            "input_json": "{}",
+                            "output_json": '{"no_external_writes":true}',
+                            "error_message": None,
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "completed_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO report_runs (
+                                    id,
+                                    job_id,
+                                    run_type,
+                                    dry_run,
+                                    status,
+                                    input_json,
+                                    output_json,
+                                    error_message,
+                                    created_at,
+                                    completed_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["job_id"],
+                                    values["run_type"],
+                                    values["dry_run"],
+                                    values["status"],
+                                    values["input_json"],
+                                    values["output_json"],
+                                    values["error_message"],
+                                    values["created_at"],
+                                    values["completed_at"],
+                                ),
+                            )
+
+    def test_phase_7_chart_pack_review_check_constraints_reject_invalid_values(self) -> None:
+        invalid_cases = (
+            ("source_type", "tradingview_api"),
+            ("status", "executed"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"chart-pack-check-{index}",
+                            "review_date": "2026-06-15",
+                            "week_start": "2026-06-08",
+                            "week_end": "2026-06-14",
+                            "source_type": "fake_fixture",
+                            "source_id": "fixture",
+                            "title": "Weekly Chart Pack",
+                            "thesis_context": "Manual review only.",
+                            "chart_pack_json": "{}",
+                            "tradingview_alerts_json": "{}",
+                            "synthesis_markdown": "Manual synthesis.",
+                            "structured_summary_json": "{}",
+                            "status": "draft",
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO chart_pack_reviews (
+                                    id,
+                                    review_date,
+                                    week_start,
+                                    week_end,
+                                    source_type,
+                                    source_id,
+                                    title,
+                                    thesis_context,
+                                    chart_pack_json,
+                                    tradingview_alerts_json,
+                                    synthesis_markdown,
+                                    structured_summary_json,
+                                    status,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["review_date"],
+                                    values["week_start"],
+                                    values["week_end"],
+                                    values["source_type"],
+                                    values["source_id"],
+                                    values["title"],
+                                    values["thesis_context"],
+                                    values["chart_pack_json"],
+                                    values["tradingview_alerts_json"],
+                                    values["synthesis_markdown"],
+                                    values["structured_summary_json"],
+                                    values["status"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
     def test_migration_checksum_drift_is_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -511,7 +767,7 @@ class SQLiteFoundationTest(unittest.TestCase):
 
         self.assertEqual(
             [migration.version for migration in migrations],
-            ["0001", "0002", "0003", "0004", "0005"],
+            ["0001", "0002", "0003", "0004", "0005", "0006"],
         )
         self.assertEqual(
             [migration.name for migration in migrations],
@@ -521,6 +777,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "core_state_tables",
                 "todoist_calendar_module_tables",
                 "composer_model_tables",
+                "report_jobs_chart_pack_tables",
             ],
         )
 

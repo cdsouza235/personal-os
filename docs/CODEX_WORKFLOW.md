@@ -12,11 +12,11 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 10A are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. Phase 10B is approved for repo-local code,
-tests, and documentation only as a no-send daily briefing loop foundation for
-local/manual previews. Codex may run local tests, push the branch, and open or
-update the PR. Codex must stop before merge and must not inspect or mutate
+Phases -1 through 10B are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. Phase 10C is approved for repo-local code,
+tests, and documentation only as dashboard briefing integration for existing
+no-send briefing outputs. Codex may run local tests, push the branch, and open
+or update the PR. Codex must stop before merge and must not inspect or mutate
 protected runtime paths, external systems, credentials, production ledgers,
 production SQLite state, or production state.
 
@@ -262,6 +262,30 @@ LaunchAgents, public internet exposure, dashboard mutation, routine or
 priority editors, synthesis import, real model routing, production
 SQLite/runtime state mutation, protected PersonalOS or OpenClaw access, or
 external writes of any kind.
+
+## Phase 10C Dashboard Briefing Integration Boundary
+
+The Phase 10C dashboard briefing integration is read-only visibility for
+existing Phase 10B no-send briefing outputs. It may:
+
+- Add a Today View `briefing_output_summary` for existing `daily_plans` and
+  `briefing_outputs`.
+- Render a dashboard Briefing Outputs section with latest output status,
+  manual export preview, completion report safety flags, warnings, and failed
+  briefing status.
+- Include briefing output summaries in the existing `/today.json` route.
+
+The manual export preview is read-only. Phase 10C may not add a generation
+button, Gmail sending, Gmail drafts, live Todoist writes, live Calendar writes,
+Gmail/model/Todoist/Calendar writes, live model calls,
+OpenAI/OpenRouter/Anthropic calls, credentials or OAuth, scheduler or
+LaunchAgents, public internet exposure, dashboard mutation, routine or
+priority editors, synthesis import, production SQLite/runtime state mutation,
+protected PersonalOS or OpenClaw access, or external writes of any kind.
+
+Phase 10B manual exports are local fake/no-send content. Future real-content
+redaction or review may be needed before broader network exposure or any
+non-local dashboard access is considered.
 
 ## Runtime Module Validation
 

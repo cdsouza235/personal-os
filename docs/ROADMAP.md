@@ -521,7 +521,7 @@ Likely next phase:
 
 ## Phase 10B: No-Send Daily Briefing Loop Foundation
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -574,7 +574,58 @@ Non-goals:
 - No real model routing.
 - No external writes of any kind.
 
+## Phase 10C: Dashboard Briefing Integration
+
+Status: current.
+
+Scope:
+
+- Add a read-only Today View `briefing_output_summary` over existing
+  `daily_plans` and `briefing_outputs`.
+- Show a dashboard Briefing Outputs section with latest briefing
+  window/name/status, delivery mode, created timestamp, counts, warning counts,
+  and failed briefing count.
+- Show the latest manual export preview or excerpt as read-only dashboard
+  content.
+- Show completion report safety flags:
+  `no_external_writes`, `no_send_mode`, `no_live_model_call`,
+  `no_todoist_writes`, `no_calendar_writes`, and `no_gmail_send`.
+- Include the same briefing output summary in the existing `/today.json`
+  render path.
+- Preserve localhost/read-only dashboard behavior.
+
+Permission keys:
+
+- No new Phase 10C permission keys.
+
+Non-goals:
+
+- No generation button.
+- No Gmail sending.
+- No Gmail drafts.
+- No live Todoist writes.
+- No live Calendar writes.
+- No Gmail/model/Todoist/Calendar writes.
+- No live model calls.
+- No OpenAI/OpenRouter/Anthropic calls.
+- No credentials or OAuth.
+- No scheduler or LaunchAgents.
+- No production SQLite/runtime state mutation.
+- No protected PersonalOS or `.openclaw` access.
+- No public internet exposure.
+- No dashboard mutation.
+- No routine editor.
+- No priority editor.
+- No synthesis import.
+- No external writes of any kind.
+
+Notes:
+
+- Phase 10B manual exports are local fake/no-send content. Future
+  real-content redaction or review may be needed before broader network
+  exposure or any non-local dashboard access is considered.
+
 Likely next phase:
 
-- Dashboard integration for briefing outputs, ChatGPT synthesis import preview,
-  or controlled manual live rail testing after ledgers and separate approval.
+- ChatGPT synthesis import preview or controlled manual live rail testing
+  after ledgers and separate approval.

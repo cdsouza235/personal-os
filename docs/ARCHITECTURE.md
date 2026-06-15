@@ -567,9 +567,34 @@ or priority editors, no synthesis import, no real model routing, no production
 SQLite/runtime state mutation, no protected PersonalOS or OpenClaw access, and
 no external writes of any kind.
 
-Likely next steps after Phase 10B are dashboard integration for briefing
-outputs, ChatGPT synthesis import preview, or controlled manual live rail
-testing after ledgers and separate approval.
+## Dashboard Briefing Visibility
+
+Phase 10C dashboard briefing integration connects existing Phase 10B no-send
+briefing outputs to the read-only Today View and local dashboard shell. The
+Today View read model now exposes a `briefing_output_summary` derived from the
+local `daily_plans` and `briefing_outputs` tables for the selected source date
+and timezone.
+
+The dashboard Briefing Outputs section shows the latest briefing
+window/name/status, delivery mode, created timestamp, warning and failed counts,
+the latest manual export preview, and completion report safety flags. The same
+summary appears in the existing `/today.json` read-only render path. The
+manual export preview is read-only and does not create a send, draft, or
+generation workflow.
+
+Phase 10C adds no generation button, no scheduler, no Gmail/model/Todoist/Calendar
+writes, no Gmail drafts, no live model/API calls, no credentials or OAuth, no
+LaunchAgents, no production SQLite/runtime state mutation, no protected
+PersonalOS or OpenClaw access, no public internet exposure, no dashboard
+mutation, no routine or priority editors, no synthesis import, and no external
+writes of any kind.
+
+Phase 10B manual exports are local fake/no-send content. Future real-content
+redaction or review may be needed before broader network exposure or any
+non-local dashboard access is considered.
+
+Likely next steps after Phase 10C are ChatGPT synthesis import preview or
+controlled manual live rail testing after ledgers and separate approval.
 
 ## Phase 0 Inventory Charter
 

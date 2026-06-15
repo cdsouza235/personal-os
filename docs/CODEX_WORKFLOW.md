@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 9A are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. Phase 9B is approved for repo-local code,
-tests, and documentation only as local/dev runtime DB bootstrap foundation.
-Codex may run local tests, push the branch, and open or update the PR. Codex
-must stop before merge and must not inspect or mutate protected runtime paths,
-external systems, credentials, production ledgers, production SQLite state, or
-production state.
+Phases -1 through 9B are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. Phase 10A is approved for repo-local code,
+tests, and documentation only as a read-only local dashboard Today View
+foundation. Codex may run local tests, push the branch, and open or update the
+PR. Codex must stop before merge and must not inspect or mutate protected
+runtime paths, external systems, credentials, production ledgers, production
+SQLite state, or production state.
 
 ## Phase Rules
 
@@ -210,6 +210,29 @@ or load LaunchAgents, start a scheduler, expose a dashboard or web server,
 generate a daily briefing loop, send Gmail, write Todoist, write Calendar,
 call live model APIs, call Notion/Apple Health/TradingView or other external
 APIs, read credentials/OAuth, or create live external write permissions.
+
+## Phase 10A Local Dashboard Today View Boundary
+
+The Phase 10A local dashboard Today View foundation is read-only and local
+only. It may:
+
+- Build Today View summaries from existing SQLite state through caller-supplied
+  connections.
+- Render `Personal OS Today View` HTML or JSON from a supplied temp/repo-local
+  dev SQLite DB path opened read-only.
+- Start a standard-library dashboard server only when explicitly invoked.
+- Bind to localhost-only by default and reject public bind hosts.
+- Reject protected, credential/OAuth-looking, and production-looking dashboard
+  DB paths.
+
+Phase 10A adds no new permission keys. It may not write Todoist, write
+Calendar, send Gmail, call live model APIs, call Notion/Apple
+Health/TradingView or other external APIs, read credentials/OAuth, start a
+scheduler, create or load LaunchAgents, expose public internet access, add
+login/auth, mutate task/calendar state from the dashboard, add routine or
+priority editors, import synthesis, start a no-send daily briefing generation
+loop, mutate production SQLite/runtime state, inspect protected PersonalOS or
+OpenClaw paths, or activate production runtime behavior.
 
 ## Runtime Module Validation
 

@@ -6,13 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 9A are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 9B work is local/dev
-runtime DB bootstrap foundation. It may edit repo-local code, tests, and
-documentation, and may create temporary dev/test SQLite databases during tests.
-It must not inspect or mutate live runtime files, live PersonalOS files or
-fitness CSVs, credentials, external systems, production ledgers, production
-SQLite state, or any production state.
+Phases -1 through 9B are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 10A work is the
+read-only local dashboard Today View foundation. It may edit repo-local code,
+tests, and documentation, and may create temporary dev/test SQLite databases
+during tests. It must not inspect or mutate live runtime files, live PersonalOS
+files or fitness CSVs, credentials, external systems, production ledgers,
+production SQLite state, or any production state.
 
 Codex must not inspect:
 
@@ -368,6 +368,27 @@ live model/API calls, Notion, Apple Health, TradingView, external API calls,
 credentials, OAuth, scheduler activation, LaunchAgents, dashboard UI, web
 server, production SQLite/runtime state mutation, protected PersonalOS access,
 protected OpenClaw access, or real production activation.
+
+Phase 10A local dashboard Today View foundation is a read-only local dashboard
+shell and read model. It may read existing state from a caller-supplied SQLite
+connection or from an explicitly supplied temp/repo-local dev SQLite path opened
+read-only. The Today View summary must include `no_external_writes: true`.
+Dashboard rendering may produce local HTML or JSON for `Personal OS Today View`
+only.
+
+Phase 10A dashboard server helpers must bind to localhost-only by default and
+reject public bind hosts. Dashboard DB path validation must reject protected
+PersonalOS, OpenClaw, LaunchAgents, credential/OAuth-looking, and
+production-looking paths. Phase 10A adds no new permission keys and no mutation
+routes.
+
+Phase 10A does not add live Todoist writes, live Calendar writes, Gmail send,
+live model/API calls, Notion, Apple Health, TradingView, external API calls,
+credentials, OAuth, scheduler activation, LaunchAgents, public internet
+exposure, login/auth, task/calendar mutation from dashboard, routine editor,
+priority editor, synthesis import, no-send daily briefing generation loop,
+production SQLite/runtime state mutation, protected PersonalOS access,
+protected OpenClaw access, or production runtime activation.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

@@ -194,6 +194,45 @@ Clarity Notes are durable, high-signal synthesis after ChatGPT processing. Gener
 
 Notes become Todoist tasks only if they meet the task schema.
 
+## ChatGPT Synthesis Import Preview
+
+Phase 11A supports importing already-synthesized ChatGPT material into a local
+preview report. It is not raw-note ingestion and not an apply/save flow.
+
+Accepted formats are canonical JSON, Markdown with one fenced JSON block, and
+a small structured Markdown heading/bullet subset. Accepted source types are
+`chatgpt_synthesis`, `manual_structured_import`, and `fake_fixture`. Raw notes,
+raw journals, full vault dumps, legal/tax source documents, credential dumps,
+unrestricted file input, unsupported prose, and credential-like input are
+rejected.
+
+Canonical imports use `synthesis_import.v1` with summary, warnings, and
+candidate lists for priorities, projects, follow-ups, routine changes,
+Todoist tasks, Calendar blocks, clarity notes, and review questions. Todoist
+and Calendar candidates must pass the existing Phase 5 preview validators, but
+Phase 11A does not create Todoist or Calendar records and does not call
+adapters.
+
+Preview reports must include candidate counts, accepted candidates, rejected
+candidates, blocked candidates, review-required candidates, manual-only
+candidates, questions for review, warnings, and safety flags for no external
+writes, no state mutation, no PersonalOS writes, no Todoist writes, no
+Calendar writes, no Gmail send, and no live model call.
+
+High-stakes items covering tax, legal, estate, portfolio, crypto,
+investments, health, medical, relationship messages, family-sensitive
+communication, or large financial commitments must require approval or manual
+handling. Portfolio/crypto/investment execution language and legal/tax/medical
+directives must not be low risk or `auto_allowed`.
+
+Phase 11A may persist only local preview records in
+`synthesis_import_previews`. It does not apply/save candidates into core state,
+write PersonalOS Markdown, write Todoist, write Calendar, send or draft Gmail,
+call live model APIs, add a scheduler or LaunchAgents, activate production
+runtime, access `.openclaw`, access the full PersonalOS vault, add dashboard
+mutation/edit forms, add a paste box UI, expose public internet access, read
+credentials/OAuth, or perform live external writes.
+
 ## Weekly Chart Pack Workflow
 
 - Weekend reminder to produce chart packs.

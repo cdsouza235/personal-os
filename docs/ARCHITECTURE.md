@@ -70,6 +70,7 @@ The initial runtime state model should document and eventually implement these e
 - composer_packets
 - composer_outputs
 - model_runs
+- synthesis_import_previews
 - permissions
 - system_events
 - report_jobs
@@ -309,6 +310,49 @@ Phase 6 permission keys are:
 
 These keys fail closed by default and allow dev/test work only when explicitly
 set to `auto_write`.
+
+## Synthesis Import Architecture
+
+Phase 11A adds a preview-only intake layer for structured ChatGPT synthesis.
+It is for material that has already been synthesized by ChatGPT or manually
+structured by Chris. It is not raw journal ingestion, raw note parsing, or
+automatic task creation.
+
+Accepted input formats are canonical JSON, Markdown containing one fenced JSON
+block, and a small structured Markdown heading/bullet subset. Unsupported
+prose is rejected with a validation error that asks for structured synthesis.
+Accepted source types are `chatgpt_synthesis`, `manual_structured_import`, and
+`fake_fixture`; raw notes, raw journals, full vault dumps, legal/tax source
+documents, credential dumps, and unrestricted file input are rejected.
+
+Canonical imports use schema `synthesis_import.v1`:
+
+- `schema_version`
+- `source_type`
+- `source_timestamp`
+- `source_reference`
+- `summary`
+- `candidates`
+- `warnings`
+
+Candidate sections are priorities, projects, follow-ups, routine changes,
+Todoist tasks, Calendar blocks, clarity notes, and review questions. Priority,
+follow-up, routine-change, and clarity-note candidates are preview objects
+only. Todoist and Calendar candidates route through the existing Phase 5
+preview validators, which validate shape and risk/approval fields without
+creating rows or calling adapters.
+
+Preview reports include `preview_id`, source/input metadata, candidate counts,
+accepted/rejected/blocked/review-required/manual-only candidate lists,
+questions for review, warnings, and explicit flags:
+`no_external_writes`, `no_state_mutation`, `no_personalos_writes`,
+`no_todoist_writes`, `no_calendar_writes`, `no_gmail_send`, and
+`no_live_model_call`.
+
+Phase 11A stores optional local preview records in
+`synthesis_import_previews`. It does not add apply/save tables, dashboard edit
+forms, a paste box, live model adapters, PersonalOS Markdown writers,
+Todoist/Calendar/Gmail writers, or production runtime activation.
 
 ## Validated Runtime Module Definition
 

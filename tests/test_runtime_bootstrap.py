@@ -132,6 +132,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     "0007",
                     "0008",
                     "0009",
+                    "00010",
                 ],
             )
 
@@ -146,7 +147,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     ("runtime_bootstrap_runs",),
                 ).fetchone()
 
-            self.assertEqual(len(rows), 9)
+            self.assertEqual(len(rows), 10)
             self.assertIsNotNone(table)
 
     def test_bootstrap_enables_sqlite_foreign_keys(self) -> None:
@@ -319,6 +320,9 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
         self.assertEqual(categories["todoist_module_dev_test_write"], "disabled")
         self.assertEqual(categories["calendar_module_dev_test_write"], "disabled")
         self.assertEqual(categories["composer_module_dev_test_run"], "disabled")
+        self.assertEqual(categories["synthesis_import_dev_test_read"], "disabled")
+        self.assertEqual(categories["synthesis_import_dev_test_write"], "disabled")
+        self.assertEqual(categories["synthesis_import_dev_test_preview"], "disabled")
 
     def test_runtime_status_report_includes_table_counts_and_safety_flags(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

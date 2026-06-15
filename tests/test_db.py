@@ -291,6 +291,22 @@ class SQLiteFoundationTest(unittest.TestCase):
             "updated_at",
         },
     }
+    expected_phase_11a_tables = {
+        "synthesis_import_previews": {
+            "id",
+            "source_type",
+            "input_format",
+            "input_hash",
+            "source_timestamp",
+            "source_reference",
+            "raw_excerpt",
+            "parsed_json",
+            "preview_report_json",
+            "status",
+            "created_at",
+            "updated_at",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -387,10 +403,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "0007",
                     "0008",
                     "0009",
+                    "00010",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 9)
+            self.assertEqual(len(rows), 10)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -1234,6 +1251,91 @@ class SQLiteFoundationTest(unittest.TestCase):
         self.assertTrue(self.expected_phase_10b_tables.keys() <= table_names)
         self.assertEqual(table_columns, self.expected_phase_10b_tables)
 
+    def test_phase_11a_synthesis_import_preview_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_11a_tables
+                }
+
+        self.assertTrue(self.expected_phase_11a_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_11a_tables)
+
+    def test_phase_11a_synthesis_import_preview_check_constraints_reject_invalid_values(
+        self,
+    ) -> None:
+        invalid_cases = (
+            ("source_type", "raw_notes"),
+            ("input_format", "prose"),
+            ("status", "applied"),
+            ("raw_excerpt", "x" * 2001),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"synthesis-preview-check-{index}",
+                            "source_type": "chatgpt_synthesis",
+                            "input_format": "json",
+                            "input_hash": "hash",
+                            "source_timestamp": "2026-06-15T10:00:00+00:00",
+                            "source_reference": "chatgpt-thread",
+                            "raw_excerpt": "excerpt",
+                            "parsed_json": "{}",
+                            "preview_report_json": "{}",
+                            "status": "validated",
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO synthesis_import_previews (
+                                    id,
+                                    source_type,
+                                    input_format,
+                                    input_hash,
+                                    source_timestamp,
+                                    source_reference,
+                                    raw_excerpt,
+                                    parsed_json,
+                                    preview_report_json,
+                                    status,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["source_type"],
+                                    values["input_format"],
+                                    values["input_hash"],
+                                    values["source_timestamp"],
+                                    values["source_reference"],
+                                    values["raw_excerpt"],
+                                    values["parsed_json"],
+                                    values["preview_report_json"],
+                                    values["status"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
     def test_phase_9b_runtime_bootstrap_run_check_constraints_reject_invalid_values(
         self,
     ) -> None:
@@ -1399,6 +1501,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "0007",
                 "0008",
                 "0009",
+                "00010",
             ],
         )
         self.assertEqual(
@@ -1413,6 +1516,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "fitness_integration_tables",
                 "runtime_bootstrap_tables",
                 "briefing_loop_tables",
+                "synthesis_import_preview_tables",
             ],
         )
 

@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 10A are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 10B work is a no-send
-daily briefing loop foundation for local/manual previews only. This repo still
-has no production runtime activation.
+Phases -1 through 10C are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 11A work is a
+ChatGPT synthesis import preview foundation for structured, already-synthesized
+material only. This repo still has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -576,7 +576,7 @@ Non-goals:
 
 ## Phase 10C: Dashboard Briefing Integration
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -625,7 +625,72 @@ Notes:
   real-content redaction or review may be needed before broader network
   exposure or any non-local dashboard access is considered.
 
+## Phase 11A: ChatGPT Synthesis Import Preview
+
+Status: current.
+
+Scope:
+
+- Add `synthesis_import_previews` as a local preview-record table through
+  migration `00010_synthesis_import_preview_tables.sql`.
+- Add deterministic parsing for canonical JSON, Markdown with one fenced JSON
+  block, and a documented structured Markdown heading/bullet subset.
+- Accept only `chatgpt_synthesis`, `manual_structured_import`, and
+  `fake_fixture` as import source types.
+- Reject `raw_notes`, `raw_journal`, `full_vault_dump`,
+  `legal_source_documents`, `tax_source_documents`, `credential_dump`, and
+  `unrestricted_file_input`.
+- Normalize imports to `synthesis_import.v1` with summary, warnings, and
+  candidate lists for priorities, projects, follow-ups, routine changes,
+  Todoist tasks, Calendar blocks, clarity notes, and review questions.
+- Route Todoist and Calendar candidates through the existing Phase 5 preview
+  validators without creating rows or calling adapters.
+- Classify high-stakes domains deterministically: tax, legal, estate,
+  portfolio, crypto, investments, health, medical, relationship messages,
+  family-sensitive communication, and large financial commitments.
+- Produce preview reports with candidate counts, accepted candidates, rejected
+  candidates, blocked candidates, review-required candidates, manual-only
+  candidates, warnings, questions for review, and explicit no-write/no-model
+  safety flags.
+
+Permission keys:
+
+- `synthesis_import_dev_test_read`
+- `synthesis_import_dev_test_write`
+- `synthesis_import_dev_test_preview`
+
+Permission behavior:
+
+- Missing, disabled, invalid, or approval-only permissions fail closed.
+- Pure parsing and preview report generation do not require persistence.
+- Persisted preview creation requires both
+  `synthesis_import_dev_test_write` and
+  `synthesis_import_dev_test_preview`.
+- Read/list/count helpers require `synthesis_import_dev_test_read`.
+- No apply permission and no live permission exist in Phase 11A.
+
+Non-goals:
+
+- No raw journal ingestion as tasks.
+- No automatic task creation from raw notes.
+- No applying/saving candidates into priorities, routines, or follow-ups.
+- No PersonalOS Markdown writes.
+- No Todoist writes.
+- No Calendar writes.
+- No Gmail send or draft.
+- No live model/API calls.
+- No OpenAI/OpenRouter/Anthropic calls.
+- No scheduler or LaunchAgents.
+- No production runtime activation.
+- No `.openclaw` access.
+- No full PersonalOS vault access.
+- No dashboard mutation/edit forms.
+- No paste box UI.
+- No public internet exposure.
+- No credentials or OAuth.
+- No live external writes of any kind.
+
 Likely next phase:
 
-- ChatGPT synthesis import preview or controlled manual live rail testing
-  after ledgers and separate approval.
+- Phase 11B dashboard paste/import preview UI, or Phase 11B apply/save flow
+  with explicit approval gates.

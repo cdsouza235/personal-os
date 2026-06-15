@@ -6,9 +6,9 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 9B are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 10A work is the
-read-only local dashboard Today View foundation. It may edit repo-local code,
+Phases -1 through 10C are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 11A work is the
+ChatGPT synthesis import preview foundation. It may edit repo-local code,
 tests, and documentation, and may create temporary dev/test SQLite databases
 during tests. It must not inspect or mutate live runtime files, live PersonalOS
 files or fitness CSVs, credentials, external systems, production ledgers,
@@ -205,6 +205,20 @@ allow work only when the relevant dev/test key is explicitly set to
 external write permission, live model/API permission, Gmail permission,
 Todoist live-write permission, Calendar live-write permission, scheduler
 permission, or LaunchAgent permission.
+
+Phase 11A synthesis import permissions are stored in `permission_settings` and
+are separate from apply/save, live execution, live model/API, Todoist,
+Calendar, Gmail, PersonalOS Markdown, scheduler, and LaunchAgent permissions:
+
+- synthesis_import_dev_test_read
+- synthesis_import_dev_test_write
+- synthesis_import_dev_test_preview
+
+Synthesis import read/list/count helpers fail closed when the read key is
+missing, disabled, invalid, or approval-only. Persisting a local preview
+record requires both the write key and preview key. Pure parsing and preview
+report generation may run without persistence. Phase 11A does not add apply
+permissions or live permissions.
 
 ## Execution Rules
 
@@ -428,6 +442,36 @@ any kind.
 Phase 10B manual exports are local fake/no-send content. Future real-content
 redaction or review may be needed before broader network exposure or any
 non-local dashboard access is considered.
+
+Phase 11A synthesis import is preview-only. It accepts only structured
+ChatGPT-synthesized or manually structured imports in canonical JSON,
+Markdown with one fenced JSON block, or a documented structured Markdown
+subset. Unsupported prose, raw notes, raw journals, full vault dumps,
+legal/tax source documents, credential dumps, and unrestricted file input are
+rejected.
+
+Phase 11A normalizes accepted input to `synthesis_import.v1` and validates
+candidate objects for priorities, projects, follow-ups, routine changes,
+Todoist tasks, Calendar blocks, clarity notes, and review questions. Todoist
+and Calendar candidates pass through the Phase 5 preview validators only; no
+Todoist task row, Calendar block row, adapter call, or external mutation is
+created by the import preview layer.
+
+High-stakes candidates covering tax, legal, estate, portfolio, crypto,
+investments, health, medical, relationship messages, family-sensitive
+communication, or large financial commitments must not be `auto_allowed`.
+Portfolio/crypto/investment execution language such as buy, sell, rotate,
+rebalance, allocate, exit, enter, long, or short must be high risk and
+approval-required or manual-only. Legal/tax/medical directives and
+relationship messages to other people must be approval-required or manual-only.
+
+Phase 11A preview reports must include `no_external_writes: true`,
+`no_state_mutation: true`, `no_personalos_writes: true`,
+`no_todoist_writes: true`, `no_calendar_writes: true`, `no_gmail_send: true`,
+and `no_live_model_call: true`. Optional persistence stores only local preview
+records in `synthesis_import_previews`. Phase 11A does not apply/save
+candidates into priorities, routines, follow-ups, Todoist, Calendar, Gmail, or
+PersonalOS Markdown.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

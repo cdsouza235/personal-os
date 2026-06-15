@@ -37,7 +37,7 @@ class MigrationChecksumMismatch(RuntimeError):
 def discover_migrations(migrations_dir: Path = DEFAULT_MIGRATIONS_DIR) -> list[Migration]:
     migrations: list[Migration] = []
 
-    for path in sorted(migrations_dir.glob("*.sql")):
+    for path in sorted(migrations_dir.glob("*.sql"), key=_migration_sort_key):
         version, name = _parse_migration_filename(path)
         sql = path.read_text(encoding="utf-8")
         checksum = hashlib.sha256(sql.encode("utf-8")).hexdigest()
@@ -117,3 +117,12 @@ def _parse_migration_filename(path: Path) -> tuple[str, str]:
     if not version or not separator or not name:
         raise ValueError(f"Migration filename must be '<version>_<name>.sql': {path.name}")
     return version, name
+
+
+def _migration_sort_key(path: Path) -> tuple[int, str]:
+    version, _name = _parse_migration_filename(path)
+    try:
+        numeric_version = int(version)
+    except ValueError as error:
+        raise ValueError(f"Migration version must be numeric: {path.name}") from error
+    return numeric_version, path.name

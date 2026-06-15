@@ -297,6 +297,25 @@ scheduler or LaunchAgents, no credentials/OAuth, no production SQLite/runtime
 state mutation, no protected PersonalOS or OpenClaw access, and no external
 writes of any kind.
 
+## Dashboard Briefing Integration
+
+Phase 10C dashboard briefing integration makes existing Phase 10B no-send
+briefing outputs visible in Today View and the read-only dashboard shell. It
+adds a Briefing Outputs section, latest output status, manual export preview,
+completion report safety flags, warnings/failures, and the same summary in
+the existing JSON render path.
+
+The manual export preview is read-only. Phase 10C adds no generation button,
+no dashboard mutation, no scheduler, no Gmail/model/Todoist/Calendar writes,
+no Gmail drafts, no live model/API calls, no credentials/OAuth, no
+LaunchAgents, no production SQLite/runtime state mutation, no protected
+PersonalOS or OpenClaw access, no public internet exposure, no routine or
+priority editor, no synthesis import, and no external writes of any kind.
+
+Phase 10B manual exports are local fake/no-send content. Future real-content
+redaction or review may be needed before broader network exposure or any
+non-local dashboard access is considered.
+
 ## Reports and Jobs
 
 Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT

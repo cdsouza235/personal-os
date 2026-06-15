@@ -148,6 +148,19 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
       text-align: left;
       vertical-align: top;
     }}
+    pre {{
+      background: #f0f0ea;
+      border: 1px solid #d9d9d2;
+      border-radius: 6px;
+      overflow-x: auto;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }}
+    .warning {{
+      color: #7a2417;
+      font-weight: 700;
+    }}
     @media (max-width: 640px) {{
       main {{
         padding: 18px 12px 36px;
@@ -173,6 +186,7 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
       <li>no live Todoist/Calendar/Gmail/model calls</li>
       <li>localhost-only by default</li>
       <li>no task, calendar, routine, priority, or briefing mutation routes</li>
+      <li><a href="/today.json">today.json</a></li>
     </ul>
   </div>
 
@@ -183,6 +197,7 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
   {_render_calendar_block_summary(summary["calendar_block_summary"])}
   {_render_briefing_window_summary(summary["briefing_window_summary"])}
   {_render_briefing_loop_summary(summary["briefing_loop_summary"])}
+  {_render_briefing_output_summary(summary["briefing_output_summary"])}
   {_render_permission_summary(summary["permission_summary"])}
   {_render_system_status_summary(summary["system_status_summary"])}
   {_render_warnings(summary["warnings"])}
@@ -452,6 +467,70 @@ def _render_briefing_loop_summary(summary: Mapping[str, Any]) -> str:
     )
 
 
+def _render_briefing_output_summary(summary: Mapping[str, Any]) -> str:
+    latest_outputs = summary.get("latest_briefing_outputs", [])
+    latest_output = latest_outputs[0] if latest_outputs else None
+    latest_status = "none" if latest_output is None else latest_output["status"]
+    latest_window = "none" if latest_output is None else latest_output["briefing_window_name"]
+    latest_created = "none" if latest_output is None else latest_output["created_at"]
+    latest_delivery = "none" if latest_output is None else latest_output["delivery_mode"]
+    manual_preview = summary.get("latest_manual_export_preview") or "No manual export preview."
+    failed_warning = ""
+    if summary["failed_briefing_count"] > 0:
+        failed_warning = (
+            '<p class="warning">Failed briefing output warning: '
+            f'{_e(summary["failed_briefing_count"])} failed briefing output(s).</p>'
+        )
+    warning_html = (
+        _render_list(summary.get("warnings", []))
+        if summary.get("warnings")
+        else "<p>No briefing output warnings.</p>"
+    )
+
+    rows = [
+        (
+            output["briefing_window_name"],
+            output["status"],
+            output["delivery_mode"],
+            output["created_at"],
+        )
+        for output in latest_outputs
+    ]
+    body = (
+        _definition_list(
+            (
+                ("Total outputs", summary["total_briefing_output_count"]),
+                ("Outputs for source date", summary["source_date_briefing_output_count"]),
+                ("Daily plans for source date", summary["source_date_daily_plan_count"]),
+                ("Latest window", latest_window),
+                ("Latest status", latest_status),
+                ("Latest delivery", latest_delivery),
+                ("Latest created", latest_created),
+                ("Failed briefings", summary["failed_briefing_count"]),
+                ("Warnings", summary["warning_count"]),
+                ("Status counts", _format_counts(summary["counts_by_status"])),
+                ("Delivery modes", _format_counts(summary["counts_by_delivery_mode"])),
+                ("Completion safety flags", _format_safety_flags(summary["safety_flags"])),
+            )
+        )
+        + failed_warning
+        + "<h3>Latest Outputs</h3>"
+        + _table(("Window", "Status", "Delivery", "Created"), rows)
+        + "<h3>Latest Manual Export Preview</h3>"
+        + f"<pre>{_e(manual_preview)}</pre>"
+        + "<h3>Completion Report Safety Flags</h3>"
+        + _definition_list(
+            tuple(
+                (key, _format_bool(value))
+                for key, value in sorted(summary["safety_flags"].items())
+            )
+        )
+        + "<h3>Briefing Output Warnings</h3>"
+        + warning_html
+    )
+    return _section("briefing-output-summary", "Briefing Outputs", body)
+
+
 def _render_permission_summary(summary: Mapping[str, Any]) -> str:
     return _section(
         "permission-summary",
@@ -530,6 +609,13 @@ def _format_counts(counts: Mapping[str, int]) -> str:
 
 def _format_bool(value: object) -> str:
     return "true" if value is True else "false"
+
+
+def _format_safety_flags(flags: Mapping[str, object]) -> str:
+    return ", ".join(
+        f"{key}={_format_bool(value)}"
+        for key, value in sorted(flags.items())
+    )
 
 
 def _e(value: object) -> str:

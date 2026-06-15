@@ -128,19 +128,18 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 10A are complete. The Phase 6B, Phase 7B, and Phase 8B
+Phases -1 through 10B are complete. The Phase 6B, Phase 7B, and Phase 8B
 fake/local smoke tests are complete.
 
-The current Phase 10B scope is the Phase 10B no-send daily briefing loop
-foundation. It generates local/manual briefing previews from an explicit
-local SQLite runtime DB and a selected briefing window, stores local daily plan
-and briefing output records, uses the fake Composer path only, and produces a
-completion report plus manual export text. It is not production activation and
-not a runtime launch. This repository still has no scheduler, Gmail send or
-drafts, live Todoist or Calendar writes, live model/API calls,
-credentials/OAuth, production SQLite/runtime state access, protected
-PersonalOS path access, or unrestricted filesystem access enabled from this
-repo.
+The current Phase 10C scope is the Phase 10C dashboard briefing integration.
+It makes existing no-send briefing outputs visible in the read-only Today View
+and dashboard shell, including latest output status, a manual export preview,
+completion report safety flags, and warning/failure status. It is not
+production activation and not a runtime launch. This repository still has no
+scheduler, Gmail send or drafts, live Todoist or Calendar writes, live
+model/API calls, credentials/OAuth, production SQLite/runtime state access,
+protected PersonalOS path access, or unrestricted filesystem access enabled
+from this repo.
 
 ## Phase 1 Runtime Foundation
 
@@ -575,6 +574,32 @@ dashboard mutation, routine/priority editors, synthesis import, real model
 routing, production SQLite/runtime state mutation, protected PersonalOS or
 OpenClaw access, or external writes of any kind.
 
-Likely next phases after Phase 10B are dashboard integration for briefing
-outputs, ChatGPT synthesis import preview, or controlled manual live rail
-testing after ledgers and separate approval.
+## Phase 10C Dashboard Briefing Integration
+
+Phase 10C dashboard briefing integration makes Phase 10B no-send briefing
+outputs visible in the read-only Today View and local dashboard shell. It adds:
+
+- A Today View `briefing_output_summary` over existing `daily_plans` and
+  `briefing_outputs`.
+- A dashboard Briefing Outputs section with latest window/name/status details.
+- A read-only latest manual export preview or excerpt.
+- Completion report safety flags, including `no_external_writes`,
+  `no_send_mode`, `no_live_model_call`, `no_todoist_writes`,
+  `no_calendar_writes`, and `no_gmail_send`.
+- Failed briefing and warning status.
+- JSON output through the existing `/today.json` read-only render path.
+
+The manual export preview is read-only. Phase 10C has no generation button, no
+dashboard mutation, no scheduler, no Gmail/model/Todoist/Calendar writes, no
+Gmail drafts, no live model/API calls, no credentials/OAuth, no
+LaunchAgents, no production SQLite/runtime activation, no protected PersonalOS
+or OpenClaw access, no public internet exposure, no routine or priority
+editor, and no synthesis import.
+
+The Phase 10B manual exports are fake/local no-send content. Future
+real-content redaction or review may be needed before broader network exposure
+or any non-local dashboard access is considered.
+Future real-content redaction may be needed before broader network exposure.
+
+Likely next phases after Phase 10C are ChatGPT synthesis import preview or
+controlled manual live rail testing after ledgers and separate approval.

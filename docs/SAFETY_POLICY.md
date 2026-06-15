@@ -410,6 +410,25 @@ priority editors, synthesis import, real model routing, production
 SQLite/runtime state mutation, protected PersonalOS access, protected OpenClaw
 access, or external writes of any kind.
 
+Phase 10C dashboard briefing integration is read-only dashboard visibility for
+existing Phase 10B no-send outputs. It may expose a Today View
+`briefing_output_summary`, a dashboard Briefing Outputs section, latest output
+status, manual export preview, completion report safety flags, warning counts,
+failed briefing counts, and the same summary through the existing JSON render
+path.
+
+The manual export preview is read-only. Phase 10C adds no generation button,
+no dashboard mutation, no scheduler, no Gmail/model/Todoist/Calendar writes,
+no Gmail drafts, no live model/API calls, no credentials, no OAuth, no
+LaunchAgents, no production SQLite/runtime state mutation, no protected
+PersonalOS access, no protected OpenClaw access, no public internet exposure,
+no routine or priority editor, no synthesis import, and no external writes of
+any kind.
+
+Phase 10B manual exports are local fake/no-send content. Future real-content
+redaction or review may be needed before broader network exposure or any
+non-local dashboard access is considered.
+
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 
 High-value review and follow-up Todoist tasks may auto-write after validation when they meet the task schema.

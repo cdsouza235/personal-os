@@ -199,6 +199,42 @@ class SQLiteFoundationTest(unittest.TestCase):
             "updated_at",
         },
     }
+    expected_phase_8_tables = {
+        "fitness_integration_state": {
+            "id",
+            "integration_name",
+            "integration_type",
+            "status",
+            "data_root_label",
+            "expected_files_json",
+            "last_validation_at",
+            "last_summary_json",
+            "created_at",
+            "updated_at",
+        },
+        "fitness_validation_runs": {
+            "id",
+            "integration_state_id",
+            "run_type",
+            "dry_run",
+            "status",
+            "input_json",
+            "output_json",
+            "error_message",
+            "created_at",
+            "completed_at",
+        },
+        "fitness_file_contracts": {
+            "id",
+            "file_name",
+            "file_role",
+            "required_columns_json",
+            "optional_columns_json",
+            "status",
+            "created_at",
+            "updated_at",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -283,10 +319,10 @@ class SQLiteFoundationTest(unittest.TestCase):
 
             self.assertEqual(
                 [migration.version for migration in first_applied],
-                ["0001", "0002", "0003", "0004", "0005", "0006"],
+                ["0001", "0002", "0003", "0004", "0005", "0006", "0007"],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 6)
+            self.assertEqual(len(rows), 7)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -733,6 +769,202 @@ class SQLiteFoundationTest(unittest.TestCase):
                                 ),
                             )
 
+    def test_phase_8_fitness_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_8_tables
+                }
+
+        self.assertTrue(self.expected_phase_8_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_8_tables)
+
+    def test_phase_8_fitness_integration_state_check_constraints_reject_invalid_values(
+        self,
+    ) -> None:
+        invalid_cases = (
+            ("integration_type", "notion_database"),
+            ("status", "live_importing"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"fitness-state-check-{index}",
+                            "integration_name": "Local CSV fitness tracker",
+                            "integration_type": "local_csv_tracker",
+                            "status": "draft",
+                            "data_root_label": "personal_os_fitness_csvs",
+                            "expected_files_json": '["workout_sessions.csv"]',
+                            "last_validation_at": None,
+                            "last_summary_json": None,
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO fitness_integration_state (
+                                    id,
+                                    integration_name,
+                                    integration_type,
+                                    status,
+                                    data_root_label,
+                                    expected_files_json,
+                                    last_validation_at,
+                                    last_summary_json,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["integration_name"],
+                                    values["integration_type"],
+                                    values["status"],
+                                    values["data_root_label"],
+                                    values["expected_files_json"],
+                                    values["last_validation_at"],
+                                    values["last_summary_json"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
+    def test_phase_8_fitness_validation_run_check_constraints_reject_invalid_values(
+        self,
+    ) -> None:
+        invalid_cases = (
+            ("run_type", "live_import"),
+            ("status", "sent"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"fitness-run-check-{index}",
+                            "integration_state_id": "fitness-state-check",
+                            "run_type": "fixture_validation",
+                            "dry_run": 1,
+                            "status": "completed",
+                            "input_json": "{}",
+                            "output_json": (
+                                '{"no_external_writes":true,'
+                                '"no_live_personalos_access":true}'
+                            ),
+                            "error_message": None,
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "completed_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO fitness_validation_runs (
+                                    id,
+                                    integration_state_id,
+                                    run_type,
+                                    dry_run,
+                                    status,
+                                    input_json,
+                                    output_json,
+                                    error_message,
+                                    created_at,
+                                    completed_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["integration_state_id"],
+                                    values["run_type"],
+                                    values["dry_run"],
+                                    values["status"],
+                                    values["input_json"],
+                                    values["output_json"],
+                                    values["error_message"],
+                                    values["created_at"],
+                                    values["completed_at"],
+                                ),
+                            )
+
+    def test_phase_8_fitness_file_contract_check_constraints_reject_invalid_values(
+        self,
+    ) -> None:
+        invalid_cases = (
+            ("file_role", "apple_health_export"),
+            ("status", "live"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"fitness-contract-check-{index}",
+                            "file_name": "workout_sessions.csv",
+                            "file_role": "workout_sessions",
+                            "required_columns_json": '["session_id"]',
+                            "optional_columns_json": "[]",
+                            "status": "draft",
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO fitness_file_contracts (
+                                    id,
+                                    file_name,
+                                    file_role,
+                                    required_columns_json,
+                                    optional_columns_json,
+                                    status,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["file_name"],
+                                    values["file_role"],
+                                    values["required_columns_json"],
+                                    values["optional_columns_json"],
+                                    values["status"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
     def test_migration_checksum_drift_is_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -767,7 +999,7 @@ class SQLiteFoundationTest(unittest.TestCase):
 
         self.assertEqual(
             [migration.version for migration in migrations],
-            ["0001", "0002", "0003", "0004", "0005", "0006"],
+            ["0001", "0002", "0003", "0004", "0005", "0006", "0007"],
         )
         self.assertEqual(
             [migration.name for migration in migrations],
@@ -778,6 +1010,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "todoist_calendar_module_tables",
                 "composer_model_tables",
                 "report_jobs_chart_pack_tables",
+                "fitness_integration_tables",
             ],
         )
 

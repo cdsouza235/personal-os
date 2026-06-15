@@ -9,6 +9,9 @@ from typing import Any
 
 from personalos.config import PersonalOSConfig
 from personalos.state import (
+    count_fitness_file_contracts,
+    count_fitness_integration_states,
+    count_fitness_validation_runs,
     count_followups,
     count_priorities,
     count_projects,
@@ -31,6 +34,9 @@ def create_status_summary(
             "priorities": count_priorities(connection),
             "projects": count_projects(connection),
             "followups": count_followups(connection),
+            "fitness_integration_state": count_fitness_integration_states(connection),
+            "fitness_validation_runs": count_fitness_validation_runs(connection),
+            "fitness_file_contracts": count_fitness_file_contracts(connection),
         },
         "permission_settings": permission_settings,
         "permission_settings_count": len(permission_settings),

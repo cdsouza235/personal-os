@@ -12,11 +12,14 @@ from personalos.config import DEFAULT_TIMEZONE
 from personalos.state import (
     count_briefing_outputs,
     count_calendar_blocks,
+    count_daily_plans,
     count_followups,
     count_routine_completions,
     count_routines,
     count_todoist_tasks,
+    list_briefing_outputs,
     list_calendar_blocks,
+    list_daily_plans,
     list_followups,
     list_permission_settings,
     list_routines,
@@ -29,6 +32,16 @@ SAFETY_WARNINGS = (
     "No scheduler, production runtime activation, or daily briefing loop is active.",
     "No live Todoist, Calendar, Gmail, model, or external API calls are made.",
 )
+BRIEFING_COMPLETION_SAFETY_FLAGS = (
+    "no_external_writes",
+    "no_send_mode",
+    "no_live_model_call",
+    "no_todoist_writes",
+    "no_calendar_writes",
+    "no_gmail_send",
+    "no_gmail_draft",
+)
+MANUAL_EXPORT_EXCERPT_LIMIT = 1200
 
 
 def create_today_view_summary(
@@ -61,6 +74,11 @@ def create_today_view_summary(
         "briefing_loop_summary": _briefing_loop_summary(
             connection,
             source_date=source_date_iso,
+        ),
+        "briefing_output_summary": _briefing_output_summary(
+            connection,
+            source_date=source_date_iso,
+            timezone_name=timezone_name,
         ),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
@@ -230,6 +248,166 @@ def _briefing_loop_summary(
         "briefing_windows_status": _count_by_key(windows, "status"),
         "no_send_mode": True,
     }
+
+
+def _briefing_output_summary(
+    connection: sqlite3.Connection,
+    *,
+    source_date: str,
+    timezone_name: str,
+) -> dict[str, Any]:
+    source_date_outputs = [
+        output
+        for output in list_briefing_outputs(connection, source_date=source_date)
+        if output["timezone"] == timezone_name
+    ]
+    source_date_daily_plans = [
+        plan
+        for plan in list_daily_plans(connection, source_date=source_date)
+        if plan["timezone"] == timezone_name
+    ]
+    latest_outputs = [
+        _briefing_output_item(output)
+        for output in source_date_outputs[:3]
+    ]
+    latest_output = latest_outputs[0] if latest_outputs else None
+    warnings = _briefing_output_warnings(source_date_outputs)
+    latest_report = (
+        latest_output["completion_report_summary"]
+        if latest_output is not None
+        else _empty_completion_report_summary(source_date=source_date, timezone=timezone_name)
+    )
+    safety_flags = dict(latest_report["safety_flags"])
+
+    return {
+        "total_briefing_output_count": count_briefing_outputs(connection),
+        "source_date_briefing_output_count": len(source_date_outputs),
+        "total_daily_plan_count": count_daily_plans(connection),
+        "source_date_daily_plan_count": len(source_date_daily_plans),
+        "counts_by_status": _count_by_key(source_date_outputs, "status"),
+        "counts_by_delivery_mode": _count_by_key(source_date_outputs, "delivery_mode"),
+        "latest_briefing_outputs": latest_outputs,
+        "latest_manual_export_preview": (
+            latest_output["manual_export_excerpt"] if latest_output is not None else ""
+        ),
+        "manual_export_excerpt": (
+            latest_output["manual_export_excerpt"] if latest_output is not None else ""
+        ),
+        "latest_completion_report_summary": latest_report,
+        "failed_briefing_count": sum(
+            1 for output in source_date_outputs if output["status"] == "failed"
+        ),
+        "warning_count": len(warnings),
+        "warnings": warnings,
+        "safety_flags": safety_flags,
+        "no_external_writes": safety_flags["no_external_writes"],
+        "no_send_mode": safety_flags["no_send_mode"],
+    }
+
+
+def _briefing_output_item(output: Mapping[str, Any]) -> dict[str, Any]:
+    completion_report = output.get("completion_report_json", {})
+    if not isinstance(completion_report, Mapping):
+        completion_report = {}
+    return {
+        "briefing_output_id": output["id"],
+        "daily_plan_id": output["daily_plan_id"],
+        "briefing_window_id": output["briefing_window_id"],
+        "briefing_window_name": output["briefing_window_name"],
+        "source_date": output["source_date"],
+        "timezone": output["timezone"],
+        "delivery_mode": output["delivery_mode"],
+        "status": output["status"],
+        "created_at": output["created_at"],
+        "updated_at": output["updated_at"],
+        "manual_export_excerpt": _manual_export_excerpt(output["manual_export_markdown"]),
+        "completion_report_summary": _completion_report_summary(completion_report),
+    }
+
+
+def _completion_report_summary(report: Mapping[str, Any]) -> dict[str, Any]:
+    warnings = _warning_list(report.get("warnings"))
+    safety_flags = {
+        flag: report.get(flag) is True
+        for flag in BRIEFING_COMPLETION_SAFETY_FLAGS
+    }
+    return {
+        "status": str(report.get("status", "unknown")),
+        "source_date": str(report.get("source_date", "")),
+        "timezone": str(report.get("timezone", "")),
+        "briefing_window_name": str(report.get("briefing_window_name", "")),
+        "delivery_mode": str(report.get("delivery_mode", "")),
+        "daily_plan_id": _optional_text(report.get("daily_plan_id")),
+        "briefing_output_id": _optional_text(report.get("briefing_output_id")),
+        "composer_packet_id": _optional_text(report.get("composer_packet_id")),
+        "composer_output_id": _optional_text(report.get("composer_output_id")),
+        "model_run_id": _optional_text(report.get("model_run_id")),
+        "manual_export_available": report.get("manual_export_available") is True,
+        "network_called": bool(report.get("network_called", False)),
+        "fake_composer_adapter": report.get("fake_composer_adapter") is True,
+        "safety_flags": safety_flags,
+        "warning_count": len(warnings),
+        "warnings": warnings,
+    }
+
+
+def _empty_completion_report_summary(
+    *,
+    source_date: str,
+    timezone: str,
+) -> dict[str, Any]:
+    return {
+        "status": "none",
+        "source_date": source_date,
+        "timezone": timezone,
+        "briefing_window_name": "",
+        "delivery_mode": "",
+        "daily_plan_id": None,
+        "briefing_output_id": None,
+        "composer_packet_id": None,
+        "composer_output_id": None,
+        "model_run_id": None,
+        "manual_export_available": False,
+        "network_called": False,
+        "fake_composer_adapter": False,
+        "safety_flags": {flag: True for flag in BRIEFING_COMPLETION_SAFETY_FLAGS},
+        "warning_count": 0,
+        "warnings": [],
+    }
+
+
+def _briefing_output_warnings(outputs: list[Mapping[str, Any]]) -> list[str]:
+    warnings: list[str] = []
+    for output in outputs:
+        report = output.get("completion_report_json", {})
+        if not isinstance(report, Mapping):
+            report = {}
+        for warning in _warning_list(report.get("warnings")):
+            warnings.append(
+                f"{output['briefing_window_name']} briefing {output['status']}: {warning}"
+            )
+        if output["status"] == "failed" and not report.get("warnings"):
+            warnings.append(f"{output['briefing_window_name']} briefing failed.")
+    return warnings
+
+
+def _warning_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]
+
+
+def _manual_export_excerpt(value: str) -> str:
+    normalized = value.strip()
+    if len(normalized) <= MANUAL_EXPORT_EXCERPT_LIMIT:
+        return normalized
+    return normalized[: MANUAL_EXPORT_EXCERPT_LIMIT - 3].rstrip() + "..."
+
+
+def _optional_text(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
 
 
 def _permission_summary(connection: sqlite3.Connection) -> dict[str, Any]:

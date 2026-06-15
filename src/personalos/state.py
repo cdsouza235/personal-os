@@ -1343,14 +1343,14 @@ def list_calendar_blocks(
     time_min: str | None = None,
     time_max: str | None = None,
 ) -> list[dict[str, Any]]:
+    time_min_filter = _validate_calendar_filter_datetime("time_min", time_min)
+    time_max_filter = _validate_calendar_filter_datetime("time_max", time_max)
     where_clause, values = _calendar_block_filter_clause(
         status=status,
         risk_level=risk_level,
         approval_mode=approval_mode,
         source_type=source_type,
         calendar_id=calendar_id,
-        time_min=time_min,
-        time_max=time_max,
     )
     rows = connection.execute(
         f"""
@@ -1378,7 +1378,17 @@ def list_calendar_blocks(
         """,
         values,
     ).fetchall()
-    return [_calendar_block_row_to_dict(row) for row in rows]
+    blocks = [_calendar_block_row_to_dict(row) for row in rows]
+    filtered_blocks = [
+        block
+        for block in blocks
+        if _calendar_block_overlaps_window(
+            block,
+            time_min=time_min_filter,
+            time_max=time_max_filter,
+        )
+    ]
+    return sorted(filtered_blocks, key=_calendar_block_sort_key)
 
 
 def count_calendar_blocks(
@@ -1392,14 +1402,26 @@ def count_calendar_blocks(
     time_min: str | None = None,
     time_max: str | None = None,
 ) -> int:
+    if time_min is not None or time_max is not None:
+        return len(
+            list_calendar_blocks(
+                connection,
+                status=status,
+                risk_level=risk_level,
+                approval_mode=approval_mode,
+                source_type=source_type,
+                calendar_id=calendar_id,
+                time_min=time_min,
+                time_max=time_max,
+            )
+        )
+
     where_clause, values = _calendar_block_filter_clause(
         status=status,
         risk_level=risk_level,
         approval_mode=approval_mode,
         source_type=source_type,
         calendar_id=calendar_id,
-        time_min=time_min,
-        time_max=time_max,
     )
     row = connection.execute(
         f"SELECT COUNT(*) FROM calendar_blocks {where_clause}",
@@ -3620,8 +3642,6 @@ def _calendar_block_filter_clause(
     approval_mode: str | None,
     source_type: str | None,
     calendar_id: str | None,
-    time_min: str | None,
-    time_max: str | None,
 ) -> tuple[str, tuple[Any, ...]]:
     clauses: list[str] = []
     values: list[Any] = []
@@ -3641,18 +3661,36 @@ def _calendar_block_filter_clause(
     if calendar_id is not None:
         clauses.append("calendar_id = ?")
         values.append(_validate_required_text("calendar_id", calendar_id))
-    if time_min is not None:
-        rails.validate_timezone_aware_datetime("time_min", time_min)
-        clauses.append("end_time >= ?")
-        values.append(time_min)
-    if time_max is not None:
-        rails.validate_timezone_aware_datetime("time_max", time_max)
-        clauses.append("start_time <= ?")
-        values.append(time_max)
 
     if not clauses:
         return "", ()
     return "WHERE " + " AND ".join(clauses), tuple(values)
+
+
+def _validate_calendar_filter_datetime(field_name: str, value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    return rails.validate_timezone_aware_datetime(field_name, value)
+
+
+def _calendar_block_overlaps_window(
+    block: Mapping[str, Any],
+    *,
+    time_min: datetime | None,
+    time_max: datetime | None,
+) -> bool:
+    start_time = rails.validate_timezone_aware_datetime("start_time", block["start_time"])
+    end_time = rails.validate_timezone_aware_datetime("end_time", block["end_time"])
+    if time_min is not None and end_time < time_min:
+        return False
+    if time_max is not None and start_time > time_max:
+        return False
+    return True
+
+
+def _calendar_block_sort_key(block: Mapping[str, Any]) -> tuple[datetime, str]:
+    start_time = rails.validate_timezone_aware_datetime("start_time", block["start_time"])
+    return start_time, str(block["calendar_block_id"])
 
 
 def _composer_packet_filter_clause(

@@ -249,41 +249,64 @@ The daily plan is generated once in the morning. Each email is generated just-in
 
 ## Composer Model Architecture
 
-The strong composer model receives only a dedicated Composer Packet.
+Phase 6 creates the Composer model integration foundation without live model
+integration. The composer receives only a dedicated Composer Packet built from
+narrow dev/test summaries. It must not receive broad filesystem access, raw
+notes, the full PersonalOS vault, protected runtime paths, credentials,
+legal/tax source documents, Gmail bodies, live Todoist API data, live Calendar
+API data, or unrestricted files.
 
-It must not receive broad filesystem access, raw notes, the full PersonalOS vault, credentials, legal/tax source documents, or unrestricted files.
+Composer Packet `composer_packet.v1` contains:
 
-First-pass Composer Packet input:
+- `packet_id`
+- `packet_type`: `daily_brief`, `window_brief`, or `ad_hoc_preview`
+- `briefing_window`: `morning`, `midday`, `afternoon`, `evening`, or `none`
+- `source_date`
+- `timezone`: `America/Chicago`
+- `generated_at`
+- `inputs`
+- `omissions`
+- `warnings`
 
-- date
-- timezone
-- briefing_window
-- routines_due
-- routines_completed
-- missed_routines
-- active_priorities
-- followups
-- calendar_summary
-- todoist_summary
-- routine_rules
-- permissions
-- model_instructions
-- excluded_sensitive_context_note
+Allowed `inputs` sections are routine state, priority summaries, selected
+follow-up summaries, Todoist task summaries, Calendar block summaries,
+Calendar availability summary, today's schedule summary, WSP/routine rules,
+prior briefing summaries, and completion status.
 
-Required output:
+Composer Output `composer_output.v1` must include structured JSON plus
+non-empty readable text. Required output sections are:
 
-- Structured JSON.
-- Readable text.
+- `email_briefs`
+- `todoist_tasks`
+- `calendar_blocks`
+- `followups`
+- `warnings`
 
-Required output sections:
+No prose-only output may be used for execution. Output validation rejects
+missing required sections, missing readable text, malformed Todoist or Calendar
+candidates, medium/high-risk `auto_allowed` candidates, and forbidden
+fields/claims.
 
-- email_briefs
-- todoist_tasks
-- calendar_blocks
-- followups
-- warnings
+Phase 6 routes Todoist and Calendar candidates through the Phase 5 preview
+validators only. Candidate routing produces a structured report with
+`accepted_candidates`, `rejected_candidates`, `blocked_candidates`, `warnings`,
+and `no_external_writes: true`. Accepted candidates are not executed.
 
-No prose-only output may be used for execution.
+The only model adapter in Phase 6 is `FakeComposerAdapter`
+(`adapter_name = fake_composer_adapter`, `model_name = fake-composer-v1`).
+It is deterministic, dry-run only, and records fake model-run metadata in
+`model_runs`. It never touches network, credentials, live model APIs, Todoist,
+Calendar, Gmail, OpenClaw, LaunchAgents, production SQLite, or production
+state.
+
+Phase 6 permission keys are:
+
+- `composer_module_dev_test_read`
+- `composer_module_dev_test_write`
+- `composer_module_dev_test_run`
+
+These keys fail closed by default and allow dev/test work only when explicitly
+set to `auto_write`.
 
 ## Validated Runtime Module Definition
 

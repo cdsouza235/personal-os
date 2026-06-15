@@ -185,27 +185,29 @@ Do not commit unless the user explicitly asks for a commit.
 
 Codex uses the repository as its working surface. It must not give a composer model broad filesystem access or unrestricted production context. Composer integrations must use dedicated Composer Packets and structured JSON outputs before execution.
 
-First-pass Composer Packet input fields:
+Composer Packet `composer_packet.v1` may include only narrow structured
+summaries: routine state, priority summaries, selected follow-up summaries,
+Todoist task summaries, Calendar block summaries, Calendar availability
+summary, today's schedule summary, WSP/routine rules, prior briefing
+summaries, and completion status.
 
-- date
-- timezone
-- briefing_window
-- routines_due
-- routines_completed
-- missed_routines
-- active_priorities
-- followups
-- calendar_summary
-- todoist_summary
-- routine_rules
-- permissions
-- model_instructions
-- excluded_sensitive_context_note
+Composer integrations must reject packets or outputs that claim broad
+filesystem access, raw notes, full vault access, protected runtime paths,
+Gmail bodies, live Todoist API data, live Calendar API data, legal/tax source
+documents, credentials, secrets, OAuth tokens, unrestricted file access, raw
+journal archives, or arbitrary filesystem paths.
 
 Composer output schema must include:
 
-- email_briefs
-- todoist_tasks
-- calendar_blocks
-- followups
-- warnings
+- Structured JSON.
+- Non-empty readable text.
+- `email_briefs`
+- `todoist_tasks`
+- `calendar_blocks`
+- `followups`
+- `warnings`
+
+Phase 6 Composer work is fake-adapter and report-only. It must not add live
+model/API calls, Gmail send, live Todoist writes, live Calendar writes,
+credentials, OAuth, scheduler activation, LaunchAgents, production SQLite,
+OpenClaw runtime wiring, or dashboard UI.

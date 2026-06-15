@@ -180,7 +180,7 @@ Non-goals:
 
 ## Phase 5: Todoist and Calendar Modules
 
-Status: in progress.
+Status: complete.
 
 Scope:
 
@@ -242,13 +242,45 @@ Non-goals:
 
 ## Phase 6: Composer Model Integration
 
+Status: in progress.
+
 Scope:
 
-- Define Composer Packet generation.
-- Integrate composer_model with no broad filesystem access.
-- Require structured JSON plus readable text.
-- Enforce output sections for email_briefs, todoist_tasks, calendar_blocks, followups, and warnings.
-- Include first-pass Composer Packet fields for date, timezone, briefing_window, routines_due, routines_completed, missed_routines, active_priorities, followups, calendar_summary, todoist_summary, routine_rules, permissions, model_instructions, and excluded_sensitive_context_note.
+- Add dev/test SQLite tables for `composer_packets`, `composer_outputs`, and
+  `model_runs`.
+- Define Composer Packet generation from narrow dev/test state summaries.
+- Allow only routine state, priority summaries, selected follow-up summaries,
+  Todoist task summaries, Calendar block summaries, Calendar availability
+  summary, today's schedule summary, WSP/routine rules, prior briefing
+  summaries, and completion status into packets.
+- Reject packet or output content that claims broad filesystem access, raw
+  notes, full vault access, protected runtime paths, Gmail bodies, live
+  Todoist or Calendar API data, legal/tax source documents, or secrets.
+- Use a deterministic fake Composer adapter only; no live model/API calls.
+- Require Composer Output structured JSON plus non-empty readable text.
+- Enforce output sections for `email_briefs`, `todoist_tasks`,
+  `calendar_blocks`, `followups`, and `warnings`.
+- Route valid Todoist and Calendar candidates through the Phase 5 preview
+  validators and produce a structured candidate routing report with
+  `no_external_writes: true`.
+- Log fake dry-run model metadata in `model_runs`.
+- Gate read, write, and fake-run/routing paths with
+  `composer_module_dev_test_read`, `composer_module_dev_test_write`, and
+  `composer_module_dev_test_run`.
+
+Non-goals:
+
+- No live model/API calls.
+- No live Todoist writes.
+- No live Calendar writes.
+- No Gmail send.
+- No credentials or OAuth.
+- No scheduler activation.
+- No production SQLite access.
+- No dashboard UI or API server.
+- No LaunchAgents or OpenClaw runtime wiring.
+- No full PersonalOS vault access, raw journal ingestion, legal/tax document
+  ingestion, arbitrary filesystem access, or autonomous high-stakes execution.
 
 ## Phase 7: Weekly Chart Pack and Report Jobs
 

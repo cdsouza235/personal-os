@@ -128,9 +128,12 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase 5 Todoist and Calendar module foundation is in progress on repository
-code only. It remains dev/test-only and does not operate live Personal OS
-workflows or call live external APIs.
+Phase 6 Composer model integration foundation is in progress on repository
+code only. It remains dev/test-only: packets, fake model outputs, candidate
+routing reports, and model-run records are local SQLite/test artifacts only.
+It does not call live model APIs, send Gmail, write Todoist, write Calendar,
+start schedulers, load LaunchAgents, touch production SQLite, inspect
+protected runtime paths, or operate live Personal OS workflows.
 
 ## Phase 1 Runtime Foundation
 
@@ -304,6 +307,56 @@ legal/tax/portfolio execution, or a scheduler idempotency/send ledger.
 
 Any post-merge live smoke test is a separate OpenClaw-approved operation and
 is not part of the Phase 5 PR.
+
+## Phase 6 Composer Model Integration Foundation
+
+Phase 6 adds a narrow Composer Packet to fake Composer adapter to structured
+Composer Output to validation to candidate routing report layer. It includes:
+
+- SQLite migration `0005_composer_model_tables.sql` with `composer_packets`,
+  `composer_outputs`, and `model_runs` tables.
+- Composer Packet schema `composer_packet.v1` with `packet_id`,
+  `packet_type`, `briefing_window`, `source_date`, `timezone`,
+  `generated_at`, narrow `inputs`, `omissions`, and `warnings`.
+- Allowed packet inputs only: routine state, priority summaries, selected
+  follow-up summaries, Todoist task summaries, Calendar block summaries,
+  Calendar availability summary, today's schedule summary, WSP/routine rules,
+  prior briefing summaries, and completion status.
+- Forbidden packet/output inputs and claims include broad filesystem access,
+  raw notes, the full vault, protected runtime paths, Gmail bodies, live
+  Todoist or Calendar API data, legal/tax source documents, and secrets.
+- Composer Output schema `composer_output.v1` requiring structured JSON plus
+  non-empty readable text.
+- Required output sections: `email_briefs`, `todoist_tasks`,
+  `calendar_blocks`, `followups`, and `warnings`.
+- A deterministic `FakeComposerAdapter` that never touches network,
+  credentials, live model APIs, Todoist, Calendar, Gmail, OpenClaw, or
+  production state.
+- Candidate routing reports with `accepted_candidates`,
+  `rejected_candidates`, `blocked_candidates`, `warnings`, and
+  `no_external_writes: true`.
+- Todoist and Calendar candidates routed through the Phase 5 preview
+  validators only. Routing validates candidate shape and risk/approval
+  semantics but does not execute writes.
+- Model-run logging for fake dry runs with `model_role = composer_model`,
+  `model_name = fake-composer-v1`, and
+  `adapter_name = fake_composer_adapter`.
+
+Phase 6 permission keys:
+
+- `composer_module_dev_test_read`
+- `composer_module_dev_test_write`
+- `composer_module_dev_test_run`
+
+All Phase 6 module permissions fail closed when missing, disabled, invalid, or
+approval-only. They allow dev/test work only when the relevant key is
+explicitly set to `auto_write`.
+
+Phase 6 does not add live model/API calls, live Todoist writes, live Calendar
+writes, Gmail send, credentials, OAuth, scheduler activation, LaunchAgents,
+dashboard UI, OpenClaw runtime wiring, production SQLite access, broad
+filesystem access, full PersonalOS vault access, raw journal ingestion,
+legal/tax document ingestion, or autonomous high-stakes execution.
 
 Local checks:
 

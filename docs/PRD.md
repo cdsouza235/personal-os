@@ -278,6 +278,25 @@ model/API calls, Notion, Apple Health, TradingView/API calls, credentials,
 OAuth, LaunchAgents, production SQLite/runtime state mutation, protected
 PersonalOS or OpenClaw access, or production runtime activation.
 
+## No-Send Briefing Loop
+
+Phase 10B adds a no-send daily briefing loop foundation for local/manual
+previews. It builds daily plans from existing runtime state and Today View
+summaries, selects inert briefing windows, uses the fake Composer path only,
+stores local `daily_plans` and `briefing_outputs`, and returns readable text,
+manual export only markdown, and a completion report.
+
+Phase 10B permission keys are `briefing_loop_dev_test_read`,
+`briefing_loop_dev_test_write`, and `briefing_loop_dev_test_run`. They fail
+closed by default. Generating and storing a no-send preview requires explicit
+dev/test write and run permission.
+
+Phase 10B adds no Gmail sending, no Gmail drafts, no live Todoist writes, no
+live Calendar writes, no Todoist/Calendar writes, no live model calls, no
+scheduler or LaunchAgents, no credentials/OAuth, no production SQLite/runtime
+state mutation, no protected PersonalOS or OpenClaw access, and no external
+writes of any kind.
+
 ## Reports and Jobs
 
 Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT

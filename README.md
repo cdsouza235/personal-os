@@ -128,17 +128,19 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 9B are complete. The Phase 6B, Phase 7B, and Phase 8B
+Phases -1 through 10A are complete. The Phase 6B, Phase 7B, and Phase 8B
 fake/local smoke tests are complete.
 
-The current Phase 10A scope is the Phase 10A local dashboard Today View
-foundation. It adds a read-only local dashboard shell for `Personal OS Today
-View` and a read-only Today View summary model on top of the existing runtime
-state architecture. It is not production activation and not a runtime launch.
-This repository still has no scheduler, Gmail send, live Todoist or Calendar
-writes, live model/API calls, credentials/OAuth, production SQLite/runtime
-state access, protected PersonalOS path access, or unrestricted filesystem
-access enabled from this repo.
+The current Phase 10B scope is the Phase 10B no-send daily briefing loop
+foundation. It generates local/manual briefing previews from an explicit
+local SQLite runtime DB and a selected briefing window, stores local daily plan
+and briefing output records, uses the fake Composer path only, and produces a
+completion report plus manual export text. It is not production activation and
+not a runtime launch. This repository still has no scheduler, Gmail send or
+drafts, live Todoist or Calendar writes, live model/API calls,
+credentials/OAuth, production SQLite/runtime state access, protected
+PersonalOS path access, or unrestricted filesystem access enabled from this
+repo.
 
 ## Phase 1 Runtime Foundation
 
@@ -529,3 +531,50 @@ synthesis import, no-send daily briefing generation loop, production
 SQLite/runtime state mutation, protected PersonalOS or OpenClaw access, or
 production runtime activation. The likely next phase is a no-send daily
 briefing loop or a dashboard editor/import flow, after separate approval.
+
+## Phase 10B No-Send Daily Briefing Loop Foundation
+
+Phase 10B adds the first no-send daily briefing loop foundation on top of
+runtime bootstrap, briefing windows, Composer packets/outputs, and Today View.
+It includes:
+
+- SQLite migration `0009_briefing_loop_tables.sql` with `daily_plans` and
+  `briefing_outputs`.
+- Daily plan generation from existing runtime state, Today View summaries,
+  active/draft briefing windows, routine summaries, priority summaries,
+  follow-up summaries, warnings, `no_external_writes: true`, and
+  `no_send_mode: true`.
+- Briefing window lookup for `morning`, `midday`, `afternoon`, and `evening`
+  definitions in the existing inert `briefing_windows` table.
+- No-send briefing preview generation through the fake Composer path only.
+- Local persistence of the daily plan, Composer packet/output/model-run
+  records, and briefing output records.
+- Manual export only markdown suitable for later copy/paste outside this
+  phase.
+- Completion report records with no-send and no-external-write flags, including
+  no live model calls, no Todoist writes, no Calendar writes, and no Gmail
+  sending.
+- Read-only Today View summary fields for briefing output counts, briefing
+  window status, and no-send mode.
+
+Phase 10B permission keys:
+
+- `briefing_loop_dev_test_read`
+- `briefing_loop_dev_test_write`
+- `briefing_loop_dev_test_run`
+
+All Phase 10B briefing loop permissions fail closed when missing, disabled,
+invalid, or approval-only. Read/list/count helpers require the read key.
+Generating and storing a no-send briefing preview requires the write and run
+keys. No live/send permission is added.
+
+Phase 10B does not add Gmail sending, Gmail drafts, live Todoist writes, live
+Calendar writes, live model calls, OpenAI/OpenRouter/Anthropic calls,
+credentials/OAuth, scheduler/LaunchAgents, public internet exposure,
+dashboard mutation, routine/priority editors, synthesis import, real model
+routing, production SQLite/runtime state mutation, protected PersonalOS or
+OpenClaw access, or external writes of any kind.
+
+Likely next phases after Phase 10B are dashboard integration for briefing
+outputs, ChatGPT synthesis import preview, or controlled manual live rail
+testing after ledgers and separate approval.

@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 9B are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. Phase 10A is approved for repo-local code,
-tests, and documentation only as a read-only local dashboard Today View
-foundation. Codex may run local tests, push the branch, and open or update the
-PR. Codex must stop before merge and must not inspect or mutate protected
-runtime paths, external systems, credentials, production ledgers, production
-SQLite state, or production state.
+Phases -1 through 10A are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. Phase 10B is approved for repo-local code,
+tests, and documentation only as a no-send daily briefing loop foundation for
+local/manual previews. Codex may run local tests, push the branch, and open or
+update the PR. Codex must stop before merge and must not inspect or mutate
+protected runtime paths, external systems, credentials, production ledgers,
+production SQLite state, or production state.
 
 ## Phase Rules
 
@@ -233,6 +233,35 @@ login/auth, mutate task/calendar state from the dashboard, add routine or
 priority editors, import synthesis, start a no-send daily briefing generation
 loop, mutate production SQLite/runtime state, inspect protected PersonalOS or
 OpenClaw paths, or activate production runtime behavior.
+
+## Phase 10B No-Send Daily Briefing Loop Boundary
+
+The Phase 10B no-send daily briefing loop foundation is local/manual preview
+only. It may:
+
+- Build no-send daily plans from existing SQLite runtime state and Today View
+  summaries.
+- Read inert `briefing_windows` definitions by source date, timezone, and
+  window name.
+- Generate briefing previews through the fake Composer path only.
+- Store local `daily_plans`, Composer packet/output/model-run records, and
+  `briefing_outputs`.
+- Produce readable text, manual export only markdown, and a structured
+  completion report.
+
+Phase 10B permission keys are `briefing_loop_dev_test_read`,
+`briefing_loop_dev_test_write`, and `briefing_loop_dev_test_run`. They fail
+closed by default. Read/list/count helpers require the read key. Generating and
+storing a no-send preview requires the write and run keys. No Gmail, Todoist,
+Calendar, model, scheduler, or live/send permission is added.
+
+Phase 10B may not add Gmail sending, Gmail drafts, live Todoist writes, live
+Calendar writes, Todoist/Calendar writes, live model calls,
+OpenAI/OpenRouter/Anthropic calls, credentials or OAuth, scheduler or
+LaunchAgents, public internet exposure, dashboard mutation, routine or
+priority editors, synthesis import, real model routing, production
+SQLite/runtime state mutation, protected PersonalOS or OpenClaw access, or
+external writes of any kind.
 
 ## Runtime Module Validation
 

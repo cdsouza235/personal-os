@@ -390,6 +390,26 @@ priority editor, synthesis import, no-send daily briefing generation loop,
 production SQLite/runtime state mutation, protected PersonalOS access,
 protected OpenClaw access, or production runtime activation.
 
+Phase 10B no-send daily briefing loop foundation is local/manual preview only.
+It may build a daily plan from existing runtime state and Today View summaries,
+select an inert briefing window, run the fake Composer path only, persist local
+`daily_plans` and `briefing_outputs`, and produce readable text, manual export
+only markdown, and a structured completion report.
+
+Phase 10B permission keys are `briefing_loop_dev_test_read`,
+`briefing_loop_dev_test_write`, and `briefing_loop_dev_test_run`. They fail
+closed by default. Read/list/count helpers require the read key. Generating and
+storing a no-send preview requires the write and run keys. No live/send
+permission is added.
+
+Phase 10B does not add Gmail sending, Gmail drafts, live Todoist writes, live
+Calendar writes, Todoist/Calendar writes, live model calls,
+OpenAI/OpenRouter/Anthropic calls, credentials, OAuth, scheduler or
+LaunchAgents, public internet exposure, dashboard mutation, routine or
+priority editors, synthesis import, real model routing, production
+SQLite/runtime state mutation, protected PersonalOS access, protected OpenClaw
+access, or external writes of any kind.
+
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 
 High-value review and follow-up Todoist tasks may auto-write after validation when they meet the task schema.

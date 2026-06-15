@@ -390,11 +390,14 @@ def validate_composer_output(
 
 
 def build_candidate_routing_report(output_json: Mapping[str, Any] | str) -> dict[str, Any]:
+    """Route candidate lists only; this is not full Composer Output validation."""
+
     report: dict[str, Any] = {
         "accepted_candidates": [],
         "rejected_candidates": [],
         "blocked_candidates": [],
         "warnings": [],
+        "candidate_routing_only": True,
         "no_external_writes": True,
     }
 
@@ -441,6 +444,21 @@ def build_candidate_routing_report(output_json: Mapping[str, Any] | str) -> dict
             candidate=candidate,
             validator=_validate_calendar_candidate,
         )
+    return report
+
+
+def build_validated_candidate_routing_report(
+    output_json: Mapping[str, Any] | str,
+    *,
+    readable_text: str | None,
+) -> dict[str, Any]:
+    validated_output = validate_composer_output(output_json, readable_text=readable_text)
+    output_payload = {
+        key: value for key, value in validated_output.items() if key != "_readable_text"
+    }
+    report = build_candidate_routing_report(output_payload)
+    report["candidate_routing_only"] = False
+    report["full_output_validation"] = "passed"
     return report
 
 
@@ -512,6 +530,8 @@ def create_composer_output_record(
     updated_at: str | None = None,
 ) -> dict[str, Any]:
     validated_output = validate_composer_output(output_json, readable_text=readable_text)
+    if validated_output["packet_id"] != packet_id:
+        raise ComposerValidationError("Composer output packet_id must match packet_id argument.")
     persisted_output = {
         key: value for key, value in validated_output.items() if key != "_readable_text"
     }
@@ -615,7 +635,10 @@ def run_fake_composer_model(
         output_payload = {
             key: value for key, value in output_json.items() if key != "_readable_text"
         }
-        route_report = build_candidate_routing_report(output_payload)
+        route_report = build_validated_candidate_routing_report(
+            output_payload,
+            readable_text=output_json["_readable_text"],
+        )
         output_id = stable_composer_id("composer-output", packet_id)
         output_record = create_composer_output(
             connection,

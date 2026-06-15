@@ -295,6 +295,188 @@ class SQLiteFoundationTest(unittest.TestCase):
         self.assertTrue(self.expected_phase_6_tables.keys() <= table_names)
         self.assertEqual(table_columns, self.expected_phase_6_tables)
 
+    def test_phase_6_composer_packet_check_constraints_reject_invalid_values(self) -> None:
+        invalid_cases = (
+            ("packet_type", "invalid_type"),
+            ("briefing_window", "overnight"),
+            ("status", "live_sent"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"packet-check-{index}",
+                            "packet_type": "daily_brief",
+                            "briefing_window": "morning",
+                            "source_date": "2026-06-15",
+                            "timezone": DEFAULT_TIMEZONE,
+                            "packet_json": "{}",
+                            "status": "validated",
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO composer_packets (
+                                    id,
+                                    packet_type,
+                                    briefing_window,
+                                    source_date,
+                                    timezone,
+                                    packet_json,
+                                    status,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["packet_type"],
+                                    values["briefing_window"],
+                                    values["source_date"],
+                                    values["timezone"],
+                                    values["packet_json"],
+                                    values["status"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
+    def test_phase_6_composer_output_check_constraints_reject_invalid_values(self) -> None:
+        invalid_cases = (
+            ("validation_status", "unchecked"),
+            ("status", "sent"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"output-check-{index}",
+                            "packet_id": "packet-check",
+                            "output_json": "{}",
+                            "readable_text": "Readable output.",
+                            "validation_status": "validated",
+                            "route_report_json": "{}",
+                            "status": "routed",
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO composer_outputs (
+                                    id,
+                                    packet_id,
+                                    output_json,
+                                    readable_text,
+                                    validation_status,
+                                    route_report_json,
+                                    status,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["packet_id"],
+                                    values["output_json"],
+                                    values["readable_text"],
+                                    values["validation_status"],
+                                    values["route_report_json"],
+                                    values["status"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
+    def test_phase_6_model_run_check_constraints_reject_invalid_values(self) -> None:
+        invalid_cases = (
+            ("model_role", "operator_model"),
+            ("adapter_name", "live_model_adapter"),
+            ("status", "sent"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"model-run-check-{index}",
+                            "packet_id": "packet-check",
+                            "output_id": None,
+                            "model_role": "composer_model",
+                            "model_name": "fake-composer-v1",
+                            "adapter_name": "fake_composer_adapter",
+                            "dry_run": 1,
+                            "status": "completed",
+                            "input_token_count": 1,
+                            "output_token_count": 1,
+                            "error_message": None,
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "completed_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO model_runs (
+                                    id,
+                                    packet_id,
+                                    output_id,
+                                    model_role,
+                                    model_name,
+                                    adapter_name,
+                                    dry_run,
+                                    status,
+                                    input_token_count,
+                                    output_token_count,
+                                    error_message,
+                                    created_at,
+                                    completed_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["packet_id"],
+                                    values["output_id"],
+                                    values["model_role"],
+                                    values["model_name"],
+                                    values["adapter_name"],
+                                    values["dry_run"],
+                                    values["status"],
+                                    values["input_token_count"],
+                                    values["output_token_count"],
+                                    values["error_message"],
+                                    values["created_at"],
+                                    values["completed_at"],
+                                ),
+                            )
+
     def test_migration_checksum_drift_is_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

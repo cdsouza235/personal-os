@@ -15,6 +15,7 @@ from personalos.composer import (
     FakeComposerAdapter,
     build_candidate_routing_report,
     build_composer_packet_from_state,
+    build_validated_candidate_routing_report,
     create_composer_output_record,
     create_composer_packet_record,
     read_composer_output_count,
@@ -250,6 +251,29 @@ class ComposerPermissionTest(unittest.TestCase):
         self.assertEqual(created_packet["status"], "created")
         self.assertEqual(created_output["status"], "created")
         self.assertEqual(created_output["output"]["packet_id"], packet["packet_id"])
+        self.assertEqual(created_output["output"]["output_json"]["packet_id"], packet["packet_id"])
+
+    def test_composer_output_record_rejects_packet_id_mismatch(self) -> None:
+        packet = _valid_packet(packet_id="packet-persisted")
+        output = _valid_output(packet_id="packet-other")
+
+        with _migrated_test_connection() as connection:
+            _set_permission(connection, COMPOSER_MODULE_WRITE_PERMISSION)
+            create_composer_packet_record(connection, packet=packet)
+            with self.assertRaises(ComposerValidationError):
+                create_composer_output_record(
+                    connection,
+                    output_id="composer-output-mismatch",
+                    packet_id="packet-persisted",
+                    output_json=output,
+                    readable_text="Readable test output.",
+                    route_report=build_candidate_routing_report(output),
+                    created_at=packet["generated_at"],
+                    updated_at=packet["generated_at"],
+                )
+            output_count = count_composer_outputs(connection)
+
+        self.assertEqual(output_count, 0)
 
 
 class ComposerPacketValidationTest(unittest.TestCase):
@@ -525,6 +549,38 @@ class ComposerRoutingAndAdapterTest(unittest.TestCase):
         report = build_candidate_routing_report(_valid_output())
 
         self.assertIs(report["no_external_writes"], True)
+        self.assertIs(report["candidate_routing_only"], True)
+
+    def test_candidate_routing_report_is_not_full_output_validation(self) -> None:
+        candidate_only_payload = {
+            "todoist_tasks": [],
+            "calendar_blocks": [],
+            "warnings": [],
+        }
+
+        report = build_candidate_routing_report(candidate_only_payload)
+
+        self.assertTrue(report["candidate_routing_only"])
+        self.assertEqual(report["accepted_candidates"], [])
+        with self.assertRaises(ComposerValidationError):
+            validate_composer_output(candidate_only_payload, readable_text="Readable.")
+
+    def test_validated_candidate_routing_report_requires_full_output(self) -> None:
+        valid_report = build_validated_candidate_routing_report(
+            _valid_output(),
+            readable_text="Readable test output.",
+        )
+        invalid_output = _valid_output()
+        del invalid_output["warnings"]
+
+        self.assertFalse(valid_report["candidate_routing_only"])
+        self.assertEqual(valid_report["full_output_validation"], "passed")
+        self.assertTrue(valid_report["no_external_writes"])
+        with self.assertRaises(ComposerValidationError):
+            build_validated_candidate_routing_report(
+                invalid_output,
+                readable_text="Readable test output.",
+            )
 
     def test_no_credentials_or_secrets_in_output_reports(self) -> None:
         report = build_candidate_routing_report(_valid_output())

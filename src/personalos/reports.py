@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
@@ -77,6 +78,16 @@ ACTION_FIELD_NAMES = (
     "order",
     "trade",
 )
+CANDIDATE_TEXT_FIELD_NAMES = (
+    "title",
+    "summary",
+    "description",
+    "body",
+    "notes",
+    "name",
+    "text",
+    "message",
+)
 INVESTMENT_ACTION_TERMS = (
     "buy",
     "sell",
@@ -85,9 +96,37 @@ INVESTMENT_ACTION_TERMS = (
     "trade",
     "execute",
     "order",
+    "rotate",
+    "allocate",
+    "enter",
+    "exit",
+    "long",
+    "short",
     "increase_position",
     "decrease_position",
     "portfolio_execution",
+)
+INVESTMENT_ACTION_PHRASES = (
+    "add exposure",
+    "reduce exposure",
+)
+INVESTMENT_ASSET_TERMS = (
+    "btc",
+    "bitcoin",
+    "eth",
+    "ethereum",
+    "riot",
+    "glxy",
+    "stock",
+    "stocks",
+    "shares",
+    "crypto",
+    "portfolio",
+    "position",
+    "positions",
+    "allocation",
+    "exposure",
+    "ticker",
 )
 EXECUTION_CANDIDATE_TYPES = (
     "execution_task",
@@ -942,8 +981,7 @@ def _validate_followup_candidate(candidate: Any, index: int) -> dict[str, Any]:
                 f"followup_candidates[{index}] must not request external writes"
             )
 
-    action_text = _structured_action_text(candidate)
-    has_investment_action = any(term in action_text for term in INVESTMENT_ACTION_TERMS)
+    has_investment_action = _has_investment_action_language(candidate)
     if has_investment_action:
         if risk_level != "high" or approval_mode not in {"approval_required", "manual_only"}:
             raise ReportValidationError(
@@ -967,14 +1005,62 @@ def _validate_followup_candidate(candidate: Any, index: int) -> dict[str, Any]:
     return dict(candidate)
 
 
-def _structured_action_text(candidate: Mapping[str, Any]) -> str:
-    fragments: list[str] = []
+def _has_investment_action_language(candidate: Mapping[str, Any]) -> bool:
+    text_field_fragments: list[str] = []
+    action_field_fragments: list[str] = []
     for key, value in candidate.items():
-        key_text = str(key).lower()
+        key_text = _normalize_scan_text(str(key))
+        value_text = _normalize_scan_text(_candidate_value_text(value))
+        if key_text in CANDIDATE_TEXT_FIELD_NAMES:
+            text_field_fragments.append(value_text)
         if any(field_name in key_text for field_name in ACTION_FIELD_NAMES):
-            fragments.append(key_text)
-            fragments.append(str(value).lower())
-    return " ".join(fragments)
+            action_field_fragments.append(f"{key_text} {value_text}")
+
+    text_field_text = " ".join(text_field_fragments)
+    action_field_text = " ".join(action_field_fragments)
+    if _contains_action_language(action_field_text):
+        return True
+    return _contains_action_language(text_field_text) and _contains_asset_context(text_field_text)
+
+
+def _contains_action_language(text: str) -> bool:
+    if not text:
+        return False
+    for phrase in INVESTMENT_ACTION_PHRASES:
+        if re.search(rf"\b{re.escape(phrase)}\b", text):
+            return True
+    return any(
+        re.search(rf"\b{re.escape(term)}\b", text)
+        for term in INVESTMENT_ACTION_TERMS
+    )
+
+
+def _contains_asset_context(text: str) -> bool:
+    if not text:
+        return False
+    return any(
+        re.search(rf"\b{re.escape(term)}\b", text)
+        for term in INVESTMENT_ASSET_TERMS
+    )
+
+
+def _candidate_value_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(
+            value,
+            allow_nan=False,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _normalize_scan_text(value: str) -> str:
+    return value.replace("_", " ").replace("-", " ").lower()
 
 
 def _validate_report_run_output_safety(output_json: Mapping[str, Any]) -> None:

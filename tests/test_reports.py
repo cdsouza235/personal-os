@@ -218,6 +218,80 @@ class ReportValidationTest(unittest.TestCase):
         with self.assertRaises(ReportValidationError):
             validate_chart_pack_review(review)
 
+    def test_chart_pack_review_validation_rejects_investment_action_in_title(self) -> None:
+        review = _valid_review()
+        review["structured_summary_json"]["followup_candidates"] = [
+            {
+                "title": "Buy BTC",
+                "candidate_type": "review_candidate",
+                "risk_level": "low",
+                "approval_mode": "auto_allowed",
+                "approval_required": False,
+            }
+        ]
+
+        with self.assertRaises(ReportValidationError):
+            validate_chart_pack_review(review)
+
+    def test_chart_pack_review_validation_rejects_investment_action_in_summary(self) -> None:
+        review = _valid_review()
+        review["structured_summary_json"]["followup_candidates"] = [
+            {
+                "title": "Portfolio review",
+                "summary": "Reduce exposure to ETH after the weekly close.",
+                "candidate_type": "review_candidate",
+                "risk_level": "medium",
+                "approval_mode": "approval_required",
+                "approval_required": True,
+            }
+        ]
+
+        with self.assertRaises(ReportValidationError):
+            validate_chart_pack_review(review)
+
+    def test_chart_pack_review_validation_allows_clear_review_candidate(self) -> None:
+        review = _valid_review()
+        review["structured_summary_json"]["followup_candidates"] = [
+            {
+                "title": "Review BTC support levels",
+                "summary": "Review-only market context, no execution action.",
+                "candidate_type": "review_candidate",
+                "risk_level": "medium",
+                "approval_mode": "approval_required",
+                "approval_required": True,
+                "creates_external_action": False,
+            }
+        ]
+
+        validated = validate_chart_pack_review(review)
+
+        self.assertEqual(
+            validated["structured_summary_json"]["followup_candidates"][0]["title"],
+            "Review BTC support levels",
+        )
+
+    def test_chart_pack_review_validation_allows_high_risk_manual_action_review(self) -> None:
+        review = _valid_review()
+        review["structured_summary_json"]["followup_candidates"] = [
+            {
+                "title": "Review possible BTC rebalance",
+                "summary": "Manual review only; do not create an execution task.",
+                "candidate_type": "review_candidate",
+                "risk_level": "high",
+                "approval_mode": "manual_only",
+                "approval_required": True,
+                "creates_external_action": False,
+                "status": "review_candidate",
+            }
+        ]
+
+        validated = validate_chart_pack_review(review)
+
+        self.assertEqual(
+            validated["structured_summary_json"]["followup_candidates"][0]["approval_mode"],
+            "manual_only",
+        )
+
 
 class FakeReportRunnerTest(unittest.TestCase):
     def test_preview_report_output_is_local_only(self) -> None:

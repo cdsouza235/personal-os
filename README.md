@@ -128,13 +128,15 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase 8 Fitness Integration Foundation is in progress on repository code only.
-It is a contract/status/shell phase for the existing local CSV-based fitness
-tracker. The existing CSV-based local fitness tracker is preserved. Phase 8
-does not read or write live PersonalOS fitness CSVs, migrate tracker data,
-infer workouts, create recommendations, call fitness APIs, expose a dashboard
-UI, start schedulers, touch production SQLite/runtime state, inspect protected
-runtime paths, or operate live Personal OS workflows.
+Phases -1 through 8 are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete.
+
+The current next phase is correctness hardening and MVP readiness, not another
+domain module. This repository still has no production runtime activation: no
+dashboard UI, scheduler, Gmail send, live Todoist or Calendar writes, live
+model/API calls, credentials/OAuth, production SQLite/runtime state access,
+protected PersonalOS path access, or unrestricted filesystem access is enabled
+from this repo.
 
 ## Phase 1 Runtime Foundation
 

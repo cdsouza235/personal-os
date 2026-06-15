@@ -28,8 +28,16 @@ def connect_sqlite(
 
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
+    _enable_foreign_keys(connection)
     return connection
 
 
 def _ensure_runtime_path(database_path: Path, runtime_dir: Path) -> None:
     database_path.resolve().relative_to(runtime_dir.resolve())
+
+
+def _enable_foreign_keys(connection: sqlite3.Connection) -> None:
+    connection.execute("PRAGMA foreign_keys = ON")
+    foreign_keys_enabled = connection.execute("PRAGMA foreign_keys").fetchone()[0]
+    if foreign_keys_enabled != 1:
+        raise RuntimeError("SQLite foreign key enforcement could not be enabled.")

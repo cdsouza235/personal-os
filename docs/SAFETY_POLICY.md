@@ -6,10 +6,12 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phase 8 implementation is repository-code-only and dev/test-only. It may edit
+Phases -1 through 8 are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 9A work is
+repository-code-only correctness hardening and MVP readiness. It may edit
 repo-local code, tests, and documentation, and may create temporary dev/test
 SQLite databases during tests. It must not inspect or mutate live runtime
-files, live PersonalOS fitness CSVs, credentials, external systems,
+files, live PersonalOS files or fitness CSVs, credentials, external systems,
 production ledgers, production SQLite state, or any production state.
 
 Codex must not inspect:

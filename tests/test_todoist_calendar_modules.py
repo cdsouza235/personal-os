@@ -474,6 +474,98 @@ class TodoistCalendarFlowTest(unittest.TestCase):
         self.assertEqual(tasks, [task])
         self.assertEqual(blocks, [block])
 
+    def test_calendar_block_filters_parse_mixed_timezone_offsets(self) -> None:
+        with _migrated_test_connection() as connection:
+            _set_permission(connection, CALENDAR_MODULE_WRITE_PERMISSION)
+            early_block = create_calendar_block_record(
+                connection,
+                **_calendar_input(
+                    title="Offset early block",
+                    source_id="calendar-offset-early",
+                    start_time="2026-06-15T16:30:00+02:00",
+                    end_time="2026-06-15T17:00:00+02:00",
+                    duration_minutes=30,
+                ),
+            )["block"]
+            later_block = create_calendar_block_record(
+                connection,
+                **_calendar_input(
+                    title="Offset later block",
+                    source_id="calendar-offset-later",
+                    start_time="2026-06-15T09:50:00-05:00",
+                    end_time="2026-06-15T10:20:00-05:00",
+                    duration_minutes=30,
+                ),
+            )["block"]
+            create_calendar_block_record(
+                connection,
+                **_calendar_input(
+                    title="Outside block",
+                    source_id="calendar-offset-outside",
+                    start_time="2026-06-15T16:30:00-05:00",
+                    end_time="2026-06-15T17:00:00-05:00",
+                    duration_minutes=30,
+                ),
+            )
+
+            filtered_blocks = list_calendar_blocks(
+                connection,
+                time_min="2026-06-15T09:45:00-05:00",
+                time_max="2026-06-15T10:15:00-05:00",
+            )
+            filtered_count = count_calendar_blocks(
+                connection,
+                time_min="2026-06-15T09:45:00-05:00",
+                time_max="2026-06-15T10:15:00-05:00",
+            )
+
+        self.assertEqual(
+            [item["calendar_block_id"] for item in filtered_blocks],
+            [early_block["calendar_block_id"], later_block["calendar_block_id"]],
+        )
+        self.assertEqual(filtered_count, 2)
+
+    def test_calendar_block_filters_do_not_sql_prefilter_mixed_offset_overlap(self) -> None:
+        with _migrated_test_connection() as connection:
+            _set_permission(connection, CALENDAR_MODULE_WRITE_PERMISSION)
+            overlapping_block = create_calendar_block_record(
+                connection,
+                **_calendar_input(
+                    title="SQL prefilter regression overlap",
+                    source_id="calendar-sql-prefilter-overlap",
+                    start_time="2026-06-15T08:30:00-05:00",
+                    end_time="2026-06-15T09:00:00-05:00",
+                    duration_minutes=30,
+                ),
+            )["block"]
+            create_calendar_block_record(
+                connection,
+                **_calendar_input(
+                    title="SQL prefilter regression outside",
+                    source_id="calendar-sql-prefilter-outside",
+                    start_time="2026-06-15T06:30:00-05:00",
+                    end_time="2026-06-15T07:00:00-05:00",
+                    duration_minutes=30,
+                ),
+            )
+
+            filtered_blocks = list_calendar_blocks(
+                connection,
+                time_min="2026-06-15T13:30:00+00:00",
+                time_max="2026-06-15T14:30:00+00:00",
+            )
+            filtered_count = count_calendar_blocks(
+                connection,
+                time_min="2026-06-15T13:30:00+00:00",
+                time_max="2026-06-15T14:30:00+00:00",
+            )
+
+        self.assertEqual(
+            [item["calendar_block_id"] for item in filtered_blocks],
+            [overlapping_block["calendar_block_id"]],
+        )
+        self.assertEqual(filtered_count, 1)
+
     def test_manual_only_objects_are_not_routed_to_fake_clients(self) -> None:
         client = FakeCalendarClient()
         with _migrated_test_connection() as connection:

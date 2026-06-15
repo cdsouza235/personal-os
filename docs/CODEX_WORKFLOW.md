@@ -12,12 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phase 8 is approved for repo-local code, tests, and documentation. Codex may
-implement the dev/test-only fitness integration foundation in this repository,
-run local tests, push the branch, and open or update the PR.
-Codex must stop before merge and must not inspect or mutate protected runtime
-paths, external systems, credentials, production ledgers, production SQLite
-state, or production state.
+Phases -1 through 8 are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. Phase 9A is approved for repo-local code,
+tests, and documentation only as correctness hardening and MVP readiness work.
+Codex may run local tests, push the branch, and open or update the PR. Codex
+must stop before merge and must not inspect or mutate protected runtime paths,
+external systems, credentials, production ledgers, production SQLite state, or
+production state.
 
 ## Phase Rules
 

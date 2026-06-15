@@ -1,5 +1,10 @@
 # Roadmap
 
+Phases -1 through 8 are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current next phase is correctness
+hardening and MVP readiness, not another domain module. This repo still has no
+production runtime activation.
+
 ## Phase -1: Codex Setup and Repo Foundation
 
 Status: complete.
@@ -19,7 +24,11 @@ Exit criteria:
 
 ## Phase 0: Read-Only Inventory
 
-Status: next recommended phase.
+Status: complete.
+
+Note: any future inventory of protected live paths remains a separate explicit
+approval gate. Completion of the repo-local roadmap phases does not grant
+permission to inspect protected runtime paths.
 
 Scope:
 
@@ -66,6 +75,8 @@ Required outputs:
 - Open questions.
 
 ## Phase 1: Runtime Stabilization
+
+Status: complete.
 
 Scope:
 
@@ -346,7 +357,7 @@ Non-goals:
 
 ## Phase 8: Fitness Integration
 
-Status: in progress.
+Status: complete.
 
 Scope:
 
@@ -387,3 +398,28 @@ Non-goals:
 - No production SQLite/runtime state.
 - No dashboard UI yet.
 - No full PersonalOS vault access or unrestricted filesystem access.
+
+## Phase 9A: Correctness Hardening and MVP Readiness
+
+Status: current.
+
+Scope:
+
+- Enforce SQLite foreign key constraints on dev/test connections.
+- Harden fake Composer run status consistency and timezone handling.
+- Normalize Calendar block datetime filtering across timezone offsets.
+- Clean up roadmap/status docs before MVP integration work.
+
+Non-goals:
+
+- No new domain module.
+- No dashboard UI.
+- No scheduler or LaunchAgents.
+- No Gmail send.
+- No live Todoist writes.
+- No live Calendar writes.
+- No live model/API calls.
+- No Notion, Apple Health, TradingView, or other live API calls.
+- No credentials or OAuth.
+- No production SQLite/runtime state.
+- No PersonalOS or `.openclaw` access.

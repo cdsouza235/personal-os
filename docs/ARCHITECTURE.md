@@ -365,13 +365,59 @@ Gmail phase boundaries:
 
 ## Reports and Jobs
 
-Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT define requirements. Codex builds jobs. OpenClaw runs jobs and delivers outputs.
+Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT
+define requirements. Codex builds job definitions, schemas, validation,
+deterministic local runners, tests, and documentation. OpenClaw runs approved
+jobs and stores approved outputs later, but Phase 7 does not add scheduler or
+live runtime wiring.
 
-Examples include macro calendar, earnings calendar, TradingView alert digest, priority status report, routine adherence report, Todoist completion report, and calendar utilization report.
+Phase 7 stores report job definitions in `report_jobs`, local run records in
+`report_runs`, and Weekly Chart Pack reviews in `chart_pack_reviews`. Supported
+job types are weekly chart pack index, TradingView alert digest, macro
+calendar, earnings calendar, priority status report, routine adherence report,
+Todoist completion report, and Calendar utilization report.
+
+Report runs are preview, dry-run, or simulated records only. The deterministic
+fake report runner produces structured local-only output with
+`no_external_writes: true`. It never fetches market data, calls TradingView,
+calls model APIs, writes Todoist, writes Calendar, sends Gmail, touches
+credentials, starts schedulers, loads LaunchAgents, or mutates production
+SQLite.
+
+Phase 7 permission keys are:
+
+- `report_jobs_dev_test_read`
+- `report_jobs_dev_test_write`
+- `report_jobs_dev_test_run`
+- `chart_pack_reviews_dev_test_read`
+- `chart_pack_reviews_dev_test_write`
+
+These keys fail closed by default and allow dev/test work only when explicitly
+set to `auto_write`.
 
 ## Weekly Chart Pack Hook
 
-The weekend workflow reminds Chris to produce chart packs. Chris sends chart packs and TradingView alerts to ChatGPT. ChatGPT synthesizes. OpenClaw stores the synthesis and updates weekly chart review notes. The system tracks week-over-week changes. OpenClaw does not independently analyze investments.
+The weekend workflow reminds Chris to produce chart packs. Chris sends chart
+packs and TradingView alerts to ChatGPT. TradingView alerts are manually
+supplied; Phase 7 stores them as validated JSON and does not fetch them live.
+ChatGPT is the interpretation layer for market and thesis synthesis. OpenClaw
+stores approved synthesis and updates weekly chart review notes in a later
+approved runtime workflow. The system tracks week-over-week changes. OpenClaw
+does not independently analyze investments.
+
+The chart pack review schema stores review date, week start/end, source type,
+source ID, title, thesis context, chart pack JSON, TradingView alert digest
+JSON, synthesis markdown, structured summary JSON, status, and timestamps.
+Structured summaries must include market context, BTC context, ETH context,
+miner/HPC context, portfolio watch items, week-over-week changes, follow-up
+candidates, and warnings.
+
+Phase 7 does not add live market data fetching, TradingView API access,
+investment recommendations, portfolio execution, Todoist writes, Calendar
+writes, Gmail send, live model/API calls, credentials, OAuth, scheduler
+activation, LaunchAgents, production SQLite access, dashboard UI, protected
+PersonalOS vault access, or unrestricted filesystem access. Follow-up
+candidates are review/logging candidates only and are not execution tasks.
 
 ## Fitness Hook
 

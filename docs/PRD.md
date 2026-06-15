@@ -203,16 +203,33 @@ Notes become Todoist tasks only if they meet the task schema.
 - The system tracks week-over-week changes.
 - OpenClaw does not independently analyze investments.
 
+Phase 7 implements only the repository foundation for this workflow. Chart
+packs and TradingView alerts are manually supplied by Chris, stored as
+validated JSON, and paired with ChatGPT-provided synthesis markdown. ChatGPT is
+the interpretation layer for market and thesis synthesis. OpenClaw stores
+approved workflow outputs and tracks week-over-week changes later; it does not
+analyze investments independently.
+
+Chart pack reviews must include structured summary sections for market
+context, BTC context, ETH context, miner/HPC context, portfolio watch items,
+week-over-week changes, follow-up candidates, and warnings. Follow-up
+candidates are review/logging candidates only. The workflow must not produce
+autonomous buy, sell, hold, rebalance, trade, or portfolio execution tasks.
+
 ## Fitness Integration
 
 V1 preserves the existing CSV-based local fitness tracker and adds only a module shell, link, and status surface. V1.5 may add deeper integration with routine prompts and recovery/training state.
 
 ## Reports and Jobs
 
-Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT define requirements. Codex builds jobs. OpenClaw runs jobs and delivers outputs.
+Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT
+define requirements. Codex builds job definitions, schemas, validation,
+deterministic local runners, tests, and documentation. OpenClaw runs approved
+jobs and delivers outputs later through validated runtime modules.
 
 Example jobs:
 
+- Weekly chart pack index.
 - Macro calendar.
 - Earnings calendar.
 - TradingView alert digest.
@@ -220,6 +237,18 @@ Example jobs:
 - Routine adherence report.
 - Todoist completion report.
 - Calendar utilization report.
+
+Phase 7 adds dev/test-only `report_jobs`, `report_runs`, and
+`chart_pack_reviews` tables. It supports manual, daily, weekly, and monthly
+job cadences; draft, active, paused, and disabled job states; preview, dry-run,
+and simulated run types; and draft, validated, stored, and rejected chart pack
+review states.
+
+Phase 7 does not add live market data fetching, TradingView API access,
+investment recommendations, portfolio execution, Todoist writes, Calendar
+writes, Gmail send, live model/API calls, credentials, OAuth, scheduler
+activation, LaunchAgents, production SQLite access, dashboard UI, protected
+PersonalOS vault access, or unrestricted filesystem access.
 
 ## Evidence Standard
 

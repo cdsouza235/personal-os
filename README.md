@@ -128,12 +128,13 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase 6 Composer model integration foundation is in progress on repository
-code only. It remains dev/test-only: packets, fake model outputs, candidate
-routing reports, and model-run records are local SQLite/test artifacts only.
-It does not call live model APIs, send Gmail, write Todoist, write Calendar,
-start schedulers, load LaunchAgents, touch production SQLite, inspect
-protected runtime paths, or operate live Personal OS workflows.
+Phase 7 Report Jobs and Weekly Chart Pack foundation is in progress on
+repository code only. It remains dev/test-only: report jobs, report runs, and
+chart pack review records are local SQLite/test artifacts only. It does not
+fetch live market data, call TradingView APIs, call live model APIs, send
+Gmail, write Todoist, write Calendar, start schedulers, load LaunchAgents,
+touch production SQLite, inspect protected runtime paths, or operate live
+Personal OS workflows.
 
 ## Phase 1 Runtime Foundation
 
@@ -357,6 +358,52 @@ writes, Gmail send, credentials, OAuth, scheduler activation, LaunchAgents,
 dashboard UI, OpenClaw runtime wiring, production SQLite access, broad
 filesystem access, full PersonalOS vault access, raw journal ingestion,
 legal/tax document ingestion, or autonomous high-stakes execution.
+
+## Phase 7 Report Jobs and Weekly Chart Pack Foundation
+
+Phase 7 adds the dev/test-only report job and Weekly Chart Pack storage
+foundation. It includes:
+
+- SQLite migration `0006_report_jobs_chart_pack_tables.sql` with
+  `report_jobs`, `report_runs`, and `chart_pack_reviews` tables.
+- Report job definitions for coded jobs such as weekly chart pack index,
+  TradingView alert digest, macro calendar, earnings calendar, priority
+  status report, routine adherence report, Todoist completion report, and
+  Calendar utilization report.
+- Report run records for preview, dry-run, and simulated local runs.
+- A deterministic fake report runner that produces local-only structured
+  output with `no_external_writes: true`.
+- Chart pack review storage for manually supplied chart-pack data,
+  manually supplied TradingView alert digests, and ChatGPT-provided synthesis.
+- Structured summary validation for market context, BTC context, ETH context,
+  miner/HPC context, portfolio watch items, week-over-week changes,
+  follow-up candidates, and warnings.
+
+ChatGPT is the interpretation layer for market and thesis synthesis. Chris
+supplies chart packs and TradingView alerts to ChatGPT; OpenClaw may later run
+approved workflows that store outputs, but OpenClaw does not analyze
+investments independently. Phase 7 report jobs are coded jobs, not analyst
+personas.
+
+Phase 7 permission keys:
+
+- `report_jobs_dev_test_read`
+- `report_jobs_dev_test_write`
+- `report_jobs_dev_test_run`
+- `chart_pack_reviews_dev_test_read`
+- `chart_pack_reviews_dev_test_write`
+
+All Phase 7 module permissions fail closed when missing, disabled, invalid, or
+approval-only. They allow dev/test work only when the relevant key is
+explicitly set to `auto_write`.
+
+Phase 7 does not add live market data fetching, TradingView API access,
+investment recommendations, portfolio execution, Todoist writes, Calendar
+writes, Gmail send, live model/API calls, credentials, OAuth, scheduler
+activation, LaunchAgents, dashboard UI, OpenClaw runtime wiring, production
+SQLite access, protected PersonalOS vault access, or unrestricted filesystem
+access. Follow-up candidates are review/logging candidates only; they are not
+execution tasks.
 
 Local checks:
 

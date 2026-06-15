@@ -55,8 +55,8 @@ class ComposerMigrationAndStateTest(unittest.TestCase):
                 "SELECT version, name FROM schema_migrations ORDER BY version"
             ).fetchall()
 
-        self.assertEqual(rows[-1]["version"], "0005")
-        self.assertEqual(rows[-1]["name"], "composer_model_tables")
+        migration_names = {row["version"]: row["name"] for row in rows}
+        self.assertEqual(migration_names["0005"], "composer_model_tables")
 
     def test_composer_packets_schema_exists(self) -> None:
         with _migrated_test_connection() as connection:

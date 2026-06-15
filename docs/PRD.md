@@ -218,7 +218,34 @@ autonomous buy, sell, hold, rebalance, trade, or portfolio execution tasks.
 
 ## Fitness Integration
 
-V1 preserves the existing CSV-based local fitness tracker and adds only a module shell, link, and status surface. V1.5 may add deeper integration with routine prompts and recovery/training state.
+Phase 8 Fitness Integration Foundation preserves the existing CSV-based local
+fitness tracker and adds only a dev/test contract/status shell. The existing
+CSV-based local fitness tracker is preserved. V1 does not rebuild the tracker,
+migrate its data, or replace it with Notion.
+
+Fitness/strength is separate from Grease-the-Groove. The Phase 8 contract is
+local CSV-based, library-first, and minimally verbose. It recognizes expected
+tracker files:
+
+- `workout_sessions.csv`
+- `workout_exercises.csv`
+- `weekly_recovery.csv`
+- `exercise_library.csv`
+
+Phase 8 validates contract objects and fixture CSV headers supplied by tests or
+callers. It produces deterministic validation reports with
+`no_external_writes: true` and `no_live_personalos_access: true`.
+
+Phase 8 has no Notion dependency, no live PersonalOS CSV reads or writes, no
+Apple Health or wearable API integration, no live fitness data import, no
+workout recommendation engine, no medical/health advice engine, no
+Todoist/Calendar/Gmail writes, no live model/API calls, no credentials or
+OAuth, no scheduler or LaunchAgents, no production SQLite/runtime state, no
+dashboard UI yet, no full PersonalOS vault access, and no unrestricted
+filesystem access.
+
+V1.5 may later add deeper recovery/training context in briefings after
+separate approval.
 
 ## Reports and Jobs
 
@@ -293,9 +320,8 @@ Required Phase 0 outputs:
 - Recommended Phase 1 implementation plan.
 - Open questions.
 
-## Non-Goals for Current Documentation Phase
+## Protected Non-Goals
 
-- No implementation code.
 - No live-system inventory.
 - No Gmail, Todoist, Calendar, LaunchAgent, production ledger, credential, runtime, or production SQLite mutation.
 - No inspection of `/Users/coldstake/PersonalOS`.

@@ -128,13 +128,13 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phase 7 Report Jobs and Weekly Chart Pack foundation is in progress on
-repository code only. It remains dev/test-only: report jobs, report runs, and
-chart pack review records are local SQLite/test artifacts only. It does not
-fetch live market data, call TradingView APIs, call live model APIs, send
-Gmail, write Todoist, write Calendar, start schedulers, load LaunchAgents,
-touch production SQLite, inspect protected runtime paths, or operate live
-Personal OS workflows.
+Phase 8 Fitness Integration Foundation is in progress on repository code only.
+It is a contract/status/shell phase for the existing local CSV-based fitness
+tracker. The existing CSV-based local fitness tracker is preserved. Phase 8
+does not read or write live PersonalOS fitness CSVs, migrate tracker data,
+infer workouts, create recommendations, call fitness APIs, expose a dashboard
+UI, start schedulers, touch production SQLite/runtime state, inspect protected
+runtime paths, or operate live Personal OS workflows.
 
 ## Phase 1 Runtime Foundation
 
@@ -413,3 +413,42 @@ PYTHONPATH=src python3 -m unittest discover -s tests
 
 `pytest` is configured in `pyproject.toml`, but it is not installed in the
 current local environment used for this phase.
+
+## Phase 8 Fitness Integration Foundation
+
+Phase 8 adds a dev/test-only fitness integration state foundation. It includes:
+
+- SQLite migration `0007_fitness_integration_tables.sql` with
+  `fitness_integration_state`, `fitness_validation_runs`, and
+  `fitness_file_contracts` tables.
+- Expected local CSV tracker contracts for `workout_sessions.csv`,
+  `workout_exercises.csv`, `weekly_recovery.csv`, and
+  `exercise_library.csv`.
+- Fixture-only CSV header validation. The validator checks caller-supplied
+  fixture headers only and does not open live files.
+- Deterministic validation reports with `no_external_writes: true` and
+  `no_live_personalos_access: true`.
+- Permission-gated dev/test read, write, and validate helpers backed by
+  `permission_settings`.
+
+Phase 8 permission keys:
+
+- `fitness_integration_dev_test_read`
+- `fitness_integration_dev_test_write`
+- `fitness_integration_dev_test_validate`
+
+All Phase 8 permissions fail closed when missing, disabled, invalid, or
+approval-only. They allow dev/test work only when the relevant key is
+explicitly set to `auto_write`.
+
+The existing CSV-based local fitness tracker is preserved. There is no Notion
+dependency. Phase 8 uses labels such as `personal_os_fitness_csvs` and expected
+filenames instead of absolute live paths.
+
+Phase 8 has no live PersonalOS CSV reads or writes, no Apple Health or wearable
+API integration, no workout recommendation engine, no medical/health advice
+engine, no Todoist/Calendar/Gmail writes, no live model/API calls, no
+credentials or OAuth, no scheduler or LaunchAgents, no production
+SQLite/runtime state, no dashboard UI yet, no full PersonalOS vault access,
+and no unrestricted filesystem access. V1.5 may later add deeper
+recovery/training context in briefings after separate approval.

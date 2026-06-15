@@ -75,6 +75,8 @@ The initial runtime state model should document and eventually implement these e
 - report_jobs
 - chart_pack_reviews
 - fitness_integration_state
+- fitness_validation_runs
+- fitness_file_contracts
 
 ## SQLite Environment Separation
 
@@ -421,7 +423,42 @@ candidates are review/logging candidates only and are not execution tasks.
 
 ## Fitness Hook
 
-V1 preserves the existing CSV-based local fitness tracker and exposes a shell, link, and status. V1.5 may integrate routine prompts and recovery/training state.
+Phase 8 Fitness Integration Foundation preserves the existing CSV-based local
+fitness tracker and adds a contract/status shell around it. The existing
+CSV-based local fitness tracker is preserved; this repository does not rebuild
+or migrate it in Phase 8.
+
+Fitness/strength is separate from Grease-the-Groove. The local tracker contract
+is library-first and CSV-based, with no Notion dependency. The expected files
+are:
+
+- `workout_sessions.csv`
+- `workout_exercises.csv`
+- `weekly_recovery.csv`
+- `exercise_library.csv`
+
+Phase 8 stores only integration labels, expected filenames, fixture validation
+runs, and file contracts in dev/test SQLite. It uses `personal_os_fitness_csvs`
+as a label, not an absolute live path. Fixture validation checks
+caller-supplied CSV headers only and returns reports with
+`no_external_writes: true` and `no_live_personalos_access: true`.
+
+Phase 8 permission keys are:
+
+- `fitness_integration_dev_test_read`
+- `fitness_integration_dev_test_write`
+- `fitness_integration_dev_test_validate`
+
+These keys fail closed by default and allow dev/test work only when explicitly
+set to `auto_write`.
+
+Phase 8 has no live PersonalOS CSV reads or writes, no Apple Health or wearable
+API integration, no Notion integration, no workout recommendation engine, no
+medical/health advice engine, no Todoist/Calendar/Gmail writes, no live
+model/API calls, no credentials or OAuth, no scheduler or LaunchAgents, no
+production SQLite/runtime state, no dashboard UI yet, no full PersonalOS vault
+access, and no unrestricted filesystem access. V1.5 may later add deeper
+recovery/training context in briefings after separate approval.
 
 ## Phase 0 Inventory Charter
 

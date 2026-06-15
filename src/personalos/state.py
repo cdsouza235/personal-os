@@ -1345,7 +1345,7 @@ def list_calendar_blocks(
 ) -> list[dict[str, Any]]:
     time_min_filter = _validate_calendar_filter_datetime("time_min", time_min)
     time_max_filter = _validate_calendar_filter_datetime("time_max", time_max)
-    where_clause, values = _calendar_block_filter_clause(
+    where_clause, values = _calendar_block_non_time_filter_clause(
         status=status,
         risk_level=risk_level,
         approval_mode=approval_mode,
@@ -1416,7 +1416,7 @@ def count_calendar_blocks(
             )
         )
 
-    where_clause, values = _calendar_block_filter_clause(
+    where_clause, values = _calendar_block_non_time_filter_clause(
         status=status,
         risk_level=risk_level,
         approval_mode=approval_mode,
@@ -3635,7 +3635,7 @@ def _todoist_task_filter_clause(
     return "WHERE " + " AND ".join(clauses), tuple(values)
 
 
-def _calendar_block_filter_clause(
+def _calendar_block_non_time_filter_clause(
     *,
     status: str | None,
     risk_level: str | None,

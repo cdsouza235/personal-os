@@ -56,20 +56,35 @@ TIMESTAMP = "2026-06-15T10:00:00+00:00"
 
 class FitnessValidationTest(unittest.TestCase):
     def test_fitness_integration_state_validation_accepts_valid_object(self) -> None:
-        state = validate_fitness_integration_state(_valid_state())
+        for label in (
+            "personal_os_fitness_csvs",
+            "fitness_csv_contract",
+            "local_csv_tracker",
+        ):
+            with self.subTest(label=label):
+                state = validate_fitness_integration_state(_valid_state(data_root_label=label))
 
-        self.assertEqual(state["schema_version"], "fitness_integration_state.v1")
-        self.assertEqual(state["integration_type"], "local_csv_tracker")
-        self.assertEqual(state["data_root_label"], "personal_os_fitness_csvs")
-        self.assertEqual(tuple(state["expected_files_json"]), EXPECTED_FITNESS_FILE_NAMES)
+                self.assertEqual(state["schema_version"], "fitness_integration_state.v1")
+                self.assertEqual(state["integration_type"], "local_csv_tracker")
+                self.assertEqual(state["data_root_label"], label)
+                self.assertEqual(tuple(state["expected_files_json"]), EXPECTED_FITNESS_FILE_NAMES)
 
-    def test_fitness_integration_state_validation_rejects_absolute_personalos_path(
+    def test_fitness_integration_state_validation_rejects_path_like_data_root_labels(
         self,
     ) -> None:
-        state = _valid_state(data_root_label="/Users/example/PersonalOS/Fitness")
+        invalid_labels = (
+            "/Users/example/PersonalOS/Fitness",
+            "PersonalOS/60_Fitness/data",
+            "60_Fitness/data",
+            "fitness\\data",
+        )
 
-        with self.assertRaises(FitnessValidationError):
-            validate_fitness_integration_state(state)
+        for label in invalid_labels:
+            with self.subTest(label=label):
+                state = _valid_state(data_root_label=label)
+
+                with self.assertRaises(FitnessValidationError):
+                    validate_fitness_integration_state(state)
 
     def test_fitness_integration_state_validation_rejects_missing_expected_files(
         self,

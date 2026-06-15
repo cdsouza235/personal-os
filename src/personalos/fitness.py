@@ -1083,7 +1083,7 @@ def _validate_text(field_name: str, value: Any) -> str:
 
 def _validate_label(field_name: str, value: Any) -> str:
     label = _validate_required_text(field_name, value)
-    if _looks_like_path(label):
+    if _looks_like_path(label) or any(separator in label for separator in ("/", "\\", ":")):
         raise FitnessValidationError(f"{field_name} must be a label, not a filesystem path")
     return label
 

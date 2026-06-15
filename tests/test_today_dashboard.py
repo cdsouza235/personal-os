@@ -1,3 +1,4 @@
+import json
 import inspect
 import os
 import re
@@ -9,6 +10,18 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from personalos import dashboard
+from personalos.briefings import (
+    BRIEFING_LOOP_READ_PERMISSION,
+    BRIEFING_LOOP_RUN_PERMISSION,
+    BRIEFING_LOOP_WRITE_PERMISSION,
+    generate_no_send_briefing_preview,
+)
+from personalos.composer import (
+    COMPOSER_MODULE_READ_PERMISSION,
+    COMPOSER_MODULE_RUN_PERMISSION,
+    COMPOSER_MODULE_WRITE_PERMISSION,
+    FakeComposerAdapter,
+)
 from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
@@ -19,12 +32,17 @@ from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_WRITE_PERMISSION,
     bootstrap_runtime_database,
 )
-from personalos.state import create_calendar_block, create_todoist_task, upsert_permission_setting
+from personalos.state import (
+    create_calendar_block,
+    create_todoist_task,
+    upsert_permission_setting,
+)
 from personalos.today import create_today_view_summary
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DATE = "2026-06-15"
+RUN_AT = "2026-06-15T14:00:00+00:00"
 
 
 class TodayViewSummaryTest(unittest.TestCase):
@@ -54,8 +72,85 @@ class TodayViewSummaryTest(unittest.TestCase):
         self.assertEqual(summary["briefing_loop_summary"]["latest_briefing_output_count"], 0)
         self.assertEqual(summary["briefing_loop_summary"]["source_date_briefing_output_count"], 0)
         self.assertTrue(summary["briefing_loop_summary"]["no_send_mode"])
+        self.assertEqual(summary["briefing_output_summary"]["source_date_briefing_output_count"], 0)
+        self.assertEqual(summary["briefing_output_summary"]["source_date_daily_plan_count"], 0)
+        self.assertEqual(summary["briefing_output_summary"]["latest_briefing_outputs"], [])
+        self.assertEqual(summary["briefing_output_summary"]["manual_export_excerpt"], "")
+        self.assertEqual(summary["briefing_output_summary"]["failed_briefing_count"], 0)
+        self.assertEqual(summary["briefing_output_summary"]["warning_count"], 0)
+        self.assertTrue(summary["briefing_output_summary"]["no_external_writes"])
+        self.assertTrue(summary["briefing_output_summary"]["no_send_mode"])
         self.assertGreaterEqual(summary["permission_summary"]["total_count"], 1)
         self.assertIn("counts", summary["system_status_summary"])
+
+    def test_today_view_summary_includes_briefing_output_details(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _generate_no_send_briefing_output(connection, briefing_window_name="morning")
+                before_counts = _table_counts(connection)
+
+                summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+                after_counts = _table_counts(connection)
+
+        briefing_summary = summary["briefing_output_summary"]
+        latest_output = briefing_summary["latest_briefing_outputs"][0]
+        latest_report = briefing_summary["latest_completion_report_summary"]
+        safety_flags = briefing_summary["safety_flags"]
+
+        self.assertEqual(before_counts, after_counts)
+        self.assertEqual(briefing_summary["source_date_briefing_output_count"], 1)
+        self.assertEqual(briefing_summary["source_date_daily_plan_count"], 1)
+        self.assertEqual(briefing_summary["failed_briefing_count"], 0)
+        self.assertEqual(latest_output["briefing_window_name"], "morning")
+        self.assertEqual(latest_output["status"], "generated")
+        self.assertIn("Personal OS Morning Brief Preview", briefing_summary["manual_export_excerpt"])
+        self.assertIn("No-send preview", briefing_summary["latest_manual_export_preview"])
+        self.assertEqual(latest_report["status"], "generated")
+        self.assertFalse(latest_report["network_called"])
+        self.assertTrue(latest_report["fake_composer_adapter"])
+        for flag in (
+            "no_external_writes",
+            "no_send_mode",
+            "no_live_model_call",
+            "no_todoist_writes",
+            "no_calendar_writes",
+            "no_gmail_send",
+        ):
+            with self.subTest(flag=flag):
+                self.assertIs(safety_flags[flag], True)
+
+    def test_today_view_summary_surfaces_failed_briefing_warnings(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _generate_no_send_briefing_output(
+                    connection,
+                    briefing_window_name="evening",
+                    adapter=FakeComposerAdapter(should_fail=True),
+                )
+
+                summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        briefing_summary = summary["briefing_output_summary"]
+        self.assertEqual(briefing_summary["failed_briefing_count"], 1)
+        self.assertGreater(briefing_summary["warning_count"], 0)
+        self.assertEqual(briefing_summary["latest_briefing_outputs"][0]["status"], "failed")
+        self.assertEqual(briefing_summary["latest_completion_report_summary"]["status"], "failed")
+        self.assertTrue(
+            any(
+                "Fake Composer adapter run failed" in warning
+                for warning in briefing_summary["warnings"]
+            )
+        )
 
     def test_today_view_summary_does_not_mutate_table_counts(self) -> None:
         with _seeded_runtime_db() as db_path:
@@ -114,9 +209,94 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Calendar Blocks", html)
         self.assertIn("Briefing Windows", html)
         self.assertIn("Briefing Loop", html)
+        self.assertIn("Briefing Outputs", html)
+        self.assertIn("/today.json", html)
         self.assertIn("Permissions", html)
         self.assertIn("System Status", html)
         self.assertIn("Warnings", html)
+
+    def test_dashboard_html_render_includes_briefing_output_preview_and_flags(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _generate_no_send_briefing_output(connection, briefing_window_name="morning")
+
+                html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        self.assertIn("Briefing Outputs", html)
+        self.assertIn("Latest Manual Export Preview", html)
+        self.assertIn("Personal OS Morning Brief Preview", html)
+        self.assertIn("Completion Report Safety Flags", html)
+        self.assertIn("no_external_writes=true", html)
+        self.assertIn("no_send_mode=true", html)
+        self.assertIn("no_live_model_call=true", html)
+        self.assertIn("no_todoist_writes=true", html)
+        self.assertIn("no_calendar_writes=true", html)
+        self.assertIn("no_gmail_send=true", html)
+
+    def test_dashboard_html_render_surfaces_failed_briefing_warning(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _generate_no_send_briefing_output(
+                    connection,
+                    briefing_window_name="evening",
+                    adapter=FakeComposerAdapter(should_fail=True),
+                )
+
+                html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        self.assertIn("Failed briefing output warning", html)
+        self.assertIn("Fake Composer adapter run failed", html)
+
+    def test_dashboard_json_render_includes_briefing_output_summary(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _generate_no_send_briefing_output(connection, briefing_window_name="midday")
+
+            rendered_json = dashboard.render_today_view_json_from_db_path(
+                db_path,
+                source_date=SOURCE_DATE,
+                timezone=DEFAULT_TIMEZONE,
+            )
+
+        payload = json.loads(rendered_json)
+        briefing_summary = payload["briefing_output_summary"]
+        self.assertEqual(briefing_summary["source_date_briefing_output_count"], 1)
+        self.assertEqual(
+            briefing_summary["latest_briefing_outputs"][0]["briefing_window_name"],
+            "midday",
+        )
+        self.assertIn("Personal OS Midday Brief Preview", briefing_summary["manual_export_excerpt"])
+        self.assertIs(briefing_summary["safety_flags"]["no_external_writes"], True)
+
+    def test_dashboard_has_no_generation_button_form_or_mutation_route(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _generate_no_send_briefing_output(connection, briefing_window_name="morning")
+                html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                ).lower()
+
+        source = inspect.getsource(dashboard)
+        self.assertNotIn("<form", html)
+        self.assertNotIn("<button", html)
+        self.assertNotIn("generate briefing", html)
+        self.assertNotIn('method="post"', html)
+        self.assertNotIn("def do_POST", source)
+        self.assertNotIn("generate_no_send_briefing_preview", source)
 
     def test_dashboard_html_render_from_db_path_uses_read_only_connection(self) -> None:
         with _seeded_runtime_db() as db_path:
@@ -209,6 +389,31 @@ class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
             "no task/calendar mutation from dashboard",
             "no scheduler",
             "no production runtime activation",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, docs_text)
+
+    def test_docs_describe_phase_10c_dashboard_briefing_boundary(self) -> None:
+        docs_text = "\n".join(
+            [
+                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
+            ]
+        ).lower()
+
+        required_phrases = (
+            "phase 10c dashboard briefing integration",
+            "briefing outputs section",
+            "manual export preview is read-only",
+            "completion report safety flags",
+            "no generation button",
+            "no scheduler",
+            "no gmail/model/todoist/calendar writes",
+            "future real-content redaction",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -355,10 +560,41 @@ def _migrated_connection(runtime_dir: Path) -> Iterator[sqlite3.Connection]:
 def _sqlite_connection(db_path: Path) -> Iterator[sqlite3.Connection]:
     connection = sqlite3.connect(db_path)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
     try:
         yield connection
     finally:
         connection.close()
+
+
+def _generate_no_send_briefing_output(
+    connection: sqlite3.Connection,
+    *,
+    briefing_window_name: str,
+    adapter: FakeComposerAdapter | None = None,
+) -> dict[str, object]:
+    _enable_briefing_loop_permissions(connection)
+    _enable_composer_permissions(connection)
+    return generate_no_send_briefing_preview(
+        connection,
+        source_date=SOURCE_DATE,
+        timezone=DEFAULT_TIMEZONE,
+        briefing_window_name=briefing_window_name,
+        adapter=adapter,
+        run_at=RUN_AT,
+    )
+
+
+def _enable_briefing_loop_permissions(connection: sqlite3.Connection) -> None:
+    _set_permission(connection, BRIEFING_LOOP_READ_PERMISSION)
+    _set_permission(connection, BRIEFING_LOOP_WRITE_PERMISSION)
+    _set_permission(connection, BRIEFING_LOOP_RUN_PERMISSION)
+
+
+def _enable_composer_permissions(connection: sqlite3.Connection) -> None:
+    _set_permission(connection, COMPOSER_MODULE_READ_PERMISSION)
+    _set_permission(connection, COMPOSER_MODULE_WRITE_PERMISSION)
+    _set_permission(connection, COMPOSER_MODULE_RUN_PERMISSION)
 
 
 def _set_permission(connection: sqlite3.Connection, category: str) -> None:

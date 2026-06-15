@@ -128,18 +128,16 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 10B are complete. The Phase 6B, Phase 7B, and Phase 8B
+Phases -1 through 10C are complete. The Phase 6B, Phase 7B, and Phase 8B
 fake/local smoke tests are complete.
 
-The current Phase 10C scope is the Phase 10C dashboard briefing integration.
-It makes existing no-send briefing outputs visible in the read-only Today View
-and dashboard shell, including latest output status, a manual export preview,
-completion report safety flags, and warning/failure status. It is not
-production activation and not a runtime launch. This repository still has no
-scheduler, Gmail send or drafts, live Todoist or Calendar writes, live
-model/API calls, credentials/OAuth, production SQLite/runtime state access,
-protected PersonalOS path access, or unrestricted filesystem access enabled
-from this repo.
+The current Phase 11A scope is the ChatGPT synthesis import preview
+foundation. It parses structured ChatGPT synthesis, validates candidate
+objects, classifies high-stakes items, and may persist local preview records.
+It is preview-only. It does not apply/save candidates into core runtime state,
+write PersonalOS Markdown, write Todoist or Calendar, send or draft Gmail,
+call live model APIs, start a scheduler, activate production runtime, access
+protected PersonalOS/OpenClaw paths, or perform live external writes.
 
 ## Phase 1 Runtime Foundation
 
@@ -603,3 +601,51 @@ Future real-content redaction may be needed before broader network exposure.
 
 Likely next phases after Phase 10C are ChatGPT synthesis import preview or
 controlled manual live rail testing after ledgers and separate approval.
+
+## Phase 11A ChatGPT Synthesis Import Preview Foundation
+
+Phase 11A adds a safe intake layer for ChatGPT-synthesized material. It is not
+raw-note ingestion and not an apply/save flow. It includes:
+
+- SQLite migration `00010_synthesis_import_preview_tables.sql` with
+  `synthesis_import_previews`.
+- Parser support for canonical JSON, Markdown containing one fenced JSON
+  block, and a small structured Markdown heading/bullet subset.
+- Accepted source types: `chatgpt_synthesis`, `manual_structured_import`, and
+  `fake_fixture`.
+- Rejected source types: `raw_notes`, `raw_journal`, `full_vault_dump`,
+  `legal_source_documents`, `tax_source_documents`, `credential_dump`, and
+  `unrestricted_file_input`.
+- Canonical schema `synthesis_import.v1` with summary, warnings, and candidate
+  lists for priorities, projects, follow-ups, routine changes, Todoist tasks,
+  Calendar blocks, clarity notes, and review questions.
+- Todoist and Calendar candidates routed through the existing Phase 5 preview
+  validators only.
+- Deterministic high-stakes checks for tax, legal, estate, portfolio, crypto,
+  investments, health, medical, relationship messages, family-sensitive
+  communication, and large financial commitments.
+- Preview reports with candidate counts, accepted/rejected/blocked/review
+  required/manual-only lists, review questions, warnings, and explicit safety
+  flags.
+
+Phase 11A permission keys:
+
+- `synthesis_import_dev_test_read`
+- `synthesis_import_dev_test_write`
+- `synthesis_import_dev_test_preview`
+
+All Phase 11A permissions fail closed when missing, disabled, invalid, or
+approval-only. Parsing and preview report generation can be pure. Persisting a
+preview record requires both write and preview permissions. Reading, listing,
+or counting preview records requires the read permission.
+
+Phase 11A does not add raw journal ingestion, automatic task creation from raw
+notes, applying/saving candidates into priorities/routines/follow-ups,
+PersonalOS Markdown writes, Todoist writes, Calendar writes, Gmail send or
+draft, live model/API calls, OpenAI/OpenRouter/Anthropic calls, scheduler or
+LaunchAgents, production runtime activation, `.openclaw` access, full
+PersonalOS vault access, dashboard mutation/edit forms, paste box UI, public
+internet exposure, credentials/OAuth, or live external writes of any kind.
+
+Likely Phase 11B options are either a dashboard paste/import preview UI or an
+apply/save flow with explicit approval gates.

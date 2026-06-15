@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 10B are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. Phase 10C is approved for repo-local code,
-tests, and documentation only as dashboard briefing integration for existing
-no-send briefing outputs. Codex may run local tests, push the branch, and open
-or update the PR. Codex must stop before merge and must not inspect or mutate
-protected runtime paths, external systems, credentials, production ledgers,
-production SQLite state, or production state.
+Phases -1 through 10C are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. Phase 11A is approved for repo-local code,
+tests, and documentation only as the ChatGPT synthesis import preview
+foundation. Codex may run local tests, push the branch, and open or update the
+PR. Codex must stop before merge and must not inspect or mutate protected
+runtime paths, external systems, credentials, production ledgers, production
+SQLite state, or production state.
 
 ## Phase Rules
 
@@ -286,6 +286,41 @@ protected PersonalOS or OpenClaw access, or external writes of any kind.
 Phase 10B manual exports are local fake/no-send content. Future real-content
 redaction or review may be needed before broader network exposure or any
 non-local dashboard access is considered.
+
+## Phase 11A ChatGPT Synthesis Import Preview Boundary
+
+The Phase 11A synthesis import foundation is preview-only. It may:
+
+- Parse canonical JSON, Markdown with one fenced JSON block, or a documented
+  structured Markdown heading/bullet subset.
+- Accept only `chatgpt_synthesis`, `manual_structured_import`, and
+  `fake_fixture` source types.
+- Reject raw notes, raw journals, full vault dumps, legal/tax source
+  documents, credential dumps, unrestricted file input, unsupported prose, and
+  credential-like input.
+- Normalize accepted input to `synthesis_import.v1`.
+- Validate preview candidates for priorities, projects, follow-ups, routine
+  changes, Todoist tasks, Calendar blocks, clarity notes, and review
+  questions.
+- Route Todoist and Calendar candidates through existing Phase 5 preview
+  validators only.
+- Store local preview records in `synthesis_import_previews` only when
+  dev/test write and preview permissions are explicitly enabled.
+
+Phase 11A permission keys are `synthesis_import_dev_test_read`,
+`synthesis_import_dev_test_write`, and `synthesis_import_dev_test_preview`.
+They fail closed by default. Read/list/count helpers require the read key.
+Persisting a preview record requires the write and preview keys. No apply or
+live permission is added.
+
+Phase 11A may not ingest raw journals as tasks, automatically create tasks
+from raw notes, apply/save candidates into priorities/routines/follow-ups,
+write PersonalOS Markdown, write Todoist, write Calendar, send or draft Gmail,
+call live model APIs, call OpenAI/OpenRouter/Anthropic, add a scheduler or
+LaunchAgents, activate production runtime, access `.openclaw`, access the full
+PersonalOS vault, add dashboard mutation/edit forms, add a paste box UI,
+expose public internet access, read credentials/OAuth, or perform live
+external writes of any kind.
 
 ## Runtime Module Validation
 

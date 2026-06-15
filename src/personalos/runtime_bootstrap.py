@@ -33,6 +33,7 @@ ALLOWED_RUNTIME_MODES = ("dev_runtime", "local_runtime_preview")
 ALLOWED_SEED_PROFILES = ("mvp_preview_safe_seed", "none")
 SAFE_SEED_PROFILE_NAME = "mvp_preview_safe_seed"
 BOOTSTRAP_RUN_STATUSES = ("planned", "completed", "failed")
+BACKUP_PATH_ATTEMPTS = 100
 
 _DATABASE_SUFFIXES = {".sqlite", ".sqlite3", ".db"}
 _PRODUCTION_MARKERS = {"prod", "production", "live"}
@@ -765,15 +766,23 @@ def _list_briefing_windows(connection: sqlite3.Connection) -> list[dict[str, Any
 def _create_backup(profile: RuntimeBootstrapProfile) -> Path:
     backup_dir = profile.backup_dir or profile.db_path.parent
     backup_dir.mkdir(parents=True, exist_ok=True)
-    backup_path = _backup_path_for(profile)
-    shutil.copy2(profile.db_path, backup_path)
-    return backup_path
+    for _ in range(BACKUP_PATH_ATTEMPTS):
+        backup_path = _backup_path_for(profile)
+        try:
+            with profile.db_path.open("rb") as source, backup_path.open("xb") as target:
+                shutil.copyfileobj(source, target)
+            shutil.copystat(profile.db_path, backup_path)
+            return backup_path
+        except FileExistsError:
+            continue
+    raise RuntimeError("Could not create a unique runtime backup path.")
 
 
 def _backup_path_for(profile: RuntimeBootstrapProfile) -> Path:
     backup_dir = profile.backup_dir or profile.db_path.parent
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return backup_dir / f"{profile.db_path.name}.backup.{timestamp}"
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    suffix = uuid4().hex[:8]
+    return backup_dir / f"{profile.db_path.name}.backup.{timestamp}.{suffix}"
 
 
 def _connect_sqlite(db_path: Path) -> sqlite3.Connection:

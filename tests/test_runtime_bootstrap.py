@@ -177,6 +177,52 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                 marker = connection.execute("SELECT id FROM marker").fetchone()["id"]
             self.assertEqual(marker, "before")
 
+    def test_repeated_bootstrap_backups_are_distinct_and_do_not_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            backup_dir = temp_path / "backups"
+            profile = _profile(temp_path, backup_dir=backup_dir)
+            db_path = Path(profile["db_path"])
+            db_path.parent.mkdir(parents=True)
+            with _sqlite_connection(db_path) as connection:
+                connection.execute("CREATE TABLE marker (id TEXT PRIMARY KEY)")
+                connection.execute("INSERT INTO marker (id) VALUES ('first')")
+                connection.commit()
+
+            with _authorized_connection(temp_path) as permission_connection:
+                first_result = bootstrap_runtime_database(
+                    profile,
+                    permission_connection=permission_connection,
+                )
+
+                with _sqlite_connection(db_path) as connection:
+                    connection.execute("UPDATE marker SET id = 'second'")
+                    connection.commit()
+
+                second_result = bootstrap_runtime_database(
+                    profile,
+                    permission_connection=permission_connection,
+                )
+
+            first_backup_path = Path(first_result["backup_path"])
+            second_backup_path = Path(second_result["backup_path"])
+
+            self.assertEqual(first_result["status"], "completed")
+            self.assertEqual(second_result["status"], "completed")
+            self.assertTrue(first_result["backup_created"])
+            self.assertTrue(second_result["backup_created"])
+            self.assertNotEqual(first_backup_path, second_backup_path)
+            self.assertTrue(first_backup_path.exists())
+            self.assertTrue(second_backup_path.exists())
+
+            with _sqlite_connection(first_backup_path) as connection:
+                first_marker = connection.execute("SELECT id FROM marker").fetchone()["id"]
+            with _sqlite_connection(second_backup_path) as connection:
+                second_marker = connection.execute("SELECT id FROM marker").fetchone()["id"]
+
+            self.assertEqual(first_marker, "first")
+            self.assertEqual(second_marker, "second")
+
     def test_bootstrap_does_not_create_backup_for_brand_new_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

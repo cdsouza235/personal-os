@@ -6,11 +6,11 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phase 7 implementation is repository-code-only and dev/test-only. It may edit
+Phase 8 implementation is repository-code-only and dev/test-only. It may edit
 repo-local code, tests, and documentation, and may create temporary dev/test
 SQLite databases during tests. It must not inspect or mutate live runtime
-files, credentials, external systems, production ledgers, production SQLite
-state, or any production state.
+files, live PersonalOS fitness CSVs, credentials, external systems,
+production ledgers, production SQLite state, or any production state.
 
 Codex must not inspect:
 
@@ -173,6 +173,21 @@ explicitly set to `auto_write`. Phase 7 does not add live scheduler,
 TradingView/API, market-data, portfolio-execution, Todoist, Calendar, Gmail,
 or model/API permission keys.
 
+Phase 8 fitness integration permissions are stored in `permission_settings`
+and are separate from live fitness tracker, Notion, Apple Health, wearable API,
+scheduler, model/API, and execution permissions:
+
+- fitness_integration_dev_test_read
+- fitness_integration_dev_test_write
+- fitness_integration_dev_test_validate
+
+Fitness integration read, dev/test write, and fixture/schema validation paths
+fail closed when the relevant key is missing, disabled, invalid, or
+approval-only. They allow work only when the relevant dev/test key is
+explicitly set to `auto_write`. Phase 8 does not add live fitness import,
+live CSV write, Notion, Apple Health, wearable API, Todoist, Calendar, Gmail,
+or model/API permission keys.
+
 ## Execution Rules
 
 Phase 3 routine completion is not live execution. In dry-run mode it validates
@@ -298,6 +313,24 @@ activation, dashboard UI, OpenClaw runtime wiring, LaunchAgents, production
 SQLite access, full PersonalOS vault access, raw journal ingestion,
 unrestricted filesystem access, or autonomous legal/tax/portfolio/health/
 relationship execution.
+
+Phase 8 Fitness Integration Foundation is not live fitness tracking and not a
+data migration. The existing CSV-based local fitness tracker is preserved.
+Fitness/strength remains separate from Grease-the-Groove. Phase 8 stores
+dev/test integration labels, expected filenames, fixture validation runs, and
+file contracts only. It uses labels such as `personal_os_fitness_csvs` instead
+of absolute live paths. Fixture validation checks caller-supplied CSV headers
+only and must return `no_external_writes: true` and
+`no_live_personalos_access: true`.
+
+Phase 8 has no Notion dependency, no live PersonalOS CSV reads or writes, no
+Apple Health or wearable API integration, no live fitness data import, no
+workout recommendation engine, no medical/health advice engine, no
+Todoist/Calendar/Gmail writes, no live model/API calls, no credentials or
+OAuth, no scheduler or LaunchAgents, no production SQLite/runtime state, no
+dashboard UI yet, no full PersonalOS vault access, and no unrestricted
+filesystem access. V1.5 may later add recovery/training context in briefings
+after separate approval.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

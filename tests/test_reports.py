@@ -62,8 +62,8 @@ class ReportMigrationAndStateTest(unittest.TestCase):
                 "SELECT version, name FROM schema_migrations ORDER BY version"
             ).fetchall()
 
-        self.assertEqual(rows[-1]["version"], "0006")
-        self.assertEqual(rows[-1]["name"], "report_jobs_chart_pack_tables")
+        migration_names = {row["version"]: row["name"] for row in rows}
+        self.assertEqual(migration_names["0006"], "report_jobs_chart_pack_tables")
 
     def test_state_helpers_create_read_list_and_count_records(self) -> None:
         job = _valid_job()

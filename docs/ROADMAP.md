@@ -284,7 +284,7 @@ Non-goals:
 
 ## Phase 7: Weekly Chart Pack and Report Jobs
 
-Status: in progress.
+Status: complete.
 
 Scope:
 
@@ -346,8 +346,44 @@ Non-goals:
 
 ## Phase 8: Fitness Integration
 
+Status: in progress.
+
 Scope:
 
-- Preserve the existing CSV-based local fitness tracker.
-- Add a V1 shell, link, and status.
-- Later integrate routine prompts and recovery/training state.
+- Add the Phase 8 Fitness Integration Foundation as a dev/test-only
+  contract/status shell.
+- Preserve the existing CSV-based local fitness tracker. The existing
+  CSV-based local fitness tracker is preserved and not rebuilt or migrated.
+- Add SQLite tables for `fitness_integration_state`,
+  `fitness_validation_runs`, and `fitness_file_contracts`.
+- Define expected CSV contracts for `workout_sessions.csv`,
+  `workout_exercises.csv`, `weekly_recovery.csv`, and
+  `exercise_library.csv`.
+- Add fixture-only CSV header validation from caller-supplied test data.
+- Return deterministic validation reports with `no_external_writes: true` and
+  `no_live_personalos_access: true`.
+- Add permission-gated dev/test read, write, and validate helpers.
+- Later V1.5 may integrate routine prompts and recovery/training state in
+  briefings after separate approval.
+
+Permission keys:
+
+- `fitness_integration_dev_test_read`
+- `fitness_integration_dev_test_write`
+- `fitness_integration_dev_test_validate`
+
+Non-goals:
+
+- No Notion dependency.
+- No live PersonalOS CSV reads or writes.
+- No Apple Health or wearable API integration.
+- No live fitness data import.
+- No workout recommendation engine.
+- No medical/health advice engine.
+- No Todoist/Calendar/Gmail writes.
+- No live model/API calls.
+- No credentials or OAuth.
+- No scheduler or LaunchAgents.
+- No production SQLite/runtime state.
+- No dashboard UI yet.
+- No full PersonalOS vault access or unrestricted filesystem access.

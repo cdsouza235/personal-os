@@ -28,7 +28,15 @@ class StatusSummaryTest(unittest.TestCase):
 
         self.assertEqual(
             summary["counts"],
-            {"routines": 0, "priorities": 0, "projects": 0, "followups": 0},
+            {
+                "routines": 0,
+                "priorities": 0,
+                "projects": 0,
+                "followups": 0,
+                "fitness_integration_state": 0,
+                "fitness_validation_runs": 0,
+                "fitness_file_contracts": 0,
+            },
         )
         self.assertEqual(summary["permission_settings"], [])
         self.assertEqual(summary["permission_settings_count"], 0)
@@ -64,7 +72,15 @@ class StatusSummaryTest(unittest.TestCase):
 
         self.assertEqual(
             summary["counts"],
-            {"routines": 1, "priorities": 1, "projects": 1, "followups": 1},
+            {
+                "routines": 1,
+                "priorities": 1,
+                "projects": 1,
+                "followups": 1,
+                "fitness_integration_state": 0,
+                "fitness_validation_runs": 0,
+                "fitness_file_contracts": 0,
+            },
         )
         self.assertEqual(summary["permission_settings"], [permission])
         self.assertEqual(summary["permission_settings_count"], 1)

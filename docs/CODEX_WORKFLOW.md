@@ -12,9 +12,9 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phase 7 is approved for repo-local code, tests, and documentation. Codex may
-implement the dev/test-only report jobs and Weekly Chart Pack foundation in
-this repository, run local tests, push the branch, and open or update the PR.
+Phase 8 is approved for repo-local code, tests, and documentation. Codex may
+implement the dev/test-only fitness integration foundation in this repository,
+run local tests, push the branch, and open or update the PR.
 Codex must stop before merge and must not inspect or mutate protected runtime
 paths, external systems, credentials, production ledgers, production SQLite
 state, or production state.
@@ -148,12 +148,38 @@ Phase 7 may not fetch live market data, call TradingView APIs, make investment
 recommendations, create portfolio execution tasks, write Todoist, write
 Calendar, send Gmail, call live model APIs, add credentials or OAuth, start a
 scheduler, create or load LaunchAgents, write production SQLite, inspect
-protected PersonalOS or OpenClaw paths, expose a dashboard or API surface, or
-start Phase 8.
+protected PersonalOS or OpenClaw paths, or expose a dashboard or API surface.
 
 ChatGPT is the interpretation layer for market and thesis synthesis. OpenClaw
 stores approved workflow outputs later but does not analyze investments
 independently. Report jobs are coded jobs, not analyst personas.
+
+## Phase 8 Fitness Integration Boundary
+
+The Phase 8 Fitness Integration Foundation is internal and dev/test-only. It
+may:
+
+- Define `fitness_integration_state`, `fitness_validation_runs`, and
+  `fitness_file_contracts` records in dev/test SQLite.
+- Preserve the existing CSV-based local fitness tracker.
+- Define expected file contracts for `workout_sessions.csv`,
+  `workout_exercises.csv`, `weekly_recovery.csv`, and
+  `exercise_library.csv`.
+- Validate fixture CSV headers supplied by tests or callers.
+- Return deterministic reports with `no_external_writes: true` and
+  `no_live_personalos_access: true`.
+- Gate read, write, and validation helpers with
+  `fitness_integration_dev_test_read`, `fitness_integration_dev_test_write`,
+  and `fitness_integration_dev_test_validate`.
+
+Phase 8 may not read or write live PersonalOS CSVs, inspect protected
+PersonalOS or OpenClaw paths, integrate with Notion, Apple Health, HealthKit,
+Garmin, Whoop, Oura, Fitbit, or wearable APIs, import live fitness data,
+infer workouts, recommend workouts, provide medical or health advice, write
+Todoist, write Calendar, send Gmail, call live model APIs, add credentials or
+OAuth, start a scheduler, create or load LaunchAgents, write production
+SQLite/runtime state, expose dashboard UI yet, or start deeper V1.5 briefing
+integration.
 
 ## Runtime Module Validation
 

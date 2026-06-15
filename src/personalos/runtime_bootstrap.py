@@ -389,6 +389,9 @@ def _seed_permission_settings(
         "composer_module_dev_test_read": PermissionMode.DISABLED.value,
         "composer_module_dev_test_write": PermissionMode.DISABLED.value,
         "composer_module_dev_test_run": PermissionMode.DISABLED.value,
+        "synthesis_import_dev_test_read": PermissionMode.DISABLED.value,
+        "synthesis_import_dev_test_write": PermissionMode.DISABLED.value,
+        "synthesis_import_dev_test_preview": PermissionMode.DISABLED.value,
         "report_jobs_dev_test_read": PermissionMode.DISABLED.value,
         "report_jobs_dev_test_write": PermissionMode.DISABLED.value,
         "report_jobs_dev_test_run": PermissionMode.DISABLED.value,
@@ -966,7 +969,10 @@ def _is_under_temp(path: Path) -> bool:
 def _path_warnings(profile: RuntimeBootstrapProfile) -> list[str]:
     warnings = [
         "Phase 9B bootstrap is local/dev-preview only; production runtime activation is blocked.",
-        "No scheduler, LaunchAgent, Gmail send, live Todoist/Calendar write, or live model/API call is configured.",
+        (
+            "No scheduler, LaunchAgent, Gmail send, live Todoist/Calendar write, "
+            "or live model/API call is configured."
+        ),
     ]
     if _is_under_repo(profile.db_path):
         warnings.append("Repo-local runtime databases are allowed only for explicit dev/test use.")

@@ -7,3 +7,17 @@ timezone = "America/Chicago"
 # runtime area. Production database configuration is intentionally absent.
 development_path = "var/dev/personalos-dev.sqlite3"
 test_path = "var/test/personalos-test.sqlite3"
+
+[runtime_bootstrap]
+# Phase 9B is local/dev-preview only. These example paths are placeholders for
+# an explicit temp/dev runtime bootstrap and do not activate production.
+profile_name = "local-preview"
+runtime_mode = "local_runtime_preview"
+db_path_label = "temp-local-preview"
+db_path = "/tmp/personalos-runtime-preview/personalos-preview.sqlite3"
+backup_enabled = true
+backup_dir = "/tmp/personalos-runtime-preview/backups"
+no_external_writes = true
+no_send_mode = true
+seed_profile_name = "mvp_preview_safe_seed"
+created_by = "local-developer"

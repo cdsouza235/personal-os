@@ -1,6 +1,8 @@
 import sqlite3
 import tempfile
 import unittest
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from personalos.config import (
@@ -235,6 +237,31 @@ class SQLiteFoundationTest(unittest.TestCase):
             "updated_at",
         },
     }
+    expected_phase_9b_tables = {
+        "runtime_bootstrap_runs": {
+            "id",
+            "profile_name",
+            "runtime_mode",
+            "db_path_label",
+            "dry_run",
+            "status",
+            "input_json",
+            "output_json",
+            "error_message",
+            "created_at",
+            "completed_at",
+        },
+        "briefing_windows": {
+            "id",
+            "name",
+            "scheduled_time",
+            "timezone",
+            "delivery_mode",
+            "status",
+            "created_at",
+            "updated_at",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -244,7 +271,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 with self.subTest(environment=environment):
                     config = _config_for(runtime_dir, environment)
 
-                    with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                    with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                         result = connection.execute("SELECT 1").fetchone()[0]
                         foreign_keys = connection.execute("PRAGMA foreign_keys").fetchone()[0]
 
@@ -271,7 +298,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             )
 
             self.assertFalse(dev_config.database_path.parent.exists())
-            with connect_sqlite(dev_config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(dev_config, runtime_dir=runtime_dir) as connection:
                 connection.execute("SELECT 1")
             self.assertTrue(dev_config.database_path.parent.exists())
 
@@ -311,7 +338,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 first_applied = apply_migrations(connection)
                 second_applied = apply_migrations(connection)
 
@@ -321,10 +348,10 @@ class SQLiteFoundationTest(unittest.TestCase):
 
             self.assertEqual(
                 [migration.version for migration in first_applied],
-                ["0001", "0002", "0003", "0004", "0005", "0006", "0007"],
+                ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 7)
+            self.assertEqual(len(rows), 8)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -449,7 +476,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for table_name, sql, values in orphan_inserts:
                     with self.subTest(table_name=table_name):
@@ -461,7 +488,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 table_names = _table_names(connection)
                 table_columns = {
@@ -477,7 +504,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 table_names = _table_names(connection)
                 table_columns = {
@@ -493,7 +520,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 table_names = _table_names(connection)
                 table_columns = {
@@ -515,7 +542,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -571,7 +598,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -628,7 +655,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -691,7 +718,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 table_names = _table_names(connection)
                 table_columns = {
@@ -713,7 +740,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -775,7 +802,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -834,7 +861,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -903,7 +930,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 table_names = _table_names(connection)
                 table_columns = {
@@ -926,7 +953,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -987,7 +1014,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -1051,7 +1078,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 apply_migrations(connection)
                 for index, (column_name, invalid_value) in enumerate(invalid_cases):
                     with self.subTest(column_name=column_name):
@@ -1094,6 +1121,143 @@ class SQLiteFoundationTest(unittest.TestCase):
                                 ),
                             )
 
+    def test_phase_9b_runtime_bootstrap_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_9b_tables
+                }
+
+        self.assertTrue(self.expected_phase_9b_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_9b_tables)
+
+    def test_phase_9b_runtime_bootstrap_run_check_constraints_reject_invalid_values(
+        self,
+    ) -> None:
+        invalid_cases = (
+            ("runtime_mode", "production"),
+            ("dry_run", 2),
+            ("status", "running_live"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"bootstrap-run-check-{index}",
+                            "profile_name": "phase-9b-preview",
+                            "runtime_mode": "local_runtime_preview",
+                            "db_path_label": "temp-preview",
+                            "dry_run": 0,
+                            "status": "completed",
+                            "input_json": "{}",
+                            "output_json": '{"no_external_writes":true}',
+                            "error_message": None,
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "completed_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO runtime_bootstrap_runs (
+                                    id,
+                                    profile_name,
+                                    runtime_mode,
+                                    db_path_label,
+                                    dry_run,
+                                    status,
+                                    input_json,
+                                    output_json,
+                                    error_message,
+                                    created_at,
+                                    completed_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["profile_name"],
+                                    values["runtime_mode"],
+                                    values["db_path_label"],
+                                    values["dry_run"],
+                                    values["status"],
+                                    values["input_json"],
+                                    values["output_json"],
+                                    values["error_message"],
+                                    values["created_at"],
+                                    values["completed_at"],
+                                ),
+                            )
+
+    def test_phase_9b_briefing_window_check_constraints_reject_invalid_values(
+        self,
+    ) -> None:
+        invalid_cases = (
+            ("name", "overnight"),
+            ("delivery_mode", "gmail_send"),
+            ("status", "scheduled_live"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "id": f"briefing-window-check-{index}",
+                            "name": "morning",
+                            "scheduled_time": "08:00",
+                            "timezone": DEFAULT_TIMEZONE,
+                            "delivery_mode": "no_send",
+                            "status": "draft",
+                            "created_at": "2026-06-15T10:00:00+00:00",
+                            "updated_at": "2026-06-15T10:00:00+00:00",
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO briefing_windows (
+                                    id,
+                                    name,
+                                    scheduled_time,
+                                    timezone,
+                                    delivery_mode,
+                                    status,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["id"],
+                                    values["name"],
+                                    values["scheduled_time"],
+                                    values["timezone"],
+                                    values["delivery_mode"],
+                                    values["status"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
     def test_migration_checksum_drift_is_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -1104,7 +1268,7 @@ class SQLiteFoundationTest(unittest.TestCase):
             migration_path.write_text("SELECT 1;\n", encoding="utf-8")
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
                 first_applied = apply_migrations(connection, migrations_dir=migrations_dir)
                 second_applied = apply_migrations(connection, migrations_dir=migrations_dir)
                 recorded_checksum = connection.execute(
@@ -1128,7 +1292,7 @@ class SQLiteFoundationTest(unittest.TestCase):
 
         self.assertEqual(
             [migration.version for migration in migrations],
-            ["0001", "0002", "0003", "0004", "0005", "0006", "0007"],
+            ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"],
         )
         self.assertEqual(
             [migration.name for migration in migrations],
@@ -1140,6 +1304,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "composer_model_tables",
                 "report_jobs_chart_pack_tables",
                 "fitness_integration_tables",
+                "runtime_bootstrap_tables",
             ],
         )
 
@@ -1151,6 +1316,19 @@ def _config_for(runtime_dir: Path, environment: Environment) -> PersonalOSConfig
         timezone=DEFAULT_TIMEZONE,
         database_path=runtime_dir / directory_name / "personalos.sqlite3",
     )
+
+
+@contextmanager
+def _connected_sqlite(
+    config: PersonalOSConfig,
+    *,
+    runtime_dir: Path,
+) -> Iterator[sqlite3.Connection]:
+    connection = connect_sqlite(config, runtime_dir=runtime_dir)
+    try:
+        yield connection
+    finally:
+        connection.close()
 
 
 def _table_names(connection: sqlite3.Connection) -> set[str]:

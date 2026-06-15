@@ -460,6 +460,47 @@ production SQLite/runtime state, no dashboard UI yet, no full PersonalOS vault
 access, and no unrestricted filesystem access. V1.5 may later add deeper
 recovery/training context in briefings after separate approval.
 
+## Runtime DB Bootstrap
+
+Phase 9B adds the local/dev-preview runtime SQLite bootstrap bridge needed
+before a dashboard, no-send briefing loop, scheduler, or live integration is
+activated. It is not production activation and not a live runtime launch.
+
+Runtime bootstrap profiles must use an explicit database path, a
+`dev_runtime` or `local_runtime_preview` mode, `no_external_writes: true`, and
+`no_send_mode: true`. The bootstrap layer rejects protected PersonalOS,
+OpenClaw, LaunchAgents, credential/OAuth-looking, and production-looking paths.
+Only explicit temp/dev runtime DB paths are eligible for mutation in this
+phase.
+
+The bootstrap preview is non-mutating. It reports the target DB path, pending
+migrations, possible backup path, seed profile, and safety flags. Bootstrap
+execution creates a timestamped backup before migrating an existing DB, creates
+a new DB only when the target does not exist, applies migrations through the
+existing checksum-tracked migration system, and keeps SQLite foreign keys
+enabled on the bootstrap connection.
+
+Phase 9B stores bootstrap evidence in `runtime_bootstrap_runs` and inert
+briefing schedule definitions in `briefing_windows`. Briefing windows support
+only `no_send` or `manual_export` delivery modes and `draft`, `active`, or
+`disabled` statuses. They are definitions only; no scheduler or briefing loop
+exists yet.
+
+The safe MVP preview seed profile writes only local SQLite state. It disables
+external/live-facing permissions, creates paused disabled preview routines,
+creates a fake paused preview priority, and creates no-send draft briefing
+windows for morning, midday, afternoon, and evening.
+
+Phase 9B permission keys are:
+
+- `runtime_bootstrap_dev_test_read`
+- `runtime_bootstrap_dev_test_write`
+- `runtime_bootstrap_dev_test_run`
+
+These keys fail closed by default and allow dev/test work only when explicitly
+set to `auto_write`. No production runtime permission or live external write
+permission exists in Phase 9B.
+
 ## Phase 0 Inventory Charter
 
 Phase 0 requires explicit approval before starting. It is read-only. Phase 0 may inspect specified live paths only after explicit approval for that inventory scope.

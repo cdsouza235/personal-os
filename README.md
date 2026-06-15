@@ -128,15 +128,15 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 8 are complete. The Phase 6B, Phase 7B, and Phase 8B
+Phases -1 through 9A are complete. The Phase 6B, Phase 7B, and Phase 8B
 fake/local smoke tests are complete.
 
-The current next phase is correctness hardening and MVP readiness, not another
-domain module. This repository still has no production runtime activation: no
-dashboard UI, scheduler, Gmail send, live Todoist or Calendar writes, live
-model/API calls, credentials/OAuth, production SQLite/runtime state access,
-protected PersonalOS path access, or unrestricted filesystem access is enabled
-from this repo.
+The current Phase 9B scope is runtime DB bootstrap foundation work for a
+local/dev-preview SQLite database. It is not production activation and not a
+runtime launch. This repository still has no dashboard UI, scheduler, Gmail
+send, live Todoist or Calendar writes, live model/API calls, credentials/OAuth,
+production SQLite/runtime state access, protected PersonalOS path access, or
+unrestricted filesystem access enabled from this repo.
 
 ## Phase 1 Runtime Foundation
 
@@ -454,3 +454,45 @@ credentials or OAuth, no scheduler or LaunchAgents, no production
 SQLite/runtime state, no dashboard UI yet, no full PersonalOS vault access,
 and no unrestricted filesystem access. V1.5 may later add deeper
 recovery/training context in briefings after separate approval.
+
+## Phase 9B Runtime DB Bootstrap Foundation
+
+Phase 9B adds a safe local/dev-preview runtime SQLite bootstrap foundation
+before dashboard, briefing loop, scheduler, or live integrations. It includes:
+
+- Runtime bootstrap profile validation for explicit `dev_runtime` and
+  `local_runtime_preview` database paths.
+- Protected path rejection for PersonalOS, OpenClaw, LaunchAgents,
+  credential/OAuth-looking paths, and production-looking paths.
+- A non-mutating bootstrap plan that reports target DB path, pending
+  migrations, possible backup path, seed profile, and safety flags.
+- Backup-before-migrate behavior for existing explicit temp/dev runtime DBs.
+- Migration application through the existing checksum-tracked migration system.
+- SQLite foreign key enforcement on bootstrap connections.
+- Migration `0008_runtime_bootstrap_tables.sql` for `runtime_bootstrap_runs`
+  and inert `briefing_windows`.
+- A safe MVP preview seed profile that writes only local SQLite state:
+  disabled external/live-facing permissions, paused disabled preview routines,
+  a fake paused preview priority, and no-send draft briefing window
+  definitions.
+- A structured runtime bootstrap/status report with migration state, table
+  counts, permission summary, seeded objects, backup status, and safety flags.
+
+Phase 9B permission keys:
+
+- `runtime_bootstrap_dev_test_read`
+- `runtime_bootstrap_dev_test_write`
+- `runtime_bootstrap_dev_test_run`
+
+All Phase 9B runtime bootstrap permissions fail closed when missing, disabled,
+invalid, or approval-only. Bootstrap writes and seed behavior require explicit
+dev/test write and run permissions. No production runtime permission and no
+live external write permission is added.
+
+Phase 9B does not add live Todoist writes, live Calendar writes, Gmail send,
+live model/API calls, Notion, Apple Health, TradingView/API calls,
+credentials/OAuth, scheduler/LaunchAgents, dashboard UI, web server, daily
+briefing generation loop, production SQLite/runtime state mutation, protected
+PersonalOS or OpenClaw access, or real production activation. The likely next
+phase is a minimal local Today View/dashboard shell or a no-send daily
+briefing loop, after separate approval.

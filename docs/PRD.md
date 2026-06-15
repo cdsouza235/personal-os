@@ -247,6 +247,37 @@ filesystem access.
 V1.5 may later add deeper recovery/training context in briefings after
 separate approval.
 
+## Runtime Bootstrap
+
+Phase 9B creates the local/dev-preview runtime DB bootstrap foundation needed
+before the usable MVP daily operating loop. It is a bridge from tested modules
+to a local runtime database; it is not production activation and not a live
+runtime launch.
+
+The bootstrap profile requires explicit `dev_runtime` or
+`local_runtime_preview` mode, an explicit SQLite DB path, backup enabled,
+`no_external_writes: true`, `no_send_mode: true`, a seed profile name, and a
+creator label. Protected PersonalOS, OpenClaw, LaunchAgents,
+credential/OAuth-looking, and production-looking paths are rejected.
+
+The bootstrap preview is non-mutating and reports the target DB path, pending
+migrations, backup path that would be used if the DB exists, seed profile, and
+safety flags. Bootstrap execution creates a backup before migrating an
+existing explicit temp/dev DB, applies repository migrations, keeps SQLite
+foreign keys enabled, and records local bootstrap evidence.
+
+The MVP preview seed profile writes only local SQLite state. It disables
+external/live-facing permissions, creates paused disabled preview routines,
+creates a fake paused preview priority, and creates no-send draft briefing
+window definitions. Briefing windows are inert definitions only; there is no
+scheduler, web server, dashboard UI, or daily briefing generation loop in
+Phase 9B.
+
+Phase 9B adds no live Todoist writes, live Calendar writes, Gmail send, live
+model/API calls, Notion, Apple Health, TradingView/API calls, credentials,
+OAuth, LaunchAgents, production SQLite/runtime state mutation, protected
+PersonalOS or OpenClaw access, or production runtime activation.
+
 ## Reports and Jobs
 
 Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT

@@ -12,9 +12,9 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 8 are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. Phase 9A is approved for repo-local code,
-tests, and documentation only as correctness hardening and MVP readiness work.
+Phases -1 through 9A are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. Phase 9B is approved for repo-local code,
+tests, and documentation only as local/dev runtime DB bootstrap foundation.
 Codex may run local tests, push the branch, and open or update the PR. Codex
 must stop before merge and must not inspect or mutate protected runtime paths,
 external systems, credentials, production ledgers, production SQLite state, or
@@ -181,6 +181,35 @@ Todoist, write Calendar, send Gmail, call live model APIs, add credentials or
 OAuth, start a scheduler, create or load LaunchAgents, write production
 SQLite/runtime state, expose dashboard UI yet, or start deeper V1.5 briefing
 integration.
+
+## Phase 9B Runtime DB Bootstrap Boundary
+
+The Phase 9B Runtime DB Bootstrap Foundation is internal and local/dev-preview
+only. It may:
+
+- Validate explicit runtime bootstrap profiles for `dev_runtime` and
+  `local_runtime_preview`.
+- Reject protected, credential/OAuth-looking, and production-looking paths.
+- Build non-mutating bootstrap previews with pending migrations, backup path,
+  seed profile, and safety flags.
+- Create timestamped backups before migrating existing explicit temp/dev DBs.
+- Apply repository migrations to explicit temp/dev SQLite DBs.
+- Seed safe local-only state after explicit dev/test write and run permissions
+  are enabled.
+- Record local bootstrap evidence in `runtime_bootstrap_runs`.
+- Store inert no-send/manual-export briefing window definitions.
+
+Phase 9B permission keys are
+`runtime_bootstrap_dev_test_read`, `runtime_bootstrap_dev_test_write`, and
+`runtime_bootstrap_dev_test_run`. They fail closed by default and allow work
+only when explicitly set to `auto_write`.
+
+Phase 9B may not activate production runtime behavior, mutate production
+SQLite/runtime state, inspect protected PersonalOS or OpenClaw paths, create
+or load LaunchAgents, start a scheduler, expose a dashboard or web server,
+generate a daily briefing loop, send Gmail, write Todoist, write Calendar,
+call live model APIs, call Notion/Apple Health/TradingView or other external
+APIs, read credentials/OAuth, or create live external write permissions.
 
 ## Runtime Module Validation
 

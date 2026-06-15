@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 8 are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current next phase is correctness
-hardening and MVP readiness, not another domain module. This repo still has no
-production runtime activation.
+Phases -1 through 9A are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 9B work is runtime DB
+bootstrap foundation for a local/dev-preview SQLite database. This repo still
+has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -401,7 +401,7 @@ Non-goals:
 
 ## Phase 9A: Correctness Hardening and MVP Readiness
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -423,3 +423,53 @@ Non-goals:
 - No credentials or OAuth.
 - No production SQLite/runtime state.
 - No PersonalOS or `.openclaw` access.
+
+## Phase 9B: Runtime DB Bootstrap Foundation
+
+Status: current.
+
+Scope:
+
+- Add a safe runtime bootstrap profile for explicit local/dev-preview SQLite
+  paths only.
+- Keep `runtime_mode` limited to `dev_runtime` and `local_runtime_preview`.
+- Require `no_external_writes: true` and `no_send_mode: true`.
+- Reject protected PersonalOS, OpenClaw, LaunchAgents, credential/OAuth-looking,
+  and production-looking paths.
+- Add non-mutating bootstrap previews that report the target DB path, pending
+  migrations, possible backup path, seed profile, and safety flags.
+- Create timestamped backups before migrating an existing explicit temp/dev DB.
+- Apply migrations through the existing checksum-tracked migration system and
+  keep SQLite foreign key enforcement enabled.
+- Add `runtime_bootstrap_runs` and inert `briefing_windows` tables.
+- Seed only safe local SQLite state: disabled external/live-facing permissions,
+  paused disabled preview routines, a fake paused preview priority, and no-send
+  draft briefing window definitions.
+- Return a local runtime bootstrap/status report with migrations, table counts,
+  permission summary, seeded objects, backup status, and safety flags.
+
+Permission keys:
+
+- `runtime_bootstrap_dev_test_read`
+- `runtime_bootstrap_dev_test_write`
+- `runtime_bootstrap_dev_test_run`
+
+Non-goals:
+
+- No live Todoist writes.
+- No live Calendar writes.
+- No Gmail send.
+- No live model/API calls.
+- No Notion, Apple Health, TradingView, or other live API calls.
+- No credentials or OAuth.
+- No scheduler or LaunchAgents.
+- No production SQLite/runtime state mutation.
+- No protected PersonalOS or `.openclaw` access.
+- No dashboard UI or web server.
+- No daily briefing generation loop.
+- No production runtime activation.
+
+Likely next phase:
+
+- Minimal local Today View/dashboard shell or a no-send daily briefing loop,
+  after separate approval.

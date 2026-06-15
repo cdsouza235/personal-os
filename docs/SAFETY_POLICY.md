@@ -6,13 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 8 are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 9A work is
-repository-code-only correctness hardening and MVP readiness. It may edit
-repo-local code, tests, and documentation, and may create temporary dev/test
-SQLite databases during tests. It must not inspect or mutate live runtime
-files, live PersonalOS files or fitness CSVs, credentials, external systems,
-production ledgers, production SQLite state, or any production state.
+Phases -1 through 9A are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 9B work is local/dev
+runtime DB bootstrap foundation. It may edit repo-local code, tests, and
+documentation, and may create temporary dev/test SQLite databases during tests.
+It must not inspect or mutate live runtime files, live PersonalOS files or
+fitness CSVs, credentials, external systems, production ledgers, production
+SQLite state, or any production state.
 
 Codex must not inspect:
 
@@ -190,6 +190,22 @@ explicitly set to `auto_write`. Phase 8 does not add live fitness import,
 live CSV write, Notion, Apple Health, wearable API, Todoist, Calendar, Gmail,
 or model/API permission keys.
 
+Phase 9B runtime bootstrap permissions are stored in `permission_settings` and
+are separate from production runtime activation, live scheduler, live
+integration, and live model/API permissions:
+
+- runtime_bootstrap_dev_test_read
+- runtime_bootstrap_dev_test_write
+- runtime_bootstrap_dev_test_run
+
+Runtime bootstrap preview/read, local DB write, and seed/run paths fail closed
+when the relevant key is missing, disabled, invalid, or approval-only. They
+allow work only when the relevant dev/test key is explicitly set to
+`auto_write`. Phase 9B does not add a production runtime permission, live
+external write permission, live model/API permission, Gmail permission,
+Todoist live-write permission, Calendar live-write permission, scheduler
+permission, or LaunchAgent permission.
+
 ## Execution Rules
 
 Phase 3 routine completion is not live execution. In dry-run mode it validates
@@ -333,6 +349,25 @@ OAuth, no scheduler or LaunchAgents, no production SQLite/runtime state, no
 dashboard UI yet, no full PersonalOS vault access, and no unrestricted
 filesystem access. V1.5 may later add recovery/training context in briefings
 after separate approval.
+
+Phase 9B runtime bootstrap is not production activation and not a runtime
+launch. It validates explicit `dev_runtime` and `local_runtime_preview`
+profiles, requires no-send and no-external-write mode, rejects protected and
+production-looking paths, previews pending migrations without mutation, and
+creates a backup before migrating an existing explicit temp/dev runtime DB.
+
+Phase 9B seed behavior writes only local SQLite state after explicit dev/test
+write and run permissions are enabled. The seed profile disables
+external/live-facing permissions, creates paused disabled preview routines,
+creates a fake paused preview priority, and creates inert no-send draft
+briefing window definitions. Briefing windows are schedule definitions only;
+Phase 9B adds no scheduler and no daily briefing generation loop.
+
+Phase 9B does not add live Todoist writes, live Calendar writes, Gmail send,
+live model/API calls, Notion, Apple Health, TradingView, external API calls,
+credentials, OAuth, scheduler activation, LaunchAgents, dashboard UI, web
+server, production SQLite/runtime state mutation, protected PersonalOS access,
+protected OpenClaw access, or real production activation.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

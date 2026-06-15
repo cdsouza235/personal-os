@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.composer import (
     ComposerAdapter,
+    FAKE_COMPOSER_ADAPTER_NAME,
     FakeComposerAdapter,
     build_composer_packet_from_state,
     run_fake_composer_model,
@@ -116,6 +117,7 @@ def generate_no_send_briefing_preview(
     briefing_window_name = _validate_briefing_window_name(briefing_window_name)
     delivery_mode = _validate_delivery_mode(delivery_mode)
     started_at = _validate_iso_datetime("run_at", run_at or _utc_now())
+    selected_adapter = _require_fake_composer_adapter(adapter or FakeComposerAdapter())
 
     permissions = _evaluate_generation_permissions(connection)
     denied = next((permission for permission in permissions.values() if not permission["allowed"]), None)
@@ -165,7 +167,7 @@ def generate_no_send_briefing_preview(
     composer_result = run_fake_composer_model(
         connection,
         packet=packet,
-        adapter=adapter or FakeComposerAdapter(),
+        adapter=selected_adapter,
         run_at=started_at,
     )
 
@@ -462,6 +464,18 @@ def _ensure_daily_plan(
         created_at=generated_at,
         updated_at=generated_at,
     )
+
+
+def _require_fake_composer_adapter(adapter: ComposerAdapter) -> ComposerAdapter:
+    if getattr(adapter, "dev_test_fake_adapter", False) is not True:
+        raise BriefingLoopValidationError(
+            "No-send briefing previews require a dev/test fake Composer adapter."
+        )
+    if getattr(adapter, "adapter_name", None) != FAKE_COMPOSER_ADAPTER_NAME:
+        raise BriefingLoopValidationError(
+            f"No-send briefing previews are limited to {FAKE_COMPOSER_ADAPTER_NAME}."
+        )
+    return adapter
 
 
 def _record_failed_briefing_output(

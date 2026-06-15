@@ -26,6 +26,7 @@ from personalos.composer import (
     COMPOSER_MODULE_READ_PERMISSION,
     COMPOSER_MODULE_RUN_PERMISSION,
     COMPOSER_MODULE_WRITE_PERMISSION,
+    FAKE_COMPOSER_ADAPTER_NAME,
     FakeComposerAdapter,
 )
 from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
@@ -291,6 +292,89 @@ class BriefingLoopPermissionTest(unittest.TestCase):
 
 
 class BriefingPreviewGenerationTest(unittest.TestCase):
+    def test_non_fake_adapter_is_rejected_before_any_persistence(self) -> None:
+        class NonFakeAdapter:
+            dev_test_fake_adapter = False
+            model_name = "live-like-model"
+            adapter_name = FAKE_COMPOSER_ADAPTER_NAME
+
+            def compose(self, packet: object) -> dict[str, object]:
+                raise AssertionError("non-fake adapter must not be called")
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_loop_permissions(connection)
+                _enable_composer_permissions(connection)
+
+                with self.assertRaises(BriefingLoopValidationError):
+                    generate_no_send_briefing_preview(
+                        connection,
+                        source_date=SOURCE_DATE,
+                        timezone=DEFAULT_TIMEZONE,
+                        briefing_window_name="morning",
+                        adapter=NonFakeAdapter(),
+                        run_at=RUN_AT,
+                    )
+
+                counts = _briefing_persistence_counts(connection)
+
+        self.assertEqual(counts, _empty_briefing_persistence_counts())
+
+    def test_adapter_missing_fake_marker_is_rejected_before_any_persistence(self) -> None:
+        class MissingFakeMarkerAdapter:
+            model_name = "unknown-model"
+            adapter_name = FAKE_COMPOSER_ADAPTER_NAME
+
+            def compose(self, packet: object) -> dict[str, object]:
+                raise AssertionError("unmarked adapter must not be called")
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_loop_permissions(connection)
+                _enable_composer_permissions(connection)
+
+                with self.assertRaises(BriefingLoopValidationError):
+                    generate_no_send_briefing_preview(
+                        connection,
+                        source_date=SOURCE_DATE,
+                        timezone=DEFAULT_TIMEZONE,
+                        briefing_window_name="morning",
+                        adapter=MissingFakeMarkerAdapter(),
+                        run_at=RUN_AT,
+                    )
+
+                counts = _briefing_persistence_counts(connection)
+
+        self.assertEqual(counts, _empty_briefing_persistence_counts())
+
+    def test_fake_marker_with_wrong_adapter_name_is_rejected_before_any_persistence(self) -> None:
+        class WrongNameFakeAdapter:
+            dev_test_fake_adapter = True
+            model_name = "fake-like-model"
+            adapter_name = "fake_composer_adapter_v2"
+
+            def compose(self, packet: object) -> dict[str, object]:
+                raise AssertionError("wrong-name adapter must not be called")
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_loop_permissions(connection)
+                _enable_composer_permissions(connection)
+
+                with self.assertRaises(BriefingLoopValidationError):
+                    generate_no_send_briefing_preview(
+                        connection,
+                        source_date=SOURCE_DATE,
+                        timezone=DEFAULT_TIMEZONE,
+                        briefing_window_name="morning",
+                        adapter=WrongNameFakeAdapter(),
+                        run_at=RUN_AT,
+                    )
+
+                counts = _briefing_persistence_counts(connection)
+
+        self.assertEqual(counts, _empty_briefing_persistence_counts())
+
     def test_no_send_briefing_preview_success_uses_fake_composer_only(self) -> None:
         adapter = FakeComposerAdapter()
 
@@ -668,3 +752,23 @@ def _table_counts(connection: sqlite3.Connection) -> dict[str, int]:
             connection.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()[0]
         )
     return counts
+
+
+def _briefing_persistence_counts(connection: sqlite3.Connection) -> dict[str, int]:
+    return {
+        "daily_plans": count_daily_plans(connection),
+        "briefing_outputs": count_briefing_outputs(connection),
+        "model_runs": count_model_runs(connection),
+        "composer_packets": count_composer_packets(connection),
+        "composer_outputs": count_composer_outputs(connection),
+    }
+
+
+def _empty_briefing_persistence_counts() -> dict[str, int]:
+    return {
+        "daily_plans": 0,
+        "briefing_outputs": 0,
+        "model_runs": 0,
+        "composer_packets": 0,
+        "composer_outputs": 0,
+    }

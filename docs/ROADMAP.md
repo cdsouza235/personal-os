@@ -242,7 +242,7 @@ Non-goals:
 
 ## Phase 6: Composer Model Integration
 
-Status: in progress.
+Status: complete.
 
 Scope:
 
@@ -284,12 +284,65 @@ Non-goals:
 
 ## Phase 7: Weekly Chart Pack and Report Jobs
 
+Status: in progress.
+
 Scope:
 
-- Add weekly chart pack workflow hook.
-- Add report job shell and coded jobs.
-- Track week-over-week chart review changes.
-- Support jobs such as macro calendar, earnings calendar, TradingView alert digest, priority status report, routine adherence report, Todoist completion report, and calendar utilization report.
+- Add dev/test SQLite tables for `report_jobs`, `report_runs`, and
+  `chart_pack_reviews`.
+- Add report job validation for supported coded job types, cadence, status,
+  JSON-safe config, and timestamps.
+- Add report run validation for preview, dry-run, and simulated local runs.
+- Add chart pack review validation for manually supplied chart-pack data,
+  manually supplied TradingView alert digests, ChatGPT synthesis markdown, and
+  structured summaries.
+- Enforce structured summary sections for market context, BTC context, ETH
+  context, miner/HPC context, portfolio watch items, week-over-week changes,
+  follow-up candidates, and warnings.
+- Add a deterministic fake report runner that writes local `report_runs`
+  records only when dev/test permissions are enabled and returns
+  `no_external_writes: true`.
+- Track week-over-week chart review changes as stored review data, not as
+  autonomous investment interpretation.
+- Support jobs such as weekly chart pack index, TradingView alert digest,
+  macro calendar, earnings calendar, priority status report, routine
+  adherence report, Todoist completion report, and Calendar utilization
+  report.
+
+Workflow boundary:
+
+- Chris produces Weekly Chart Packs and gathers TradingView alerts.
+- TradingView alerts are manually supplied and stored as validated JSON; they
+  are not fetched live.
+- Chris sends chart packs and alerts to ChatGPT.
+- ChatGPT is the interpretation layer for market and thesis synthesis.
+- OpenClaw may later store approved workflow outputs and track changes, but
+  OpenClaw does not analyze investments independently.
+- Report jobs are coded jobs, not analyst personas.
+
+Permission keys:
+
+- `report_jobs_dev_test_read`
+- `report_jobs_dev_test_write`
+- `report_jobs_dev_test_run`
+- `chart_pack_reviews_dev_test_read`
+- `chart_pack_reviews_dev_test_write`
+
+Non-goals:
+
+- No live market data fetching.
+- No TradingView API.
+- No investment recommendations.
+- No portfolio execution.
+- No Todoist writes.
+- No Calendar writes.
+- No Gmail send.
+- No live model/API calls.
+- No credentials or OAuth.
+- No scheduler or LaunchAgents.
+- No production SQLite access.
+- No dashboard UI.
+- No protected PersonalOS vault access or unrestricted filesystem access.
 
 ## Phase 8: Fitness Integration
 

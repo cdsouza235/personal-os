@@ -12,11 +12,12 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phase 4 is approved for repo-local code, tests, and documentation. Codex may
-implement the dev/test-only priority engine foundation in this repository, run
-local tests, push the branch, and open or update the PR. Codex must stop before
-merge and must not inspect or mutate protected runtime paths, external systems,
-credentials, production ledgers, production SQLite state, or production state.
+Phase 7 is approved for repo-local code, tests, and documentation. Codex may
+implement the dev/test-only report jobs and Weekly Chart Pack foundation in
+this repository, run local tests, push the branch, and open or update the PR.
+Codex must stop before merge and must not inspect or mutate protected runtime
+paths, external systems, credentials, production ledgers, production SQLite
+state, or production state.
 
 ## Phase Rules
 
@@ -126,6 +127,33 @@ behavior, activate runtime automation, wire OpenClaw, create LaunchAgents, add
 external API clients, touch Gmail, Todoist, or Calendar, write production
 SQLite, add credentials, expose a dashboard or API surface, generate composer
 packets, or start Phase 5.
+
+## Phase 7 Report Jobs and Chart Pack Boundary
+
+The Phase 7 report jobs and Weekly Chart Pack foundation is internal and
+dev/test-only. It may:
+
+- Define coded report job records in `report_jobs`.
+- Store preview, dry-run, and simulated local report run records in
+  `report_runs`.
+- Store manually supplied chart-pack data, manually supplied TradingView alert
+  digest JSON, and ChatGPT-provided synthesis in `chart_pack_reviews`.
+- Validate required structured summary sections for market context, BTC
+  context, ETH context, miner/HPC context, portfolio watch items,
+  week-over-week changes, follow-up candidates, and warnings.
+- Run a deterministic fake report runner that writes only local dev/test
+  `report_runs` records after explicit dev/test permissions are enabled.
+
+Phase 7 may not fetch live market data, call TradingView APIs, make investment
+recommendations, create portfolio execution tasks, write Todoist, write
+Calendar, send Gmail, call live model APIs, add credentials or OAuth, start a
+scheduler, create or load LaunchAgents, write production SQLite, inspect
+protected PersonalOS or OpenClaw paths, expose a dashboard or API surface, or
+start Phase 8.
+
+ChatGPT is the interpretation layer for market and thesis synthesis. OpenClaw
+stores approved workflow outputs later but does not analyze investments
+independently. Report jobs are coded jobs, not analyst personas.
 
 ## Runtime Module Validation
 

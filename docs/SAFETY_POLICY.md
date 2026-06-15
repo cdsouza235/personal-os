@@ -6,7 +6,7 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phase 6 implementation is repository-code-only and dev/test-only. It may edit
+Phase 7 implementation is repository-code-only and dev/test-only. It may edit
 repo-local code, tests, and documentation, and may create temporary dev/test
 SQLite databases during tests. It must not inspect or mutate live runtime
 files, credentials, external systems, production ledgers, production SQLite
@@ -156,6 +156,23 @@ relevant key is missing, disabled, invalid, or approval-only. They allow work
 only when the relevant dev/test key is explicitly set to `auto_write`.
 Phase 6 does not add live model/API permission keys or live execution keys.
 
+Phase 7 report job and chart pack review permissions are stored in
+`permission_settings` and are separate from live scheduler, TradingView,
+market data, model/API, and execution permissions:
+
+- report_jobs_dev_test_read
+- report_jobs_dev_test_write
+- report_jobs_dev_test_run
+- chart_pack_reviews_dev_test_read
+- chart_pack_reviews_dev_test_write
+
+Report job, report run, and chart pack review read, dev/test write, and fake
+run paths fail closed when the relevant key is missing, disabled, invalid, or
+approval-only. They allow work only when the relevant dev/test key is
+explicitly set to `auto_write`. Phase 7 does not add live scheduler,
+TradingView/API, market-data, portfolio-execution, Todoist, Calendar, Gmail,
+or model/API permission keys.
+
 ## Execution Rules
 
 Phase 3 routine completion is not live execution. In dry-run mode it validates
@@ -247,6 +264,39 @@ writes, Gmail send, credentials, OAuth, scheduler activation, dashboard UI,
 OpenClaw runtime wiring, LaunchAgents, production SQLite access, broad
 filesystem access, full PersonalOS vault access, raw journal ingestion,
 legal/tax document ingestion, or autonomous legal/tax/portfolio/health/
+relationship execution.
+
+Phase 7 report jobs are coded jobs, not analyst personas. Report runs are
+preview, dry-run, or simulated local records only. The deterministic fake
+report runner validates an explicit report job and explicit input JSON, then
+creates a local `report_runs` row only when dev/test run and write permissions
+are enabled. Its output must include `no_external_writes: true`, and it must
+not call network, live model APIs, TradingView, market data providers,
+Todoist, Calendar, Gmail, OpenClaw, LaunchAgents, production SQLite, or
+protected runtime paths.
+
+Phase 7 Weekly Chart Pack reviews store manually supplied chart-pack data,
+manually supplied TradingView alert digests, and ChatGPT-provided synthesis.
+TradingView alerts are manually supplied and stored as validated JSON; they
+are not fetched live. ChatGPT is the interpretation layer for market and
+thesis synthesis. OpenClaw may later store approved workflow outputs and
+track week-over-week changes, but OpenClaw does not analyze investments
+independently.
+
+Chart pack reviews must enforce structured summary sections for market
+context, BTC context, ETH context, miner/HPC context, portfolio watch items,
+week-over-week changes, follow-up candidates, and warnings. Follow-up
+candidates are review/logging candidates only. Any represented investment
+action candidate must be high risk and approval-required or manual-only, and
+must not be marked executable or routed as a Todoist, Calendar, Gmail, or
+portfolio execution action.
+
+Phase 7 does not add live market data fetching, TradingView API access,
+investment recommendations, portfolio execution, Todoist writes, Calendar
+writes, Gmail send, live model/API calls, credentials, OAuth, scheduler
+activation, dashboard UI, OpenClaw runtime wiring, LaunchAgents, production
+SQLite access, full PersonalOS vault access, raw journal ingestion,
+unrestricted filesystem access, or autonomous legal/tax/portfolio/health/
 relationship execution.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.

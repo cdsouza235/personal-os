@@ -156,30 +156,35 @@ Daily plan generation happens once in the morning. Each email is generated just-
 
 ## Composer Packet Schema
 
-First-pass Composer Packet input fields:
+Composer Packet `composer_packet.v1` is the only input surface for the
+composer model. It contains `packet_id`, `packet_type`, `briefing_window`,
+`source_date`, `timezone`, `generated_at`, `inputs`, `omissions`, and
+`warnings`.
 
-- date
-- timezone
-- briefing_window
-- routines_due
-- routines_completed
-- missed_routines
-- active_priorities
-- followups
-- calendar_summary
-- todoist_summary
-- routine_rules
-- permissions
-- model_instructions
-- excluded_sensitive_context_note
+Allowed packet inputs are routine state, priority summaries, selected
+follow-up summaries, Todoist task summaries, Calendar block summaries,
+Calendar availability summary, today's schedule summary, WSP/routine rules,
+prior briefing summaries, and completion status.
 
-Composer output schema must include:
+Forbidden composer inputs include broad filesystem access, raw notes, the full
+PersonalOS vault, protected runtime paths, Gmail bodies, live Todoist API data,
+live Calendar API data, legal/tax source documents, credentials, secrets,
+OAuth tokens, unrestricted file access, raw journal archives, and arbitrary
+filesystem paths.
 
-- email_briefs
-- todoist_tasks
-- calendar_blocks
-- followups
-- warnings
+Composer output `composer_output.v1` must include structured JSON plus
+non-empty readable text. Required sections are:
+
+- `email_briefs`
+- `todoist_tasks`
+- `calendar_blocks`
+- `followups`
+- `warnings`
+
+Todoist and Calendar candidates must satisfy the existing execution-rail
+schema and risk rules. Medium-risk and high-risk objects cannot be marked
+`auto_allowed`. Candidate routing is a preview/report step only and must
+include `no_external_writes: true`.
 
 ## Notes
 

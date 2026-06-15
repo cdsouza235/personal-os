@@ -8,6 +8,7 @@ import sqlite3
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from typing import Any, Protocol
+from zoneinfo import ZoneInfo
 
 from personalos import execution_rails as rails
 from personalos.calendar_blocks import preview_calendar_block
@@ -38,6 +39,7 @@ from personalos.state import (
     list_priorities,
     list_routines,
     list_todoist_tasks,
+    update_composer_packet_status,
 )
 from personalos.todoist import preview_todoist_task
 
@@ -151,8 +153,8 @@ class FakeComposerAdapter:
         packet_id = validated_packet["packet_id"]
         briefing_window = validated_packet["briefing_window"]
         source_date = validated_packet["source_date"]
-        start_time = f"{source_date}T09:00:00-05:00"
-        end_time = f"{source_date}T09:30:00-05:00"
+        start_time = _local_datetime_for_source_date(source_date, hour=9)
+        end_time = _local_datetime_for_source_date(source_date, hour=9, minute=30)
         output_json = {
             "schema_version": COMPOSER_OUTPUT_SCHEMA_VERSION,
             "packet_id": packet_id,
@@ -623,7 +625,7 @@ def run_fake_composer_model(
             source_date=validated_packet["source_date"],
             timezone=validated_packet["timezone"],
             packet_json=validated_packet,
-            status="completed",
+            status="sent_to_fake_model",
             created_at=validated_packet["generated_at"],
             updated_at=started_at,
         )
@@ -652,6 +654,12 @@ def run_fake_composer_model(
             created_at=started_at,
             updated_at=started_at,
         )
+        packet_record = update_composer_packet_status(
+            connection,
+            packet_id=packet_id,
+            status="completed",
+            updated_at=started_at,
+        )
         model_run = create_model_run(
             connection,
             model_run_id=model_run_id,
@@ -668,6 +676,13 @@ def run_fake_composer_model(
             completed_at=started_at,
         )
     except Exception as error:
+        if packet_record is not None:
+            packet_record = update_composer_packet_status(
+                connection,
+                packet_id=packet_id,
+                status="failed",
+                updated_at=started_at,
+            )
         model_run = create_model_run(
             connection,
             model_run_id=model_run_id,
@@ -1484,6 +1499,19 @@ def _redacted_error_message(error: Exception) -> str:
     message = str(error) or error.__class__.__name__
     _reject_forbidden_content({"error_message": message})
     return message
+
+
+def _local_datetime_for_source_date(source_date: str, *, hour: int, minute: int = 0) -> str:
+    source = date.fromisoformat(source_date)
+    local_time = datetime(
+        source.year,
+        source.month,
+        source.day,
+        hour,
+        minute,
+        tzinfo=ZoneInfo(DEFAULT_TIMEZONE),
+    )
+    return local_time.isoformat(timespec="seconds")
 
 
 def _utc_now() -> str:

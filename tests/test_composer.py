@@ -43,6 +43,7 @@ from personalos.state import (
     create_composer_packet,
     create_priority,
     create_routine,
+    get_composer_packet,
     get_model_run,
     upsert_permission_setting,
 )
@@ -492,6 +493,21 @@ class ComposerRoutingAndAdapterTest(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(adapter.calls, [{"packet_id": "packet-1"}, {"packet_id": "packet-1"}])
 
+    def test_fake_composer_adapter_uses_chicago_offset_for_summer_and_winter(
+        self,
+    ) -> None:
+        adapter = FakeComposerAdapter()
+
+        summer = adapter.compose(_valid_packet(source_date="2026-06-15"))
+        winter = adapter.compose(_valid_packet(source_date="2026-01-15"))
+
+        summer_block = summer["output_json"]["calendar_blocks"][0]
+        winter_block = winter["output_json"]["calendar_blocks"][0]
+        self.assertEqual(summer_block["start_time"], "2026-06-15T09:00:00-05:00")
+        self.assertEqual(summer_block["end_time"], "2026-06-15T09:30:00-05:00")
+        self.assertEqual(winter_block["start_time"], "2026-01-15T09:00:00-06:00")
+        self.assertEqual(winter_block["end_time"], "2026-01-15T09:30:00-06:00")
+
     def test_fake_model_run_success_persists_records(self) -> None:
         with _migrated_test_connection() as connection:
             _set_permission(connection, COMPOSER_MODULE_WRITE_PERMISSION)
@@ -503,13 +519,16 @@ class ComposerRoutingAndAdapterTest(unittest.TestCase):
                 run_at="2026-06-15T14:00:00+00:00",
             )
             model_run = get_model_run(connection, result["model_run"]["id"])
+            packet = get_composer_packet(connection, "packet-run-success")
 
         self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["packet"]["status"], "completed")
         self.assertEqual(result["model_run"]["model_role"], "composer_model")
         self.assertEqual(result["model_run"]["model_name"], "fake-composer-v1")
         self.assertEqual(result["model_run"]["adapter_name"], "fake_composer_adapter")
         self.assertTrue(result["model_run"]["dry_run"])
         self.assertEqual(model_run["status"], "completed")
+        self.assertEqual(packet["status"], "completed")
         self.assertTrue(result["route_report"]["no_external_writes"])
 
     def test_fake_model_run_failure_persists_failed_model_run(self) -> None:
@@ -524,11 +543,16 @@ class ComposerRoutingAndAdapterTest(unittest.TestCase):
             )
             model_runs = count_model_runs(connection)
             outputs = count_composer_outputs(connection)
+            packet = get_composer_packet(connection, "packet-run-failure")
 
         self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["packet"]["status"], "failed")
         self.assertEqual(result["model_run"]["status"], "failed")
+        self.assertEqual(packet["status"], "failed")
         self.assertEqual(model_runs, 1)
         self.assertEqual(outputs, 0)
+        self.assertIsNone(result["output"])
+        self.assertIsNone(result["route_report"])
 
     def test_fake_run_does_not_touch_external_systems(self) -> None:
         with _migrated_test_connection() as connection:

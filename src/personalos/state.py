@@ -1539,6 +1539,37 @@ def get_composer_packet(
     return _composer_packet_row_to_dict(row) if row is not None else None
 
 
+def update_composer_packet_status(
+    connection: sqlite3.Connection,
+    *,
+    packet_id: str,
+    status: str,
+    updated_at: str | None = None,
+) -> dict[str, Any]:
+    packet_id = _validate_required_text("packet_id", packet_id)
+    status = validate_composer_packet_status(status)
+    updated = _validate_iso_datetime("updated_at", updated_at or _utc_now())
+    current = get_composer_packet(connection, packet_id)
+    if current is None:
+        raise ValueError(f"Composer packet does not exist: {packet_id}")
+
+    with connection:
+        connection.execute(
+            """
+            UPDATE composer_packets
+            SET status = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (status, updated, packet_id),
+        )
+
+    packet = get_composer_packet(connection, packet_id)
+    if packet is None:
+        raise RuntimeError(f"Composer packet was not found after update: {packet_id}")
+    return packet
+
+
 def list_composer_packets(
     connection: sqlite3.Connection,
     *,

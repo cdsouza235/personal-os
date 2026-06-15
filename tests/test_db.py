@@ -262,6 +262,35 @@ class SQLiteFoundationTest(unittest.TestCase):
             "updated_at",
         },
     }
+    expected_phase_10b_tables = {
+        "daily_plans": {
+            "id",
+            "source_date",
+            "timezone",
+            "plan_json",
+            "status",
+            "created_at",
+            "updated_at",
+        },
+        "briefing_outputs": {
+            "id",
+            "daily_plan_id",
+            "briefing_window_id",
+            "briefing_window_name",
+            "source_date",
+            "timezone",
+            "composer_packet_id",
+            "composer_output_id",
+            "readable_text",
+            "output_json",
+            "manual_export_markdown",
+            "completion_report_json",
+            "delivery_mode",
+            "status",
+            "created_at",
+            "updated_at",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -348,10 +377,20 @@ class SQLiteFoundationTest(unittest.TestCase):
 
             self.assertEqual(
                 [migration.version for migration in first_applied],
-                ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"],
+                [
+                    "0001",
+                    "0002",
+                    "0003",
+                    "0004",
+                    "0005",
+                    "0006",
+                    "0007",
+                    "0008",
+                    "0009",
+                ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 8)
+            self.assertEqual(len(rows), 9)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -466,6 +505,48 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "{}",
                     '{"no_external_writes":true,"no_live_personalos_access":true}',
                     None,
+                    "2026-06-15T10:00:00+00:00",
+                    "2026-06-15T10:00:00+00:00",
+                ),
+            ),
+            (
+                "briefing_outputs",
+                """
+                INSERT INTO briefing_outputs (
+                    id,
+                    daily_plan_id,
+                    briefing_window_id,
+                    briefing_window_name,
+                    source_date,
+                    timezone,
+                    composer_packet_id,
+                    composer_output_id,
+                    readable_text,
+                    output_json,
+                    manual_export_markdown,
+                    completion_report_json,
+                    delivery_mode,
+                    status,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan-briefing-output",
+                    "missing-daily-plan",
+                    None,
+                    "morning",
+                    "2026-06-15",
+                    DEFAULT_TIMEZONE,
+                    None,
+                    None,
+                    "Readable output.",
+                    "{}",
+                    "# Manual export\n\n- No-send preview\n- No external writes performed",
+                    '{"no_external_writes":true}',
+                    "no_send",
+                    "generated",
                     "2026-06-15T10:00:00+00:00",
                     "2026-06-15T10:00:00+00:00",
                 ),
@@ -1137,6 +1218,22 @@ class SQLiteFoundationTest(unittest.TestCase):
         self.assertTrue(self.expected_phase_9b_tables.keys() <= table_names)
         self.assertEqual(table_columns, self.expected_phase_9b_tables)
 
+    def test_phase_10b_briefing_loop_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_10b_tables
+                }
+
+        self.assertTrue(self.expected_phase_10b_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_10b_tables)
+
     def test_phase_9b_runtime_bootstrap_run_check_constraints_reject_invalid_values(
         self,
     ) -> None:
@@ -1292,7 +1389,17 @@ class SQLiteFoundationTest(unittest.TestCase):
 
         self.assertEqual(
             [migration.version for migration in migrations],
-            ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"],
+            [
+                "0001",
+                "0002",
+                "0003",
+                "0004",
+                "0005",
+                "0006",
+                "0007",
+                "0008",
+                "0009",
+            ],
         )
         self.assertEqual(
             [migration.name for migration in migrations],
@@ -1305,6 +1412,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "report_jobs_chart_pack_tables",
                 "fitness_integration_tables",
                 "runtime_bootstrap_tables",
+                "briefing_loop_tables",
             ],
         )
 

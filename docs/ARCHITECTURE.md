@@ -529,6 +529,48 @@ no-send daily briefing generation loop, production SQLite/runtime state
 mutation, protected PersonalOS or OpenClaw access, or production runtime
 activation.
 
+## No-Send Daily Briefing Loop
+
+Phase 10B no-send daily briefing loop foundation adds the first local/manual
+preview loop on top of runtime bootstrap, inert briefing windows, Composer
+packets/outputs, and Today View. It is not a scheduler and not production
+runtime activation.
+
+The briefing loop stores local daily plan state in `daily_plans` and local
+preview output state in `briefing_outputs`. A daily plan contains the source
+date, timezone, Today View summary, active/draft briefing windows, routine
+summary, priority summary, follow-up summary, warnings,
+`no_external_writes: true`, and `no_send_mode: true`.
+
+For a selected `morning`, `midday`, `afternoon`, or `evening` window, Phase
+10B builds a Composer Packet from existing state and runs the fake Composer
+path only. The resulting Composer Output is validated through the existing
+Composer output rules and stored locally. The briefing output then stores
+readable text, output JSON, manual export only markdown, and a completion
+report with explicit no-send/no-external-write flags.
+
+Phase 10B permission keys are:
+
+- `briefing_loop_dev_test_read`
+- `briefing_loop_dev_test_write`
+- `briefing_loop_dev_test_run`
+
+Read/list/count helpers require the read key. Generating and storing a no-send
+preview requires the write and run keys. Permissions fail closed when missing,
+disabled, invalid, or approval-only. No live/send permission is introduced.
+
+Phase 10B adds no Gmail sending, no Gmail drafts, no live Todoist writes, no
+live Calendar writes, no Todoist/Calendar writes, no live model calls, no
+OpenAI/OpenRouter/Anthropic calls, no credentials or OAuth, no scheduler or
+LaunchAgents, no public internet exposure, no dashboard mutation, no routine
+or priority editors, no synthesis import, no real model routing, no production
+SQLite/runtime state mutation, no protected PersonalOS or OpenClaw access, and
+no external writes of any kind.
+
+Likely next steps after Phase 10B are dashboard integration for briefing
+outputs, ChatGPT synthesis import preview, or controlled manual live rail
+testing after ledgers and separate approval.
+
 ## Phase 0 Inventory Charter
 
 Phase 0 requires explicit approval before starting. It is read-only. Phase 0 may inspect specified live paths only after explicit approval for that inventory scope.

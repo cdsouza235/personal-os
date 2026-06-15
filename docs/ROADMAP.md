@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 9B are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 10A work is a minimal
-read-only local dashboard Today View foundation. This repo still has no
-production runtime activation.
+Phases -1 through 10A are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 10B work is a no-send
+daily briefing loop foundation for local/manual previews only. This repo still
+has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -471,7 +471,7 @@ Non-goals:
 
 ## Phase 10A: Local Dashboard Today View Foundation
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -518,3 +518,63 @@ Likely next phase:
 
 - No-send daily briefing loop or dashboard editor/import flow, after separate
   approval.
+
+## Phase 10B: No-Send Daily Briefing Loop Foundation
+
+Status: current.
+
+Scope:
+
+- Add dev/test SQLite tables for `daily_plans` and `briefing_outputs`.
+- Build a no-send daily plan from Today View summaries, active/draft briefing
+  windows, routine summaries, priority summaries, follow-up summaries,
+  warnings, and explicit no-send/no-external-write flags.
+- Select an inert briefing window by source date, timezone, and window name:
+  `morning`, `midday`, `afternoon`, or `evening`.
+- Generate local/manual briefing previews through the fake Composer path only.
+- Persist the daily plan, Composer packet/output/model-run records, and
+  briefing output record in the caller-supplied local SQLite DB.
+- Produce readable text, manual export only markdown, and a structured
+  completion report for each preview.
+- Add read-only Today View fields for latest briefing output counts, briefing
+  window status, and no-send mode.
+
+Permission keys:
+
+- `briefing_loop_dev_test_read`
+- `briefing_loop_dev_test_write`
+- `briefing_loop_dev_test_run`
+
+Permission behavior:
+
+- Missing, disabled, invalid, or approval-only permissions fail closed.
+- Read/list/count helpers require `briefing_loop_dev_test_read`.
+- Generating and storing a no-send preview requires
+  `briefing_loop_dev_test_write` and `briefing_loop_dev_test_run`.
+- Phase 10B adds no live/send permission.
+
+Non-goals:
+
+- No Gmail sending.
+- No Gmail drafts.
+- No live Todoist writes.
+- No live Calendar writes.
+- No Todoist/Calendar writes.
+- No live model calls.
+- No OpenAI/OpenRouter/Anthropic calls.
+- No credentials or OAuth.
+- No scheduler or LaunchAgents.
+- No production SQLite/runtime state mutation.
+- No protected PersonalOS or `.openclaw` access.
+- No public internet exposure.
+- No dashboard mutation.
+- No routine editor.
+- No priority editor.
+- No synthesis import.
+- No real model routing.
+- No external writes of any kind.
+
+Likely next phase:
+
+- Dashboard integration for briefing outputs, ChatGPT synthesis import preview,
+  or controlled manual live rail testing after ledgers and separate approval.

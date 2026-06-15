@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.config import DEFAULT_TIMEZONE
 from personalos.state import (
+    count_briefing_outputs,
     count_calendar_blocks,
     count_followups,
     count_routine_completions,
@@ -57,6 +58,10 @@ def create_today_view_summary(
         "todoist_candidate_summary": _todoist_candidate_summary(connection),
         "calendar_block_summary": _calendar_block_summary(connection, day_window=day_window),
         "briefing_window_summary": _briefing_window_summary(connection),
+        "briefing_loop_summary": _briefing_loop_summary(
+            connection,
+            source_date=source_date_iso,
+        ),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
         "warnings": list(SAFETY_WARNINGS),
@@ -208,6 +213,23 @@ def _list_briefing_windows(connection: sqlite3.Connection) -> list[dict[str, Any
         }
         for row in rows
     ]
+
+
+def _briefing_loop_summary(
+    connection: sqlite3.Connection,
+    *,
+    source_date: str,
+) -> dict[str, Any]:
+    windows = _list_briefing_windows(connection)
+    return {
+        "latest_briefing_output_count": count_briefing_outputs(connection),
+        "source_date_briefing_output_count": count_briefing_outputs(
+            connection,
+            source_date=source_date,
+        ),
+        "briefing_windows_status": _count_by_key(windows, "status"),
+        "no_send_mode": True,
+    }
 
 
 def _permission_summary(connection: sqlite3.Connection) -> dict[str, Any]:

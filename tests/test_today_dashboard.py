@@ -51,6 +51,9 @@ class TodayViewSummaryTest(unittest.TestCase):
         self.assertEqual(summary["calendar_block_summary"]["total_count"], 1)
         self.assertEqual(summary["calendar_block_summary"]["source_date_count"], 1)
         self.assertEqual(summary["briefing_window_summary"]["total_count"], 4)
+        self.assertEqual(summary["briefing_loop_summary"]["latest_briefing_output_count"], 0)
+        self.assertEqual(summary["briefing_loop_summary"]["source_date_briefing_output_count"], 0)
+        self.assertTrue(summary["briefing_loop_summary"]["no_send_mode"])
         self.assertGreaterEqual(summary["permission_summary"]["total_count"], 1)
         self.assertIn("counts", summary["system_status_summary"])
 
@@ -110,6 +113,7 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Todoist Candidates", html)
         self.assertIn("Calendar Blocks", html)
         self.assertIn("Briefing Windows", html)
+        self.assertIn("Briefing Loop", html)
         self.assertIn("Permissions", html)
         self.assertIn("System Status", html)
         self.assertIn("Warnings", html)

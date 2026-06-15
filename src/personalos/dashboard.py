@@ -182,6 +182,7 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
   {_render_todoist_candidate_summary(summary["todoist_candidate_summary"])}
   {_render_calendar_block_summary(summary["calendar_block_summary"])}
   {_render_briefing_window_summary(summary["briefing_window_summary"])}
+  {_render_briefing_loop_summary(summary["briefing_loop_summary"])}
   {_render_permission_summary(summary["permission_summary"])}
   {_render_system_status_summary(summary["system_status_summary"])}
   {_render_warnings(summary["warnings"])}
@@ -433,6 +434,21 @@ def _render_briefing_window_summary(summary: Mapping[str, Any]) -> str:
             )
         )
         + _table(("Name", "Time", "Timezone", "Delivery", "Status"), rows),
+    )
+
+
+def _render_briefing_loop_summary(summary: Mapping[str, Any]) -> str:
+    return _section(
+        "briefing-loop-summary",
+        "Briefing Loop",
+        _definition_list(
+            (
+                ("Latest outputs", summary["latest_briefing_output_count"]),
+                ("Outputs for source date", summary["source_date_briefing_output_count"]),
+                ("Window statuses", _format_counts(summary["briefing_windows_status"])),
+                ("No-send mode", _format_bool(summary["no_send_mode"])),
+            )
+        ),
     )
 
 

@@ -122,7 +122,17 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
             self.assertTrue(db_path.exists())
             self.assertEqual(
                 [migration["version"] for migration in result["migrations_applied"]],
-                ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"],
+                [
+                    "0001",
+                    "0002",
+                    "0003",
+                    "0004",
+                    "0005",
+                    "0006",
+                    "0007",
+                    "0008",
+                    "0009",
+                ],
             )
 
             with _sqlite_connection(db_path) as connection:
@@ -136,7 +146,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     ("runtime_bootstrap_runs",),
                 ).fetchone()
 
-            self.assertEqual(len(rows), 8)
+            self.assertEqual(len(rows), 9)
             self.assertIsNotNone(table)
 
     def test_bootstrap_enables_sqlite_foreign_keys(self) -> None:

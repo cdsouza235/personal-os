@@ -246,8 +246,10 @@ class SQLiteFoundationTest(unittest.TestCase):
 
                     with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
                         result = connection.execute("SELECT 1").fetchone()[0]
+                        foreign_keys = connection.execute("PRAGMA foreign_keys").fetchone()[0]
 
                     self.assertEqual(result, 1)
+                    self.assertEqual(foreign_keys, 1)
 
     def test_default_config_loading_does_not_create_repo_runtime_artifacts(self) -> None:
         runtime_dir_existed_before = RUNTIME_DIR.exists()
@@ -326,6 +328,133 @@ class SQLiteFoundationTest(unittest.TestCase):
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
+
+    def test_foreign_key_constraints_reject_orphan_records(self) -> None:
+        orphan_inserts = (
+            (
+                "routine_completions",
+                """
+                INSERT INTO routine_completions (
+                    completion_id,
+                    routine_id,
+                    completed_for_date,
+                    completed_at_utc,
+                    source,
+                    metadata_json,
+                    created_at_utc
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan-completion",
+                    "missing-routine",
+                    "2026-06-15",
+                    "2026-06-15T10:00:00+00:00",
+                    "test",
+                    "{}",
+                    "2026-06-15T10:00:00+00:00",
+                ),
+            ),
+            (
+                "composer_outputs",
+                """
+                INSERT INTO composer_outputs (
+                    id,
+                    packet_id,
+                    output_json,
+                    readable_text,
+                    validation_status,
+                    route_report_json,
+                    status,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan-output",
+                    "missing-packet",
+                    "{}",
+                    "Readable output.",
+                    "validated",
+                    "{}",
+                    "routed",
+                    "2026-06-15T10:00:00+00:00",
+                    "2026-06-15T10:00:00+00:00",
+                ),
+            ),
+            (
+                "report_runs",
+                """
+                INSERT INTO report_runs (
+                    id,
+                    job_id,
+                    run_type,
+                    dry_run,
+                    status,
+                    input_json,
+                    output_json,
+                    error_message,
+                    created_at,
+                    completed_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan-report-run",
+                    "missing-job",
+                    "dry_run",
+                    1,
+                    "completed",
+                    "{}",
+                    '{"no_external_writes":true}',
+                    None,
+                    "2026-06-15T10:00:00+00:00",
+                    "2026-06-15T10:00:00+00:00",
+                ),
+            ),
+            (
+                "fitness_validation_runs",
+                """
+                INSERT INTO fitness_validation_runs (
+                    id,
+                    integration_state_id,
+                    run_type,
+                    dry_run,
+                    status,
+                    input_json,
+                    output_json,
+                    error_message,
+                    created_at,
+                    completed_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan-fitness-run",
+                    "missing-integration-state",
+                    "fixture_validation",
+                    1,
+                    "completed",
+                    "{}",
+                    '{"no_external_writes":true,"no_live_personalos_access":true}',
+                    None,
+                    "2026-06-15T10:00:00+00:00",
+                    "2026-06-15T10:00:00+00:00",
+                ),
+            ),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for table_name, sql, values in orphan_inserts:
+                    with self.subTest(table_name=table_name):
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(sql, values)
 
     def test_phase_2_state_tables_and_columns_are_created(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -128,15 +128,17 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 9A are complete. The Phase 6B, Phase 7B, and Phase 8B
+Phases -1 through 9B are complete. The Phase 6B, Phase 7B, and Phase 8B
 fake/local smoke tests are complete.
 
-The current Phase 9B scope is runtime DB bootstrap foundation work for a
-local/dev-preview SQLite database. It is not production activation and not a
-runtime launch. This repository still has no dashboard UI, scheduler, Gmail
-send, live Todoist or Calendar writes, live model/API calls, credentials/OAuth,
-production SQLite/runtime state access, protected PersonalOS path access, or
-unrestricted filesystem access enabled from this repo.
+The current Phase 10A scope is the Phase 10A local dashboard Today View
+foundation. It adds a read-only local dashboard shell for `Personal OS Today
+View` and a read-only Today View summary model on top of the existing runtime
+state architecture. It is not production activation and not a runtime launch.
+This repository still has no scheduler, Gmail send, live Todoist or Calendar
+writes, live model/API calls, credentials/OAuth, production SQLite/runtime
+state access, protected PersonalOS path access, or unrestricted filesystem
+access enabled from this repo.
 
 ## Phase 1 Runtime Foundation
 
@@ -496,3 +498,34 @@ briefing generation loop, production SQLite/runtime state mutation, protected
 PersonalOS or OpenClaw access, or real production activation. The likely next
 phase is a minimal local Today View/dashboard shell or a no-send daily
 briefing loop, after separate approval.
+
+## Phase 10A Local Dashboard Today View Foundation
+
+Phase 10A adds the first minimal read-only local dashboard shell and Today View
+read model. It includes:
+
+- `src/personalos/today.py`, a pure read model that accepts an existing
+  SQLite connection plus source date/timezone parameters and returns routines,
+  priorities, follow-ups, Todoist candidate counts, Calendar block counts,
+  briefing windows, permissions, system/runtime status, warnings, and
+  `no_external_writes: true`.
+- `src/personalos/dashboard.py`, a standard-library local HTTP shell with pure
+  render helpers for `Personal OS Today View` HTML and JSON.
+- Localhost-only bind validation by default. Phase 10A rejects `0.0.0.0` and
+  non-local bind hosts.
+- Dashboard DB path validation that allows only explicit temp or repo-local
+  dev SQLite paths and rejects protected, credential/OAuth-looking, and
+  production-looking paths.
+
+Phase 10A adds no new permission keys. It relies on existing read-only state
+helpers and direct SQLite reads from caller-supplied connections or read-only
+SQLite connections for dashboard rendering.
+
+Phase 10A does not add live Todoist writes, live Calendar writes, Gmail send,
+live model/API calls, Notion, Apple Health, TradingView/API calls,
+credentials/OAuth, scheduler/LaunchAgents, public internet exposure, login/auth,
+task/calendar mutation from dashboard, routine editor, priority editor,
+synthesis import, no-send daily briefing generation loop, production
+SQLite/runtime state mutation, protected PersonalOS or OpenClaw access, or
+production runtime activation. The likely next phase is a no-send daily
+briefing loop or a dashboard editor/import flow, after separate approval.

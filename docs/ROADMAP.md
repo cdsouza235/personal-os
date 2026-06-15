@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 9A are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 9B work is runtime DB
-bootstrap foundation for a local/dev-preview SQLite database. This repo still
-has no production runtime activation.
+Phases -1 through 9B are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 10A work is a minimal
+read-only local dashboard Today View foundation. This repo still has no
+production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -426,7 +426,7 @@ Non-goals:
 
 ## Phase 9B: Runtime DB Bootstrap Foundation
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -469,7 +469,52 @@ Non-goals:
 - No daily briefing generation loop.
 - No production runtime activation.
 
+## Phase 10A: Local Dashboard Today View Foundation
+
+Status: current.
+
+Scope:
+
+- Add a read-only Today View summary builder on top of existing runtime state.
+- Accept a caller-supplied SQLite connection plus source date/timezone
+  parameters.
+- Include routines, priorities, follow-ups, Todoist candidate counts, Calendar
+  block counts, briefing windows, permissions, system/runtime status, warnings,
+  and `no_external_writes: true`.
+- Add a minimal standard-library read-only dashboard shell for `Personal OS
+  Today View`.
+- Keep the dashboard localhost-only by default and reject public bind hosts.
+- Validate dashboard DB paths so only explicit temp or repo-local dev SQLite
+  files are eligible, while protected, credential/OAuth-looking, and
+  production-looking paths are rejected.
+- Provide pure render helpers that can be tested without starting a long-running
+  server.
+
+Permission keys:
+
+- No new Phase 10A permission keys.
+
+Non-goals:
+
+- No live Todoist writes.
+- No live Calendar writes.
+- No Gmail send.
+- No live model/API calls.
+- No Notion, Apple Health, TradingView, or other live API calls.
+- No credentials or OAuth.
+- No scheduler or LaunchAgents.
+- No production SQLite/runtime state mutation.
+- No protected PersonalOS or `.openclaw` access.
+- No public internet exposure.
+- No login/auth.
+- No task/calendar mutation from dashboard.
+- No routine editor.
+- No priority editor.
+- No synthesis import.
+- No no-send daily briefing generation loop.
+- No production runtime activation.
+
 Likely next phase:
 
-- Minimal local Today View/dashboard shell or a no-send daily briefing loop,
-  after separate approval.
+- No-send daily briefing loop or dashboard editor/import flow, after separate
+  approval.

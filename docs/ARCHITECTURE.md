@@ -501,6 +501,34 @@ These keys fail closed by default and allow dev/test work only when explicitly
 set to `auto_write`. No production runtime permission or live external write
 permission exists in Phase 9B.
 
+## Local Dashboard Today View
+
+Phase 10A local dashboard Today View foundation adds the first visible local
+dashboard surface on top of the existing runtime state architecture. It is a
+read-only local dashboard shell, not a production runtime launch.
+
+The Today View read model accepts an existing SQLite connection plus explicit
+source date and timezone parameters. It reads existing state only and returns
+routine summaries, priority summaries, follow-up summaries, Todoist candidate
+counts, Calendar block counts, briefing window definitions, permission safety
+state, system/runtime status, warnings, and `no_external_writes: true`.
+
+The dashboard shell is standard-library only. It can render `Personal OS Today
+View` HTML from a supplied connection or read-only SQLite DB path, and it can
+serve read-only HTML/JSON routes when explicitly started. It binds to
+localhost-only by default and rejects public bind hosts such as `0.0.0.0`.
+Dashboard DB paths must be explicit temp or repo-local dev SQLite paths, and
+protected, credential/OAuth-looking, and production-looking paths are rejected.
+
+Phase 10A adds no new permission keys and no mutation routes. It does not add
+live Todoist writes, live Calendar writes, Gmail send, live model/API calls,
+Notion, Apple Health, TradingView/API calls, credentials/OAuth,
+scheduler/LaunchAgents, public internet exposure, login/auth, task/calendar
+mutation from dashboard, routine editor, priority editor, synthesis import,
+no-send daily briefing generation loop, production SQLite/runtime state
+mutation, protected PersonalOS or OpenClaw access, or production runtime
+activation.
+
 ## Phase 0 Inventory Charter
 
 Phase 0 requires explicit approval before starting. It is read-only. Phase 0 may inspect specified live paths only after explicit approval for that inventory scope.

@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 10C are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 11A work is a
-ChatGPT synthesis import preview foundation for structured, already-synthesized
-material only. This repo still has no production runtime activation.
+Phases -1 through 11A are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 11B work is a
+dashboard synthesis import preview UI for structured, already-synthesized
+ChatGPT material only. This repo still has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -627,7 +627,7 @@ Notes:
 
 ## Phase 11A: ChatGPT Synthesis Import Preview
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -690,7 +690,73 @@ Non-goals:
 - No credentials or OAuth.
 - No live external writes of any kind.
 
+## Phase 11B: Dashboard Synthesis Import Preview UI
+
+Status: current.
+
+Scope:
+
+- Add a local dashboard `ChatGPT Synthesis Import Preview` section.
+- Show a preview-only safety banner with no core state mutation, no PersonalOS
+  Markdown writes, no Todoist/Calendar/Gmail writes, and no live model/API
+  calls.
+- Provide a structured synthesis textarea, `source_type`, optional
+  `source_reference`, optional `source_timestamp`, and one `Preview import`
+  submit button.
+- Add `GET /synthesis-import` and `POST /synthesis-import/preview` routes on
+  the existing localhost-only dashboard server.
+- Route form-encoded submissions through the existing Phase 11A synthesis
+  import preview engine.
+- Persist only `synthesis_import_previews` records when
+  `synthesis_import_dev_test_write` and
+  `synthesis_import_dev_test_preview` are enabled.
+- Keep prior-preview counts and latest-preview summary read-gated by
+  `synthesis_import_dev_test_read`.
+- Render preview reports with `preview_id`, `source_type`, `input_format`,
+  candidate counts, accepted candidates, rejected candidates, blocked
+  candidates, review-required candidates, manual-only candidates, warnings,
+  questions for review, and no-write/no-model safety flags.
+- Escape HTML output and show only the bounded Phase 11A `raw_excerpt`.
+- Add a small Today View summary for preview count, latest preview timestamp
+  and status, latest blocked/rejected counts, and latest warnings count.
+
+Permission keys:
+
+- `synthesis_import_dev_test_read`
+- `synthesis_import_dev_test_write`
+- `synthesis_import_dev_test_preview`
+
+Permission behavior:
+
+- Missing, disabled, invalid, or approval-only permissions fail closed.
+- Preview form submission persists only when write and preview permissions are
+  enabled.
+- Prior-preview summaries require read permission.
+- No apply permission, live permission, model permission, or external-write
+  permission exists in Phase 11B.
+
+Non-goals:
+
+- No applying/saving candidates into priorities, routines, follow-ups, or any
+  other core state.
+- No PersonalOS Markdown writes.
+- No Todoist writes.
+- No Calendar writes.
+- No Gmail send or draft.
+- No live model/API calls.
+- No OpenAI/OpenRouter/Anthropic calls.
+- No scheduler or LaunchAgents.
+- No production runtime activation.
+- No `.openclaw` access.
+- No full PersonalOS vault access.
+- No public internet exposure.
+- No credentials or OAuth.
+- No live external writes of any kind.
+- No broad dashboard editor framework.
+- No auth/login yet.
+- No LAN/public bind relaxation.
+
 Likely next phase:
 
-- Phase 11B dashboard paste/import preview UI, or Phase 11B apply/save flow
-  with explicit approval gates.
+- Phase 11C explicit apply/save flow with approval gates, or a no-send
+  operator CLI, depending on MVP priority.

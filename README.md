@@ -131,13 +131,15 @@ Protected live runtime paths are outside this repository and must not be inspect
 Phases -1 through 10C are complete. The Phase 6B, Phase 7B, and Phase 8B
 fake/local smoke tests are complete.
 
-The current Phase 11A scope is the ChatGPT synthesis import preview
-foundation. It parses structured ChatGPT synthesis, validates candidate
-objects, classifies high-stakes items, and may persist local preview records.
-It is preview-only. It does not apply/save candidates into core runtime state,
-write PersonalOS Markdown, write Todoist or Calendar, send or draft Gmail,
-call live model APIs, start a scheduler, activate production runtime, access
-protected PersonalOS/OpenClaw paths, or perform live external writes.
+The current Phase 11B scope is the dashboard synthesis import preview UI. It
+lets Chris paste structured ChatGPT synthesis into the localhost dashboard,
+submit it through the existing Phase 11A preview engine, persist only a local
+`synthesis_import_previews` record when dev/test permissions allow it, and
+review the preview report. It is still preview-only. It does not apply/save
+candidates into core runtime state, write PersonalOS Markdown, write Todoist
+or Calendar, send or draft Gmail, call live model APIs, start a scheduler,
+activate production runtime, access protected PersonalOS/OpenClaw paths, or
+perform live external writes.
 
 ## Phase 1 Runtime Foundation
 
@@ -649,3 +651,39 @@ internet exposure, credentials/OAuth, or live external writes of any kind.
 
 Likely Phase 11B options are either a dashboard paste/import preview UI or an
 apply/save flow with explicit approval gates.
+
+## Phase 11B Dashboard Synthesis Import Preview UI
+
+Phase 11B adds a local dashboard paste/import form for structured ChatGPT
+synthesis. The dashboard shows a `ChatGPT Synthesis Import Preview` section
+with a preview-only safety banner, a structured synthesis textarea,
+`source_type`, optional `source_reference`, optional `source_timestamp`, and a
+single `Preview import` button.
+
+The form posts to `/synthesis-import/preview` and uses the existing Phase 11A
+preview engine. Persisted preview submission requires
+`synthesis_import_dev_test_write` and
+`synthesis_import_dev_test_preview`; prior-preview summaries require
+`synthesis_import_dev_test_read`. Only `synthesis_import_previews` may be
+written. There is no apply permission and no apply/save route.
+
+The dashboard renders the preview report with `preview_id`, `source_type`,
+`input_format`, candidate counts, accepted/rejected/blocked/review-required/
+manual-only candidate buckets, warnings, questions for review, and safety
+flags for no external writes, no state mutation, no PersonalOS writes, no
+Todoist writes, no Calendar writes, no Gmail send, and no live model call.
+Untrusted content is HTML-escaped, and raw input is shown only as the bounded
+Phase 11A `raw_excerpt`.
+
+Phase 11B expects ChatGPT-synthesized structured input, not raw notes. It
+continues to reject unsupported prose, raw notes, credential/protected-looking
+input, and unsafe high-stakes low/auto candidates through the Phase 11A gates.
+The dashboard bind boundary remains localhost-only by default; public or LAN
+bind relaxation, auth/login, scheduler activation, production runtime use,
+PersonalOS Markdown writes, Todoist/Calendar/Gmail writes, live model/API
+calls, credentials/OAuth, and live external writes remain non-goals.
+
+Likely next phase:
+
+- Phase 11C explicit apply/save flow with approval gates, or a no-send
+  operator CLI, depending on MVP priority.

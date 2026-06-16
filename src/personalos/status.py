@@ -8,6 +8,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from personalos.config import PersonalOSConfig
+from personalos.side_effects import (
+    count_external_write_attempts,
+    count_external_write_intents,
+    count_idempotency_records,
+)
 from personalos.state import (
     count_fitness_file_contracts,
     count_fitness_integration_states,
@@ -37,6 +42,9 @@ def create_status_summary(
             "fitness_integration_state": count_fitness_integration_states(connection),
             "fitness_validation_runs": count_fitness_validation_runs(connection),
             "fitness_file_contracts": count_fitness_file_contracts(connection),
+            "external_write_intents": count_external_write_intents(connection),
+            "external_write_attempts": count_external_write_attempts(connection),
+            "idempotency_records": count_idempotency_records(connection),
         },
         "permission_settings": permission_settings,
         "permission_settings_count": len(permission_settings),

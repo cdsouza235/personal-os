@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 11A are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. Phase 11B is approved for repo-local code,
-tests, and documentation only as the dashboard synthesis import preview UI.
-Codex may run local tests, push the branch, and open or update the PR. Codex
-must stop before merge and must not inspect or mutate protected runtime paths,
-external systems, credentials, production ledgers, production SQLite state, or
-production state.
+Phases -1 through 12A are complete, and the Phase 6B, Phase 7B, Phase 8B, and
+Phase 12A fake/local smoke tests are complete. Phase 12B is approved for
+repo-local code, tests, and documentation only as the side-effect and
+idempotency ledger foundation. Codex may run local tests, push the branch, and
+open or update the PR. Codex must stop before merge and must not inspect or
+mutate protected runtime paths, external systems, credentials, production
+ledgers, production SQLite state, or production state.
 
 ## Phase Rules
 
@@ -361,6 +361,26 @@ seed, migrate, bind a server, activate production runtime, write PersonalOS
 Markdown, write Todoist or Calendar, send or draft Gmail, call live model
 APIs, create LaunchAgents, inspect protected PersonalOS or OpenClaw paths, or
 perform live external writes.
+
+## Phase 12B Side-Effect and Idempotency Ledger Boundary
+
+Phase 12B may add local SQLite migrations, helper functions, tests, docs, and
+minimal CLI support for side-effect intent ledgers, idempotency records,
+duplicate prevention, dry-run/simulated attempts, and read-only summaries.
+
+Allowed commands and helpers are read-only summary helpers and simulated
+ledger writes such as `personalos side-effects summary` and
+`personalos side-effects record-dry-run`. They must use explicit safe
+operator paths and must preserve `no_external_writes=true`,
+`no_send_mode=true`, `live_write=false`, and `simulated_or_dry_run=true`.
+
+Phase 12B must not add an execute/apply command, live Todoist writes, live
+Calendar writes, Gmail send/draft, PersonalOS Markdown writes, `.openclaw`
+integration, scheduler, LaunchAgents, live model/API calls,
+OpenAI/OpenRouter/Anthropic integration, production DB activation, apply/save
+synthesis import flow, dashboard mutation forms, public/LAN dashboard
+exposure, auth/login, Apple Health/wearable integration, Notion integration,
+TradingView/market data integration, or Phase 12C/live-rail work.
 
 ## Runtime Module Validation
 

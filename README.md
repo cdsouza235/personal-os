@@ -128,25 +128,33 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 11B are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete.
+Phases -1 through 12A are complete. The Phase 6B, Phase 7B, Phase 8B, and
+Phase 12A fake/local smoke tests are complete.
 
-The current Phase 12A scope is the local operator CLI for no-send workflows.
-It adds a `personalos` command-line surface so Chris/OpenClaw can run existing
-inert read, preview, export, and static-render workflows without custom smoke
-scripts. Every DB-backed command requires an explicit `--db` path. Every
-file-writing command requires an explicit `--output-file` path. The CLI
-rejects protected PersonalOS/OpenClaw paths, LaunchAgents paths,
+The current Phase 12B scope is the side-effect and idempotency ledger
+foundation. It adds durable local SQLite tables and helpers for future write
+rails to record intended side effects, deterministic idempotency keys, payload
+fingerprints, duplicate prevention, dry-run/simulated attempts, and completion
+reports before any live Todoist, Calendar, Gmail, PersonalOS Markdown, or
+external write rail is allowed.
+
+Phase 12A added the `personalos` command-line surface so Chris/OpenClaw can
+run existing inert read, preview, export, and static-render workflows without
+custom smoke scripts. Every DB-backed command requires an explicit `--db`
+path. Every file-writing command requires an explicit `--output-file` path.
+The CLI rejects protected PersonalOS/OpenClaw paths, LaunchAgents paths,
 credential/OAuth-looking paths, production-looking paths, and repo-local
 `var/` output paths.
 
-Supported Phase 12A commands:
+Supported local CLI commands:
 
 - `personalos status --db /tmp/personalos-preview.sqlite3`
 - `personalos today --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago`
 - `personalos briefing preview --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --window morning`
 - `personalos briefing export --db /tmp/personalos-preview.sqlite3 --briefing-output-id <id> --output-file /tmp/morning-brief.md`
 - `personalos synthesis preview --db /tmp/personalos-preview.sqlite3 --input-file /tmp/structured-synthesis.json --source-type chatgpt_synthesis`
+- `personalos side-effects summary --db /tmp/personalos-preview.sqlite3`
+- `personalos side-effects record-dry-run --db /tmp/personalos-preview.sqlite3 --input-file /tmp/side-effect-intent.json`
 - `personalos dashboard render --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --output-file /tmp/today.html`
 
 The CLI prints human-readable completion reports by default and supports
@@ -155,6 +163,24 @@ write PersonalOS Markdown, apply/save synthesis candidates, write Todoist or
 Calendar, send or draft Gmail, call live model APIs, start a scheduler,
 activate production runtime, access protected PersonalOS/OpenClaw paths, or
 perform live external writes.
+
+Phase 12B adds `external_write_intents`, `external_write_attempts`, and
+`idempotency_records`. The `side-effects summary` command is read-only.
+The `side-effects record-dry-run` command records only local dev/test ledger
+rows from an explicit safe JSON input file and requires explicit
+`side_effect_ledger_dev_test_write` and
+`side_effect_ledger_dev_test_record_attempt` permissions. It cannot execute,
+apply, send, draft, write files into PersonalOS, call external APIs, or claim
+`live_write=true`.
+
+Phase 12B permission keys:
+
+- `side_effect_ledger_dev_test_read`
+- `side_effect_ledger_dev_test_write`
+- `side_effect_ledger_dev_test_record_attempt`
+
+All Phase 12B write/attempt permissions fail closed when missing, disabled,
+invalid, or approval-only. No live-write permission key is added.
 
 ## Phase 1 Runtime Foundation
 

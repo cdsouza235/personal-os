@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 11B are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 12A work is a local
-operator CLI for existing no-send workflows. This repo still has no production
-runtime activation.
+Phases -1 through 12A are complete. The Phase 6B, Phase 7B, Phase 8B, and
+Phase 12A fake/local smoke tests are complete. The current Phase 12B work is
+the side-effect and idempotency ledger foundation for future write rails. This
+repo still has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -692,7 +692,7 @@ Non-goals:
 
 ## Phase 11B: Dashboard Synthesis Import Preview UI
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -758,7 +758,7 @@ Non-goals:
 
 ## Phase 12A: Operator CLI for No-Send Workflows
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -822,7 +822,59 @@ Non-goals:
 - No production DB path activation.
 - No repo-local `var/` output.
 
+## Phase 12B: Side-Effect and Idempotency Ledger Foundation
+
+Status: current.
+
+Scope:
+
+- Add local SQLite ledgers for `external_write_intents`,
+  `external_write_attempts`, and `idempotency_records`.
+- Generate deterministic idempotency keys from stable source, target,
+  operation, dedupe, and payload fields.
+- Generate deterministic payload fingerprints from canonical JSON payloads.
+- Validate future external write intents for Todoist, Calendar, Gmail,
+  PersonalOS Markdown, and other rails without executing them.
+- Detect duplicate intents by idempotency key or target/operation/dedupe key.
+- Record dry-run, simulated, or live-blocked attempts only as local ledger
+  rows.
+- Expose read-only side-effect ledger counts in status, Today View, and the
+  dashboard.
+- Add minimal CLI support for read-only summary and dry-run record insertion.
+
+Permission keys:
+
+- `side_effect_ledger_dev_test_read`
+- `side_effect_ledger_dev_test_write`
+- `side_effect_ledger_dev_test_record_attempt`
+
+Safety behavior:
+
+- Completion reports must expose `no_external_writes=true`,
+  `no_send_mode=true`, `live_write=false`, and
+  `simulated_or_dry_run=true`.
+- High-risk objects cannot be auto-allowed.
+- The database schema rejects `live_write=1`, `no_external_writes=0`, and
+  `no_send_mode=0`.
+- CLI dry-run recording reads only explicit safe input files and performs only
+  local dev/test SQLite writes after explicit dev/test permissions are enabled.
+
+Non-goals:
+
+- No live Todoist writes.
+- No live Calendar writes.
+- No Gmail send or draft.
+- No PersonalOS Markdown writes.
+- No `.openclaw` integration.
+- No scheduler or LaunchAgents.
+- No live model/API calls.
+- No OpenAI/OpenRouter/Anthropic integration.
+- No production DB activation.
+- No apply/save synthesis import flow.
+- No dashboard mutation forms or execute/apply command.
+- No public/LAN dashboard exposure, auth/login, Apple Health/wearables,
+  Notion, TradingView, or market-data integration.
+
 Likely next phase:
 
-- Phase 12B hardening or an explicit apply/save flow, only after separate
-  approval.
+- Separate Phase 12C or live-rail planning only after explicit approval.

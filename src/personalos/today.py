@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.config import DEFAULT_TIMEZONE
+from personalos.side_effects import summarize_side_effect_ledgers
 from personalos.state import (
     count_briefing_outputs,
     count_calendar_blocks,
@@ -87,6 +88,7 @@ def create_today_view_summary(
             timezone_name=timezone_name,
         ),
         "synthesis_import_preview_summary": _synthesis_import_preview_summary(connection),
+        "side_effect_ledger_summary": summarize_side_effect_ledgers(connection),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
         "warnings": list(SAFETY_WARNINGS),

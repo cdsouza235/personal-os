@@ -36,6 +36,9 @@ class StatusSummaryTest(unittest.TestCase):
                 "fitness_integration_state": 0,
                 "fitness_validation_runs": 0,
                 "fitness_file_contracts": 0,
+                "external_write_intents": 0,
+                "external_write_attempts": 0,
+                "idempotency_records": 0,
             },
         )
         self.assertEqual(summary["permission_settings"], [])
@@ -80,6 +83,9 @@ class StatusSummaryTest(unittest.TestCase):
                 "fitness_integration_state": 0,
                 "fitness_validation_runs": 0,
                 "fitness_file_contracts": 0,
+                "external_write_intents": 0,
+                "external_write_attempts": 0,
+                "idempotency_records": 0,
             },
         )
         self.assertEqual(summary["permission_settings"], [permission])

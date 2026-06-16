@@ -94,6 +94,10 @@ class TodayViewSummaryTest(unittest.TestCase):
         self.assertTrue(summary["briefing_output_summary"]["no_external_writes"])
         self.assertTrue(summary["briefing_output_summary"]["no_send_mode"])
         self.assertFalse(summary["synthesis_import_preview_summary"]["available"])
+        self.assertEqual(summary["side_effect_ledger_summary"]["intent_count"], 0)
+        self.assertEqual(summary["side_effect_ledger_summary"]["attempt_count"], 0)
+        self.assertTrue(summary["side_effect_ledger_summary"]["no_external_writes"])
+        self.assertFalse(summary["side_effect_ledger_summary"]["live_write"])
         self.assertEqual(
             summary["synthesis_import_preview_summary"]["permission_required"],
             SYNTHESIS_IMPORT_READ_PERMISSION,
@@ -228,6 +232,7 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Briefing Windows", html)
         self.assertIn("Briefing Loop", html)
         self.assertIn("Briefing Outputs", html)
+        self.assertIn("Side-Effect Ledgers", html)
         self.assertIn("ChatGPT Synthesis Import Preview", html)
         self.assertIn("/synthesis-import/preview", html)
         self.assertIn("Synthesis Import Previews", html)

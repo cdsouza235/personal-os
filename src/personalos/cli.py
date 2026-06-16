@@ -19,6 +19,10 @@ from personalos.path_safety import (
     validate_existing_sqlite_path,
     validate_output_file_path,
 )
+from personalos.side_effects import (
+    create_external_write_intent_and_record_dry_run,
+    summarize_side_effect_ledgers,
+)
 from personalos.status import create_status_summary
 from personalos.synthesis_import import (
     ALLOWED_SOURCE_TYPES,
@@ -97,6 +101,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_json_arg(synthesis_preview_parser)
     synthesis_preview_parser.set_defaults(func=_command_synthesis_preview)
+
+    side_effects_parser = subparsers.add_parser(
+        "side-effects",
+        help="Side-effect ledger summaries and simulated dry-run records.",
+    )
+    side_effects_subparsers = side_effects_parser.add_subparsers(
+        dest="side_effects_command",
+        required=True,
+    )
+
+    side_effects_summary_parser = side_effects_subparsers.add_parser(
+        "summary",
+        help="Read side-effect and idempotency ledger counts.",
+    )
+    _add_db_arg(side_effects_summary_parser)
+    _add_json_arg(side_effects_summary_parser)
+    side_effects_summary_parser.set_defaults(func=_command_side_effects_summary)
+
+    side_effects_record_parser = side_effects_subparsers.add_parser(
+        "record-dry-run",
+        help="Record one future-write intent and dry-run attempt from a safe JSON file.",
+    )
+    _add_db_arg(side_effects_record_parser)
+    side_effects_record_parser.add_argument("--input-file", required=True)
+    _add_json_arg(side_effects_record_parser)
+    side_effects_record_parser.set_defaults(func=_command_side_effects_record_dry_run)
 
     dashboard_parser = subparsers.add_parser("dashboard", help="Static dashboard exports.")
     dashboard_subparsers = dashboard_parser.add_subparsers(
@@ -226,6 +256,45 @@ def _command_synthesis_preview(args: argparse.Namespace) -> int:
     return 0 if result.get("status") == "created" else 1
 
 
+def _command_side_effects_summary(args: argparse.Namespace) -> int:
+    with closing(_connect_read_only(args.db)) as connection:
+        summary = summarize_side_effect_ledgers(connection)
+    report = {
+        "command": "side-effects summary",
+        "status": "completed",
+        "database_write": False,
+        "external_mutation": False,
+        "summary": summary,
+        **summary["safety_flags"],
+    }
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_side_effects_record_dry_run(args: argparse.Namespace) -> int:
+    input_path = validate_existing_input_file_path(
+        args.input_file,
+        path_label="operator input_file",
+    )
+    payload = _load_json_object(input_path)
+    intent = payload.get("intent")
+    if not isinstance(intent, Mapping):
+        raise CliError("side-effects input JSON must include an object at key: intent")
+    attempt = payload.get("attempt")
+    if attempt is not None and not isinstance(attempt, Mapping):
+        raise CliError("side-effects input JSON key attempt must be an object when provided")
+
+    with closing(_connect_read_write(args.db)) as connection:
+        result = create_external_write_intent_and_record_dry_run(
+            connection,
+            intent=intent,
+            attempt=attempt,
+        )
+    report = {"command": "side-effects record-dry-run", **result}
+    _emit_report(report, json_output=args.json)
+    return 0 if result.get("status") in {"recorded", "skipped_duplicate"} else 1
+
+
 def _command_dashboard_render(args: argparse.Namespace) -> int:
     output_path = validate_output_file_path(
         args.output_file,
@@ -306,6 +375,16 @@ def _merge_synthesis_source_type(raw_input: str, *, source_type: str) -> str:
     return json.dumps(payload, allow_nan=False, ensure_ascii=True, sort_keys=True)
 
 
+def _load_json_object(path: Any) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise CliError(f"input file must contain JSON: {error}") from error
+    if not isinstance(payload, dict):
+        raise CliError("input file JSON must decode to an object")
+    return payload
+
+
 def _synthesis_rejected_result(*, reason: str, source_type: str) -> dict[str, Any]:
     return {
         "status": "rejected",
@@ -382,6 +461,9 @@ def _human_report(report: Mapping[str, Any]) -> str:
         "no_calendar_writes",
         "no_gmail_send",
         "no_gmail_draft",
+        "no_personalos_writes",
+        "live_write",
+        "simulated_or_dry_run",
         "static_html_only",
     ):
         if key in report:

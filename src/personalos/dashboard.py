@@ -243,6 +243,7 @@ def render_today_view_html(
   {_render_briefing_window_summary(summary["briefing_window_summary"])}
   {_render_briefing_loop_summary(summary["briefing_loop_summary"])}
   {_render_briefing_output_summary(summary["briefing_output_summary"])}
+  {_render_side_effect_ledger_summary(summary["side_effect_ledger_summary"])}
   {_render_permission_summary(summary["permission_summary"])}
   {_render_system_status_summary(summary["system_status_summary"])}
   {_render_warnings(summary["warnings"])}
@@ -844,6 +845,31 @@ def _render_synthesis_import_preview_summary(summary: Mapping[str, Any]) -> str:
                 ("Latest rejected count", summary["latest_rejected_count"]),
                 ("Latest warnings count", summary["latest_warnings_count"]),
                 ("no_external_writes", _format_bool(summary["no_external_writes"])),
+            )
+        ),
+    )
+
+
+def _render_side_effect_ledger_summary(summary: Mapping[str, Any]) -> str:
+    return _section(
+        "side-effect-ledger-summary",
+        "Side-Effect Ledgers",
+        _definition_list(
+            (
+                ("Intent count", summary["intent_count"]),
+                ("Attempt count", summary["attempt_count"]),
+                ("Idempotency records", summary["idempotency_record_count"]),
+                ("Intent statuses", _format_counts(summary["intent_counts_by_status"])),
+                ("Target systems", _format_counts(summary["intent_counts_by_target_system"])),
+                ("Attempt statuses", _format_counts(summary["attempt_counts_by_status"])),
+                ("Attempt modes", _format_counts(summary["attempt_counts_by_mode"])),
+                ("no_external_writes", _format_bool(summary["no_external_writes"])),
+                ("no_send_mode", _format_bool(summary["no_send_mode"])),
+                ("live_write", _format_bool(summary["live_write"])),
+                (
+                    "simulated_or_dry_run",
+                    _format_bool(summary["simulated_or_dry_run"]),
+                ),
             )
         ),
     )

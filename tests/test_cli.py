@@ -30,6 +30,13 @@ from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_WRITE_PERMISSION,
     bootstrap_runtime_database,
 )
+from personalos.side_effects import (
+    SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION,
+    SIDE_EFFECT_LEDGER_WRITE_PERMISSION,
+    count_external_write_attempts,
+    count_external_write_intents,
+    count_idempotency_records,
+)
 from personalos.state import (
     count_briefing_outputs,
     count_composer_outputs,
@@ -59,6 +66,7 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
         self.assertIn("status", result.stdout)
         self.assertIn("briefing", result.stdout)
         self.assertIn("synthesis", result.stdout)
+        self.assertIn("side-effects", result.stdout)
         self.assertIn("dashboard", result.stdout)
 
     def test_db_backed_commands_require_explicit_db(self) -> None:
@@ -74,6 +82,8 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
                 "--source-type",
                 "chatgpt_synthesis",
             ],
+            ["side-effects", "summary"],
+            ["side-effects", "record-dry-run", "--input-file", "/tmp/input.json"],
         ):
             with self.subTest(args=args):
                 result = _run_cli(args)
@@ -403,6 +413,58 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(payload["status"], "rejected")
         self.assertTrue(payload["no_external_writes"])
 
+    def test_side_effects_summary_is_read_only(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            before = _table_counts(db_path)
+            result = _run_cli(["side-effects", "summary", "--db", str(db_path), "--json"])
+            after = _table_counts(db_path)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 0)
+        self.assertEqual(before, after)
+        self.assertFalse(payload["database_write"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_send_mode"])
+        self.assertFalse(payload["live_write"])
+        self.assertEqual(payload["summary"]["intent_count"], 0)
+        self.assertEqual(payload["summary"]["attempt_count"], 0)
+
+    def test_side_effects_record_dry_run_persists_only_local_ledger_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / "side-effect.json"
+            input_path.write_text(json.dumps(_side_effect_payload()), encoding="utf-8")
+            with _seeded_runtime_db() as db_path:
+                with _sqlite_connection(db_path) as connection:
+                    _enable_side_effect_permissions(connection)
+                    before = _side_effect_counts(connection)
+
+                result = _run_cli(
+                    [
+                        "side-effects",
+                        "record-dry-run",
+                        "--db",
+                        str(db_path),
+                        "--input-file",
+                        str(input_path),
+                        "--json",
+                    ]
+                )
+
+                with _sqlite_connection(db_path) as connection:
+                    after = _side_effect_counts(connection)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 0)
+        self.assertEqual(after["external_write_intents"] - before["external_write_intents"], 1)
+        self.assertEqual(after["external_write_attempts"] - before["external_write_attempts"], 1)
+        self.assertEqual(after["idempotency_records"] - before["idempotency_records"], 1)
+        self.assertEqual(payload["status"], "recorded")
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_send_mode"])
+        self.assertFalse(payload["live_write"])
+        self.assertTrue(payload["simulated_or_dry_run"])
+        self.assertFalse(payload["external_mutation"])
+
 
 class OperatorCliFileOutputWorkflowTest(unittest.TestCase):
     def test_briefing_export_writes_existing_output_to_explicit_safe_path_only(self) -> None:
@@ -691,6 +753,11 @@ def _enable_synthesis_permissions(connection: sqlite3.Connection) -> None:
     _set_permission(connection, SYNTHESIS_IMPORT_PREVIEW_PERMISSION)
 
 
+def _enable_side_effect_permissions(connection: sqlite3.Connection) -> None:
+    _set_permission(connection, SIDE_EFFECT_LEDGER_WRITE_PERMISSION)
+    _set_permission(connection, SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION)
+
+
 def _set_permission(connection: sqlite3.Connection, category: str) -> None:
     upsert_permission_setting(
         connection,
@@ -748,6 +815,14 @@ def _briefing_counts(connection: sqlite3.Connection) -> dict[str, int]:
     }
 
 
+def _side_effect_counts(connection: sqlite3.Connection) -> dict[str, int]:
+    return {
+        "external_write_intents": count_external_write_intents(connection),
+        "external_write_attempts": count_external_write_attempts(connection),
+        "idempotency_records": count_idempotency_records(connection),
+    }
+
+
 def _synthesis_payload(
     *,
     summary: str = "Structured ChatGPT synthesis for preview import.",
@@ -780,4 +855,39 @@ def _synthesis_payload(
             "review_questions": [],
         },
         "warnings": ["Preview only; no writes."],
+    }
+
+
+def _side_effect_payload() -> dict[str, object]:
+    return {
+        "intent": {
+            "source_type": "fake_fixture",
+            "source_id": "phase-12b-cli",
+            "target_system": "todoist",
+            "operation_type": "create",
+            "risk_level": "low",
+            "approval_mode": "auto_allowed",
+            "payload": {
+                "title": "Review side-effect ledger",
+                "project": "Personal OS",
+                "labels": ["review"],
+            },
+            "validation_report": {
+                "validated_by": "tests",
+                "no_external_writes": True,
+                "no_send_mode": True,
+            },
+            "created_at": "2026-06-15T10:00:00+00:00",
+            "updated_at": "2026-06-15T10:00:00+00:00",
+        },
+        "attempt": {
+            "mode": "dry_run",
+            "adapter_name": "phase_12b_fake_adapter",
+            "status": "succeeded",
+            "response_summary": {
+                "result": "would_create",
+                "external_mutation": False,
+            },
+            "created_at": "2026-06-15T10:01:00+00:00",
+        },
     }

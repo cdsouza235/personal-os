@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 10C are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. Phase 11A is approved for repo-local code,
-tests, and documentation only as the ChatGPT synthesis import preview
-foundation. Codex may run local tests, push the branch, and open or update the
-PR. Codex must stop before merge and must not inspect or mutate protected
-runtime paths, external systems, credentials, production ledgers, production
-SQLite state, or production state.
+Phases -1 through 11A are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. Phase 11B is approved for repo-local code,
+tests, and documentation only as the dashboard synthesis import preview UI.
+Codex may run local tests, push the branch, and open or update the PR. Codex
+must stop before merge and must not inspect or mutate protected runtime paths,
+external systems, credentials, production ledgers, production SQLite state, or
+production state.
 
 ## Phase Rules
 
@@ -321,6 +321,34 @@ LaunchAgents, activate production runtime, access `.openclaw`, access the full
 PersonalOS vault, add dashboard mutation/edit forms, add a paste box UI,
 expose public internet access, read credentials/OAuth, or perform live
 external writes of any kind.
+
+## Phase 11B Dashboard Synthesis Import Preview UI Boundary
+
+The Phase 11B dashboard synthesis import preview UI is preview-only. It may:
+
+- Add a local dashboard `ChatGPT Synthesis Import Preview` section with a
+  structured synthesis textarea, source fields, safety banner, and one
+  `Preview import` button.
+- Add `GET /synthesis-import` and `POST /synthesis-import/preview` on the
+  existing localhost-only dashboard server.
+- Route form-encoded structured input through the existing Phase 11A preview
+  engine.
+- Persist only `synthesis_import_previews` when
+  `synthesis_import_dev_test_write` and
+  `synthesis_import_dev_test_preview` are enabled.
+- Read prior-preview summaries only when `synthesis_import_dev_test_read` is
+  enabled.
+- Render preview reports with candidate buckets, questions for review,
+  warnings, bounded escaped raw excerpts, and no-write/no-model safety flags.
+
+Phase 11B may not apply/save candidates into priorities, routines,
+follow-ups, Todoist, Calendar, Gmail, or PersonalOS Markdown; write protected
+PersonalOS files; write Todoist; write Calendar; send or draft Gmail; call
+live model APIs; call OpenAI/OpenRouter/Anthropic; add live permissions; add
+an apply permission; add a scheduler or LaunchAgents; activate production
+runtime; access `.openclaw`; access the full PersonalOS vault; expose public
+internet access; relax localhost/LAN bind rules; add auth/login; read
+credentials/OAuth; or perform live external writes of any kind.
 
 ## Runtime Module Validation
 

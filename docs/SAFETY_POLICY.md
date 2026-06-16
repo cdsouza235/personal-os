@@ -6,13 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 10C are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 11A work is the
-ChatGPT synthesis import preview foundation. It may edit repo-local code,
-tests, and documentation, and may create temporary dev/test SQLite databases
-during tests. It must not inspect or mutate live runtime files, live PersonalOS
-files or fitness CSVs, credentials, external systems, production ledgers,
-production SQLite state, or any production state.
+Phases -1 through 11A are complete, and the Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 11B work is the
+dashboard synthesis import preview UI. It may edit repo-local code, tests, and
+documentation, and may create temporary dev/test SQLite databases during
+tests. It must not inspect or mutate live runtime files, live PersonalOS files
+or fitness CSVs, credentials, external systems, production ledgers, production
+SQLite state, or any production state.
 
 Codex must not inspect:
 
@@ -472,6 +472,24 @@ and `no_live_model_call: true`. Optional persistence stores only local preview
 records in `synthesis_import_previews`. Phase 11A does not apply/save
 candidates into priorities, routines, follow-ups, Todoist, Calendar, Gmail, or
 PersonalOS Markdown.
+
+Phase 11B dashboard synthesis import preview UI remains preview-only. It adds
+a local dashboard form for structured ChatGPT synthesis and a single
+`/synthesis-import/preview` POST route that calls the Phase 11A preview
+engine. It may persist only `synthesis_import_previews` records when
+`synthesis_import_dev_test_write` and
+`synthesis_import_dev_test_preview` are enabled. Today View and dashboard
+prior-preview summaries require `synthesis_import_dev_test_read`.
+
+Phase 11B does not add an apply permission, apply/save route, broad dashboard
+editor framework, auth/login, LAN/public bind relaxation, public internet
+exposure, PersonalOS Markdown writer, Todoist writer, Calendar writer, Gmail
+send/draft path, live model/API call, OpenAI/OpenRouter/Anthropic call,
+scheduler, LaunchAgent, production runtime activation, credential/OAuth
+access, protected PersonalOS access, `.openclaw` access, or live external
+write. Raw notes, unsupported prose, credential/protected-looking input, and
+unsafe high-stakes low/auto candidates remain rejected or blocked by the
+Phase 11A gates.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

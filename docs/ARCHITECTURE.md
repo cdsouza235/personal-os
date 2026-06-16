@@ -354,6 +354,41 @@ Phase 11A stores optional local preview records in
 forms, a paste box, live model adapters, PersonalOS Markdown writers,
 Todoist/Calendar/Gmail writers, or production runtime activation.
 
+## Dashboard Synthesis Import Preview
+
+Phase 11B connects the Phase 11A preview engine to the local dashboard. The
+dashboard now includes a `ChatGPT Synthesis Import Preview` section with a
+preview-only safety banner, a structured synthesis textarea, `source_type`,
+optional `source_reference`, optional `source_timestamp`, and one `Preview
+import` button.
+
+The dashboard routes are narrow: `GET /synthesis-import` renders the import
+surface and `POST /synthesis-import/preview` accepts form-encoded structured
+synthesis input. The POST route opens only the validated local/dev SQLite
+database path, calls the existing Phase 11A preview engine, and may persist
+only a `synthesis_import_previews` record. It does not write priorities,
+routines, follow-ups, Todoist tasks, Calendar blocks, PersonalOS Markdown,
+Gmail, or any external system.
+
+Preview submission requires `synthesis_import_dev_test_write` and
+`synthesis_import_dev_test_preview`. Reading prior-preview counts and latest
+preview status in Today View requires `synthesis_import_dev_test_read`. No
+apply, live model, live execution, or external-write permission is introduced.
+
+The rendered result shows `preview_id`, source/input metadata, candidate
+counts, accepted/rejected/blocked/review-required/manual-only candidate lists,
+warnings, questions for review, and the Phase 11A safety flags:
+`no_external_writes`, `no_state_mutation`, `no_personalos_writes`,
+`no_todoist_writes`, `no_calendar_writes`, `no_gmail_send`, and
+`no_live_model_call`. Untrusted content is HTML-escaped and raw input is shown
+only as the bounded Phase 11A `raw_excerpt`.
+
+Phase 11B keeps the dashboard localhost-only by default and rejects public
+bind hosts. It adds no broad editor framework, auth/login, LAN/public bind
+relaxation, scheduler, LaunchAgents, production runtime activation,
+credentials/OAuth, live model/API calls, protected PersonalOS access, or
+`.openclaw` access.
+
 ## Validated Runtime Module Definition
 
 A module is validated only after:

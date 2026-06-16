@@ -233,6 +233,28 @@ runtime, access `.openclaw`, access the full PersonalOS vault, add dashboard
 mutation/edit forms, add a paste box UI, expose public internet access, read
 credentials/OAuth, or perform live external writes.
 
+Phase 11B adds the local dashboard UI for this preview engine. The dashboard
+shows a `ChatGPT Synthesis Import Preview` section with a preview-only safety
+banner, a structured synthesis textarea, `source_type`, optional
+`source_reference`, optional `source_timestamp`, and a single `Preview import`
+button.
+
+The dashboard accepts form-encoded structured synthesis at
+`/synthesis-import/preview`, invokes the Phase 11A preview engine, persists
+only a `synthesis_import_previews` record when write and preview permissions
+are enabled, and renders the preview result. Prior-preview counts and latest
+preview status in Today View require read permission.
+
+Phase 11B expects ChatGPT-synthesized structured input, not raw notes. It
+continues to reject unsupported prose, credential/protected-looking input, raw
+note/vault/source-document inputs, and unsafe high-stakes low/auto candidates.
+The dashboard remains localhost-only by default. There is no apply/save button,
+no task creation button, no file-write button, no send button, no broad editor
+framework, no auth/login yet, and no LAN/public bind relaxation.
+
+Likely next phase is either Phase 11C explicit apply/save with approval gates
+or a no-send operator CLI, depending on MVP priority.
+
 ## Weekly Chart Pack Workflow
 
 - Weekend reminder to produce chart packs.

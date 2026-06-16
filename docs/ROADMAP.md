@@ -789,6 +789,9 @@ Safety behavior:
 - DB paths must be explicit absolute paths to existing temp or repo-local dev
   SQLite files and must pass protected-path, credential/OAuth-looking, and
   production-looking rejection.
+- Input paths for `synthesis preview` must be explicit absolute paths and must
+  pass protected-path, credential/OAuth-looking, production-looking, and
+  repo-local `var/` rejection before file reads.
 - File output paths must be explicit absolute paths, must not be under
   `/Users/coldstake/PersonalOS`, `/Users/coldstake/.openclaw`, LaunchAgents,
   credential/OAuth-looking paths, production-looking paths, or repo-local

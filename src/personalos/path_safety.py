@@ -86,6 +86,8 @@ def validate_existing_input_file_path(path_value: str | Path, *, path_label: str
     reject_protected_path(resolved, path_label=path_label)
     reject_sensitive_path(resolved, path_label=path_label)
     reject_production_path(resolved, path_label=path_label)
+    if is_under_repo_var(resolved):
+        raise ValueError(f"{path_label} must not point under repo-local var/")
     if not (is_under_repo(resolved) or is_under_temp(resolved)):
         raise ValueError(f"{path_label} must stay in explicit temp or repo-local dev paths")
     if not resolved.is_file():

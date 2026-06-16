@@ -399,10 +399,11 @@ export, structured synthesis import preview, and static dashboard HTML render.
 
 All DB-backed CLI commands require an explicit `--db` path to an existing
 safe local/dev SQLite file. File-writing commands require an explicit
-`--output-file` and reject protected PersonalOS paths, protected OpenClaw
-paths, LaunchAgents paths, credential/OAuth-looking paths, production-looking
-paths, and repo-local `var/` output paths. `dashboard render` writes static
-HTML only and does not start a server.
+`--output-file`. Synthesis preview input files and all output files reject
+protected PersonalOS paths, protected OpenClaw paths, LaunchAgents paths,
+credential/OAuth-looking paths, production-looking paths, and repo-local
+`var/` paths. `dashboard render` writes static HTML only and does not start a
+server.
 
 The CLI preserves the existing no-send boundaries: briefing preview uses only
 the fake Composer adapter, synthesis preview stores only

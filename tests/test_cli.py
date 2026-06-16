@@ -171,6 +171,48 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
         self.assertEqual(result.code, 2)
         self.assertIn("unrecognized arguments", result.stderr)
 
+    def test_synthesis_input_file_path_safety_rejects_protected_sensitive_and_var_paths(
+        self,
+    ) -> None:
+        protected_personalos = Path.home() / "PersonalOS" / "structured-synthesis.json"
+        protected_openclaw = Path.home() / ".openclaw" / "structured-synthesis.json"
+        credential_path = Path(tempfile.gettempdir()) / "oauth-token-synthesis.json"
+        production_path = Path(tempfile.gettempdir()) / "production" / "synthesis.json"
+        repo_var_path = REPO_ROOT / "var" / "structured-synthesis.json"
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_synthesis_permissions(connection)
+                before = count_synthesis_import_previews(connection)
+
+            for input_path in (
+                protected_personalos,
+                protected_openclaw,
+                credential_path,
+                production_path,
+                repo_var_path,
+            ):
+                with self.subTest(input_path=input_path):
+                    result = _run_cli(
+                        [
+                            "synthesis",
+                            "preview",
+                            "--db",
+                            str(db_path),
+                            "--input-file",
+                            str(input_path),
+                            "--source-type",
+                            "chatgpt_synthesis",
+                        ]
+                    )
+                    self.assertEqual(result.code, 1)
+                    self.assertIn("error:", result.stderr)
+
+            with _sqlite_connection(db_path) as connection:
+                after = count_synthesis_import_previews(connection)
+
+        self.assertEqual(after, before)
+
 
 class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
     def test_status_command_works_against_temp_bootstrapped_db(self) -> None:
@@ -475,6 +517,7 @@ class OperatorCliBoundaryTest(unittest.TestCase):
             "personalos dashboard render",
             "explicit `--db`",
             "explicit `--output-file`",
+            "input paths",
             "no live model/api calls",
             "no scheduler",
             "no launchagents",

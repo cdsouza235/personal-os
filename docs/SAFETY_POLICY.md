@@ -500,10 +500,11 @@ briefing and synthesis import helpers. File-output commands require explicit
 
 Phase 12A rejects protected PersonalOS paths, protected OpenClaw paths,
 LaunchAgents paths, credential/OAuth-looking paths, production-looking paths,
-and repo-local `var/` output paths. The static dashboard render command writes
-only a local HTML file and does not bind a web server. Briefing export reads an
-existing briefing output and writes only the existing manual export content to
-the explicit safe output path. Synthesis preview remains preview-only and
+repo-local `var/` input paths, and repo-local `var/` output paths. The static
+dashboard render command writes only a local HTML file and does not bind a web
+server. Briefing export reads an existing briefing output and writes only the
+existing manual export content to the explicit safe output path. Synthesis
+preview reads only explicit safe input files, remains preview-only, and
 persists only `synthesis_import_previews`.
 
 Phase 12A does not add a scheduler, LaunchAgents, live Gmail send/draft,

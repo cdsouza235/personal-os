@@ -128,16 +128,31 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 10C are complete. The Phase 6B, Phase 7B, and Phase 8B
+Phases -1 through 11B are complete. The Phase 6B, Phase 7B, and Phase 8B
 fake/local smoke tests are complete.
 
-The current Phase 11B scope is the dashboard synthesis import preview UI. It
-lets Chris paste structured ChatGPT synthesis into the localhost dashboard,
-submit it through the existing Phase 11A preview engine, persist only a local
-`synthesis_import_previews` record when dev/test permissions allow it, and
-review the preview report. It is still preview-only. It does not apply/save
-candidates into core runtime state, write PersonalOS Markdown, write Todoist
-or Calendar, send or draft Gmail, call live model APIs, start a scheduler,
+The current Phase 12A scope is the local operator CLI for no-send workflows.
+It adds a `personalos` command-line surface so Chris/OpenClaw can run existing
+inert read, preview, export, and static-render workflows without custom smoke
+scripts. Every DB-backed command requires an explicit `--db` path. Every
+file-writing command requires an explicit `--output-file` path. The CLI
+rejects protected PersonalOS/OpenClaw paths, LaunchAgents paths,
+credential/OAuth-looking paths, production-looking paths, and repo-local
+`var/` output paths.
+
+Supported Phase 12A commands:
+
+- `personalos status --db /tmp/personalos-preview.sqlite3`
+- `personalos today --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago`
+- `personalos briefing preview --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --window morning`
+- `personalos briefing export --db /tmp/personalos-preview.sqlite3 --briefing-output-id <id> --output-file /tmp/morning-brief.md`
+- `personalos synthesis preview --db /tmp/personalos-preview.sqlite3 --input-file /tmp/structured-synthesis.json --source-type chatgpt_synthesis`
+- `personalos dashboard render --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --output-file /tmp/today.html`
+
+The CLI prints human-readable completion reports by default and supports
+`--json` where practical. It does not bootstrap, seed, migrate, bind a server,
+write PersonalOS Markdown, apply/save synthesis candidates, write Todoist or
+Calendar, send or draft Gmail, call live model APIs, start a scheduler,
 activate production runtime, access protected PersonalOS/OpenClaw paths, or
 perform live external writes.
 

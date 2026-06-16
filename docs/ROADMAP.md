@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 11A are complete. The Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 11B work is a
-dashboard synthesis import preview UI for structured, already-synthesized
-ChatGPT material only. This repo still has no production runtime activation.
+Phases -1 through 11B are complete. The Phase 6B, Phase 7B, and Phase 8B
+fake/local smoke tests are complete. The current Phase 12A work is a local
+operator CLI for existing no-send workflows. This repo still has no production
+runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -756,7 +756,73 @@ Non-goals:
 - No auth/login yet.
 - No LAN/public bind relaxation.
 
+## Phase 12A: Operator CLI for No-Send Workflows
+
+Status: current.
+
+Scope:
+
+- Add a package CLI entrypoint exposed as `personalos`.
+- Keep the command layer thin and reuse existing status, Today View,
+  dashboard render, briefing loop, synthesis import, permission, validation,
+  and safety helpers.
+- Require explicit `--db` on all DB-backed commands.
+- Require explicit `--output-file` on file-writing commands.
+- Print human-readable completion reports by default and support `--json`
+  where practical.
+- Add static/read-only dashboard HTML rendering without binding a server.
+- Add briefing preview through the existing fake Composer/no-send path only.
+- Add briefing export for existing local briefing outputs.
+- Add synthesis preview persistence for structured inputs only.
+
+Supported commands:
+
+- `personalos status --db <absolute-temp-or-dev-sqlite-path>`
+- `personalos today --db <path> --date YYYY-MM-DD --timezone America/Chicago`
+- `personalos briefing preview --db <path> --date YYYY-MM-DD --timezone America/Chicago --window morning`
+- `personalos briefing export --db <path> --briefing-output-id <id> --output-file <safe-output-file>`
+- `personalos synthesis preview --db <path> --input-file <structured-input-file> --source-type chatgpt_synthesis`
+- `personalos dashboard render --db <path> --date YYYY-MM-DD --timezone America/Chicago --output-file <safe-html-file>`
+
+Safety behavior:
+
+- DB paths must be explicit absolute paths to existing temp or repo-local dev
+  SQLite files and must pass protected-path, credential/OAuth-looking, and
+  production-looking rejection.
+- Input paths for `synthesis preview` must be explicit absolute paths and must
+  pass protected-path, credential/OAuth-looking, production-looking, and
+  repo-local `var/` rejection before file reads.
+- File output paths must be explicit absolute paths, must not be under
+  `/Users/coldstake/PersonalOS`, `/Users/coldstake/.openclaw`, LaunchAgents,
+  credential/OAuth-looking paths, production-looking paths, or repo-local
+  `var/`, and must have an existing parent directory.
+- Status, Today View, briefing export, and dashboard render do not mutate DB
+  state.
+- Briefing preview persists only no-send local preview records through the
+  fake Composer adapter and preserves `no_external_writes: true`.
+- Synthesis preview persists only `synthesis_import_previews` records and
+  preserves the Phase 11A high-stakes, raw-prose, raw-notes, and
+  credential/protected-looking input gates.
+
+Non-goals:
+
+- No scheduler.
+- No LaunchAgents.
+- No live Gmail send or draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No live model/API calls.
+- No OpenAI/OpenRouter/Anthropic integration.
+- No PersonalOS Markdown writes.
+- No `.openclaw` integration.
+- No full PersonalOS vault access.
+- No apply/save import flow.
+- No dashboard mutation routes.
+- No server bind for `dashboard render`.
+- No production DB path activation.
+- No repo-local `var/` output.
+
 Likely next phase:
 
-- Phase 11C explicit apply/save flow with approval gates, or a no-send
-  operator CLI, depending on MVP priority.
+- Phase 12B hardening or an explicit apply/save flow, only after separate
+  approval.

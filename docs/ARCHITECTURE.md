@@ -389,6 +389,30 @@ relaxation, scheduler, LaunchAgents, production runtime activation,
 credentials/OAuth, live model/API calls, protected PersonalOS access, or
 `.openclaw` access.
 
+## Operator CLI
+
+Phase 12A adds a local `personalos` CLI for operator-safe no-send workflows.
+The CLI is a thin command layer over existing module APIs rather than a second
+business-logic implementation. Supported commands cover status summaries,
+read-only Today View output, fake/no-send briefing preview, briefing manual
+export, structured synthesis import preview, and static dashboard HTML render.
+
+All DB-backed CLI commands require an explicit `--db` path to an existing
+safe local/dev SQLite file. File-writing commands require an explicit
+`--output-file`. Synthesis preview input files and all output files reject
+protected PersonalOS paths, protected OpenClaw paths, LaunchAgents paths,
+credential/OAuth-looking paths, production-looking paths, and repo-local
+`var/` paths. `dashboard render` writes static HTML only and does not start a
+server.
+
+The CLI preserves the existing no-send boundaries: briefing preview uses only
+the fake Composer adapter, synthesis preview stores only
+`synthesis_import_previews`, and read/export/render commands do not mutate DB
+state. Phase 12A adds no scheduler, LaunchAgents, live Todoist/Calendar/Gmail
+write path, live model/API client, OpenClaw integration, PersonalOS Markdown
+writer, apply/save import flow, public/LAN dashboard exposure, or production
+runtime activation.
+
 ## Validated Runtime Module Definition
 
 A module is validated only after:

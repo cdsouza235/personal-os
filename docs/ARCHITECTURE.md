@@ -413,6 +413,35 @@ write path, live model/API client, OpenClaw integration, PersonalOS Markdown
 writer, apply/save import flow, public/LAN dashboard exposure, or production
 runtime activation.
 
+## Side-Effect and Idempotency Ledgers
+
+Phase 12B adds the shared ledger layer required before any future live write
+rail is allowed. The schema contains:
+
+- `external_write_intents`: validated future side-effect candidates, including
+  target system, operation, risk, approval mode, status, idempotency key,
+  dedupe key, payload, validation report, and hard safety flags.
+- `external_write_attempts`: dry-run, simulated, or live-blocked attempt
+  records linked to an intent.
+- `idempotency_records`: durable duplicate guards keyed by deterministic
+  idempotency keys and payload fingerprints.
+
+The ledger sits below future Todoist, Calendar, Gmail, and PersonalOS Markdown
+rails. Those rails may later use it to prove duplicate prevention and
+completion reporting before any controlled live test, but Phase 12B itself
+performs no live write. The only CLI mutation path is
+`personalos side-effects record-dry-run`, which records local SQLite rows from
+an explicit safe JSON input file after dev/test ledger permissions are
+enabled. The summary path is read-only and is also surfaced in status, Today
+View, and the static dashboard.
+
+Phase 12B completion reports always expose `no_external_writes=true`,
+`no_send_mode=true`, `live_write=false`, and `simulated_or_dry_run=true`.
+The schema also rejects attempts to persist live-write claims. No scheduler,
+LaunchAgents, `.openclaw` integration, production DB activation, live
+model/API call, Gmail send/draft, Todoist write, Calendar write, PersonalOS
+Markdown write, apply/save import flow, or dashboard mutation form is added.
+
 ## Validated Runtime Module Definition
 
 A module is validated only after:

@@ -6,13 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 11A are complete, and the Phase 6B, Phase 7B, and Phase 8B
-fake/local smoke tests are complete. The current Phase 11B work is the
-dashboard synthesis import preview UI. It may edit repo-local code, tests, and
-documentation, and may create temporary dev/test SQLite databases during
-tests. It must not inspect or mutate live runtime files, live PersonalOS files
-or fitness CSVs, credentials, external systems, production ledgers, production
-SQLite state, or any production state.
+Phases -1 through 12A are complete, and the Phase 6B, Phase 7B, Phase 8B, and
+Phase 12A fake/local smoke tests are complete. The current Phase 12B work is
+the side-effect and idempotency ledger foundation. It may edit repo-local code,
+tests, and documentation, and may create temporary dev/test SQLite databases
+during tests. It must not inspect or mutate live runtime files, live PersonalOS
+files or fitness CSVs, credentials, external systems, production ledgers,
+production SQLite state, or any production state.
 
 Codex must not inspect:
 
@@ -514,6 +514,34 @@ full PersonalOS vault access, Notion integration, wearable/Apple Health
 integration, TradingView/market data integration, public/LAN dashboard access,
 auth/login, apply/save import flow, routine or priority mutation forms,
 side-effect ledger implementation, or production DB path activation.
+
+Phase 12B adds local-only side-effect and idempotency ledgers. It records
+future write intent candidates in `external_write_intents`, simulated/dry-run
+attempts in `external_write_attempts`, and durable duplicate guards in
+`idempotency_records`. Idempotency keys are deterministic from stable source,
+target, operation, dedupe, and payload fields. Payload fingerprints are
+deterministic canonical JSON SHA-256 fingerprints.
+
+Phase 12B permission keys are `side_effect_ledger_dev_test_read`,
+`side_effect_ledger_dev_test_write`, and
+`side_effect_ledger_dev_test_record_attempt`. Write and attempt helpers fail
+closed unless the relevant dev/test permission is explicitly enabled. These
+keys are not live-write permissions and do not authorize Todoist, Calendar,
+Gmail, PersonalOS Markdown, API, scheduler, or production runtime writes.
+
+Every Phase 12B completion report and attempt row must preserve
+`no_external_writes=true`, `no_send_mode=true`, `live_write=false`, and
+`simulated_or_dry_run=true`. The schema rejects `live_write=1`,
+`no_external_writes=0`, and `no_send_mode=0`. High-risk intent candidates
+cannot use `auto_allowed`.
+
+Phase 12B does not add live Todoist writes, live Calendar writes, Gmail
+send/draft, PersonalOS Markdown writes, `.openclaw` integration, scheduler,
+LaunchAgents, live model/API calls, OpenAI/OpenRouter/Anthropic integration,
+production DB activation, apply/save synthesis import flow, dashboard mutation
+forms, public/LAN dashboard exposure, auth/login, Apple Health/wearable
+integration, Notion integration, TradingView/market data integration, or any
+Phase 12C/live-rail work.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

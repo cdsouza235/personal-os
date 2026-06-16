@@ -307,6 +307,56 @@ class SQLiteFoundationTest(unittest.TestCase):
             "updated_at",
         },
     }
+    expected_phase_12b_tables = {
+        "external_write_intents": {
+            "intent_id",
+            "source_type",
+            "source_id",
+            "target_system",
+            "operation_type",
+            "risk_level",
+            "approval_mode",
+            "status",
+            "idempotency_key",
+            "dedupe_key",
+            "payload_json",
+            "validation_report_json",
+            "no_external_writes",
+            "no_send_mode",
+            "live_write",
+            "created_at",
+            "updated_at",
+        },
+        "external_write_attempts": {
+            "attempt_id",
+            "intent_id",
+            "attempt_number",
+            "mode",
+            "adapter_name",
+            "status",
+            "request_fingerprint",
+            "response_summary_json",
+            "error_message",
+            "no_external_writes",
+            "no_send_mode",
+            "live_write",
+            "created_at",
+        },
+        "idempotency_records": {
+            "idempotency_key",
+            "target_system",
+            "operation_type",
+            "source_type",
+            "source_id",
+            "dedupe_key",
+            "payload_fingerprint",
+            "first_seen_at",
+            "last_seen_at",
+            "status",
+            "linked_intent_id",
+            "linked_attempt_id",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -404,10 +454,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "0008",
                     "0009",
                     "00010",
+                    "00011",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 10)
+            self.assertEqual(len(rows), 11)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -523,6 +574,42 @@ class SQLiteFoundationTest(unittest.TestCase):
                     '{"no_external_writes":true,"no_live_personalos_access":true}',
                     None,
                     "2026-06-15T10:00:00+00:00",
+                    "2026-06-15T10:00:00+00:00",
+                ),
+            ),
+            (
+                "external_write_attempts",
+                """
+                INSERT INTO external_write_attempts (
+                    attempt_id,
+                    intent_id,
+                    attempt_number,
+                    mode,
+                    adapter_name,
+                    status,
+                    request_fingerprint,
+                    response_summary_json,
+                    error_message,
+                    no_external_writes,
+                    no_send_mode,
+                    live_write,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan-side-effect-attempt",
+                    "missing-intent",
+                    1,
+                    "dry_run",
+                    "fake_adapter",
+                    "succeeded",
+                    "sha256:request",
+                    '{"no_external_writes":true,"no_send_mode":true}',
+                    None,
+                    1,
+                    1,
+                    0,
                     "2026-06-15T10:00:00+00:00",
                 ),
             ),
@@ -1267,6 +1354,197 @@ class SQLiteFoundationTest(unittest.TestCase):
         self.assertTrue(self.expected_phase_11a_tables.keys() <= table_names)
         self.assertEqual(table_columns, self.expected_phase_11a_tables)
 
+    def test_phase_12b_side_effect_ledger_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_12b_tables
+                }
+
+        self.assertTrue(self.expected_phase_12b_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_12b_tables)
+
+    def test_phase_12b_side_effect_ledger_check_constraints_reject_live_values(
+        self,
+    ) -> None:
+        invalid_intent_cases = (
+            ("target_system", "todoist_live_api"),
+            ("operation_type", "execute"),
+            ("risk_level", "critical"),
+            ("approval_mode", "live_auto"),
+            ("status", "completed_live"),
+            ("no_external_writes", 0),
+            ("no_send_mode", 0),
+            ("live_write", 1),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                for index, (column_name, invalid_value) in enumerate(invalid_intent_cases):
+                    with self.subTest(column_name=column_name):
+                        values = _side_effect_intent_values(f"intent-check-{index}")
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO external_write_intents (
+                                    intent_id,
+                                    source_type,
+                                    source_id,
+                                    target_system,
+                                    operation_type,
+                                    risk_level,
+                                    approval_mode,
+                                    status,
+                                    idempotency_key,
+                                    dedupe_key,
+                                    payload_json,
+                                    validation_report_json,
+                                    no_external_writes,
+                                    no_send_mode,
+                                    live_write,
+                                    created_at,
+                                    updated_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["intent_id"],
+                                    values["source_type"],
+                                    values["source_id"],
+                                    values["target_system"],
+                                    values["operation_type"],
+                                    values["risk_level"],
+                                    values["approval_mode"],
+                                    values["status"],
+                                    values["idempotency_key"],
+                                    values["dedupe_key"],
+                                    values["payload_json"],
+                                    values["validation_report_json"],
+                                    values["no_external_writes"],
+                                    values["no_send_mode"],
+                                    values["live_write"],
+                                    values["created_at"],
+                                    values["updated_at"],
+                                ),
+                            )
+
+    def test_phase_12b_attempt_constraints_reject_live_values(self) -> None:
+        invalid_attempt_cases = (
+            ("mode", "live"),
+            ("status", "completed_live"),
+            ("no_external_writes", 0),
+            ("no_send_mode", 0),
+            ("live_write", 1),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                values = _side_effect_intent_values("intent-for-attempt-check")
+                connection.execute(
+                    """
+                    INSERT INTO external_write_intents (
+                        intent_id,
+                        source_type,
+                        source_id,
+                        target_system,
+                        operation_type,
+                        risk_level,
+                        approval_mode,
+                        status,
+                        idempotency_key,
+                        dedupe_key,
+                        payload_json,
+                        validation_report_json,
+                        no_external_writes,
+                        no_send_mode,
+                        live_write,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        values["intent_id"],
+                        values["source_type"],
+                        values["source_id"],
+                        values["target_system"],
+                        values["operation_type"],
+                        values["risk_level"],
+                        values["approval_mode"],
+                        values["status"],
+                        values["idempotency_key"],
+                        values["dedupe_key"],
+                        values["payload_json"],
+                        values["validation_report_json"],
+                        values["no_external_writes"],
+                        values["no_send_mode"],
+                        values["live_write"],
+                        values["created_at"],
+                        values["updated_at"],
+                    ),
+                )
+
+                for index, (column_name, invalid_value) in enumerate(invalid_attempt_cases):
+                    with self.subTest(column_name=column_name):
+                        attempt = _side_effect_attempt_values(
+                            f"attempt-check-{index}",
+                            intent_id=values["intent_id"],
+                        )
+                        attempt[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO external_write_attempts (
+                                    attempt_id,
+                                    intent_id,
+                                    attempt_number,
+                                    mode,
+                                    adapter_name,
+                                    status,
+                                    request_fingerprint,
+                                    response_summary_json,
+                                    error_message,
+                                    no_external_writes,
+                                    no_send_mode,
+                                    live_write,
+                                    created_at
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    attempt["attempt_id"],
+                                    attempt["intent_id"],
+                                    attempt["attempt_number"],
+                                    attempt["mode"],
+                                    attempt["adapter_name"],
+                                    attempt["status"],
+                                    attempt["request_fingerprint"],
+                                    attempt["response_summary_json"],
+                                    attempt["error_message"],
+                                    attempt["no_external_writes"],
+                                    attempt["no_send_mode"],
+                                    attempt["live_write"],
+                                    attempt["created_at"],
+                                ),
+                            )
+
     def test_phase_11a_synthesis_import_preview_check_constraints_reject_invalid_values(
         self,
     ) -> None:
@@ -1502,6 +1780,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "0008",
                 "0009",
                 "00010",
+                "00011",
             ],
         )
         self.assertEqual(
@@ -1517,8 +1796,50 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "runtime_bootstrap_tables",
                 "briefing_loop_tables",
                 "synthesis_import_preview_tables",
+                "side_effect_idempotency_ledger_tables",
             ],
         )
+
+
+def _side_effect_intent_values(intent_id: str) -> dict[str, object]:
+    timestamp = "2026-06-15T10:00:00+00:00"
+    return {
+        "intent_id": intent_id,
+        "source_type": "fake_fixture",
+        "source_id": "phase-12b",
+        "target_system": "todoist",
+        "operation_type": "create",
+        "risk_level": "low",
+        "approval_mode": "auto_allowed",
+        "status": "approved_for_dry_run",
+        "idempotency_key": f"idem:todoist:create:{intent_id}",
+        "dedupe_key": f"todoist:create:{intent_id}",
+        "payload_json": '{"title":"Review ledger"}',
+        "validation_report_json": '{"no_external_writes":true,"no_send_mode":true}',
+        "no_external_writes": 1,
+        "no_send_mode": 1,
+        "live_write": 0,
+        "created_at": timestamp,
+        "updated_at": timestamp,
+    }
+
+
+def _side_effect_attempt_values(attempt_id: str, *, intent_id: str) -> dict[str, object]:
+    return {
+        "attempt_id": attempt_id,
+        "intent_id": intent_id,
+        "attempt_number": 1,
+        "mode": "dry_run",
+        "adapter_name": "phase_12b_fake_adapter",
+        "status": "succeeded",
+        "request_fingerprint": f"sha256:{attempt_id}",
+        "response_summary_json": '{"no_external_writes":true,"no_send_mode":true}',
+        "error_message": None,
+        "no_external_writes": 1,
+        "no_send_mode": 1,
+        "live_write": 0,
+        "created_at": "2026-06-15T10:00:00+00:00",
+    }
 
 
 def _config_for(runtime_dir: Path, environment: Environment) -> PersonalOSConfig:

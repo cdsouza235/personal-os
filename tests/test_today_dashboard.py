@@ -33,9 +33,22 @@ from personalos.runtime_bootstrap import (
     bootstrap_runtime_database,
 )
 from personalos.state import (
+    count_briefing_outputs,
+    count_calendar_blocks,
+    count_daily_plans,
+    count_followups,
+    count_priorities,
+    count_routines,
+    count_synthesis_import_previews,
     create_calendar_block,
     create_todoist_task,
+    count_todoist_tasks,
     upsert_permission_setting,
+)
+from personalos.synthesis_import import (
+    SYNTHESIS_IMPORT_PREVIEW_PERMISSION,
+    SYNTHESIS_IMPORT_READ_PERMISSION,
+    SYNTHESIS_IMPORT_WRITE_PERMISSION,
 )
 from personalos.today import create_today_view_summary
 
@@ -80,6 +93,11 @@ class TodayViewSummaryTest(unittest.TestCase):
         self.assertEqual(summary["briefing_output_summary"]["warning_count"], 0)
         self.assertTrue(summary["briefing_output_summary"]["no_external_writes"])
         self.assertTrue(summary["briefing_output_summary"]["no_send_mode"])
+        self.assertFalse(summary["synthesis_import_preview_summary"]["available"])
+        self.assertEqual(
+            summary["synthesis_import_preview_summary"]["permission_required"],
+            SYNTHESIS_IMPORT_READ_PERMISSION,
+        )
         self.assertGreaterEqual(summary["permission_summary"]["total_count"], 1)
         self.assertIn("counts", summary["system_status_summary"])
 
@@ -210,6 +228,9 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Briefing Windows", html)
         self.assertIn("Briefing Loop", html)
         self.assertIn("Briefing Outputs", html)
+        self.assertIn("ChatGPT Synthesis Import Preview", html)
+        self.assertIn("/synthesis-import/preview", html)
+        self.assertIn("Synthesis Import Previews", html)
         self.assertIn("/today.json", html)
         self.assertIn("Permissions", html)
         self.assertIn("System Status", html)
@@ -279,7 +300,9 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Personal OS Midday Brief Preview", briefing_summary["manual_export_excerpt"])
         self.assertIs(briefing_summary["safety_flags"]["no_external_writes"], True)
 
-    def test_dashboard_has_no_generation_button_form_or_mutation_route(self) -> None:
+    def test_dashboard_has_only_synthesis_preview_form_and_no_external_action_routes(
+        self,
+    ) -> None:
         with _seeded_runtime_db() as db_path:
             with _sqlite_connection(db_path) as connection:
                 _insert_dashboard_fixture_rows(connection)
@@ -291,11 +314,21 @@ class DashboardShellTest(unittest.TestCase):
                 ).lower()
 
         source = inspect.getsource(dashboard)
-        self.assertNotIn("<form", html)
-        self.assertNotIn("<button", html)
+        buttons = re.findall(r"<button[^>]*>(.*?)</button>", html)
+        self.assertEqual(buttons, ["preview import"])
+        self.assertIn("<form", html)
+        self.assertIn('method="post"', html)
+        self.assertIn('action="/synthesis-import/preview"', html)
         self.assertNotIn("generate briefing", html)
-        self.assertNotIn('method="post"', html)
-        self.assertNotIn("def do_POST", source)
+        self.assertNotIn("apply import", html)
+        self.assertNotIn("save to state", html)
+        self.assertNotIn("create tasks", html)
+        self.assertNotIn("write files", html)
+        self.assertIn("def do_POST", source)
+        self.assertIn('"/synthesis-import/preview"', source)
+        for forbidden_route in ('"/apply', '"/send', '"/tasks', '"/calendar'):
+            with self.subTest(forbidden_route=forbidden_route):
+                self.assertNotIn(forbidden_route, source)
         self.assertNotIn("generate_no_send_briefing_preview", source)
 
     def test_dashboard_html_render_from_db_path_uses_read_only_connection(self) -> None:
@@ -367,6 +400,316 @@ class DashboardShellTest(unittest.TestCase):
                 self.assertIsNone(re.search(pattern, source, re.MULTILINE))
 
 
+class DashboardSynthesisImportPreviewTest(unittest.TestCase):
+    def test_synthesis_import_form_renders_safety_fields_and_preview_button(self) -> None:
+        html = dashboard.render_synthesis_import_preview_form_html()
+        lowered = html.lower()
+
+        self.assertIn("ChatGPT Synthesis Import Preview", html)
+        self.assertIn("Preview-only", html)
+        self.assertIn("No core state mutation", html)
+        self.assertIn("No PersonalOS Markdown writes", html)
+        self.assertIn("No Todoist/Calendar/Gmail writes", html)
+        self.assertIn("No live model/API calls", html)
+        self.assertIn('name="structured_synthesis"', html)
+        self.assertIn("<textarea", lowered)
+        self.assertIn('name="source_type"', html)
+        self.assertIn("chatgpt_synthesis", html)
+        self.assertIn("manual_structured_import", html)
+        self.assertNotIn("fake_fixture", html)
+        self.assertIn('name="source_reference"', html)
+        self.assertIn('name="source_timestamp"', html)
+        buttons = re.findall(r"<button[^>]*>(.*?)</button>", html)
+        self.assertEqual(buttons, ["Preview import"])
+        self.assertNotIn("Apply", buttons)
+        self.assertNotIn("Save to state", buttons)
+        self.assertNotIn("Create tasks", buttons)
+        self.assertNotIn("Write files", buttons)
+        self.assertNotIn("Send", buttons)
+
+    def test_synthesis_import_preview_db_path_route_helper_creates_one_preview_record(
+        self,
+    ) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_synthesis_import_permissions(connection)
+                before = count_synthesis_import_previews(connection)
+
+            result = dashboard.create_dashboard_synthesis_import_preview_from_db_path(
+                db_path,
+                {
+                    "structured_synthesis": json.dumps(_synthesis_payload()),
+                    "source_type": "chatgpt_synthesis",
+                },
+            )
+            body = dashboard.render_synthesis_import_preview_result_html(result)
+
+            with _sqlite_connection(db_path) as connection:
+                after = count_synthesis_import_previews(connection)
+
+        self.assertEqual(result["status"], "created")
+        self.assertEqual(before, 0)
+        self.assertEqual(after, 1)
+        self.assertIn("Preview Result", body)
+        self.assertIn("accepted candidates", body)
+        self.assertIn("no_external_writes", body)
+        self.assertIn("questions_for_review", body)
+
+    def test_synthesis_import_preview_helper_renders_candidate_buckets_and_flags(self) -> None:
+        payload = _synthesis_payload(
+            candidates={
+                **_empty_synthesis_candidates(),
+                "priorities": [
+                    _synthesis_priority(),
+                    {
+                        **_synthesis_priority(),
+                        "title": "Review medium-risk synthesis item",
+                        "risk_level": "medium",
+                        "approval_mode": "approval_required",
+                    },
+                ],
+                "todoist_tasks": [
+                    {
+                        **_synthesis_todoist(),
+                        "task_title": "Buy crypto for portfolio rebalance",
+                        "description": "Execute BTC allocation change.",
+                    },
+                    {
+                        **_synthesis_todoist(),
+                        "priority": 5,
+                    },
+                ],
+                "calendar_blocks": [
+                    {
+                        **_synthesis_calendar(),
+                        "duration_minutes": 45,
+                    }
+                ],
+                "review_questions": [_synthesis_question()],
+            }
+        )
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_synthesis_import_permissions(connection)
+                result = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": json.dumps(payload),
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+                preview_count = count_synthesis_import_previews(connection)
+
+        report = result["preview_report"]
+        html = dashboard.render_synthesis_import_preview_result_html(result)
+
+        self.assertEqual(result["status"], "created")
+        self.assertEqual(preview_count, 1)
+        self.assertEqual(len(report["accepted_candidates"]), 1)
+        self.assertEqual(len(report["blocked_candidates"]), 1)
+        self.assertEqual(len(report["rejected_candidates"]), 2)
+        self.assertEqual(len(report["review_required_candidates"]), 1)
+        self.assertEqual(len(report["questions_for_review"]), 1)
+        self.assertIn("accepted candidates", html)
+        self.assertIn("blocked candidates", html)
+        self.assertIn("rejected candidates", html)
+        self.assertIn("review-required candidates", html)
+        self.assertIn("questions_for_review", html)
+        self.assertIn("no_state_mutation", html)
+        self.assertIn("no_personalos_writes", html)
+        self.assertIn("no_todoist_writes", html)
+        self.assertIn("no_calendar_writes", html)
+        self.assertIn("no_gmail_send", html)
+        self.assertIn("no_live_model_call", html)
+
+    def test_synthesis_import_preview_result_escapes_untrusted_content(self) -> None:
+        payload = _synthesis_payload(
+            candidates={
+                **_empty_synthesis_candidates(),
+                "priorities": [
+                    {
+                        **_synthesis_priority(),
+                        "title": "<script>alert(1)</script>",
+                    }
+                ],
+            }
+        )
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_synthesis_import_permissions(connection)
+                result = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": json.dumps(payload),
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+
+        html = dashboard.render_synthesis_import_preview_result_html(result)
+        self.assertNotIn("<script>", html)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+
+    def test_synthesis_import_preview_rejects_raw_prose_raw_notes_and_credentials(
+        self,
+    ) -> None:
+        raw_notes_payload = json.dumps(_synthesis_payload(source_type="raw_notes"))
+        credential_payload = json.dumps(
+            {
+                **_synthesis_payload(),
+                "summary": "This includes token.json and must be rejected.",
+            }
+        )
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_synthesis_import_permissions(connection)
+                prose_result = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": "Please turn these raw notes into tasks.",
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+                raw_notes_result = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": raw_notes_payload,
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+                credential_result = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": credential_payload,
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+                preview_count = count_synthesis_import_previews(connection)
+
+        self.assertEqual(prose_result["status"], "rejected")
+        self.assertEqual(raw_notes_result["status"], "rejected")
+        self.assertEqual(credential_result["status"], "rejected")
+        self.assertEqual(preview_count, 0)
+
+    def test_synthesis_import_preview_post_fails_closed_without_write_and_preview(
+        self,
+    ) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                result = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": json.dumps(_synthesis_payload()),
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+                count_without_permissions = count_synthesis_import_previews(connection)
+
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, SYNTHESIS_IMPORT_WRITE_PERMISSION)
+                preview_missing = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": json.dumps(_synthesis_payload()),
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+                count_preview_missing = count_synthesis_import_previews(connection)
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn(SYNTHESIS_IMPORT_PREVIEW_PERMISSION, result["reason"])
+        self.assertEqual(count_without_permissions, 0)
+        self.assertEqual(preview_missing["status"], "blocked")
+        self.assertIn(SYNTHESIS_IMPORT_PREVIEW_PERMISSION, preview_missing["reason"])
+        self.assertEqual(count_preview_missing, 0)
+
+    def test_synthesis_import_preview_summary_requires_read_permission(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, SYNTHESIS_IMPORT_WRITE_PERMISSION)
+                _set_permission(connection, SYNTHESIS_IMPORT_PREVIEW_PERMISSION)
+                result = dashboard.create_dashboard_synthesis_import_preview(
+                    connection,
+                    {
+                        "structured_synthesis": json.dumps(_synthesis_payload()),
+                        "source_type": "chatgpt_synthesis",
+                    },
+                )
+                blocked_summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )["synthesis_import_preview_summary"]
+
+                _set_permission(connection, SYNTHESIS_IMPORT_READ_PERMISSION)
+                readable_summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )["synthesis_import_preview_summary"]
+
+        self.assertEqual(result["status"], "created")
+        self.assertFalse(blocked_summary["available"])
+        self.assertEqual(blocked_summary["synthesis_import_preview_count"], 0)
+        self.assertTrue(readable_summary["available"])
+        self.assertEqual(readable_summary["synthesis_import_preview_count"], 1)
+        self.assertEqual(readable_summary["latest_preview_status"], "validated")
+        self.assertEqual(readable_summary["latest_rejected_count"], 0)
+        self.assertEqual(readable_summary["latest_blocked_count"], 0)
+        self.assertEqual(readable_summary["latest_warnings_count"], 1)
+
+    def test_dashboard_synthesis_import_smoke_keeps_core_state_deltas_zero(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_synthesis_import_permissions(connection)
+                baseline = _synthesis_import_core_counts(connection)
+
+            result = dashboard.create_dashboard_synthesis_import_preview_from_db_path(
+                db_path,
+                {
+                    "structured_synthesis": json.dumps(
+                        _synthesis_payload(source_type="fake_fixture")
+                    ),
+                    "source_type": "fake_fixture",
+                },
+            )
+
+            with _sqlite_connection(db_path) as connection:
+                after = _synthesis_import_core_counts(connection)
+                preview_count = count_synthesis_import_previews(connection)
+                summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )["synthesis_import_preview_summary"]
+
+        self.assertEqual(result["status"], "created")
+        self.assertEqual(preview_count, 1)
+        self.assertEqual(after, baseline)
+        self.assertEqual(summary["synthesis_import_preview_count"], 1)
+        self.assertEqual(summary["latest_preview_status"], "validated")
+
+    def test_no_synthesis_import_apply_permission_exists(self) -> None:
+        from personalos import synthesis_import
+
+        permission_names = [
+            name
+            for name in dir(synthesis_import)
+            if name.startswith("SYNTHESIS_IMPORT") and "PERMISSION" in name
+        ]
+
+        self.assertEqual(
+            sorted(permission_names),
+            [
+                "SYNTHESIS_IMPORT_PREVIEW_PERMISSION",
+                "SYNTHESIS_IMPORT_READ_PERMISSION",
+                "SYNTHESIS_IMPORT_WRITE_PERMISSION",
+            ],
+        )
+
+
 class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
     def test_docs_describe_phase_10a_dashboard_boundary(self) -> None:
         docs_text = "\n".join(
@@ -414,6 +757,39 @@ class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
             "no scheduler",
             "no gmail/model/todoist/calendar writes",
             "future real-content redaction",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, docs_text)
+
+    def test_docs_describe_phase_11b_dashboard_synthesis_import_boundary(self) -> None:
+        docs_text = "\n".join(
+            [
+                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "PRD.md").read_text(encoding="utf-8"),
+            ]
+        ).lower()
+
+        required_phrases = (
+            "phase 11b dashboard synthesis import preview ui",
+            "chatgpt synthesis import preview",
+            "preview import",
+            "/synthesis-import/preview",
+            "synthesis_import_dev_test_write",
+            "synthesis_import_dev_test_preview",
+            "synthesis_import_dev_test_read",
+            "only `synthesis_import_previews`",
+            "no apply permission",
+            "no apply/save",
+            "no personalos markdown writes",
+            "no todoist/calendar/gmail writes",
+            "no live model/api calls",
+            "localhost-only",
+            "no lan/public bind relaxation",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -597,6 +973,12 @@ def _enable_composer_permissions(connection: sqlite3.Connection) -> None:
     _set_permission(connection, COMPOSER_MODULE_RUN_PERMISSION)
 
 
+def _enable_synthesis_import_permissions(connection: sqlite3.Connection) -> None:
+    _set_permission(connection, SYNTHESIS_IMPORT_READ_PERMISSION)
+    _set_permission(connection, SYNTHESIS_IMPORT_WRITE_PERMISSION)
+    _set_permission(connection, SYNTHESIS_IMPORT_PREVIEW_PERMISSION)
+
+
 def _set_permission(connection: sqlite3.Connection, category: str) -> None:
     upsert_permission_setting(
         connection,
@@ -626,3 +1008,109 @@ def _table_counts(connection: sqlite3.Connection) -> dict[str, int]:
             connection.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()[0]
         )
     return counts
+
+
+def _synthesis_import_core_counts(connection: sqlite3.Connection) -> dict[str, int]:
+    return {
+        "priorities": count_priorities(connection),
+        "routines": count_routines(connection),
+        "followups": count_followups(connection),
+        "todoist_tasks": count_todoist_tasks(connection),
+        "calendar_blocks": count_calendar_blocks(connection),
+        "daily_plans": count_daily_plans(connection),
+        "briefing_outputs": count_briefing_outputs(connection),
+    }
+
+
+def _synthesis_payload(
+    *,
+    source_type: str = "chatgpt_synthesis",
+    candidates: dict[str, list[dict[str, object]]] | None = None,
+) -> dict[str, object]:
+    return {
+        "schema_version": "synthesis_import.v1",
+        "source_type": source_type,
+        "source_timestamp": "2026-06-15T10:00:00+00:00",
+        "source_reference": "chatgpt-dashboard-thread",
+        "summary": "Structured ChatGPT synthesis for dashboard preview.",
+        "candidates": candidates if candidates is not None else _default_synthesis_candidates(),
+        "warnings": ["Preview only; no writes."],
+    }
+
+
+def _empty_synthesis_candidates() -> dict[str, list[dict[str, object]]]:
+    return {
+        "priorities": [],
+        "projects": [],
+        "followups": [],
+        "routine_changes": [],
+        "todoist_tasks": [],
+        "calendar_blocks": [],
+        "clarity_notes": [],
+        "review_questions": [],
+    }
+
+
+def _default_synthesis_candidates() -> dict[str, list[dict[str, object]]]:
+    candidates = _empty_synthesis_candidates()
+    candidates["priorities"] = [_synthesis_priority()]
+    candidates["todoist_tasks"] = [_synthesis_todoist()]
+    candidates["calendar_blocks"] = [_synthesis_calendar()]
+    candidates["review_questions"] = [_synthesis_question()]
+    return candidates
+
+
+def _synthesis_priority() -> dict[str, object]:
+    return {
+        "title": "Review dashboard synthesis imports",
+        "summary": "Keep dashboard imports preview-only until apply gates exist.",
+        "source_type": "chatgpt_synthesis",
+        "source_id": "dashboard-synth-1",
+        "risk_level": "low",
+        "approval_mode": "auto_allowed",
+        "status": "active",
+    }
+
+
+def _synthesis_todoist() -> dict[str, object]:
+    return {
+        "task_title": "Review dashboard synthesis import preview",
+        "description": "Check accepted and blocked candidates.",
+        "source_type": "chatgpt_synthesis",
+        "source_id": "dashboard-synth-1",
+        "project": "Admin",
+        "labels": ["synthesis", "dashboard"],
+        "due_date_or_due_string": "2026-06-16",
+        "priority": 2,
+        "risk_level": "low",
+        "approval_mode": "auto_allowed",
+        "dedupe_key": "dashboard synthesis import preview",
+        "status": "proposed",
+    }
+
+
+def _synthesis_calendar() -> dict[str, object]:
+    return {
+        "title": "Review dashboard synthesis import preview",
+        "description": "Self-only review block.",
+        "source_type": "chatgpt_synthesis",
+        "source_id": "dashboard-synth-1",
+        "start_time": "2026-06-16T10:00:00-05:00",
+        "end_time": "2026-06-16T10:30:00-05:00",
+        "duration_minutes": 30,
+        "calendar_id": "primary",
+        "timezone": DEFAULT_TIMEZONE,
+        "approval_mode": "auto_allowed",
+        "risk_level": "low",
+        "dedupe_key": "dashboard synthesis import calendar review",
+        "status": "proposed",
+    }
+
+
+def _synthesis_question() -> dict[str, object]:
+    return {
+        "question": "Should Phase 11C add explicit apply gates?",
+        "reason": "Phase 11B is preview-only.",
+        "candidate_refs": ["todoist_tasks[0]", "calendar_blocks[0]"],
+        "status": "open",
+    }

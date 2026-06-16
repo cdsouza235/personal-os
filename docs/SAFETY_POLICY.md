@@ -491,6 +491,29 @@ write. Raw notes, unsupported prose, credential/protected-looking input, and
 unsafe high-stakes low/auto candidates remain rejected or blocked by the
 Phase 11A gates.
 
+Phase 12A operator CLI is local-only and no-send. The `personalos` command
+requires explicit `--db` for every DB-backed operation and never bootstraps,
+seeds, migrates, or creates a database implicitly. Read commands use existing
+status and Today View helpers. Preview commands use existing fake/no-send
+briefing and synthesis import helpers. File-output commands require explicit
+`--output-file` and write only to paths that pass the shared safety checks.
+
+Phase 12A rejects protected PersonalOS paths, protected OpenClaw paths,
+LaunchAgents paths, credential/OAuth-looking paths, production-looking paths,
+and repo-local `var/` output paths. The static dashboard render command writes
+only a local HTML file and does not bind a web server. Briefing export reads an
+existing briefing output and writes only the existing manual export content to
+the explicit safe output path. Synthesis preview remains preview-only and
+persists only `synthesis_import_previews`.
+
+Phase 12A does not add a scheduler, LaunchAgents, live Gmail send/draft,
+Todoist writes, Calendar writes, live model/API calls, OpenAI/OpenRouter/
+Anthropic integration, PersonalOS Markdown writes, `.openclaw` integration,
+full PersonalOS vault access, Notion integration, wearable/Apple Health
+integration, TradingView/market data integration, public/LAN dashboard access,
+auth/login, apply/save import flow, routine or priority mutation forms,
+side-effect ledger implementation, or production DB path activation.
+
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 
 High-value review and follow-up Todoist tasks may auto-write after validation when they meet the task schema.

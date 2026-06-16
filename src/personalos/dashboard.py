@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
-import tempfile
 from collections.abc import Mapping, Sequence
 from html import escape
 from http import HTTPStatus
@@ -14,7 +13,16 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
-from personalos.config import DEFAULT_TIMEZONE, REPO_ROOT
+from personalos.config import DEFAULT_TIMEZONE
+from personalos.path_safety import (
+    DATABASE_SUFFIXES,
+    is_under_repo,
+    is_under_temp,
+    reject_production_path,
+    reject_protected_path,
+    reject_sensitive_path,
+    resolve_explicit_path,
+)
 from personalos.synthesis_import import (
     ALLOWED_SOURCE_TYPES,
     REPORT_SAFETY_FLAGS,
@@ -29,32 +37,23 @@ LOCALHOST_BIND_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 DASHBOARD_SYNTHESIS_IMPORT_FORM_MAX_BYTES = 128 * 1024
 DASHBOARD_SYNTHESIS_IMPORT_INPUT_MAX_CHARS = 128 * 1024
 
-_DATABASE_SUFFIXES = {".sqlite", ".sqlite3", ".db"}
-_PRODUCTION_MARKERS = {"prod", "production", "live"}
-_SENSITIVE_PATH_MARKERS = (
-    "credential",
-    "credentials",
-    "client" + "_" + "sec" + "ret",
-    "token" + ".json",
-    "api" + "_" + "key",
-    "o" + "auth",
-    "pass" + "word",
-    "sec" + "ret",
-)
-
 
 def render_today_view_html_from_connection(
     connection: sqlite3.Connection,
     *,
     source_date: str | None = None,
     timezone: str = DEFAULT_TIMEZONE,
+    include_synthesis_import_form: bool = True,
 ) -> str:
     summary = create_today_view_summary(
         connection,
         source_date=source_date,
         timezone=timezone,
     )
-    return render_today_view_html(summary)
+    return render_today_view_html(
+        summary,
+        include_synthesis_import_form=include_synthesis_import_form,
+    )
 
 
 def render_today_view_html_from_db_path(
@@ -86,8 +85,17 @@ def render_today_view_json_from_db_path(
     return json.dumps(summary, allow_nan=False, ensure_ascii=True, indent=2, sort_keys=True)
 
 
-def render_today_view_html(summary: Mapping[str, Any]) -> str:
+def render_today_view_html(
+    summary: Mapping[str, Any],
+    *,
+    include_synthesis_import_form: bool = True,
+) -> str:
     no_external_writes = _format_bool(summary["no_external_writes"])
+    synthesis_form_html = (
+        render_synthesis_import_preview_form_html()
+        if include_synthesis_import_form
+        else ""
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -226,7 +234,7 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
   </div>
 
   {_render_synthesis_import_preview_summary(summary["synthesis_import_preview_summary"])}
-  {render_synthesis_import_preview_form_html()}
+  {synthesis_form_html}
   {_render_routine_summary(summary["routine_summary"])}
   {_render_priority_summary(summary["priority_summary"])}
   {_render_followup_summary(summary["followup_summary"])}
@@ -585,17 +593,14 @@ def validate_dashboard_port(port: int) -> int:
 
 
 def validate_dashboard_db_path(db_path: str | Path, *, must_exist: bool = True) -> Path:
-    path = Path(db_path).expanduser()
-    if not path.is_absolute():
-        raise ValueError("dashboard db_path must be an explicit absolute path")
-    resolved = path.resolve()
-    _reject_protected_path(resolved)
-    _reject_sensitive_path(resolved)
-    _reject_production_path(resolved)
-    if resolved.suffix not in _DATABASE_SUFFIXES:
-        allowed = ", ".join(sorted(_DATABASE_SUFFIXES))
+    resolved = resolve_explicit_path(db_path, path_label="dashboard db_path")
+    reject_protected_path(resolved, path_label="dashboard db_path")
+    reject_sensitive_path(resolved, path_label="dashboard db_path")
+    reject_production_path(resolved, path_label="dashboard db_path")
+    if resolved.suffix not in DATABASE_SUFFIXES:
+        allowed = ", ".join(sorted(DATABASE_SUFFIXES))
         raise ValueError(f"dashboard db_path suffix must be one of: {allowed}")
-    if not (_is_under_repo(resolved) or _is_under_temp(resolved)):
+    if not (is_under_repo(resolved) or is_under_temp(resolved)):
         raise ValueError("dashboard db_path must stay in explicit temp or repo-local dev paths")
     if must_exist and not resolved.is_file():
         raise ValueError("dashboard db_path must point to an existing SQLite file")
@@ -1064,58 +1069,6 @@ def _empty_synthesis_import_summary() -> dict[str, Any]:
 
 def _e(value: object) -> str:
     return escape(str(value), quote=True)
-
-
-def _reject_protected_path(path: Path) -> None:
-    home = Path.home().resolve()
-    protected_personalos = home / "PersonalOS"
-    protected_openclaw = home / ".openclaw"
-    try:
-        path.relative_to(protected_personalos)
-    except ValueError:
-        pass
-    else:
-        raise ValueError("dashboard db_path points at a protected PersonalOS path")
-    try:
-        path.relative_to(protected_openclaw)
-    except ValueError:
-        pass
-    else:
-        raise ValueError("dashboard db_path points at a protected OpenClaw path")
-    if ".openclaw" in path.parts:
-        raise ValueError("dashboard db_path points at a protected OpenClaw path")
-    if "LaunchAgents" in path.parts:
-        raise ValueError("dashboard db_path points at a protected LaunchAgents path")
-
-
-def _reject_sensitive_path(path: Path) -> None:
-    lowered = str(path).lower()
-    if any(marker in lowered for marker in _SENSITIVE_PATH_MARKERS):
-        raise ValueError("dashboard db_path looks like a credential or authorization path")
-
-
-def _reject_production_path(path: Path) -> None:
-    parts = {part.lower() for part in path.parts}
-    stem_markers = {part.lower() for part in path.stem.replace("-", "_").split("_")}
-    if parts & _PRODUCTION_MARKERS or stem_markers & _PRODUCTION_MARKERS:
-        raise ValueError("production-looking dashboard db_path is blocked in Phase 10A")
-
-
-def _is_under_repo(path: Path) -> bool:
-    try:
-        path.relative_to(REPO_ROOT.resolve())
-    except ValueError:
-        return False
-    return True
-
-
-def _is_under_temp(path: Path) -> bool:
-    temp_root = Path(tempfile.gettempdir()).resolve()
-    try:
-        path.relative_to(temp_root)
-    except ValueError:
-        return False
-    return True
 
 
 if __name__ == "__main__":

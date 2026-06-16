@@ -350,6 +350,18 @@ runtime; access `.openclaw`; access the full PersonalOS vault; expose public
 internet access; relax localhost/LAN bind rules; add auth/login; read
 credentials/OAuth; or perform live external writes of any kind.
 
+Phase 12A adds only a local operator CLI for no-send workflows. CLI commands
+must require explicit `--db` for DB-backed operations, must require explicit
+`--output-file` for file-writing operations, and must reject protected,
+credential/OAuth-looking, production-looking, and repo-local `var/` output
+paths. The command layer should call existing module APIs for status, Today
+View, fake/no-send briefing preview, briefing export, structured synthesis
+preview, and static dashboard rendering. It must not bootstrap, seed, migrate,
+bind a server, activate production runtime, write PersonalOS Markdown, write
+Todoist or Calendar, send or draft Gmail, call live model APIs, create
+LaunchAgents, inspect protected PersonalOS or OpenClaw paths, or perform live
+external writes.
+
 ## Runtime Module Validation
 
 A module is validated only after:

@@ -1545,6 +1545,127 @@ class SQLiteFoundationTest(unittest.TestCase):
                                 ),
                             )
 
+                attempt = _side_effect_attempt_values(
+                    "attempt-check-live-blocked-succeeded",
+                    intent_id=values["intent_id"],
+                )
+                attempt["mode"] = "live_blocked"
+                attempt["status"] = "succeeded"
+                with self.assertRaises(sqlite3.IntegrityError):
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_attempts (
+                            attempt_id,
+                            intent_id,
+                            attempt_number,
+                            mode,
+                            adapter_name,
+                            status,
+                            request_fingerprint,
+                            response_summary_json,
+                            error_message,
+                            no_external_writes,
+                            no_send_mode,
+                            live_write,
+                            created_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            attempt["attempt_id"],
+                            attempt["intent_id"],
+                            attempt["attempt_number"],
+                            attempt["mode"],
+                            attempt["adapter_name"],
+                            attempt["status"],
+                            attempt["request_fingerprint"],
+                            attempt["response_summary_json"],
+                            attempt["error_message"],
+                            attempt["no_external_writes"],
+                            attempt["no_send_mode"],
+                            attempt["live_write"],
+                            attempt["created_at"],
+                        ),
+                    )
+
+    def test_phase_12b_idempotency_records_reject_duplicate_dedupe_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                first = _side_effect_idempotency_values("idem:first")
+                duplicate = _side_effect_idempotency_values("idem:second")
+                connection.execute(
+                    """
+                    INSERT INTO idempotency_records (
+                        idempotency_key,
+                        target_system,
+                        operation_type,
+                        source_type,
+                        source_id,
+                        dedupe_key,
+                        payload_fingerprint,
+                        first_seen_at,
+                        last_seen_at,
+                        status,
+                        linked_intent_id,
+                        linked_attempt_id
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        first["idempotency_key"],
+                        first["target_system"],
+                        first["operation_type"],
+                        first["source_type"],
+                        first["source_id"],
+                        first["dedupe_key"],
+                        first["payload_fingerprint"],
+                        first["first_seen_at"],
+                        first["last_seen_at"],
+                        first["status"],
+                        first["linked_intent_id"],
+                        first["linked_attempt_id"],
+                    ),
+                )
+
+                with self.assertRaises(sqlite3.IntegrityError):
+                    connection.execute(
+                        """
+                        INSERT INTO idempotency_records (
+                            idempotency_key,
+                            target_system,
+                            operation_type,
+                            source_type,
+                            source_id,
+                            dedupe_key,
+                            payload_fingerprint,
+                            first_seen_at,
+                            last_seen_at,
+                            status,
+                            linked_intent_id,
+                            linked_attempt_id
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            duplicate["idempotency_key"],
+                            duplicate["target_system"],
+                            duplicate["operation_type"],
+                            duplicate["source_type"],
+                            duplicate["source_id"],
+                            duplicate["dedupe_key"],
+                            duplicate["payload_fingerprint"],
+                            duplicate["first_seen_at"],
+                            duplicate["last_seen_at"],
+                            duplicate["status"],
+                            duplicate["linked_intent_id"],
+                            duplicate["linked_attempt_id"],
+                        ),
+                    )
+
     def test_phase_11a_synthesis_import_preview_check_constraints_reject_invalid_values(
         self,
     ) -> None:
@@ -1839,6 +1960,24 @@ def _side_effect_attempt_values(attempt_id: str, *, intent_id: str) -> dict[str,
         "no_send_mode": 1,
         "live_write": 0,
         "created_at": "2026-06-15T10:00:00+00:00",
+    }
+
+
+def _side_effect_idempotency_values(idempotency_key: str) -> dict[str, object]:
+    timestamp = "2026-06-15T10:00:00+00:00"
+    return {
+        "idempotency_key": idempotency_key,
+        "target_system": "todoist",
+        "operation_type": "create",
+        "source_type": "fake_fixture",
+        "source_id": "phase-12b",
+        "dedupe_key": "todoist:create:shared",
+        "payload_fingerprint": "sha256:payload",
+        "first_seen_at": timestamp,
+        "last_seen_at": timestamp,
+        "status": "approved_for_dry_run",
+        "linked_intent_id": None,
+        "linked_attempt_id": None,
     }
 
 

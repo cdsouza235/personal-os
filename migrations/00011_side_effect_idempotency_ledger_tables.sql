@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS external_write_attempts (
     CHECK (attempt_number > 0),
     CHECK (mode IN ('dry_run', 'simulated', 'live_blocked')),
     CHECK (status IN ('succeeded', 'failed', 'blocked', 'skipped_duplicate')),
+    CHECK (mode != 'live_blocked' OR status = 'blocked'),
     CHECK (no_external_writes = 1),
     CHECK (no_send_mode = 1),
     CHECK (live_write = 0),
@@ -128,7 +129,8 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
             'failed',
             'completed_simulated'
         )
-    )
+    ),
+    UNIQUE (target_system, operation_type, dedupe_key)
 );
 
 CREATE INDEX IF NOT EXISTS idx_external_write_intents_status

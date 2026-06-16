@@ -318,6 +318,7 @@ def record_simulated_external_write_attempt(
     mode = validate_attempt_mode(mode)
     adapter_name = rails.validate_required_text("adapter_name", adapter_name)
     status = validate_attempt_status(status)
+    validate_attempt_mode_status(mode=mode, status=status)
     response = _validate_mapping("response_summary", response_summary or {})
     created = _validate_iso_datetime("created_at", created_at or _utc_now())
     if error_message is not None:
@@ -855,6 +856,11 @@ def validate_attempt_status(status: str) -> str:
         allowed = ", ".join(ATTEMPT_STATUSES)
         raise ValueError(f"attempt status must be one of: {allowed}")
     return status
+
+
+def validate_attempt_mode_status(*, mode: str, status: str) -> None:
+    if mode == "live_blocked" and status != "blocked":
+        raise ValueError("live_blocked attempts must use blocked status")
 
 
 def _default_intent_status(approval_mode: str) -> str:

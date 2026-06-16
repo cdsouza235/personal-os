@@ -141,6 +141,24 @@ class SideEffectIntentValidationTest(unittest.TestCase):
 
         self.assertEqual(intent_result["status"], "created")
 
+    def test_live_blocked_attempts_cannot_be_marked_succeeded(self) -> None:
+        with _migrated_test_connection() as connection:
+            _enable_ledger_permissions(connection)
+            intent_result = create_external_write_intent_record(
+                connection,
+                **_todoist_intent_input(),
+            )
+
+            with self.assertRaises(ValueError):
+                record_simulated_external_write_attempt(
+                    connection,
+                    intent_id=intent_result["intent"]["intent_id"],
+                    mode="live_blocked",
+                    adapter_name="phase_12b_fake_adapter",
+                    status="succeeded",
+                    response_summary={"result": "should_not_record"},
+                )
+
 
 class SideEffectLedgerFlowTest(unittest.TestCase):
     def test_permission_defaults_fail_closed_without_persisting_intent(self) -> None:

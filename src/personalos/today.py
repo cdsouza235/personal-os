@@ -26,6 +26,12 @@ from personalos.state import (
     summarize_priorities,
 )
 from personalos.status import create_status_summary
+from personalos.synthesis_import import (
+    SYNTHESIS_IMPORT_READ_PERMISSION,
+    SynthesisImportPermissionDenied,
+    read_synthesis_import_preview_count,
+    read_synthesis_import_previews,
+)
 
 SAFETY_WARNINGS = (
     "Read-only Today View preview; no dashboard mutation routes are available.",
@@ -80,6 +86,7 @@ def create_today_view_summary(
             source_date=source_date_iso,
             timezone_name=timezone_name,
         ),
+        "synthesis_import_preview_summary": _synthesis_import_preview_summary(connection),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
         "warnings": list(SAFETY_WARNINGS),
@@ -325,6 +332,52 @@ def _briefing_output_item(output: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _synthesis_import_preview_summary(connection: sqlite3.Connection) -> dict[str, Any]:
+    try:
+        preview_count = read_synthesis_import_preview_count(connection)
+        latest_previews = read_synthesis_import_previews(connection)
+    except SynthesisImportPermissionDenied as error:
+        return {
+            "available": False,
+            "permission_required": SYNTHESIS_IMPORT_READ_PERMISSION,
+            "reason": str(error),
+            "synthesis_import_preview_count": 0,
+            "latest_preview_timestamp": None,
+            "latest_preview_status": None,
+            "latest_source_type": None,
+            "latest_blocked_count": 0,
+            "latest_rejected_count": 0,
+            "latest_warnings_count": 0,
+            "no_external_writes": True,
+        }
+
+    latest_preview = latest_previews[0] if latest_previews else None
+    latest_report = (
+        latest_preview["preview_report_json"]
+        if latest_preview is not None
+        and isinstance(latest_preview.get("preview_report_json"), Mapping)
+        else {}
+    )
+    return {
+        "available": True,
+        "permission_required": SYNTHESIS_IMPORT_READ_PERMISSION,
+        "synthesis_import_preview_count": preview_count,
+        "latest_preview_timestamp": (
+            latest_preview["created_at"] if latest_preview is not None else None
+        ),
+        "latest_preview_status": (
+            latest_preview["status"] if latest_preview is not None else None
+        ),
+        "latest_source_type": (
+            latest_preview["source_type"] if latest_preview is not None else None
+        ),
+        "latest_blocked_count": len(_list_value(latest_report.get("blocked_candidates"))),
+        "latest_rejected_count": len(_list_value(latest_report.get("rejected_candidates"))),
+        "latest_warnings_count": len(_list_value(latest_report.get("warnings"))),
+        "no_external_writes": True,
+    }
+
+
 def _completion_report_summary(report: Mapping[str, Any]) -> dict[str, Any]:
     warnings = _warning_list(report.get("warnings"))
     safety_flags = {
@@ -395,6 +448,10 @@ def _warning_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
+
+
+def _list_value(value: object) -> list[object]:
+    return value if isinstance(value, list) else []
 
 
 def _manual_export_excerpt(value: str) -> str:

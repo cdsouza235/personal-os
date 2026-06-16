@@ -12,14 +12,22 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 from personalos.config import DEFAULT_TIMEZONE, REPO_ROOT
+from personalos.synthesis_import import (
+    ALLOWED_SOURCE_TYPES,
+    REPORT_SAFETY_FLAGS,
+    SynthesisImportValidationError,
+    create_synthesis_import_preview_record,
+)
 from personalos.today import create_today_view_summary
 
 DEFAULT_DASHBOARD_HOST = "localhost"
 DEFAULT_DASHBOARD_PORT = 8765
 LOCALHOST_BIND_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+DASHBOARD_SYNTHESIS_IMPORT_FORM_MAX_BYTES = 128 * 1024
+DASHBOARD_SYNTHESIS_IMPORT_INPUT_MAX_CHARS = 128 * 1024
 
 _DATABASE_SUFFIXES = {".sqlite", ".sqlite3", ".db"}
 _PRODUCTION_MARKERS = {"prod", "production", "live"}
@@ -157,6 +165,33 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
       white-space: pre-wrap;
       word-break: break-word;
     }}
+    label {{
+      display: block;
+      font-weight: 700;
+      margin: 12px 0 4px;
+    }}
+    textarea, input, select {{
+      box-sizing: border-box;
+      width: 100%;
+      border: 1px solid #bdbdb5;
+      border-radius: 6px;
+      font: inherit;
+      padding: 8px;
+    }}
+    textarea {{
+      min-height: 260px;
+      resize: vertical;
+    }}
+    button {{
+      border: 1px solid #202124;
+      border-radius: 6px;
+      background: #202124;
+      color: #ffffff;
+      cursor: pointer;
+      font: inherit;
+      margin-top: 14px;
+      padding: 8px 12px;
+    }}
     .warning {{
       color: #7a2417;
       font-weight: 700;
@@ -190,6 +225,8 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
     </ul>
   </div>
 
+  {_render_synthesis_import_preview_summary(summary["synthesis_import_preview_summary"])}
+  {render_synthesis_import_preview_form_html()}
   {_render_routine_summary(summary["routine_summary"])}
   {_render_priority_summary(summary["priority_summary"])}
   {_render_followup_summary(summary["followup_summary"])}
@@ -207,11 +244,198 @@ def render_today_view_html(summary: Mapping[str, Any]) -> str:
 """
 
 
+def render_synthesis_import_page_html_from_db_path(
+    db_path: str | Path,
+    *,
+    source_date: str | None = None,
+    timezone: str = DEFAULT_TIMEZONE,
+) -> str:
+    with connect_dashboard_db_read_only(db_path) as connection:
+        summary = create_today_view_summary(
+            connection,
+            source_date=source_date,
+            timezone=timezone,
+        )
+    return render_synthesis_import_page_html(summary["synthesis_import_preview_summary"])
+
+
+def render_synthesis_import_page_html(
+    synthesis_import_summary: Mapping[str, Any],
+    *,
+    result_html: str = "",
+) -> str:
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatGPT Synthesis Import Preview</title>
+</head>
+<body>
+<main>
+  {render_synthesis_import_preview_form_html()}
+  {_render_synthesis_import_preview_summary(synthesis_import_summary)}
+  {result_html}
+</main>
+</body>
+</html>
+"""
+
+
+def render_synthesis_import_preview_form_html() -> str:
+    source_options = "".join(
+        f'<option value="{_e(source_type)}">{_e(source_type)}</option>'
+        for source_type in ("chatgpt_synthesis", "manual_structured_import")
+    )
+    return _section(
+        "synthesis-import-preview",
+        "ChatGPT Synthesis Import Preview",
+        """
+<div class="banner" id="synthesis-import-safety-banner">
+  <strong>Preview-only</strong>
+  <ul>
+    <li>No core state mutation</li>
+    <li>No PersonalOS Markdown writes</li>
+    <li>No Todoist/Calendar/Gmail writes</li>
+    <li>No live model/API calls</li>
+  </ul>
+</div>
+<form method="post" action="/synthesis-import/preview">
+  <label for="structured_synthesis">Structured synthesis input</label>
+  <textarea id="structured_synthesis" name="structured_synthesis" required></textarea>
+
+  <label for="source_type">Source type</label>
+  <select id="source_type" name="source_type">
+    """
+        + source_options
+        + """
+  </select>
+
+  <label for="source_reference">Source reference</label>
+  <input id="source_reference" name="source_reference" type="text">
+
+  <label for="source_timestamp">Source timestamp</label>
+  <input id="source_timestamp" name="source_timestamp" type="text">
+
+  <button type="submit">Preview import</button>
+</form>
+""",
+    )
+
+
+def create_dashboard_synthesis_import_preview(
+    connection: sqlite3.Connection,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    try:
+        raw_input = _field_text(form_fields, "structured_synthesis")
+        if len(raw_input) > DASHBOARD_SYNTHESIS_IMPORT_INPUT_MAX_CHARS:
+            raise SynthesisImportValidationError("synthesis import input is too large.")
+        source_type = _validate_dashboard_source_type(
+            _field_text(form_fields, "source_type", default="chatgpt_synthesis")
+        )
+        source_reference = _field_text(form_fields, "source_reference", default="")
+        source_timestamp = _field_text(form_fields, "source_timestamp", default="")
+        prepared_input = _merge_json_form_metadata(
+            raw_input,
+            source_type=source_type,
+            source_reference=source_reference,
+            source_timestamp=source_timestamp,
+        )
+        return create_synthesis_import_preview_record(connection, prepared_input)
+    except SynthesisImportValidationError as error:
+        return _synthesis_import_error_result(
+            status="rejected",
+            reason=str(error),
+            source_type=_field_text(
+                form_fields,
+                "source_type",
+                default="chatgpt_synthesis",
+                strict=False,
+            ),
+        )
+
+
+def create_dashboard_synthesis_import_preview_from_db_path(
+    db_path: str | Path,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    with connect_dashboard_db_read_write(db_path) as connection:
+        return create_dashboard_synthesis_import_preview(connection, form_fields)
+
+
+def render_synthesis_import_preview_result_html(result: Mapping[str, Any]) -> str:
+    report = result.get("preview_report")
+    report = report if isinstance(report, Mapping) else {}
+    record = result.get("record")
+    record = record if isinstance(record, Mapping) else None
+    preview_id = report.get("preview_id") or (record or {}).get("id") or "none"
+    source_type = report.get("source_type") or (record or {}).get("source_type") or "none"
+    input_format = report.get("input_format") or (record or {}).get("input_format") or "none"
+    raw_excerpt = (record or {}).get("raw_excerpt", "")
+
+    body = (
+        _definition_list(
+            (
+                ("Status", result.get("status", "unknown")),
+                ("Reason", result.get("reason", "")),
+                ("preview_id", preview_id),
+                ("source_type", source_type),
+                ("input_format", input_format),
+                ("database_write", _format_bool(result.get("database_write"))),
+                ("external_mutation", _format_bool(result.get("external_mutation"))),
+                ("candidate_counts", _format_json(report.get("candidate_counts", {}))),
+            )
+        )
+        + "<h3>accepted candidates</h3>"
+        + _render_json_block(report.get("accepted_candidates", []))
+        + "<h3>rejected candidates</h3>"
+        + _render_json_block(report.get("rejected_candidates", []))
+        + "<h3>blocked candidates</h3>"
+        + _render_json_block(report.get("blocked_candidates", []))
+        + "<h3>review-required candidates</h3>"
+        + _render_json_block(report.get("review_required_candidates", []))
+        + "<h3>manual-only candidates</h3>"
+        + _render_json_block(report.get("manual_only_candidates", []))
+        + "<h3>warnings</h3>"
+        + _render_json_block(report.get("warnings", []))
+        + "<h3>questions_for_review</h3>"
+        + _render_json_block(report.get("questions_for_review", []))
+        + "<h3>safety flags</h3>"
+        + _definition_list(
+            tuple(
+                (flag, _format_bool(result.get(flag, report.get(flag))))
+                for flag in sorted(REPORT_SAFETY_FLAGS)
+            )
+        )
+    )
+    if raw_excerpt:
+        body += "<h3>raw_excerpt</h3>" + f"<pre>{_e(raw_excerpt)}</pre>"
+    return _section("synthesis-import-preview-result", "Preview Result", body)
+
+
+def render_synthesis_import_preview_result_page_html(
+    result: Mapping[str, Any],
+) -> str:
+    return render_synthesis_import_page_html(
+        _empty_synthesis_import_summary(),
+        result_html=render_synthesis_import_preview_result_html(result),
+    )
+
+
 def connect_dashboard_db_read_only(db_path: str | Path) -> sqlite3.Connection:
     validated_path = validate_dashboard_db_path(db_path)
     db_uri = f"file:{quote(str(validated_path), safe='/')}?mode=ro"
     connection = sqlite3.connect(db_uri, uri=True)
     connection.row_factory = sqlite3.Row
+    return connection
+
+
+def connect_dashboard_db_read_write(db_path: str | Path) -> sqlite3.Connection:
+    validated_path = validate_dashboard_db_path(db_path)
+    connection = sqlite3.connect(validated_path)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
     return connection
 
 
@@ -242,14 +466,71 @@ def make_dashboard_request_handler(
                 ).encode("utf-8")
                 self._send_response(HTTPStatus.OK, "application/json; charset=utf-8", body)
                 return
+            if parsed.path == "/synthesis-import":
+                body = render_synthesis_import_page_html_from_db_path(
+                    validated_path,
+                    source_date=source_date,
+                    timezone=timezone,
+                ).encode("utf-8")
+                self._send_response(HTTPStatus.OK, "text/html; charset=utf-8", body)
+                return
             self._send_response(
                 HTTPStatus.NOT_FOUND,
                 "text/plain; charset=utf-8",
                 b"Not found",
             )
 
+        def do_POST(self) -> None:  # noqa: N802
+            parsed = urlparse(self.path)
+            if parsed.path != "/synthesis-import/preview":
+                self._send_response(
+                    HTTPStatus.NOT_FOUND,
+                    "text/plain; charset=utf-8",
+                    b"Not found",
+                )
+                return
+            result = self._handle_synthesis_import_preview_post()
+            body = render_synthesis_import_preview_result_page_html(result).encode("utf-8")
+            self._send_response(
+                _synthesis_import_http_status(result),
+                "text/html; charset=utf-8",
+                body,
+            )
+
         def log_message(self, format: str, *args: object) -> None:
             return
+
+        def _handle_synthesis_import_preview_post(self) -> dict[str, Any]:
+            content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip()
+            if content_type != "application/x-www-form-urlencoded":
+                return _synthesis_import_error_result(
+                    status="rejected",
+                    reason="Synthesis import preview accepts form-encoded input only.",
+                )
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                return _synthesis_import_error_result(
+                    status="rejected",
+                    reason="Invalid Content-Length for synthesis import preview.",
+                )
+            if content_length > DASHBOARD_SYNTHESIS_IMPORT_FORM_MAX_BYTES:
+                return _synthesis_import_error_result(
+                    status="rejected",
+                    reason="Synthesis import form body is too large.",
+                )
+            try:
+                body = self.rfile.read(content_length).decode("utf-8")
+            except UnicodeDecodeError:
+                return _synthesis_import_error_result(
+                    status="rejected",
+                    reason="Synthesis import form body must be UTF-8.",
+                )
+            fields = parse_qs(body, keep_blank_values=True)
+            return create_dashboard_synthesis_import_preview_from_db_path(
+                validated_path,
+                fields,
+            )
 
         def _send_response(
             self,
@@ -531,6 +812,38 @@ def _render_briefing_output_summary(summary: Mapping[str, Any]) -> str:
     return _section("briefing-output-summary", "Briefing Outputs", body)
 
 
+def _render_synthesis_import_preview_summary(summary: Mapping[str, Any]) -> str:
+    if not summary.get("available", False):
+        return _section(
+            "synthesis-import-preview-summary",
+            "Synthesis Import Previews",
+            _definition_list(
+                (
+                    ("Available", "false"),
+                    ("Permission required", summary.get("permission_required", "")),
+                    ("Reason", summary.get("reason", "")),
+                    ("no_external_writes", _format_bool(summary.get("no_external_writes"))),
+                )
+            ),
+        )
+    return _section(
+        "synthesis-import-preview-summary",
+        "Synthesis Import Previews",
+        _definition_list(
+            (
+                ("synthesis_import_preview_count", summary["synthesis_import_preview_count"]),
+                ("Latest preview timestamp", summary["latest_preview_timestamp"] or "none"),
+                ("Latest preview status", summary["latest_preview_status"] or "none"),
+                ("Latest source type", summary["latest_source_type"] or "none"),
+                ("Latest blocked count", summary["latest_blocked_count"]),
+                ("Latest rejected count", summary["latest_rejected_count"]),
+                ("Latest warnings count", summary["latest_warnings_count"]),
+                ("no_external_writes", _format_bool(summary["no_external_writes"])),
+            )
+        ),
+    )
+
+
 def _render_permission_summary(summary: Mapping[str, Any]) -> str:
     return _section(
         "permission-summary",
@@ -616,6 +929,137 @@ def _format_safety_flags(flags: Mapping[str, object]) -> str:
         f"{key}={_format_bool(value)}"
         for key, value in sorted(flags.items())
     )
+
+
+def _format_json(value: object) -> str:
+    return json.dumps(value, allow_nan=False, ensure_ascii=True, sort_keys=True)
+
+
+def _render_json_block(value: object) -> str:
+    rendered = json.dumps(
+        value,
+        allow_nan=False,
+        ensure_ascii=True,
+        indent=2,
+        sort_keys=True,
+    )
+    return f"<pre>{_e(rendered)}</pre>"
+
+
+def _field_text(
+    form_fields: Mapping[str, object],
+    field_name: str,
+    *,
+    default: str = "",
+    strict: bool = True,
+) -> str:
+    value = form_fields.get(field_name, default)
+    if isinstance(value, str):
+        return value
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        if not value:
+            return default
+        first = value[0]
+        if isinstance(first, str):
+            return first
+    if strict:
+        raise SynthesisImportValidationError(f"{field_name} must be a form text field.")
+    return default
+
+
+def _validate_dashboard_source_type(source_type: str) -> str:
+    if source_type not in ALLOWED_SOURCE_TYPES:
+        allowed = ", ".join(ALLOWED_SOURCE_TYPES)
+        raise SynthesisImportValidationError(f"source_type must be one of: {allowed}")
+    return source_type
+
+
+def _merge_json_form_metadata(
+    raw_input: str,
+    *,
+    source_type: str,
+    source_reference: str,
+    source_timestamp: str,
+) -> str:
+    text = raw_input.strip()
+    if not text.startswith("{"):
+        return raw_input
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return raw_input
+    if not isinstance(parsed, dict):
+        return raw_input
+    if not parsed.get("source_type"):
+        parsed["source_type"] = source_type
+    if source_reference.strip():
+        parsed["source_reference"] = source_reference.strip()
+    if source_timestamp.strip():
+        parsed["source_timestamp"] = source_timestamp.strip()
+    try:
+        return json.dumps(parsed, allow_nan=False, ensure_ascii=True, sort_keys=True)
+    except ValueError as error:
+        raise SynthesisImportValidationError(
+            "Synthesis import JSON contains non-finite values."
+        ) from error
+
+
+def _synthesis_import_error_result(
+    *,
+    status: str,
+    reason: str,
+    source_type: str = "chatgpt_synthesis",
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "reason": reason,
+        "dry_run": False,
+        "database_write": False,
+        "external_mutation": False,
+        "permission": None,
+        "preview_report": {
+            "preview_id": None,
+            "source_type": source_type,
+            "input_format": None,
+            "candidate_counts": {},
+            "accepted_candidates": [],
+            "rejected_candidates": [],
+            "blocked_candidates": [],
+            "review_required_candidates": [],
+            "manual_only_candidates": [],
+            "warnings": [reason],
+            "questions_for_review": [],
+            **REPORT_SAFETY_FLAGS,
+        },
+        "record": None,
+        "would_write": None,
+        **REPORT_SAFETY_FLAGS,
+    }
+
+
+def _synthesis_import_http_status(result: Mapping[str, Any]) -> HTTPStatus:
+    status = result.get("status")
+    if status == "created":
+        return HTTPStatus.OK
+    if status == "blocked":
+        return HTTPStatus.FORBIDDEN
+    if status == "rejected":
+        return HTTPStatus.BAD_REQUEST
+    return HTTPStatus.OK
+
+
+def _empty_synthesis_import_summary() -> dict[str, Any]:
+    return {
+        "available": True,
+        "synthesis_import_preview_count": 0,
+        "latest_preview_timestamp": None,
+        "latest_preview_status": None,
+        "latest_source_type": None,
+        "latest_blocked_count": 0,
+        "latest_rejected_count": 0,
+        "latest_warnings_count": 0,
+        "no_external_writes": True,
+    }
 
 
 def _e(value: object) -> str:

@@ -5,7 +5,9 @@ import unittest
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from unittest.mock import patch
 
+import personalos.synthesis_apply as synthesis_apply_module
 from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
@@ -21,6 +23,9 @@ from personalos.state import (
     count_projects,
     count_synthesis_import_previews,
     count_todoist_tasks,
+    get_followup,
+    get_priority,
+    get_project,
     get_synthesis_import_preview,
     upsert_permission_setting,
 )
@@ -57,6 +62,8 @@ class SynthesisApplyPermissionTest(unittest.TestCase):
 
         self.assertEqual(result["status"], "blocked")
         self.assertFalse(result["database_write"])
+        self.assertFalse(result["internal_state_mutation"])
+        self.assertFalse(result["rolled_back"])
         self.assertIn(SYNTHESIS_APPLY_READ_PERMISSION, result["reason"])
 
     def test_apply_permission_is_required_even_when_read_and_write_are_enabled(self) -> None:
@@ -159,6 +166,23 @@ class SynthesisApplyBehaviorTest(unittest.TestCase):
                 apply_run_id=result["apply_run_id"],
             )
             preview = get_synthesis_import_preview(connection, preview_id)
+            applied_item_by_type = {
+                item["candidate_type"]: item
+                for item in items
+                if item["apply_status"] == "applied"
+            }
+            created_priority = get_priority(
+                connection,
+                applied_item_by_type["priorities"]["target_id"],
+            )
+            created_project = get_project(
+                connection,
+                applied_item_by_type["projects"]["target_id"],
+            )
+            created_followup = get_followup(
+                connection,
+                applied_item_by_type["followups"]["target_id"],
+            )
 
         self.assertEqual(result["status"], "partially_completed")
         self.assertEqual(after["priorities"] - before["priorities"], 1)
@@ -174,6 +198,9 @@ class SynthesisApplyBehaviorTest(unittest.TestCase):
         self.assertTrue(result["no_send_mode"])
         self.assertFalse(result["live_write"])
         self.assertTrue(result["internal_state_mutation"])
+        self.assertFalse(result["rolled_back"])
+        self.assertTrue(result["completion_report"]["internal_state_mutation"])
+        self.assertFalse(result["completion_report"]["rolled_back"])
         self.assertEqual(preview["status"], "apply_partially_completed")
         applied_targets = {(item["candidate_type"], item["apply_status"]) for item in items}
         self.assertIn(("priorities", "applied"), applied_targets)
@@ -186,6 +213,21 @@ class SynthesisApplyBehaviorTest(unittest.TestCase):
                 item["target_table"] in {None, "priorities", "projects", "followups"}
                 for item in items
             )
+        )
+        self.assertIsNotNone(created_priority)
+        self.assertIsNotNone(created_project)
+        self.assertIsNotNone(created_followup)
+        self.assertEqual(
+            applied_item_by_type["priorities"]["target_id"],
+            created_priority["priority_id"],
+        )
+        self.assertEqual(
+            applied_item_by_type["projects"]["target_id"],
+            created_project["project_id"],
+        )
+        self.assertEqual(
+            applied_item_by_type["followups"]["target_id"],
+            created_followup["followup_id"],
         )
 
     def test_unsupported_candidates_can_be_explicitly_rejected(self) -> None:
@@ -296,6 +338,9 @@ class SynthesisApplyBehaviorTest(unittest.TestCase):
         self.assertEqual(counts["projects"], 1)
         self.assertEqual(counts["followups"], 1)
         self.assertEqual(counts["apply_runs"], 2)
+        self.assertFalse(second["internal_state_mutation"])
+        self.assertFalse(second["completion_report"]["internal_state_mutation"])
+        self.assertFalse(second["rolled_back"])
         self.assertEqual(
             {item["apply_status"] for item in second_items},
             {"skipped_duplicate"},
@@ -362,6 +407,187 @@ class SynthesisApplyBehaviorTest(unittest.TestCase):
         self.assertTrue(summary["latest_no_external_writes"])
         self.assertFalse(summary["latest_live_write"])
         self.assertTrue(summary["read_only"])
+
+
+class SynthesisApplyAtomicityTest(unittest.TestCase):
+    def test_apply_run_insert_failure_rolls_back_core_insert_and_records_recovery(
+        self,
+    ) -> None:
+        original_insert_run = synthesis_apply_module._insert_apply_run
+        calls = 0
+
+        def fail_once(*args: object, **kwargs: object) -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise sqlite3.OperationalError("simulated apply run insert failure")
+            original_insert_run(*args, **kwargs)
+
+        with _migrated_test_connection() as connection:
+            _enable_all_permissions(connection)
+            preview_id = _create_preview(connection, payload=_safe_core_only_payload())
+            before = _all_counts(connection)
+
+            with patch.object(
+                synthesis_apply_module,
+                "_insert_apply_run",
+                side_effect=fail_once,
+            ):
+                result = apply_synthesis_import_preview(
+                    connection,
+                    preview_id=preview_id,
+                    approval=_approval(preview_id, ("priority", 0)),
+                )
+
+            after = _all_counts(connection)
+            items = list_synthesis_apply_items(
+                connection,
+                apply_run_id=result["apply_run_id"],
+            )
+            preview = get_synthesis_import_preview(connection, preview_id)
+
+        self.assertEqual(calls, 2)
+        self._assert_rollback_recovery(result, before, after, items, preview)
+        self.assertEqual(after["priorities"], before["priorities"])
+
+    def test_apply_item_insert_failure_rolls_back_core_rows_without_applied_audit_items(
+        self,
+    ) -> None:
+        original_insert_item = synthesis_apply_module._insert_apply_item
+        calls = 0
+
+        def fail_once(*args: object, **kwargs: object) -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise sqlite3.OperationalError("simulated apply item insert failure")
+            original_insert_item(*args, **kwargs)
+
+        with _migrated_test_connection() as connection:
+            _enable_all_permissions(connection)
+            preview_id = _create_preview(connection, payload=_safe_core_only_payload())
+            before = _all_counts(connection)
+
+            with patch.object(
+                synthesis_apply_module,
+                "_insert_apply_item",
+                side_effect=fail_once,
+            ):
+                result = apply_synthesis_import_preview(
+                    connection,
+                    preview_id=preview_id,
+                    approval=_approval(
+                        preview_id,
+                        ("priority", 0),
+                        ("project", 0),
+                        ("followup", 0),
+                    ),
+                )
+
+            after = _all_counts(connection)
+            items = list_synthesis_apply_items(
+                connection,
+                apply_run_id=result["apply_run_id"],
+            )
+            preview = get_synthesis_import_preview(connection, preview_id)
+
+        self.assertEqual(calls, 4)
+        self._assert_rollback_recovery(result, before, after, items, preview)
+        self.assertEqual(after["priorities"], before["priorities"])
+        self.assertEqual(after["projects"], before["projects"])
+        self.assertEqual(after["followups"], before["followups"])
+
+    def test_preview_status_update_failure_rolls_back_core_and_audit_rows(
+        self,
+    ) -> None:
+        original_update_status = synthesis_apply_module.update_synthesis_import_preview_status
+        calls = 0
+
+        def fail_once(*args: object, **kwargs: object) -> dict[str, object]:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise sqlite3.OperationalError("simulated preview status update failure")
+            return original_update_status(*args, **kwargs)
+
+        with _migrated_test_connection() as connection:
+            _enable_all_permissions(connection)
+            preview_id = _create_preview(connection, payload=_safe_core_only_payload())
+            before = _all_counts(connection)
+
+            with patch.object(
+                synthesis_apply_module,
+                "update_synthesis_import_preview_status",
+                side_effect=fail_once,
+            ):
+                result = apply_synthesis_import_preview(
+                    connection,
+                    preview_id=preview_id,
+                    approval=_approval(
+                        preview_id,
+                        ("priority", 0),
+                        ("project", 0),
+                        ("followup", 0),
+                    ),
+                )
+
+            after = _all_counts(connection)
+            items = list_synthesis_apply_items(
+                connection,
+                apply_run_id=result["apply_run_id"],
+            )
+            preview = get_synthesis_import_preview(connection, preview_id)
+
+        self.assertEqual(calls, 2)
+        self._assert_rollback_recovery(result, before, after, items, preview)
+        self.assertEqual(after["priorities"], before["priorities"])
+        self.assertEqual(after["projects"], before["projects"])
+        self.assertEqual(after["followups"], before["followups"])
+
+    def _assert_rollback_recovery(
+        self,
+        result: dict[str, object],
+        before: dict[str, int],
+        after: dict[str, int],
+        items: list[dict[str, object]],
+        preview: dict[str, object] | None,
+    ) -> None:
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("rolled back", result["reason"])
+        self.assertTrue(result["database_write"])
+        self.assertFalse(result["internal_state_mutation"])
+        self.assertTrue(result["rolled_back"])
+        self.assertFalse(result["external_mutation"])
+        self.assertTrue(result["no_external_writes"])
+        self.assertTrue(result["no_send_mode"])
+        self.assertFalse(result["live_write"])
+        self.assertEqual(after["synthesis_apply_runs"] - before["synthesis_apply_runs"], 1)
+        self.assertEqual(
+            after["synthesis_apply_items"] - before["synthesis_apply_items"],
+            len(items),
+        )
+        self.assertEqual(after["external_write_intents"], before["external_write_intents"])
+        self.assertEqual(after["external_write_attempts"], before["external_write_attempts"])
+        self.assertEqual(preview["status"], "apply_failed")
+        self.assertEqual(result["run"]["status"], "failed")
+        self.assertFalse(result["run"]["internal_state_mutation"])
+        self.assertTrue(result["completion_report"]["rolled_back"])
+        self.assertTrue(result["completion_report"]["rollback_verified"])
+        self.assertFalse(result["completion_report"]["internal_state_mutation"])
+        self.assertNotIn("applied", {item["apply_status"] for item in items})
+        rollback_items = [
+            item
+            for item in items
+            if item["approval_status"] == "approved"
+            and item["target_table"] in {"priorities", "projects", "followups"}
+        ]
+        self.assertGreaterEqual(len(rollback_items), 1)
+        self.assertTrue(
+            all(item["rollback_metadata"]["rolled_back"] for item in rollback_items)
+        )
+        self.assertTrue(
+            all(item["apply_status"] == "failed" for item in rollback_items)
+        )
 
 
 def _create_preview(

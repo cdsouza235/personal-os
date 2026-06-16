@@ -396,17 +396,30 @@ reference the same `preview_id`; there is no approve-all default, implicit
 apply after preview, raw-prose apply path, or dashboard Apply button.
 
 Phase 13A must record every apply attempt in `synthesis_apply_runs` and every
-candidate outcome in `synthesis_apply_items`. Completion reports must preserve
-`no_external_writes=true`, `no_send_mode=true`, `live_write=false`, and
-`internal_state_mutation=true`.
+candidate outcome in `synthesis_apply_items`.
 
-Phase 13A must not add live Todoist writes, live Calendar writes, Gmail
+Phase 13B hardens that apply path by making the internal core-state insert,
+apply run insert, apply item inserts, and preview apply-status update one
+explicit SQLite transaction. If an in-transaction write fails, the transaction
+must roll back. A failed recovery audit may be recorded only after planned core
+inserts are verified absent; that report must set `rolled_back=true` and
+`internal_state_mutation=false`, and no recovery item may claim
+`apply_status=applied`.
+
+Synthesis apply completion reports must preserve `no_external_writes=true`,
+`no_send_mode=true`, `live_write=false`, `no_todoist_writes=true`,
+`no_calendar_writes=true`, `no_gmail_send=true`,
+`no_personalos_writes=true`, and `no_live_model_call=true`.
+`internal_state_mutation=true` is allowed only when core SQLite rows actually
+changed.
+
+Phase 13B must not add live Todoist writes, live Calendar writes, Gmail
 send/draft, PersonalOS Markdown writes, external write intent creation,
 `.openclaw` integration, scheduler, LaunchAgents, live model/API calls,
 OpenAI/OpenRouter/Anthropic integration, production DB activation, dashboard
 mutation forms or POST apply routes, public/LAN dashboard exposure,
 auth/login, Apple Health/wearable integration, Notion integration,
-TradingView/market data integration, or Phase 13B/live-rail work.
+TradingView/market data integration, or Phase 13C/live-rail work.
 
 ## Runtime Module Validation
 

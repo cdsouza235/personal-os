@@ -584,15 +584,32 @@ family-sensitive communication, or large financial commitments remain blocked
 or review-required in Phase 13A. Manual-only candidates remain manual-only and
 are not applied.
 
-Phase 13A completion reports must preserve `no_external_writes=true`,
-`no_send_mode=true`, `live_write=false`, and
-`internal_state_mutation=true`. Phase 13A does not add live Todoist writes,
-live Calendar writes, Gmail send/draft, PersonalOS Markdown writes,
-`.openclaw` integration, scheduler, LaunchAgents, live model/API calls,
-OpenAI/OpenRouter/Anthropic integration, production DB activation, dashboard
-mutation forms, public/LAN dashboard exposure, auth/login, Apple Health/
-wearable integration, Notion integration, TradingView/market data integration,
-or any Phase 13B/live-rail work.
+Phase 13B hardens the Phase 13A apply path without expanding its product
+surface. Candidate validation and approval checks happen before mutation where
+possible, then internal core-state inserts, apply run insertion, apply item
+insertion, and preview apply-status updates execute inside one explicit SQLite
+transaction. A priority, project, or follow-up created by synthesis apply must
+not commit without the corresponding apply audit trail.
+
+If an in-transaction write fails, Phase 13B rolls back the whole apply
+transaction. A failed recovery audit may be written only after planned
+core-state inserts are verified absent after rollback; that recovery report
+must set `rolled_back=true`, `rollback_verified=true`, and
+`internal_state_mutation=false`, and no recovery item may claim
+`apply_status=applied`.
+
+Phase 13B completion reports must preserve `no_external_writes=true`,
+`no_send_mode=true`, `live_write=false`, `no_todoist_writes=true`,
+`no_calendar_writes=true`, `no_gmail_send=true`,
+`no_personalos_writes=true`, and `no_live_model_call=true`.
+`internal_state_mutation=true` is used only when core SQLite state actually
+changed. Phase 13B does not add live Todoist writes, live Calendar writes,
+Gmail send/draft, PersonalOS Markdown writes, `.openclaw` integration,
+scheduler, LaunchAgents, live model/API calls, OpenAI/OpenRouter/Anthropic
+integration, production DB activation, dashboard mutation forms, public/LAN
+dashboard exposure, auth/login, Apple Health/wearable integration, Notion
+integration, TradingView/market data integration, or any Phase 13C/live-rail
+work.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

@@ -536,6 +536,7 @@ def create_priority(
     notes: str = "",
     created_at_utc: str | None = None,
     updated_at_utc: str | None = None,
+    commit: bool = True,
 ) -> dict[str, Any]:
     priority_id = _validate_required_text("priority_id", priority_id)
     title = _validate_required_text("title", title)
@@ -547,7 +548,32 @@ def create_priority(
     created_at = _validate_iso_datetime("created_at_utc", created_at_utc or _utc_now())
     updated_at = _validate_iso_datetime("updated_at_utc", updated_at_utc or created_at)
 
-    with connection:
+    if commit:
+        with connection:
+            connection.execute(
+                """
+                INSERT INTO priorities (
+                    priority_id,
+                    title,
+                    status,
+                    metadata_json,
+                    notes,
+                    created_at_utc,
+                    updated_at_utc
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    priority_id,
+                    title,
+                    status,
+                    metadata_json,
+                    notes,
+                    created_at,
+                    updated_at,
+                ),
+            )
+    else:
         connection.execute(
             """
             INSERT INTO priorities (
@@ -677,6 +703,7 @@ def create_project(
     notes: str = "",
     created_at_utc: str | None = None,
     updated_at_utc: str | None = None,
+    commit: bool = True,
 ) -> dict[str, Any]:
     project_id = _validate_required_text("project_id", project_id)
     title = _validate_required_text("title", title)
@@ -688,7 +715,32 @@ def create_project(
     created_at = _validate_iso_datetime("created_at_utc", created_at_utc or _utc_now())
     updated_at = _validate_iso_datetime("updated_at_utc", updated_at_utc or created_at)
 
-    with connection:
+    if commit:
+        with connection:
+            connection.execute(
+                """
+                INSERT INTO projects (
+                    project_id,
+                    title,
+                    status,
+                    metadata_json,
+                    notes,
+                    created_at_utc,
+                    updated_at_utc
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    project_id,
+                    title,
+                    status,
+                    metadata_json,
+                    notes,
+                    created_at,
+                    updated_at,
+                ),
+            )
+    else:
         connection.execute(
             """
             INSERT INTO projects (
@@ -751,6 +803,7 @@ def create_followup(
     notes: str = "",
     created_at_utc: str | None = None,
     updated_at_utc: str | None = None,
+    commit: bool = True,
 ) -> dict[str, Any]:
     followup_id = _validate_required_text("followup_id", followup_id)
     title = _validate_required_text("title", title)
@@ -763,7 +816,34 @@ def create_followup(
     created_at = _validate_iso_datetime("created_at_utc", created_at_utc or _utc_now())
     updated_at = _validate_iso_datetime("updated_at_utc", updated_at_utc or created_at)
 
-    with connection:
+    if commit:
+        with connection:
+            connection.execute(
+                """
+                INSERT INTO followups (
+                    followup_id,
+                    title,
+                    status,
+                    source,
+                    metadata_json,
+                    notes,
+                    created_at_utc,
+                    updated_at_utc
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    followup_id,
+                    title,
+                    status,
+                    source,
+                    metadata_json,
+                    notes,
+                    created_at,
+                    updated_at,
+                ),
+            )
+    else:
         connection.execute(
             """
             INSERT INTO followups (
@@ -2338,6 +2418,7 @@ def update_synthesis_import_preview_status(
     preview_id: str,
     status: str,
     updated_at: str | None = None,
+    commit: bool = True,
 ) -> dict[str, Any]:
     preview_id = _validate_required_text("preview_id", preview_id)
     status = validate_synthesis_import_preview_status(status)
@@ -2346,7 +2427,18 @@ def update_synthesis_import_preview_status(
     if current is None:
         raise ValueError(f"Synthesis import preview does not exist: {preview_id}")
 
-    with connection:
+    if commit:
+        with connection:
+            connection.execute(
+                """
+                UPDATE synthesis_import_previews
+                SET status = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (status, updated, preview_id),
+            )
+    else:
         connection.execute(
             """
             UPDATE synthesis_import_previews

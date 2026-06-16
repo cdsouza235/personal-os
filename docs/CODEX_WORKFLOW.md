@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 12A are complete, and the Phase 6B, Phase 7B, Phase 8B, and
-Phase 12A fake/local smoke tests are complete. Phase 12B is approved for
-repo-local code, tests, and documentation only as the side-effect and
-idempotency ledger foundation. Codex may run local tests, push the branch, and
-open or update the PR. Codex must stop before merge and must not inspect or
-mutate protected runtime paths, external systems, credentials, production
-ledgers, production SQLite state, or production state.
+Phases -1 through 12B are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13A is
+approved for repo-local code, tests, and documentation only as the
+approval-gated synthesis apply flow. Codex may run local tests, push the
+branch, and open or update the PR. Codex must stop before merge and must not
+inspect or mutate protected runtime paths, external systems, credentials,
+production ledgers, production SQLite state, or production state.
 
 ## Phase Rules
 
@@ -381,6 +381,32 @@ OpenAI/OpenRouter/Anthropic integration, production DB activation, apply/save
 synthesis import flow, dashboard mutation forms, public/LAN dashboard
 exposure, auth/login, Apple Health/wearable integration, Notion integration,
 TradingView/market data integration, or Phase 12C/live-rail work.
+
+## Phase 13A Approval-Gated Synthesis Apply Boundary
+
+Phase 13A may add local SQLite migrations, helper functions, tests, docs,
+CLI support, and read-only summaries for applying reviewed synthesis import
+previews into safe internal core state. The only apply command is
+`personalos synthesis apply --db <safe_db> --preview-id <id> --approval-file
+<safe_json>`.
+
+Allowed internal apply targets are priorities, projects, and follow-ups.
+Approval must be explicit and candidate-by-candidate. The approval file must
+reference the same `preview_id`; there is no approve-all default, implicit
+apply after preview, raw-prose apply path, or dashboard Apply button.
+
+Phase 13A must record every apply attempt in `synthesis_apply_runs` and every
+candidate outcome in `synthesis_apply_items`. Completion reports must preserve
+`no_external_writes=true`, `no_send_mode=true`, `live_write=false`, and
+`internal_state_mutation=true`.
+
+Phase 13A must not add live Todoist writes, live Calendar writes, Gmail
+send/draft, PersonalOS Markdown writes, external write intent creation,
+`.openclaw` integration, scheduler, LaunchAgents, live model/API calls,
+OpenAI/OpenRouter/Anthropic integration, production DB activation, dashboard
+mutation forms or POST apply routes, public/LAN dashboard exposure,
+auth/login, Apple Health/wearable integration, Notion integration,
+TradingView/market data integration, or Phase 13B/live-rail work.
 
 ## Runtime Module Validation
 

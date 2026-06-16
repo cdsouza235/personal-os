@@ -37,12 +37,20 @@ from personalos.side_effects import (
     count_external_write_intents,
     count_idempotency_records,
 )
+from personalos.synthesis_apply import (
+    SYNTHESIS_APPLY_APPLY_PERMISSION,
+    SYNTHESIS_APPLY_READ_PERMISSION,
+    SYNTHESIS_APPLY_WRITE_PERMISSION,
+    count_synthesis_apply_runs,
+)
 from personalos.state import (
     count_briefing_outputs,
     count_composer_outputs,
     count_composer_packets,
     count_daily_plans,
     count_model_runs,
+    count_priorities,
+    count_projects,
     count_synthesis_import_previews,
     upsert_permission_setting,
 )
@@ -50,6 +58,7 @@ from personalos.synthesis_import import (
     SYNTHESIS_IMPORT_PREVIEW_PERMISSION,
     SYNTHESIS_IMPORT_READ_PERMISSION,
     SYNTHESIS_IMPORT_WRITE_PERMISSION,
+    create_synthesis_import_preview_record,
 )
 
 
@@ -81,6 +90,14 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
                 "/tmp/input.json",
                 "--source-type",
                 "chatgpt_synthesis",
+            ],
+            [
+                "synthesis",
+                "apply",
+                "--preview-id",
+                "synthesis-import-preview-test",
+                "--approval-file",
+                "/tmp/approval.json",
             ],
             ["side-effects", "summary"],
             ["side-effects", "record-dry-run", "--input-file", "/tmp/input.json"],
@@ -220,6 +237,63 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
 
             with _sqlite_connection(db_path) as connection:
                 after = count_synthesis_import_previews(connection)
+
+        self.assertEqual(after, before)
+
+    def test_synthesis_apply_requires_approval_file(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            result = _run_cli(
+                [
+                    "synthesis",
+                    "apply",
+                    "--db",
+                    str(db_path),
+                    "--preview-id",
+                    "synthesis-import-preview-test",
+                ]
+            )
+
+        self.assertEqual(result.code, 2)
+        self.assertIn("--approval-file", result.stderr)
+
+    def test_synthesis_approval_file_path_safety_rejects_protected_sensitive_and_var_paths(
+        self,
+    ) -> None:
+        protected_personalos = Path.home() / "PersonalOS" / "approval.json"
+        protected_openclaw = Path.home() / ".openclaw" / "approval.json"
+        credential_path = Path(tempfile.gettempdir()) / "oauth-token-approval.json"
+        production_path = Path(tempfile.gettempdir()) / "production" / "approval.json"
+        repo_var_path = REPO_ROOT / "var" / "approval.json"
+
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                before = count_synthesis_apply_runs(connection)
+
+            for approval_path in (
+                protected_personalos,
+                protected_openclaw,
+                credential_path,
+                production_path,
+                repo_var_path,
+            ):
+                with self.subTest(approval_path=approval_path):
+                    result = _run_cli(
+                        [
+                            "synthesis",
+                            "apply",
+                            "--db",
+                            str(db_path),
+                            "--preview-id",
+                            "synthesis-import-preview-test",
+                            "--approval-file",
+                            str(approval_path),
+                        ]
+                    )
+                    self.assertEqual(result.code, 1)
+                    self.assertIn("error:", result.stderr)
+
+            with _sqlite_connection(db_path) as connection:
+                after = count_synthesis_apply_runs(connection)
 
         self.assertEqual(after, before)
 
@@ -412,6 +486,134 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(after, before)
         self.assertEqual(payload["status"], "rejected")
         self.assertTrue(payload["no_external_writes"])
+
+    def test_synthesis_apply_rejects_malformed_approval_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            approval_path = Path(temp_dir) / "approval.json"
+            approval_path.write_text("{bad json", encoding="utf-8")
+            with _seeded_runtime_db() as db_path:
+                result = _run_cli(
+                    [
+                        "synthesis",
+                        "apply",
+                        "--db",
+                        str(db_path),
+                        "--preview-id",
+                        "synthesis-import-preview-test",
+                        "--approval-file",
+                        str(approval_path),
+                    ]
+                )
+
+        self.assertEqual(result.code, 1)
+        self.assertIn("input file must contain JSON", result.stderr)
+
+    def test_synthesis_apply_rejects_mismatched_preview_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            approval_path = Path(temp_dir) / "approval.json"
+            approval_path.write_text(
+                json.dumps(
+                    {
+                        "preview_id": "wrong-preview",
+                        "approved_candidates": [
+                            {"candidate_type": "priority", "candidate_index": 0}
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with _seeded_runtime_db() as db_path:
+                with _sqlite_connection(db_path) as connection:
+                    _enable_synthesis_permissions(connection)
+                    _enable_synthesis_apply_permissions(connection)
+                    preview = create_synthesis_import_preview_record(
+                        connection,
+                        json.dumps(_synthesis_payload_with_project()),
+                    )
+                    before = _synthesis_apply_counts(connection)
+
+                result = _run_cli(
+                    [
+                        "synthesis",
+                        "apply",
+                        "--db",
+                        str(db_path),
+                        "--preview-id",
+                        preview["record"]["id"],
+                        "--approval-file",
+                        str(approval_path),
+                    ]
+                )
+
+                with _sqlite_connection(db_path) as connection:
+                    after = _synthesis_apply_counts(connection)
+
+        self.assertEqual(result.code, 1)
+        self.assertIn("preview_id does not match", result.stderr)
+        self.assertEqual(after, before)
+
+    def test_synthesis_apply_cli_applies_internal_state_only_from_approval_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            approval_path = Path(temp_dir) / "approval.json"
+            with _seeded_runtime_db() as db_path:
+                with _sqlite_connection(db_path) as connection:
+                    _enable_synthesis_permissions(connection)
+                    _enable_synthesis_apply_permissions(connection)
+                    preview = create_synthesis_import_preview_record(
+                        connection,
+                        json.dumps(_synthesis_payload_with_project()),
+                    )
+                    preview_id = preview["record"]["id"]
+                    approval_path.write_text(
+                        json.dumps(
+                            {
+                                "preview_id": preview_id,
+                                "approved_candidates": [
+                                    {"candidate_type": "priority", "candidate_index": 0},
+                                    {"candidate_type": "project", "candidate_index": 0},
+                                ],
+                                "rejected_candidates": [],
+                                "approval_note": "Internal SQLite apply only.",
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+                    before = _table_counts(db_path)
+
+                result = _run_cli(
+                    [
+                        "synthesis",
+                        "apply",
+                        "--db",
+                        str(db_path),
+                        "--preview-id",
+                        preview_id,
+                        "--approval-file",
+                        str(approval_path),
+                        "--json",
+                    ]
+                )
+
+                with _sqlite_connection(db_path) as connection:
+                    after = _table_counts(db_path)
+                    priority_count = count_priorities(connection)
+                    project_count = count_projects(connection)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["status"], "completed")
+        self.assertEqual(after["priorities"] - before["priorities"], 1)
+        self.assertEqual(after["projects"] - before["projects"], 1)
+        self.assertEqual(after["synthesis_apply_runs"] - before["synthesis_apply_runs"], 1)
+        self.assertEqual(after["external_write_intents"], before["external_write_intents"])
+        self.assertEqual(after["external_write_attempts"], before["external_write_attempts"])
+        self.assertGreaterEqual(priority_count, 1)
+        self.assertGreaterEqual(project_count, 1)
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_send_mode"])
+        self.assertFalse(payload["live_write"])
+        self.assertTrue(payload["internal_state_mutation"])
+        self.assertFalse(payload["external_mutation"])
 
     def test_side_effects_summary_is_read_only(self) -> None:
         with _seeded_runtime_db() as db_path:
@@ -753,6 +955,12 @@ def _enable_synthesis_permissions(connection: sqlite3.Connection) -> None:
     _set_permission(connection, SYNTHESIS_IMPORT_PREVIEW_PERMISSION)
 
 
+def _enable_synthesis_apply_permissions(connection: sqlite3.Connection) -> None:
+    _set_permission(connection, SYNTHESIS_APPLY_READ_PERMISSION)
+    _set_permission(connection, SYNTHESIS_APPLY_WRITE_PERMISSION)
+    _set_permission(connection, SYNTHESIS_APPLY_APPLY_PERMISSION)
+
+
 def _enable_side_effect_permissions(connection: sqlite3.Connection) -> None:
     _set_permission(connection, SIDE_EFFECT_LEDGER_WRITE_PERMISSION)
     _set_permission(connection, SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION)
@@ -823,6 +1031,14 @@ def _side_effect_counts(connection: sqlite3.Connection) -> dict[str, int]:
     }
 
 
+def _synthesis_apply_counts(connection: sqlite3.Connection) -> dict[str, int]:
+    return {
+        "synthesis_apply_runs": count_synthesis_apply_runs(connection),
+        "priorities": count_priorities(connection),
+        "projects": count_projects(connection),
+    }
+
+
 def _synthesis_payload(
     *,
     summary: str = "Structured ChatGPT synthesis for preview import.",
@@ -856,6 +1072,29 @@ def _synthesis_payload(
         },
         "warnings": ["Preview only; no writes."],
     }
+
+
+def _synthesis_payload_with_project() -> dict[str, object]:
+    payload = _synthesis_payload(summary="Structured ChatGPT synthesis for apply.")
+    candidates = dict(payload["candidates"])
+    candidates["projects"] = [
+        {
+            "title": "Synthesis apply CLI project",
+            "summary": "Apply a safe project candidate into internal SQLite state.",
+            "source_type": "chatgpt_synthesis",
+            "source_id": "phase-13a-cli",
+            "risk_level": "low",
+            "approval_mode": "auto_allowed",
+            "status": "active",
+            "review_note": "No external writes.",
+        }
+    ]
+    candidates["todoist_tasks"] = []
+    candidates["calendar_blocks"] = []
+    candidates["clarity_notes"] = []
+    candidates["review_questions"] = []
+    payload["candidates"] = candidates
+    return payload
 
 
 def _side_effect_payload() -> dict[str, object]:

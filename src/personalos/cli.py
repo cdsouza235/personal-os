@@ -23,6 +23,11 @@ from personalos.side_effects import (
     create_external_write_intent_and_record_dry_run,
     summarize_side_effect_ledgers,
 )
+from personalos.synthesis_apply import (
+    SynthesisApplyValidationError,
+    apply_synthesis_import_preview,
+    stable_approval_source_hash,
+)
 from personalos.status import create_status_summary
 from personalos.synthesis_import import (
     ALLOWED_SOURCE_TYPES,
@@ -101,6 +106,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_json_arg(synthesis_preview_parser)
     synthesis_preview_parser.set_defaults(func=_command_synthesis_preview)
+
+    synthesis_apply_parser = synthesis_subparsers.add_parser(
+        "apply",
+        help="Apply an existing synthesis import preview from an explicit approval file.",
+    )
+    _add_db_arg(synthesis_apply_parser)
+    synthesis_apply_parser.add_argument("--preview-id", required=True)
+    synthesis_apply_parser.add_argument("--approval-file", required=True)
+    _add_json_arg(synthesis_apply_parser)
+    synthesis_apply_parser.set_defaults(func=_command_synthesis_apply)
 
     side_effects_parser = subparsers.add_parser(
         "side-effects",
@@ -256,6 +271,29 @@ def _command_synthesis_preview(args: argparse.Namespace) -> int:
     return 0 if result.get("status") == "created" else 1
 
 
+def _command_synthesis_apply(args: argparse.Namespace) -> int:
+    approval_path = validate_existing_input_file_path(
+        args.approval_file,
+        path_label="operator approval_file",
+    )
+    approval_bytes = approval_path.read_bytes()
+    try:
+        approval = _loads_json_object(approval_bytes)
+        with closing(_connect_read_write(args.db)) as connection:
+            result = apply_synthesis_import_preview(
+                connection,
+                preview_id=args.preview_id,
+                approval=approval,
+                approval_source_type="json_file",
+                approval_source_hash=stable_approval_source_hash(approval_bytes),
+            )
+    except SynthesisApplyValidationError as error:
+        raise CliError(str(error)) from error
+    report = {"command": "synthesis apply", **result}
+    _emit_report(report, json_output=args.json)
+    return 0 if result.get("status") in {"completed", "partially_completed", "no_op"} else 1
+
+
 def _command_side_effects_summary(args: argparse.Namespace) -> int:
     with closing(_connect_read_only(args.db)) as connection:
         summary = summarize_side_effect_ledgers(connection)
@@ -385,6 +423,18 @@ def _load_json_object(path: Any) -> dict[str, Any]:
     return payload
 
 
+def _loads_json_object(payload_bytes: bytes) -> dict[str, Any]:
+    try:
+        payload = json.loads(payload_bytes.decode("utf-8"))
+    except UnicodeDecodeError as error:
+        raise CliError("input file must be UTF-8 JSON") from error
+    except json.JSONDecodeError as error:
+        raise CliError(f"input file must contain JSON: {error}") from error
+    if not isinstance(payload, dict):
+        raise CliError("input file JSON must decode to an object")
+    return payload
+
+
 def _synthesis_rejected_result(*, reason: str, source_type: str) -> dict[str, Any]:
     return {
         "status": "rejected",
@@ -463,8 +513,12 @@ def _human_report(report: Mapping[str, Any]) -> str:
         "no_gmail_draft",
         "no_personalos_writes",
         "live_write",
+        "internal_state_mutation",
         "simulated_or_dry_run",
         "static_html_only",
+        "apply_run_id",
+        "preview_id",
+        "approval_source_hash",
     ):
         if key in report:
             lines.append(f"{key}: {_format_scalar(report[key])}")

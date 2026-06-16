@@ -56,7 +56,16 @@ SYNTHESIS_IMPORT_SOURCE_TYPES = (
     "fake_fixture",
 )
 SYNTHESIS_IMPORT_INPUT_FORMATS = ("json", "markdown_fenced_json", "structured_markdown")
-SYNTHESIS_IMPORT_PREVIEW_STATUSES = ("draft", "validated", "rejected", "failed")
+SYNTHESIS_IMPORT_PREVIEW_STATUSES = (
+    "draft",
+    "validated",
+    "rejected",
+    "failed",
+    "apply_completed",
+    "apply_partially_completed",
+    "apply_blocked",
+    "apply_failed",
+)
 SYNTHESIS_IMPORT_RAW_EXCERPT_MAX_CHARS = 2000
 DAILY_PLAN_STATUSES = ("draft", "generated", "completed", "failed")
 BRIEFING_OUTPUT_WINDOWS = ("morning", "midday", "afternoon", "evening")
@@ -636,6 +645,155 @@ def update_priority_status(
         status=status,
         updated_at_utc=updated_at_utc,
     )
+
+
+def get_project(connection: sqlite3.Connection, project_id: str) -> dict[str, Any] | None:
+    project_id = _validate_required_text("project_id", project_id)
+    row = connection.execute(
+        """
+        SELECT
+            project_id,
+            title,
+            status,
+            metadata_json,
+            notes,
+            created_at_utc,
+            updated_at_utc
+        FROM projects
+        WHERE project_id = ?
+        """,
+        (project_id,),
+    ).fetchone()
+    return _metadata_row_to_dict(row, id_column="project_id") if row is not None else None
+
+
+def create_project(
+    connection: sqlite3.Connection,
+    *,
+    project_id: str,
+    title: str,
+    status: str,
+    metadata: Mapping[str, Any] | None = None,
+    notes: str = "",
+    created_at_utc: str | None = None,
+    updated_at_utc: str | None = None,
+) -> dict[str, Any]:
+    project_id = _validate_required_text("project_id", project_id)
+    title = _validate_required_text("title", title)
+    status = _validate_required_text("status", status)
+    metadata_json = _serialize_metadata(
+        _validate_metadata("metadata", {} if metadata is None else metadata)
+    )
+    notes = _validate_text("notes", notes)
+    created_at = _validate_iso_datetime("created_at_utc", created_at_utc or _utc_now())
+    updated_at = _validate_iso_datetime("updated_at_utc", updated_at_utc or created_at)
+
+    with connection:
+        connection.execute(
+            """
+            INSERT INTO projects (
+                project_id,
+                title,
+                status,
+                metadata_json,
+                notes,
+                created_at_utc,
+                updated_at_utc
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                project_id,
+                title,
+                status,
+                metadata_json,
+                notes,
+                created_at,
+                updated_at,
+            ),
+        )
+
+    project = get_project(connection, project_id)
+    if project is None:
+        raise RuntimeError(f"Project was not persisted for project_id: {project_id}")
+    return project
+
+
+def get_followup(connection: sqlite3.Connection, followup_id: str) -> dict[str, Any] | None:
+    followup_id = _validate_required_text("followup_id", followup_id)
+    row = connection.execute(
+        """
+        SELECT
+            followup_id,
+            title,
+            status,
+            source,
+            metadata_json,
+            notes,
+            created_at_utc,
+            updated_at_utc
+        FROM followups
+        WHERE followup_id = ?
+        """,
+        (followup_id,),
+    ).fetchone()
+    return _metadata_row_to_dict(row, id_column="followup_id") if row is not None else None
+
+
+def create_followup(
+    connection: sqlite3.Connection,
+    *,
+    followup_id: str,
+    title: str,
+    status: str,
+    source: str,
+    metadata: Mapping[str, Any] | None = None,
+    notes: str = "",
+    created_at_utc: str | None = None,
+    updated_at_utc: str | None = None,
+) -> dict[str, Any]:
+    followup_id = _validate_required_text("followup_id", followup_id)
+    title = _validate_required_text("title", title)
+    status = _validate_required_text("status", status)
+    source = _validate_required_text("source", source)
+    metadata_json = _serialize_metadata(
+        _validate_metadata("metadata", {} if metadata is None else metadata)
+    )
+    notes = _validate_text("notes", notes)
+    created_at = _validate_iso_datetime("created_at_utc", created_at_utc or _utc_now())
+    updated_at = _validate_iso_datetime("updated_at_utc", updated_at_utc or created_at)
+
+    with connection:
+        connection.execute(
+            """
+            INSERT INTO followups (
+                followup_id,
+                title,
+                status,
+                source,
+                metadata_json,
+                notes,
+                created_at_utc,
+                updated_at_utc
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                followup_id,
+                title,
+                status,
+                source,
+                metadata_json,
+                notes,
+                created_at,
+                updated_at,
+            ),
+        )
+
+    followup = get_followup(connection, followup_id)
+    if followup is None:
+        raise RuntimeError(f"Follow-up was not persisted for followup_id: {followup_id}")
+    return followup
 
 
 def validate_priority_status(status: str) -> str:
@@ -2172,6 +2330,37 @@ def count_synthesis_import_previews(
         values,
     ).fetchone()
     return int(row[0])
+
+
+def update_synthesis_import_preview_status(
+    connection: sqlite3.Connection,
+    *,
+    preview_id: str,
+    status: str,
+    updated_at: str | None = None,
+) -> dict[str, Any]:
+    preview_id = _validate_required_text("preview_id", preview_id)
+    status = validate_synthesis_import_preview_status(status)
+    updated = _validate_iso_datetime("updated_at", updated_at or _utc_now())
+    current = get_synthesis_import_preview(connection, preview_id)
+    if current is None:
+        raise ValueError(f"Synthesis import preview does not exist: {preview_id}")
+
+    with connection:
+        connection.execute(
+            """
+            UPDATE synthesis_import_previews
+            SET status = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (status, updated, preview_id),
+        )
+
+    preview = get_synthesis_import_preview(connection, preview_id)
+    if preview is None:
+        raise RuntimeError(f"Synthesis import preview was not found after update: {preview_id}")
+    return preview
 
 
 def create_daily_plan(

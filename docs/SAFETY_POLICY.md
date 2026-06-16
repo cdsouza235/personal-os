@@ -6,13 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 12A are complete, and the Phase 6B, Phase 7B, Phase 8B, and
-Phase 12A fake/local smoke tests are complete. The current Phase 12B work is
-the side-effect and idempotency ledger foundation. It may edit repo-local code,
-tests, and documentation, and may create temporary dev/test SQLite databases
-during tests. It must not inspect or mutate live runtime files, live PersonalOS
-files or fitness CSVs, credentials, external systems, production ledgers,
-production SQLite state, or any production state.
+Phases -1 through 12B are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
+Phase 13A work is the approval-gated synthesis apply flow. It may edit
+repo-local code, tests, and documentation, and may create temporary dev/test
+SQLite databases during tests. It must not inspect or mutate live runtime
+files, live PersonalOS files or fitness CSVs, credentials, external systems,
+production ledgers, production SQLite state, or any production state.
 
 Codex must not inspect:
 
@@ -219,6 +219,21 @@ missing, disabled, invalid, or approval-only. Persisting a local preview
 record requires both the write key and preview key. Pure parsing and preview
 report generation may run without persistence. Phase 11A does not add apply
 permissions or live permissions.
+
+Phase 13A synthesis apply permissions are stored in `permission_settings` and
+are separate from live execution, live model/API, Todoist, Calendar, Gmail,
+PersonalOS Markdown, scheduler, LaunchAgent, production runtime, and
+production database permissions:
+
+- synthesis_apply_dev_test_read
+- synthesis_apply_dev_test_write
+- synthesis_apply_dev_test_apply
+
+Synthesis apply read summaries fail closed when the read key is missing,
+disabled, invalid, or approval-only. Applying a preview requires read, write,
+and apply keys to be explicitly set to `auto_write` in dev/test. Phase 13A
+does not add a production apply permission, live-write permission, external
+rail permission, or dashboard mutation permission.
 
 ## Execution Rules
 
@@ -542,6 +557,42 @@ production DB activation, apply/save synthesis import flow, dashboard mutation
 forms, public/LAN dashboard exposure, auth/login, Apple Health/wearable
 integration, Notion integration, TradingView/market data integration, or any
 Phase 12C/live-rail work.
+
+Phase 13A synthesis apply is internal SQLite state mutation only. It applies
+previously stored `synthesis_import_previews` only when an explicit approval
+JSON file references the same `preview_id` and lists candidate approvals
+candidate by candidate. There is no approve-all default, no implicit apply
+after preview, no raw-prose apply path, and no dashboard Apply button.
+
+Phase 13A may insert deterministic records into `priorities`, `projects`, and
+`followups` only. Every attempt writes an audit run to `synthesis_apply_runs`
+and per-candidate outcomes to `synthesis_apply_items` with validation reports,
+target IDs when relevant, and rollback metadata for inserted internal rows.
+Repeated approval of the same preview candidate must safely skip duplicate
+internal state records rather than silently creating duplicates.
+
+Phase 13A unsupported candidates, including routine changes, Todoist tasks,
+Calendar blocks, clarity notes, review questions, PersonalOS Markdown notes,
+Gmail messages, relationship messages, and external execution candidates, are
+recorded as unsupported, skipped, review-required, blocked, or failed. They
+are not routed to Todoist, Calendar, Gmail, PersonalOS Markdown, external
+write intents, adapters, files, APIs, or OpenClaw.
+
+High-stakes execution candidates covering tax, legal, estate, portfolio,
+crypto, investments, health, medical, relationship messages,
+family-sensitive communication, or large financial commitments remain blocked
+or review-required in Phase 13A. Manual-only candidates remain manual-only and
+are not applied.
+
+Phase 13A completion reports must preserve `no_external_writes=true`,
+`no_send_mode=true`, `live_write=false`, and
+`internal_state_mutation=true`. Phase 13A does not add live Todoist writes,
+live Calendar writes, Gmail send/draft, PersonalOS Markdown writes,
+`.openclaw` integration, scheduler, LaunchAgents, live model/API calls,
+OpenAI/OpenRouter/Anthropic integration, production DB activation, dashboard
+mutation forms, public/LAN dashboard exposure, auth/login, Apple Health/
+wearable integration, Notion integration, TradingView/market data integration,
+or any Phase 13B/live-rail work.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

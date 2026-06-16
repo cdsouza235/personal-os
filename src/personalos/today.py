@@ -26,6 +26,11 @@ from personalos.state import (
     list_routines,
     summarize_priorities,
 )
+from personalos.synthesis_apply import (
+    SYNTHESIS_APPLY_READ_PERMISSION,
+    SynthesisApplyPermissionDenied,
+    summarize_synthesis_apply_runs,
+)
 from personalos.status import create_status_summary
 from personalos.synthesis_import import (
     SYNTHESIS_IMPORT_READ_PERMISSION,
@@ -88,6 +93,7 @@ def create_today_view_summary(
             timezone_name=timezone_name,
         ),
         "synthesis_import_preview_summary": _synthesis_import_preview_summary(connection),
+        "synthesis_apply_summary": _synthesis_apply_summary(connection),
         "side_effect_ledger_summary": summarize_side_effect_ledgers(connection),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
@@ -378,6 +384,36 @@ def _synthesis_import_preview_summary(connection: sqlite3.Connection) -> dict[st
         "latest_warnings_count": len(_list_value(latest_report.get("warnings"))),
         "no_external_writes": True,
     }
+
+
+def _synthesis_apply_summary(connection: sqlite3.Connection) -> dict[str, Any]:
+    try:
+        return summarize_synthesis_apply_runs(connection)
+    except SynthesisApplyPermissionDenied as error:
+        return {
+            "available": False,
+            "permission_required": SYNTHESIS_APPLY_READ_PERMISSION,
+            "reason": str(error),
+            "apply_run_count": 0,
+            "apply_item_count": 0,
+            "counts_by_status": {},
+            "item_counts_by_apply_status": {},
+            "latest_apply_run_id": None,
+            "latest_preview_id": None,
+            "latest_status": None,
+            "latest_applied_candidate_count": 0,
+            "latest_blocked_candidate_count": 0,
+            "latest_skipped_candidate_count": 0,
+            "latest_failed_candidate_count": 0,
+            "latest_no_external_writes": True,
+            "latest_no_send_mode": True,
+            "latest_live_write": False,
+            "recent_runs": [],
+            "no_external_writes": True,
+            "no_send_mode": True,
+            "live_write": False,
+            "read_only": True,
+        }
 
 
 def _completion_report_summary(report: Mapping[str, Any]) -> dict[str, Any]:

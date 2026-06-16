@@ -323,6 +323,24 @@ def read_synthesis_import_preview_count(
     )
 
 
+def validate_synthesis_import_candidate_for_apply(
+    section: str,
+    candidate: Any,
+    *,
+    index: int,
+) -> dict[str, Any]:
+    """Validate a stored preview candidate again before any later apply step."""
+    section = _validate_choice("section", section, CANDIDATE_SECTIONS)
+    if section == "review_questions":
+        raise SynthesisImportValidationError("Review questions are not apply candidates.")
+
+    normalized = _validate_action_candidate(section, candidate, index=index)
+    block_reason = _candidate_safety_block_reason(section, normalized)
+    if block_reason is not None:
+        raise SynthesisImportCandidateBlocked(block_reason)
+    return normalized
+
+
 def require_synthesis_import_permission(
     connection: sqlite3.Connection,
     *,

@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 12A are complete. The Phase 6B, Phase 7B, Phase 8B, and
-Phase 12A fake/local smoke tests are complete. The current Phase 12B work is
-the side-effect and idempotency ledger foundation for future write rails. This
-repo still has no production runtime activation.
+Phases -1 through 12B are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
+Phase 13A work is the approval-gated synthesis apply flow for safe internal
+SQLite core state only. This repo still has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -824,7 +824,7 @@ Non-goals:
 
 ## Phase 12B: Side-Effect and Idempotency Ledger Foundation
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -875,6 +875,64 @@ Non-goals:
 - No public/LAN dashboard exposure, auth/login, Apple Health/wearables,
   Notion, TradingView, or market-data integration.
 
+## Phase 13A: Approval-Gated Synthesis Apply Flow
+
+Status: current.
+
+Scope:
+
+- Add local SQLite apply audit tables for `synthesis_apply_runs` and
+  `synthesis_apply_items`.
+- Apply existing `synthesis_import_previews` only after an explicit approval
+  JSON file references the same `preview_id`.
+- Require candidate-by-candidate approval by candidate type and index.
+- Re-run candidate validation at apply time before any internal state write.
+- Apply only safe internal core-state candidates for priorities, projects, and
+  follow-ups.
+- Record every candidate outcome with approval status, apply status, target
+  table/ID when relevant, validation report, and rollback metadata.
+- Safely skip duplicate internal state records on repeated apply attempts.
+- Surface read-only apply history counts and latest safety flags in status,
+  Today View, and the static dashboard.
+- Add CLI support through `personalos synthesis apply --db <path>
+  --preview-id <id> --approval-file <safe_json_path>`.
+
+Permission keys:
+
+- `synthesis_apply_dev_test_read`
+- `synthesis_apply_dev_test_write`
+- `synthesis_apply_dev_test_apply`
+
+Safety behavior:
+
+- Apply fails closed unless read, write, and apply permissions are explicitly
+  enabled for dev/test use.
+- Completion reports expose `no_external_writes=true`, `no_send_mode=true`,
+  `live_write=false`, and `internal_state_mutation=true`.
+- Approval files must be explicit safe input files and must not live under
+  protected PersonalOS, `.openclaw`, repo-local `var/`, credential/OAuth, or
+  production-looking paths.
+- Unsupported targets are recorded as unsupported, skipped, review-required,
+  blocked, or failed at item level and are not executed.
+- High-stakes execution candidates and manual-only candidates remain blocked
+  or review-required instead of applied.
+
+Non-goals:
+
+- No live Todoist writes.
+- No live Calendar writes.
+- No Gmail send or draft.
+- No PersonalOS Markdown writes.
+- No external write intent creation.
+- No `.openclaw` integration.
+- No scheduler or LaunchAgents.
+- No live model/API calls.
+- No OpenAI/OpenRouter/Anthropic integration.
+- No production DB activation.
+- No dashboard Apply button, mutation form, or POST apply route.
+- No public/LAN dashboard exposure, auth/login, Apple Health/wearables,
+  Notion, TradingView, or market-data integration.
+
 Likely next phase:
 
-- Separate Phase 12C or live-rail planning only after explicit approval.
+- Separate Phase 13B or live-rail planning only after explicit approval.

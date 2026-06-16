@@ -357,6 +357,47 @@ class SQLiteFoundationTest(unittest.TestCase):
             "linked_attempt_id",
         },
     }
+    expected_phase_13a_tables = {
+        "synthesis_apply_runs": {
+            "apply_run_id",
+            "preview_id",
+            "approval_source_type",
+            "approval_source_hash",
+            "status",
+            "approved_candidate_count",
+            "applied_candidate_count",
+            "blocked_candidate_count",
+            "skipped_candidate_count",
+            "failed_candidate_count",
+            "no_external_writes",
+            "no_send_mode",
+            "live_write",
+            "internal_state_mutation",
+            "created_at",
+            "completed_at",
+            "completion_report_json",
+        },
+        "synthesis_apply_items": {
+            "apply_item_id",
+            "apply_run_id",
+            "preview_id",
+            "candidate_type",
+            "candidate_key",
+            "candidate_index",
+            "candidate_hash",
+            "approval_status",
+            "apply_status",
+            "target_table",
+            "target_id",
+            "risk_level",
+            "approval_mode",
+            "high_stakes",
+            "rollback_metadata_json",
+            "validation_report_json",
+            "error_message",
+            "created_at",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -455,10 +496,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "0009",
                     "00010",
                     "00011",
+                    "00012",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 11)
+            self.assertEqual(len(rows), 12)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -1370,6 +1412,142 @@ class SQLiteFoundationTest(unittest.TestCase):
         self.assertTrue(self.expected_phase_12b_tables.keys() <= table_names)
         self.assertEqual(table_columns, self.expected_phase_12b_tables)
 
+    def test_phase_13a_synthesis_apply_audit_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_13a_tables
+                }
+
+        self.assertTrue(self.expected_phase_13a_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_13a_tables)
+
+    def test_phase_13a_apply_items_enforce_apply_run_foreign_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                _insert_synthesis_preview_row(connection)
+
+                with self.assertRaises(sqlite3.IntegrityError):
+                    connection.execute(
+                        """
+                        INSERT INTO synthesis_apply_items (
+                            apply_item_id,
+                            apply_run_id,
+                            preview_id,
+                            candidate_type,
+                            candidate_key,
+                            candidate_index,
+                            candidate_hash,
+                            approval_status,
+                            apply_status,
+                            target_table,
+                            target_id,
+                            risk_level,
+                            approval_mode,
+                            high_stakes,
+                            rollback_metadata_json,
+                            validation_report_json,
+                            error_message,
+                            created_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            "apply-item-missing-run",
+                            "missing-run",
+                            "synthesis-preview-schema-test",
+                            "priorities",
+                            "priorities[0]",
+                            0,
+                            "hash",
+                            "approved",
+                            "applied",
+                            "priorities",
+                            "priority-1",
+                            "low",
+                            "auto_allowed",
+                            0,
+                            "{}",
+                            "{}",
+                            None,
+                            "2026-06-15T10:00:00+00:00",
+                        ),
+                    )
+
+    def test_phase_13a_apply_audit_safety_checks_reject_live_values(self) -> None:
+        invalid_cases = (
+            ("no_external_writes", 0),
+            ("no_send_mode", 0),
+            ("live_write", 1),
+            ("status", "live_completed"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                _insert_synthesis_preview_row(connection)
+                for column_name, invalid_value in invalid_cases:
+                    with self.subTest(column_name=column_name):
+                        values = _synthesis_apply_run_values()
+                        values[column_name] = invalid_value
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO synthesis_apply_runs (
+                                    apply_run_id,
+                                    preview_id,
+                                    approval_source_type,
+                                    approval_source_hash,
+                                    status,
+                                    approved_candidate_count,
+                                    applied_candidate_count,
+                                    blocked_candidate_count,
+                                    skipped_candidate_count,
+                                    failed_candidate_count,
+                                    no_external_writes,
+                                    no_send_mode,
+                                    live_write,
+                                    internal_state_mutation,
+                                    created_at,
+                                    completed_at,
+                                    completion_report_json
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["apply_run_id"],
+                                    values["preview_id"],
+                                    values["approval_source_type"],
+                                    values["approval_source_hash"],
+                                    values["status"],
+                                    values["approved_candidate_count"],
+                                    values["applied_candidate_count"],
+                                    values["blocked_candidate_count"],
+                                    values["skipped_candidate_count"],
+                                    values["failed_candidate_count"],
+                                    values["no_external_writes"],
+                                    values["no_send_mode"],
+                                    values["live_write"],
+                                    values["internal_state_mutation"],
+                                    values["created_at"],
+                                    values["completed_at"],
+                                    values["completion_report_json"],
+                                ),
+                            )
+
     def test_phase_12b_side_effect_ledger_check_constraints_reject_live_values(
         self,
     ) -> None:
@@ -1672,7 +1850,7 @@ class SQLiteFoundationTest(unittest.TestCase):
         invalid_cases = (
             ("source_type", "raw_notes"),
             ("input_format", "prose"),
-            ("status", "applied"),
+            ("status", "apply_live"),
             ("raw_excerpt", "x" * 2001),
         )
 
@@ -1902,6 +2080,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "0009",
                 "00010",
                 "00011",
+                "00012",
             ],
         )
         self.assertEqual(
@@ -1918,8 +2097,68 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "briefing_loop_tables",
                 "synthesis_import_preview_tables",
                 "side_effect_idempotency_ledger_tables",
+                "synthesis_apply_audit_tables",
             ],
         )
+
+
+def _insert_synthesis_preview_row(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        INSERT INTO synthesis_import_previews (
+            id,
+            source_type,
+            input_format,
+            input_hash,
+            source_timestamp,
+            source_reference,
+            raw_excerpt,
+            parsed_json,
+            preview_report_json,
+            status,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "synthesis-preview-schema-test",
+            "chatgpt_synthesis",
+            "json",
+            "hash",
+            "2026-06-15T10:00:00+00:00",
+            "chatgpt-thread",
+            "excerpt",
+            "{}",
+            "{}",
+            "validated",
+            "2026-06-15T10:00:00+00:00",
+            "2026-06-15T10:00:00+00:00",
+        ),
+    )
+
+
+def _synthesis_apply_run_values() -> dict[str, object]:
+    timestamp = "2026-06-15T10:00:00+00:00"
+    return {
+        "apply_run_id": "synthesis-apply-run-schema-test",
+        "preview_id": "synthesis-preview-schema-test",
+        "approval_source_type": "json_file",
+        "approval_source_hash": "approval-hash",
+        "status": "completed",
+        "approved_candidate_count": 1,
+        "applied_candidate_count": 1,
+        "blocked_candidate_count": 0,
+        "skipped_candidate_count": 0,
+        "failed_candidate_count": 0,
+        "no_external_writes": 1,
+        "no_send_mode": 1,
+        "live_write": 0,
+        "internal_state_mutation": 1,
+        "created_at": timestamp,
+        "completed_at": timestamp,
+        "completion_report_json": '{"no_external_writes":true,"live_write":false}',
+    }
 
 
 def _side_effect_intent_values(intent_id: str) -> dict[str, object]:

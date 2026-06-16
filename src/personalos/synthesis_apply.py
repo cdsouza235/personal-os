@@ -6,6 +6,7 @@ import hashlib
 import json
 import sqlite3
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -66,7 +67,6 @@ APPLY_SAFETY_FLAGS = {
     "no_external_writes": True,
     "no_send_mode": True,
     "live_write": False,
-    "internal_state_mutation": True,
     "no_todoist_writes": True,
     "no_calendar_writes": True,
     "no_gmail_send": True,
@@ -118,6 +118,12 @@ class SynthesisApplyPermissionDenied(PermissionError):
 
 class SynthesisApplyValidationError(ValueError):
     """Raised when an approval apply request is malformed or unsafe."""
+
+
+@dataclass(frozen=True)
+class _ApplyPlanItem:
+    item: dict[str, Any]
+    mutation: dict[str, Any] | None = None
 
 
 def apply_synthesis_import_preview(
@@ -173,7 +179,7 @@ def apply_synthesis_import_preview(
         rejected_refs,
         {_candidate_key(section, index) for section, index, _candidate in candidate_entries},
     )
-    items: list[dict[str, Any]] = []
+    plan_items: list[_ApplyPlanItem] = []
 
     for section, index, candidate in candidate_entries:
         candidate_key = _candidate_key(section, index)
@@ -188,7 +194,7 @@ def apply_synthesis_import_preview(
             _verify_optional_candidate_hash(approval_entry, candidate_hash)
         if rejected_entry is not None:
             _verify_optional_candidate_hash(rejected_entry, candidate_hash)
-        item = _apply_candidate_item(
+        plan_item = _plan_candidate_item(
             connection,
             apply_run_id=apply_run_id,
             preview_id=preview_id,
@@ -201,93 +207,39 @@ def apply_synthesis_import_preview(
             rejected_entry=rejected_entry,
             created_at=created,
         )
-        items.append(item)
+        plan_items.append(plan_item)
 
-    counts = _item_counts(
-        items,
-        approved_candidate_count=len(approved_refs),
-    )
-    run_status = _run_status_from_counts(counts)
-    completed = _utc_now()
-    completion_report = _completion_report(
-        apply_run_id=apply_run_id,
-        preview_id=preview_id,
-        approval_source_type=approval_source_type,
-        approval_source_hash=source_hash,
-        status=run_status,
-        counts=counts,
-        items=items,
-    )
-
-    with connection:
-        connection.execute(
-            """
-            INSERT INTO synthesis_apply_runs (
-                apply_run_id,
-                preview_id,
-                approval_source_type,
-                approval_source_hash,
-                status,
-                approved_candidate_count,
-                applied_candidate_count,
-                blocked_candidate_count,
-                skipped_candidate_count,
-                failed_candidate_count,
-                no_external_writes,
-                no_send_mode,
-                live_write,
-                internal_state_mutation,
-                created_at,
-                completed_at,
-                completion_report_json
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                apply_run_id,
-                preview_id,
-                approval_source_type,
-                source_hash,
-                run_status,
-                counts["approved_candidate_count"],
-                counts["applied_candidate_count"],
-                counts["blocked_candidate_count"],
-                counts["skipped_candidate_count"],
-                counts["failed_candidate_count"],
-                1,
-                1,
-                0,
-                1,
-                created,
-                completed,
-                _json_dumps(completion_report),
-            ),
-        )
-        for item in items:
-            _insert_apply_item(connection, item)
-        update_synthesis_import_preview_status(
+    try:
+        transaction_result = _commit_apply_plan(
             connection,
+            apply_run_id=apply_run_id,
             preview_id=preview_id,
-            status=_preview_status_for_run(run_status),
-            updated_at=completed,
+            approval_source_type=approval_source_type,
+            approval_source_hash=source_hash,
+            approved_candidate_count=len(approved_refs),
+            plan_items=plan_items,
+            created_at=created,
+        )
+    except (sqlite3.Error, RuntimeError, ValueError, TypeError) as error:
+        transaction_result = _record_rolled_back_apply_failure(
+            connection,
+            apply_run_id=apply_run_id,
+            preview_id=preview_id,
+            approval_source_type=approval_source_type,
+            approval_source_hash=source_hash,
+            approved_candidate_count=len(approved_refs),
+            plan_items=plan_items,
+            created_at=created,
+            error=error,
         )
 
-    run = get_synthesis_apply_run(connection, apply_run_id)
     return {
-        "status": run_status,
-        "reason": _reason_for_run_status(run_status),
-        "apply_run_id": apply_run_id,
-        "preview_id": preview_id,
+        **transaction_result,
+        "permissions": permissions,
         "approval_source_type": approval_source_type,
         "approval_source_hash": source_hash,
-        "permissions": permissions,
-        "database_write": True,
         "external_mutation": False,
         "simulated_or_dry_run": False,
-        "run": run,
-        "items": items,
-        "completion_report": completion_report,
-        **APPLY_SAFETY_FLAGS,
     }
 
 
@@ -413,6 +365,7 @@ def summarize_synthesis_apply_runs(
     require_synthesis_apply_permission(connection, category=SYNTHESIS_APPLY_READ_PERMISSION)
     runs = list_synthesis_apply_runs(connection, limit=recent_limit)
     latest = runs[0] if runs else None
+    latest_report = latest["completion_report_json"] if latest is not None else {}
     return {
         "available": True,
         "permission_required": SYNTHESIS_APPLY_READ_PERMISSION,
@@ -444,10 +397,16 @@ def summarize_synthesis_apply_runs(
         ),
         "latest_no_send_mode": latest["no_send_mode"] if latest is not None else True,
         "latest_live_write": latest["live_write"] if latest is not None else False,
+        "latest_internal_state_mutation": (
+            latest["internal_state_mutation"] if latest is not None else False
+        ),
+        "latest_rolled_back": bool(latest_report.get("rolled_back", False)),
         "recent_runs": runs,
         "no_external_writes": True,
         "no_send_mode": True,
         "live_write": False,
+        "internal_state_mutation": False,
+        "rolled_back": False,
         "read_only": True,
     }
 
@@ -542,7 +501,7 @@ def stable_candidate_hash(
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
-def _apply_candidate_item(
+def _plan_candidate_item(
     connection: sqlite3.Connection,
     *,
     apply_run_id: str,
@@ -589,31 +548,35 @@ def _apply_candidate_item(
             index=index,
         )
     except SynthesisImportCandidateBlocked as error:
-        return {
-            **base,
-            "approval_status": "blocked",
-            "apply_status": "blocked",
-            "high_stakes": True,
-            "validation_report": {
-                **base["validation_report"],
-                "valid": False,
-                "blocked": True,
-                "reason": str(error),
-            },
-            "error_message": str(error),
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "blocked",
+                "apply_status": "blocked",
+                "high_stakes": True,
+                "validation_report": {
+                    **base["validation_report"],
+                    "valid": False,
+                    "blocked": True,
+                    "reason": str(error),
+                },
+                "error_message": str(error),
+            }
+        )
     except (SynthesisImportValidationError, ValueError, TypeError) as error:
-        return {
-            **base,
-            "approval_status": "blocked" if approval_entry is not None else "skipped",
-            "apply_status": "failed" if approval_entry is not None else "not_applied",
-            "validation_report": {
-                **base["validation_report"],
-                "valid": False,
-                "reason": str(error),
-            },
-            "error_message": str(error),
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "blocked" if approval_entry is not None else "skipped",
+                "apply_status": "failed" if approval_entry is not None else "not_applied",
+                "validation_report": {
+                    **base["validation_report"],
+                    "valid": False,
+                    "reason": str(error),
+                },
+                "error_message": str(error),
+            }
+        )
 
     risk_level = normalized["risk_level"]
     approval_mode = normalized["approval_mode"]
@@ -632,64 +595,74 @@ def _apply_candidate_item(
     }
 
     if rejected_entry is not None:
-        return {
-            **base,
-            "approval_status": "rejected",
-            "apply_status": "not_applied",
-            "error_message": _optional_reason(rejected_entry),
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "rejected",
+                "apply_status": "not_applied",
+                "error_message": _optional_reason(rejected_entry),
+            }
+        )
     if section not in ALLOWED_APPLY_SECTIONS:
-        return {
-            **base,
-            "approval_status": "unsupported",
-            "apply_status": "not_applied",
-            "error_message": f"Unsupported Phase 13A apply target: {section}",
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "unsupported",
+                "apply_status": "not_applied",
+                "error_message": f"Unsupported Phase 13A apply target: {section}",
+            }
+        )
     if approval_entry is None:
-        return {
-            **base,
-            "approval_status": "skipped",
-            "apply_status": "not_applied",
-            "target_table": SUPPORTED_TARGET_TABLES[section],
-            "target_id": _target_id_for_candidate(
-                section=section,
-                preview_id=preview_id,
-                candidate_key=candidate_key,
-                candidate_hash=candidate_hash,
-            ),
-            "error_message": "Candidate was not explicitly approved.",
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "skipped",
+                "apply_status": "not_applied",
+                "target_table": SUPPORTED_TARGET_TABLES[section],
+                "target_id": _target_id_for_candidate(
+                    section=section,
+                    preview_id=preview_id,
+                    candidate_key=candidate_key,
+                    candidate_hash=candidate_hash,
+                ),
+                "error_message": "Candidate was not explicitly approved.",
+            }
+        )
     if approval_mode == "manual_only":
-        return {
-            **base,
-            "approval_status": "review_required",
-            "apply_status": "not_applied",
-            "target_table": SUPPORTED_TARGET_TABLES[section],
-            "target_id": _target_id_for_candidate(
-                section=section,
-                preview_id=preview_id,
-                candidate_key=candidate_key,
-                candidate_hash=candidate_hash,
-            ),
-            "error_message": "Manual-only candidates cannot be applied in Phase 13A.",
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "review_required",
+                "apply_status": "not_applied",
+                "target_table": SUPPORTED_TARGET_TABLES[section],
+                "target_id": _target_id_for_candidate(
+                    section=section,
+                    preview_id=preview_id,
+                    candidate_key=candidate_key,
+                    candidate_hash=candidate_hash,
+                ),
+                "error_message": "Manual-only candidates cannot be applied in Phase 13A.",
+            }
+        )
     if high_stakes:
-        return {
-            **base,
-            "approval_status": "blocked",
-            "apply_status": "blocked",
-            "target_table": SUPPORTED_TARGET_TABLES[section],
-            "target_id": _target_id_for_candidate(
-                section=section,
-                preview_id=preview_id,
-                candidate_key=candidate_key,
-                candidate_hash=candidate_hash,
-            ),
-            "error_message": "High-stakes candidates are blocked from Phase 13A apply.",
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "blocked",
+                "apply_status": "blocked",
+                "target_table": SUPPORTED_TARGET_TABLES[section],
+                "target_id": _target_id_for_candidate(
+                    section=section,
+                    preview_id=preview_id,
+                    candidate_key=candidate_key,
+                    candidate_hash=candidate_hash,
+                ),
+                "error_message": "High-stakes candidates are blocked from Phase 13A apply.",
+            }
+        )
 
     try:
-        return _apply_supported_candidate(
+        return _plan_supported_candidate(
             connection,
             base=base,
             section=section,
@@ -700,22 +673,24 @@ def _apply_candidate_item(
             created_at=created_at,
         )
     except (sqlite3.Error, ValueError, TypeError) as error:
-        return {
-            **base,
-            "approval_status": "approved",
-            "apply_status": "failed",
-            "target_table": SUPPORTED_TARGET_TABLES[section],
-            "target_id": _target_id_for_candidate(
-                section=section,
-                preview_id=preview_id,
-                candidate_key=candidate_key,
-                candidate_hash=candidate_hash,
-            ),
-            "error_message": str(error),
-        }
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "approved",
+                "apply_status": "failed",
+                "target_table": SUPPORTED_TARGET_TABLES[section],
+                "target_id": _target_id_for_candidate(
+                    section=section,
+                    preview_id=preview_id,
+                    candidate_key=candidate_key,
+                    candidate_hash=candidate_hash,
+                ),
+                "error_message": str(error),
+            }
+        )
 
 
-def _apply_supported_candidate(
+def _plan_supported_candidate(
     connection: sqlite3.Connection,
     *,
     base: Mapping[str, Any],
@@ -725,7 +700,7 @@ def _apply_supported_candidate(
     candidate_key: str,
     candidate_hash: str,
     created_at: str,
-) -> dict[str, Any]:
+) -> _ApplyPlanItem:
     target_table = SUPPORTED_TARGET_TABLES[section]
     target_id = _target_id_for_candidate(
         section=section,
@@ -736,55 +711,271 @@ def _apply_supported_candidate(
 
     existing = _existing_target(connection, section=section, target_id=target_id)
     if existing is not None:
-        return {
+        return _ApplyPlanItem(
+            item={
+                **base,
+                "approval_status": "approved",
+                "apply_status": "skipped_duplicate",
+                "target_table": target_table,
+                "target_id": target_id,
+                "rollback_metadata": {
+                    "operation": "none",
+                    "reason": "target already existed",
+                    "target_table": target_table,
+                    "target_id": target_id,
+                },
+            }
+        )
+
+    if section == "priorities":
+        id_column = "priority_id"
+    elif section == "projects":
+        id_column = "project_id"
+    elif section == "followups":
+        id_column = "followup_id"
+    else:
+        raise ValueError(f"Unsupported Phase 13A apply target: {section}")
+
+    return _ApplyPlanItem(
+        item={
             **base,
             "approval_status": "approved",
-            "apply_status": "skipped_duplicate",
+            "apply_status": "applied",
             "target_table": target_table,
             "target_id": target_id,
             "rollback_metadata": {
-                "operation": "none",
-                "reason": "target already existed",
+                "operation": "insert",
                 "target_table": target_table,
                 "target_id": target_id,
+                "id_column": id_column,
             },
-        }
+        },
+        mutation={
+            "section": section,
+            "target_table": target_table,
+            "target_id": target_id,
+            "id_column": id_column,
+            "normalized": dict(normalized),
+            "preview_id": preview_id,
+            "candidate_key": candidate_key,
+            "candidate_hash": candidate_hash,
+            "created_at": created_at,
+        },
+    )
 
-    metadata = _core_metadata(
+
+def _commit_apply_plan(
+    connection: sqlite3.Connection,
+    *,
+    apply_run_id: str,
+    preview_id: str,
+    approval_source_type: str,
+    approval_source_hash: str,
+    approved_candidate_count: int,
+    plan_items: Sequence[_ApplyPlanItem],
+    created_at: str,
+) -> dict[str, Any]:
+    completed = _utc_now()
+    with connection:
+        items = [_execute_plan_item(connection, plan_item) for plan_item in plan_items]
+        counts = _item_counts(items, approved_candidate_count=approved_candidate_count)
+        run_status = _run_status_from_counts(counts)
+        internal_state_mutation = counts["applied_candidate_count"] > 0
+        safety_flags = _apply_safety_flags(
+            internal_state_mutation=internal_state_mutation,
+            rolled_back=False,
+        )
+        completion_report = _completion_report(
+            apply_run_id=apply_run_id,
+            preview_id=preview_id,
+            approval_source_type=approval_source_type,
+            approval_source_hash=approval_source_hash,
+            status=run_status,
+            counts=counts,
+            items=items,
+            safety_flags=safety_flags,
+        )
+        _insert_apply_run(
+            connection,
+            apply_run_id=apply_run_id,
+            preview_id=preview_id,
+            approval_source_type=approval_source_type,
+            approval_source_hash=approval_source_hash,
+            status=run_status,
+            counts=counts,
+            internal_state_mutation=internal_state_mutation,
+            created_at=created_at,
+            completed_at=completed,
+            completion_report=completion_report,
+        )
+        for item in items:
+            _insert_apply_item(connection, item)
+        update_synthesis_import_preview_status(
+            connection,
+            preview_id=preview_id,
+            status=_preview_status_for_run(run_status),
+            updated_at=completed,
+            commit=False,
+        )
+
+    run = get_synthesis_apply_run(connection, apply_run_id)
+    if run is None:
+        raise RuntimeError(f"Synthesis apply run was not persisted: {apply_run_id}")
+    return {
+        "status": run_status,
+        "reason": _reason_for_run_status(run_status),
+        "apply_run_id": apply_run_id,
+        "preview_id": preview_id,
+        "database_write": True,
+        "run": run,
+        "items": items,
+        "completion_report": completion_report,
+        **safety_flags,
+    }
+
+
+def _record_rolled_back_apply_failure(
+    connection: sqlite3.Connection,
+    *,
+    apply_run_id: str,
+    preview_id: str,
+    approval_source_type: str,
+    approval_source_hash: str,
+    approved_candidate_count: int,
+    plan_items: Sequence[_ApplyPlanItem],
+    created_at: str,
+    error: Exception,
+) -> dict[str, Any]:
+    persisted_after_rollback = _persisted_planned_mutations(connection, plan_items)
+    if persisted_after_rollback:
+        persisted = ", ".join(
+            f"{item['target_table']}:{item['target_id']}"
+            for item in persisted_after_rollback
+        )
+        raise RuntimeError(
+            "Synthesis apply transaction failed and planned mutations were still "
+            f"visible after rollback: {persisted}"
+        ) from error
+
+    completed = _utc_now()
+    error_message = str(error)
+    items = [_rolled_back_plan_item(plan_item.item, error_message) for plan_item in plan_items]
+    counts = _item_counts(items, approved_candidate_count=approved_candidate_count)
+    safety_flags = _apply_safety_flags(internal_state_mutation=False, rolled_back=True)
+    completion_report = _completion_report(
+        apply_run_id=apply_run_id,
         preview_id=preview_id,
-        candidate_key=candidate_key,
-        candidate_hash=candidate_hash,
+        approval_source_type=approval_source_type,
+        approval_source_hash=approval_source_hash,
+        status="failed",
+        counts=counts,
+        items=items,
+        safety_flags=safety_flags,
+        transaction_error=error_message,
+        rollback_verified=True,
+    )
+
+    with connection:
+        _insert_apply_run(
+            connection,
+            apply_run_id=apply_run_id,
+            preview_id=preview_id,
+            approval_source_type=approval_source_type,
+            approval_source_hash=approval_source_hash,
+            status="failed",
+            counts=counts,
+            internal_state_mutation=False,
+            created_at=created_at,
+            completed_at=completed,
+            completion_report=completion_report,
+        )
+        for item in items:
+            _insert_apply_item(connection, item)
+        update_synthesis_import_preview_status(
+            connection,
+            preview_id=preview_id,
+            status=_preview_status_for_run("failed"),
+            updated_at=completed,
+            commit=False,
+        )
+
+    run = get_synthesis_apply_run(connection, apply_run_id)
+    if run is None:
+        raise RuntimeError(f"Synthesis apply rollback audit was not persisted: {apply_run_id}")
+    return {
+        "status": "failed",
+        "reason": "Apply transaction failed; internal core mutations were rolled back.",
+        "apply_run_id": apply_run_id,
+        "preview_id": preview_id,
+        "database_write": True,
+        "run": run,
+        "items": items,
+        "completion_report": completion_report,
+        **safety_flags,
+    }
+
+
+def _execute_plan_item(
+    connection: sqlite3.Connection,
+    plan_item: _ApplyPlanItem,
+) -> dict[str, Any]:
+    item = dict(plan_item.item)
+    if plan_item.mutation is None:
+        return item
+
+    record = _execute_core_mutation(connection, plan_item.mutation)
+    item["rollback_metadata"] = {
+        **item["rollback_metadata"],
+        "created_record": record,
+    }
+    return item
+
+
+def _execute_core_mutation(
+    connection: sqlite3.Connection,
+    mutation: Mapping[str, Any],
+) -> dict[str, Any]:
+    section = str(mutation["section"])
+    normalized = mutation["normalized"]
+    if not isinstance(normalized, Mapping):
+        raise ValueError("planned synthesis apply mutation is malformed")
+    created_at = str(mutation["created_at"])
+    metadata = _core_metadata(
+        preview_id=str(mutation["preview_id"]),
+        candidate_key=str(mutation["candidate_key"]),
+        candidate_hash=str(mutation["candidate_hash"]),
         candidate=normalized,
     )
     notes = _notes_for_candidate(normalized)
+
     if section == "priorities":
-        record = create_priority(
+        return create_priority(
             connection,
-            priority_id=target_id,
+            priority_id=str(mutation["target_id"]),
             title=normalized["title"],
             status=normalized["status"],
             metadata=metadata,
             notes=notes,
             created_at_utc=created_at,
             updated_at_utc=created_at,
+            commit=False,
         )
-        id_column = "priority_id"
-    elif section == "projects":
-        record = create_project(
+    if section == "projects":
+        return create_project(
             connection,
-            project_id=target_id,
+            project_id=str(mutation["target_id"]),
             title=normalized["title"],
             status=normalized["status"],
             metadata=metadata,
             notes=notes,
             created_at_utc=created_at,
             updated_at_utc=created_at,
+            commit=False,
         )
-        id_column = "project_id"
-    elif section == "followups":
-        record = create_followup(
+    if section == "followups":
+        return create_followup(
             connection,
-            followup_id=target_id,
+            followup_id=str(mutation["target_id"]),
             title=normalized["title"],
             status=normalized["status"],
             source="synthesis_import_apply",
@@ -792,25 +983,116 @@ def _apply_supported_candidate(
             notes=notes,
             created_at_utc=created_at,
             updated_at_utc=created_at,
+            commit=False,
         )
-        id_column = "followup_id"
-    else:
-        raise ValueError(f"Unsupported Phase 13A apply target: {section}")
+    raise ValueError(f"Unsupported Phase 13A apply target: {section}")
 
-    return {
-        **base,
-        "approval_status": "approved",
-        "apply_status": "applied",
-        "target_table": target_table,
-        "target_id": target_id,
-        "rollback_metadata": {
-            "operation": "insert",
-            "target_table": target_table,
-            "target_id": target_id,
-            "id_column": id_column,
-            "created_record": record,
-        },
+
+def _persisted_planned_mutations(
+    connection: sqlite3.Connection,
+    plan_items: Sequence[_ApplyPlanItem],
+) -> list[dict[str, str]]:
+    persisted: list[dict[str, str]] = []
+    for plan_item in plan_items:
+        mutation = plan_item.mutation
+        if mutation is None:
+            continue
+        target = _existing_target(
+            connection,
+            section=str(mutation["section"]),
+            target_id=str(mutation["target_id"]),
+        )
+        if target is not None:
+            persisted.append(
+                {
+                    "target_table": str(mutation["target_table"]),
+                    "target_id": str(mutation["target_id"]),
+                }
+            )
+    return persisted
+
+
+def _rolled_back_plan_item(item: Mapping[str, Any], error_message: str) -> dict[str, Any]:
+    rolled_back = dict(item)
+    rollback_metadata = dict(rolled_back["rollback_metadata"])
+    rollback_metadata.update(
+        {
+            "rolled_back": True,
+            "original_apply_status": rolled_back["apply_status"],
+            "transaction_error": error_message,
+        }
+    )
+    rolled_back["rollback_metadata"] = rollback_metadata
+    rolled_back["validation_report"] = {
+        **rolled_back["validation_report"],
+        "transaction_rolled_back": True,
     }
+    if rolled_back["apply_status"] == "applied":
+        rolled_back["apply_status"] = "failed"
+        rolled_back["error_message"] = (
+            "Apply transaction rolled back before audit completion: "
+            f"{error_message}"
+        )
+    return rolled_back
+
+
+def _insert_apply_run(
+    connection: sqlite3.Connection,
+    *,
+    apply_run_id: str,
+    preview_id: str,
+    approval_source_type: str,
+    approval_source_hash: str,
+    status: str,
+    counts: Mapping[str, int],
+    internal_state_mutation: bool,
+    created_at: str,
+    completed_at: str,
+    completion_report: Mapping[str, Any],
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO synthesis_apply_runs (
+            apply_run_id,
+            preview_id,
+            approval_source_type,
+            approval_source_hash,
+            status,
+            approved_candidate_count,
+            applied_candidate_count,
+            blocked_candidate_count,
+            skipped_candidate_count,
+            failed_candidate_count,
+            no_external_writes,
+            no_send_mode,
+            live_write,
+            internal_state_mutation,
+            created_at,
+            completed_at,
+            completion_report_json
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            apply_run_id,
+            preview_id,
+            approval_source_type,
+            approval_source_hash,
+            _validate_choice("status", status, SYNTHESIS_APPLY_RUN_STATUSES),
+            counts["approved_candidate_count"],
+            counts["applied_candidate_count"],
+            counts["blocked_candidate_count"],
+            counts["skipped_candidate_count"],
+            counts["failed_candidate_count"],
+            1,
+            1,
+            0,
+            int(bool(internal_state_mutation)),
+            created_at,
+            completed_at,
+            _json_dumps(completion_report),
+        ),
+    )
 
 
 def _insert_apply_item(connection: sqlite3.Connection, item: Mapping[str, Any]) -> None:
@@ -1132,8 +1414,11 @@ def _completion_report(
     status: str,
     counts: Mapping[str, int],
     items: Sequence[Mapping[str, Any]],
+    safety_flags: Mapping[str, bool],
+    transaction_error: str | None = None,
+    rollback_verified: bool | None = None,
 ) -> dict[str, Any]:
-    return {
+    report = {
         "apply_run_id": apply_run_id,
         "preview_id": preview_id,
         "approval_source_type": approval_source_type,
@@ -1150,7 +1435,24 @@ def _completion_report(
                 if item["approval_status"] == "unsupported"
             }
         ),
+        **safety_flags,
+    }
+    if transaction_error is not None:
+        report["transaction_error"] = transaction_error
+    if rollback_verified is not None:
+        report["rollback_verified"] = rollback_verified
+    return report
+
+
+def _apply_safety_flags(
+    *,
+    internal_state_mutation: bool,
+    rolled_back: bool = False,
+) -> dict[str, bool]:
+    return {
         **APPLY_SAFETY_FLAGS,
+        "internal_state_mutation": bool(internal_state_mutation),
+        "rolled_back": bool(rolled_back),
     }
 
 
@@ -1172,7 +1474,7 @@ def _blocked_result(
         "external_mutation": False,
         "items": [],
         "completion_report": None,
-        **APPLY_SAFETY_FLAGS,
+        **_apply_safety_flags(internal_state_mutation=False, rolled_back=False),
     }
 
 

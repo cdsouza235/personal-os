@@ -877,7 +877,7 @@ Non-goals:
 
 ## Phase 13A: Approval-Gated Synthesis Apply Flow
 
-Status: current.
+Status: merged baseline.
 
 Scope:
 
@@ -908,7 +908,7 @@ Safety behavior:
 - Apply fails closed unless read, write, and apply permissions are explicitly
   enabled for dev/test use.
 - Completion reports expose `no_external_writes=true`, `no_send_mode=true`,
-  `live_write=false`, and `internal_state_mutation=true`.
+  `live_write=false`, and an `internal_state_mutation` flag.
 - Approval files must be explicit safe input files and must not live under
   protected PersonalOS, `.openclaw`, repo-local `var/`, credential/OAuth, or
   production-looking paths.
@@ -932,6 +932,50 @@ Non-goals:
 - No dashboard Apply button, mutation form, or POST apply route.
 - No public/LAN dashboard exposure, auth/login, Apple Health/wearables,
   Notion, TradingView, or market-data integration.
+
+## Phase 13B: Synthesis Apply Atomicity / Recovery Hardening
+
+Status: current.
+
+Scope:
+
+- Keep the Phase 13A CLI, approval file, permission keys, supported targets,
+  and candidate-level outcomes unchanged.
+- Plan candidate outcomes before mutation where possible.
+- Execute internal core-state inserts, `synthesis_apply_runs`,
+  `synthesis_apply_items`, and `synthesis_import_previews` apply status updates
+  inside one explicit SQLite transaction.
+- Prevent committed priorities, projects, or follow-ups from drifting away from
+  their apply audit trail.
+- Preserve duplicate/idempotent reruns as no-op audit records with
+  `skipped_duplicate` item outcomes.
+- If an in-transaction write fails, roll back the whole apply transaction and
+  write a failed recovery audit only after verifying that planned core-state
+  inserts did not persist.
+
+Recovery behavior:
+
+- Successful applies set `internal_state_mutation=true` only when core rows are
+  actually created.
+- No-op duplicate, blocked, validation-failed, unsupported-only, and rollback
+  recovery reports set `internal_state_mutation=false`.
+- Rollback recovery reports set `rolled_back=true`, `rollback_verified=true`,
+  and do not leave any apply item with `apply_status=applied`.
+- Failed rollback recovery updates the preview status to `apply_failed` with the
+  failed audit run/items in the same recovery transaction.
+
+Safety behavior:
+
+- Completion reports continue to expose `no_external_writes=true`,
+  `no_send_mode=true`, `live_write=false`, `no_todoist_writes=true`,
+  `no_calendar_writes=true`, `no_gmail_send=true`,
+  `no_personalos_writes=true`, and `no_live_model_call=true`.
+- No migration is required; recovery metadata is stored in the existing apply
+  run/item JSON fields and the existing `internal_state_mutation` column already
+  accepts `0`.
+- No live Todoist, Calendar, Gmail, PersonalOS Markdown, model/API, scheduler,
+  LaunchAgent, `.openclaw`, dashboard mutation, production DB activation,
+  Phase 13C, or live-rail work is included.
 
 Likely next phase:
 

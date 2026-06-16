@@ -458,6 +458,13 @@ candidate key, and candidate hash so repeated approvals safely become
 `skipped_duplicate` audit outcomes instead of duplicate internal records.
 Rollback metadata records which internal row was inserted.
 
+Phase 13B keeps those targets and IDs unchanged but changes the write boundary:
+candidate outcomes are planned before mutation where practical, then core row
+inserts, apply run insertion, apply item insertion, and preview apply-status
+updates run inside one explicit SQLite transaction. If any in-transaction write
+fails, SQLite rolls back the whole apply attempt so core state cannot commit
+without the matching apply audit rows.
+
 The audit model contains:
 
 - `synthesis_apply_runs`: one row for each apply attempt, including approval
@@ -481,10 +488,19 @@ credential/OAuth, or production-looking paths. Today View, status, and the
 static dashboard expose apply history as read-only summaries only; there is no
 dashboard Apply button and no POST apply route.
 
-Phase 13A completion reports expose `no_external_writes=true`,
-`no_send_mode=true`, `live_write=false`, and
-`internal_state_mutation=true`. No external write intent is created by this
-flow.
+Phase 13B recovery remains internal-state-only. After rollback, a failed
+recovery audit may be written only if planned core inserts are verified absent.
+Recovery completion reports set `rolled_back=true`,
+`rollback_verified=true`, and `internal_state_mutation=false`; recovery items
+do not claim `apply_status=applied`. Successful applies set
+`internal_state_mutation=true` only when core rows actually changed, while
+duplicate/no-op and blocked reports keep it false.
+
+Synthesis apply completion reports expose `no_external_writes=true`,
+`no_send_mode=true`, `live_write=false`, `no_todoist_writes=true`,
+`no_calendar_writes=true`, `no_gmail_send=true`,
+`no_personalos_writes=true`, and `no_live_model_call=true`. No external write
+intent is created by this flow.
 
 ## Validated Runtime Module Definition
 

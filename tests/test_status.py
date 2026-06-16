@@ -39,6 +39,8 @@ class StatusSummaryTest(unittest.TestCase):
                 "external_write_intents": 0,
                 "external_write_attempts": 0,
                 "idempotency_records": 0,
+                "synthesis_apply_runs": 0,
+                "synthesis_apply_items": 0,
             },
         )
         self.assertEqual(summary["permission_settings"], [])
@@ -86,6 +88,8 @@ class StatusSummaryTest(unittest.TestCase):
                 "external_write_intents": 0,
                 "external_write_attempts": 0,
                 "idempotency_records": 0,
+                "synthesis_apply_runs": 0,
+                "synthesis_apply_items": 0,
             },
         )
         self.assertEqual(summary["permission_settings"], [permission])

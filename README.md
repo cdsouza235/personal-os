@@ -128,15 +128,15 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 12A are complete. The Phase 6B, Phase 7B, Phase 8B, and
-Phase 12A fake/local smoke tests are complete.
+Phases -1 through 12B are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete.
 
-The current Phase 12B scope is the side-effect and idempotency ledger
-foundation. It adds durable local SQLite tables and helpers for future write
-rails to record intended side effects, deterministic idempotency keys, payload
-fingerprints, duplicate prevention, dry-run/simulated attempts, and completion
-reports before any live Todoist, Calendar, Gmail, PersonalOS Markdown, or
-external write rail is allowed.
+The current Phase 13A scope is the approval-gated synthesis apply flow. It
+allows existing `synthesis_import_previews` to be applied candidate-by-candidate
+into safe internal SQLite core state only after an explicit approval JSON file
+is supplied. It does not write Todoist, Calendar, Gmail, PersonalOS Markdown,
+external write intents, scheduler jobs, LaunchAgents, production runtime state,
+or any live external system.
 
 Phase 12A added the `personalos` command-line surface so Chris/OpenClaw can
 run existing inert read, preview, export, and static-render workflows without
@@ -153,16 +153,18 @@ Supported local CLI commands:
 - `personalos briefing preview --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --window morning`
 - `personalos briefing export --db /tmp/personalos-preview.sqlite3 --briefing-output-id <id> --output-file /tmp/morning-brief.md`
 - `personalos synthesis preview --db /tmp/personalos-preview.sqlite3 --input-file /tmp/structured-synthesis.json --source-type chatgpt_synthesis`
+- `personalos synthesis apply --db /tmp/personalos-preview.sqlite3 --preview-id <preview_id> --approval-file /tmp/synthesis-approval.json`
 - `personalos side-effects summary --db /tmp/personalos-preview.sqlite3`
 - `personalos side-effects record-dry-run --db /tmp/personalos-preview.sqlite3 --input-file /tmp/side-effect-intent.json`
 - `personalos dashboard render --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --output-file /tmp/today.html`
 
 The CLI prints human-readable completion reports by default and supports
 `--json` where practical. It does not bootstrap, seed, migrate, bind a server,
-write PersonalOS Markdown, apply/save synthesis candidates, write Todoist or
-Calendar, send or draft Gmail, call live model APIs, start a scheduler,
-activate production runtime, access protected PersonalOS/OpenClaw paths, or
-perform live external writes.
+write PersonalOS Markdown, write Todoist or Calendar, send or draft Gmail,
+call live model APIs, start a scheduler, activate production runtime, access
+protected PersonalOS/OpenClaw paths, or perform live external writes. The
+Phase 13A `synthesis apply` command is the only synthesis apply surface and
+mutates only internal dev/test SQLite core tables after explicit approval.
 
 Phase 12B adds `external_write_intents`, `external_write_attempts`, and
 `idempotency_records`. The `side-effects summary` command is read-only.
@@ -181,6 +183,35 @@ Phase 12B permission keys:
 
 All Phase 12B write/attempt permissions fail closed when missing, disabled,
 invalid, or approval-only. No live-write permission key is added.
+
+Phase 13A adds `synthesis_apply_runs` and `synthesis_apply_items` audit
+tables plus a CLI-only apply path for reviewed synthesis previews. Approval
+files must reference the exact `preview_id` and list approved candidates
+explicitly by type and index. There is no approve-all default, no raw-prose
+apply path, and no dashboard Apply button.
+
+Phase 13A supported apply targets:
+
+- priorities
+- projects
+- followups
+
+Unsupported candidates such as routine changes, Todoist tasks, Calendar
+blocks, clarity notes, review questions, PersonalOS Markdown notes, Gmail
+messages, relationship messages, and high-stakes execution actions are
+recorded at item level as skipped, unsupported, review-required, blocked, or
+failed. They are not executed and are not converted into external write
+intents.
+
+Phase 13A permission keys:
+
+- `synthesis_apply_dev_test_read`
+- `synthesis_apply_dev_test_write`
+- `synthesis_apply_dev_test_apply`
+
+Apply requires the dev/test apply permission plus read/write permissions and
+fails closed when they are missing, disabled, invalid, or approval-only. No
+production apply permission and no live rail permission is added.
 
 ## Phase 1 Runtime Foundation
 

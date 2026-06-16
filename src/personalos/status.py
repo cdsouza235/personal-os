@@ -13,6 +13,10 @@ from personalos.side_effects import (
     count_external_write_intents,
     count_idempotency_records,
 )
+from personalos.synthesis_apply import (
+    count_synthesis_apply_items,
+    count_synthesis_apply_runs,
+)
 from personalos.state import (
     count_fitness_file_contracts,
     count_fitness_integration_states,
@@ -45,6 +49,8 @@ def create_status_summary(
             "external_write_intents": count_external_write_intents(connection),
             "external_write_attempts": count_external_write_attempts(connection),
             "idempotency_records": count_idempotency_records(connection),
+            "synthesis_apply_runs": count_synthesis_apply_runs(connection),
+            "synthesis_apply_items": count_synthesis_apply_items(connection),
         },
         "permission_settings": permission_settings,
         "permission_settings_count": len(permission_settings),

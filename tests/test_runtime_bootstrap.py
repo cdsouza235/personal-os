@@ -134,6 +134,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     "0009",
                     "00010",
                     "00011",
+                    "00012",
                 ],
             )
 
@@ -148,7 +149,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     ("runtime_bootstrap_runs",),
                 ).fetchone()
 
-            self.assertEqual(len(rows), 11)
+                self.assertEqual(len(rows), 12)
             self.assertIsNotNone(table)
 
     def test_bootstrap_enables_sqlite_foreign_keys(self) -> None:
@@ -286,7 +287,10 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
         self.assertEqual([row["enabled"] for row in routine_rows], [0, 0])
         self.assertEqual(priority["status"], "paused")
         self.assertIn('"fake":true', priority["metadata_json"])
-        self.assertEqual([row["name"] for row in briefing_rows], ["morning", "midday", "afternoon", "evening"])
+        self.assertEqual(
+            [row["name"] for row in briefing_rows],
+            ["morning", "midday", "afternoon", "evening"],
+        )
         self.assertTrue(all(row["delivery_mode"] == "no_send" for row in briefing_rows))
         self.assertTrue(all(row["status"] == "draft" for row in briefing_rows))
         self.assertEqual(blocked_calendar["mode"], PermissionMode.DISABLED.value)

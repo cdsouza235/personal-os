@@ -331,7 +331,7 @@ class SynthesisImportPersistenceTest(unittest.TestCase):
         invalid_cases = (
             ("bad-source", "chatgpt_synthesis", "json", "validated", "short"),
             ("bad-format", "chatgpt_synthesis", "prose", "validated", "short"),
-            ("bad-status", "chatgpt_synthesis", "json", "applied", "short"),
+            ("bad-status", "chatgpt_synthesis", "json", "apply_live", "short"),
             ("bad-excerpt", "chatgpt_synthesis", "json", "validated", too_long_excerpt),
         )
 

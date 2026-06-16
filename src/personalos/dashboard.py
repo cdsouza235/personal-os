@@ -234,6 +234,7 @@ def render_today_view_html(
   </div>
 
   {_render_synthesis_import_preview_summary(summary["synthesis_import_preview_summary"])}
+  {_render_synthesis_apply_summary(summary["synthesis_apply_summary"])}
   {synthesis_form_html}
   {_render_routine_summary(summary["routine_summary"])}
   {_render_priority_summary(summary["priority_summary"])}
@@ -708,6 +709,30 @@ def _render_calendar_block_summary(summary: Mapping[str, Any]) -> str:
                 ("Status counts", _format_counts(summary["counts_by_status"])),
                 ("Risk counts", _format_counts(summary["counts_by_risk_level"])),
                 ("Approval counts", _format_counts(summary["counts_by_approval_mode"])),
+            )
+        ),
+    )
+
+
+def _render_synthesis_apply_summary(summary: Mapping[str, Any]) -> str:
+    availability = "available" if summary.get("available") else "permission required"
+    return _section(
+        "synthesis-apply-summary",
+        "Synthesis Apply History",
+        _definition_list(
+            (
+                ("Status", availability),
+                ("Required permission", summary.get("permission_required", "")),
+                ("Apply runs", summary.get("apply_run_count", 0)),
+                ("Apply items", summary.get("apply_item_count", 0)),
+                ("Latest status", summary.get("latest_status") or "none"),
+                ("Latest applied", summary.get("latest_applied_candidate_count", 0)),
+                ("Latest blocked", summary.get("latest_blocked_candidate_count", 0)),
+                ("Latest skipped", summary.get("latest_skipped_candidate_count", 0)),
+                ("Latest failed", summary.get("latest_failed_candidate_count", 0)),
+                ("No external writes", _format_bool(summary.get("latest_no_external_writes"))),
+                ("No-send mode", _format_bool(summary.get("latest_no_send_mode"))),
+                ("Live write", _format_bool(summary.get("latest_live_write"))),
             )
         ),
     )

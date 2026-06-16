@@ -71,6 +71,8 @@ The initial runtime state model should document and eventually implement these e
 - composer_outputs
 - model_runs
 - synthesis_import_previews
+- synthesis_apply_runs
+- synthesis_apply_items
 - permissions
 - system_events
 - report_jobs
@@ -441,6 +443,48 @@ The schema also rejects attempts to persist live-write claims. No scheduler,
 LaunchAgents, `.openclaw` integration, production DB activation, live
 model/API call, Gmail send/draft, Todoist write, Calendar write, PersonalOS
 Markdown write, apply/save import flow, or dashboard mutation form is added.
+
+## Approval-Gated Synthesis Apply
+
+Phase 13A bridges structured synthesis import previews to durable internal
+SQLite state. It does not bridge to external execution rails. The apply flow
+loads an existing `synthesis_import_previews` record, verifies an explicit
+approval JSON file for the same `preview_id`, re-runs candidate validation,
+and applies only candidate-by-candidate approved internal targets.
+
+Allowed Phase 13A apply targets are `priorities`, `projects`, and
+`followups`. Applied rows use deterministic IDs derived from the preview ID,
+candidate key, and candidate hash so repeated approvals safely become
+`skipped_duplicate` audit outcomes instead of duplicate internal records.
+Rollback metadata records which internal row was inserted.
+
+The audit model contains:
+
+- `synthesis_apply_runs`: one row for each apply attempt, including approval
+  source hash, final status, item counts, safety flags, and completion report.
+- `synthesis_apply_items`: one row for each preview candidate considered by
+  an apply attempt, including candidate key/hash, approval status, apply
+  status, target table/ID when applicable, validation report, rollback
+  metadata, and error message.
+
+Unsupported targets such as routine changes, Todoist tasks, Calendar blocks,
+clarity notes, review questions, Gmail messages, PersonalOS Markdown notes,
+relationship messages, external rail actions, and high-stakes execution
+instructions remain non-executable. They are recorded as skipped,
+unsupported, review-required, blocked, or failed at item level.
+
+The only mutation surface in Phase 13A is the CLI command
+`personalos synthesis apply --db <safe_db> --preview-id <id> --approval-file
+<safe_json>`. The approval file must be an explicit safe input file and must
+not live under protected PersonalOS, `.openclaw`, repo-local `var/`,
+credential/OAuth, or production-looking paths. Today View, status, and the
+static dashboard expose apply history as read-only summaries only; there is no
+dashboard Apply button and no POST apply route.
+
+Phase 13A completion reports expose `no_external_writes=true`,
+`no_send_mode=true`, `live_write=false`, and
+`internal_state_mutation=true`. No external write intent is created by this
+flow.
 
 ## Validated Runtime Module Definition
 

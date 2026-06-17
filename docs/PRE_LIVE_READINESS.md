@@ -3,9 +3,10 @@
 ## Purpose
 
 Phase 13F-A defines the mandatory readiness gate before any Phase 14 or live
-rail work. It is documentation and policy design only. It does not implement
-live rails, add source code, add migrations, activate a scheduler, activate a
-production database, call live APIs, or authorize OpenClaw runtime operation.
+rail work. Phase 13F-B encodes that policy as inert repo-level readiness
+structures and tests. It does not implement live rails, add migrations,
+activate a scheduler, activate a production database, call live APIs, load
+credentials, or authorize OpenClaw runtime operation.
 
 No live rail may move from preview/dry-run behavior to live behavior until
 Chris explicitly approves the specific rail, specific production surface,
@@ -34,6 +35,11 @@ live permission.
 
 No new live permission exists until a later implementation phase adds it in
 source code, tests it, documents it, and Chris approves it by name.
+
+Phase 13F-B adds only an inert readiness evaluator. The evaluator may return
+machine-readable gate and rail status, but it must not contact external
+services, load credentials, create runtime files, mutate production state,
+activate schedulers, or call OpenClaw.
 
 ## Terminology
 

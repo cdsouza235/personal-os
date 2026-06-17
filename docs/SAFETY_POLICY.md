@@ -6,12 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 13D are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13F-A are complete, and the Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13F-A work is docs-only pre-live readiness policy. It may edit only
-approved repository documentation. It must not add source code, tests,
-migrations, configs, runtime state, scripts, live rails, scheduler activation,
-OpenClaw runtime operation, production DB activation, or live external writes.
+Phase 13F-B work is inert pre-live readiness gate code/tests. It may edit only
+approved repository source, tests, and documentation for read-only readiness
+evaluation. It must not add migrations, runtime state, scripts, live rails,
+scheduler activation, OpenClaw runtime operation, production DB activation,
+credential loading, or live external writes.
 It must not inspect or mutate live runtime files, live PersonalOS files or
 fitness CSVs, credentials, external systems, production ledgers, production
 SQLite state, or any production state.
@@ -49,10 +50,11 @@ Before any Phase 14/live-rail work, the repo must satisfy:
 - [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
 - [Production DB Policy](PRODUCTION_DB_POLICY.md)
 
-These documents define policy only. They do not create live permissions,
-activate production SQLite, activate schedulers, authorize OpenClaw runtime
-workflows, or enable Gmail, Todoist, Calendar, PersonalOS Markdown, or live
-model/API calls.
+These documents and the inert Phase 13F-B readiness evaluator define policy
+and readiness status only. They do not create live permissions, activate
+production SQLite, activate schedulers, authorize OpenClaw runtime workflows,
+or enable Gmail, Todoist, Calendar, PersonalOS Markdown, or live model/API
+calls.
 
 ## Phase 0 Rule
 

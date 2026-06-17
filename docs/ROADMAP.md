@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 13D are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13F-A are complete. The Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13F-A work is docs-only pre-live readiness policy. This repo still has
-no production runtime activation.
+Phase 13F-B work is inert pre-live readiness gate code/tests. This repo still
+has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -1066,7 +1066,7 @@ Likely next phase:
 
 ## Phase 13F-A: Pre-Live Readiness Gate Docs
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -1106,5 +1106,46 @@ Non-goals:
 
 Likely next phase:
 
-- Separate implementation or live-rail planning only after explicit approval
-  and only after the pre-live readiness gate is reviewed.
+- Phase 13F-B inert pre-live readiness gate config/schema/tests.
+
+## Phase 13F-B: Inert Pre-Live Readiness Gate
+
+Status: current.
+
+Scope:
+
+- Add an inert readiness model and evaluator for the Phase 13F-A policy gates.
+- Represent live rail statuses for Gmail, Todoist, Google Calendar,
+  PersonalOS Markdown writes, OpenClaw runtime workflows, scheduler/
+  LaunchAgent/background loop activation, live model/API calls, and production
+  SQLite state.
+- Default every live rail to disabled and fail closed when config is missing
+  or required approval markers are absent.
+- Keep readiness evaluation pure/read-only: no external services, credential
+  loading, scheduler activation, OpenClaw operation, production DB mutation, or
+  runtime-state mutation.
+- Add focused unit tests for default blocked/not-ready behavior, missing
+  config, dry-run/apply/live terminology, protected path rejection, Chris
+  approval, kill switch, idempotency, side-effect ledger, completion report,
+  and first-live pilot gates.
+
+Non-goals:
+
+- No live Gmail send/draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No PersonalOS Markdown writes.
+- No OpenClaw runtime operation.
+- No scheduler activation, LaunchAgents, crontab, daemons, or background
+  workers.
+- No live model/API calls.
+- No credentials or OAuth loading.
+- No production DB activation or production ledger mutation.
+- No protected PersonalOS or `.openclaw` access.
+- No Phase 13E, Phase 14, or live-rail implementation.
+
+Likely next phase:
+
+- Separate review or follow-on readiness hardening only after explicit
+  approval. Live rails, scheduler activation, production DB activation, and
+  OpenClaw runtime operation remain separate future approvals.

@@ -3,12 +3,15 @@
 ## Purpose
 
 This policy defines the activation requirements for live rails in Personal OS.
-It is documentation and policy design only. It does not add live permission
-keys, implement live adapters, activate a scheduler, activate production
-SQLite, call live APIs, or authorize OpenClaw runtime operation.
+It is policy design plus the Phase 13F-B inert readiness model/tests. It does
+not add live permission keys, implement live adapters, activate a scheduler,
+activate production SQLite, call live APIs, load credentials, or authorize
+OpenClaw runtime operation.
 
 All live rails remain disabled until a later implementation phase adds the
 rail, tests it, documents it, and Chris explicitly approves activation.
+Phase 13F-B rail statuses are descriptive only; a disabled, blocked,
+not-configured, or requires-approval status is not an activation path.
 
 ## Shared Activation Rules
 

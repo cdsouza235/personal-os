@@ -41,6 +41,11 @@ machine-readable gate and rail status, but it must not contact external
 services, load credentials, create runtime files, mutate production state,
 activate schedulers, or call OpenClaw.
 
+Phase 13F-C exposes that evaluator through local read-only status surfaces.
+The CLI/status/dashboard report is informational only. It may show readiness
+status, gate results, live rail statuses, and missing or blocked reasons, but
+it must not turn a ready, not-ready, or blocked report into live activation.
+
 ## Terminology
 
 - Preview: validates and reports what would happen without mutating state or

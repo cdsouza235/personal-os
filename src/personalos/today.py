@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.config import DEFAULT_TIMEZONE
+from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.scheduler import summarize_scheduler
 from personalos.side_effects import summarize_side_effect_ledgers_unchecked
 from personalos.state import (
@@ -100,6 +101,7 @@ def create_today_view_summary(
         "synthesis_apply_summary": _synthesis_apply_summary(connection),
         "side_effect_ledger_summary": summarize_side_effect_ledgers_unchecked(connection),
         "scheduler_summary": summarize_scheduler(connection),
+        "pre_live_readiness_summary": create_default_pre_live_readiness_report(),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
         "warnings": list(SAFETY_WARNINGS),

@@ -248,6 +248,7 @@ def render_today_view_html(
   {_render_briefing_output_summary(summary["briefing_output_summary"])}
   {_render_side_effect_ledger_summary(summary["side_effect_ledger_summary"])}
   {_render_scheduler_summary(summary["scheduler_summary"])}
+  {_render_pre_live_readiness_summary(summary["pre_live_readiness_summary"])}
   {_render_permission_summary(summary["permission_summary"])}
   {_render_system_status_summary(summary["system_status_summary"])}
   {_render_warnings(summary["warnings"])}
@@ -936,6 +937,48 @@ def _render_scheduler_summary(summary: Mapping[str, Any]) -> str:
         )
         + _render_list(summary.get("warnings", [])),
     )
+
+
+def _render_pre_live_readiness_summary(summary: Mapping[str, Any]) -> str:
+    gate_rows = [
+        (
+            gate["gate"],
+            gate["status"],
+            _format_bool(gate["satisfied"]),
+            gate["reason"],
+        )
+        for gate in summary.get("gates", [])
+    ]
+    rail_rows = [
+        (
+            rail["rail"],
+            rail["status"],
+            _format_bool(rail["active"]),
+            rail["reason"],
+        )
+        for rail in summary.get("rails", [])
+    ]
+    body = (
+        _definition_list(
+            (
+                ("Overall status", summary.get("status", "unknown")),
+                ("Inert report only", _format_bool(summary.get("inert_report_only"))),
+                ("Read-only", _format_bool(summary.get("read_only"))),
+                ("Live rails activated", _format_bool(summary.get("live_rails_activated"))),
+                ("No external writes", _format_bool(summary.get("no_external_writes"))),
+                ("No credentials loaded", _format_bool(summary.get("no_credentials_loaded"))),
+                ("No production DB active", _format_bool(summary.get("no_production_db_active"))),
+                ("No scheduler activation", _format_bool(summary.get("no_scheduler_activation"))),
+                ("No OpenClaw call", _format_bool(summary.get("no_openclaw_call"))),
+                ("Summary", summary.get("summary_text", "")),
+            )
+        )
+        + "<h3>Gate Results</h3>"
+        + _table(("Gate", "Status", "Satisfied", "Reason"), gate_rows)
+        + "<h3>Live Rail Statuses</h3>"
+        + _table(("Rail", "Status", "Active", "Reason"), rail_rows)
+    )
+    return _section("pre-live-readiness-summary", "Pre-Live Readiness", body)
 
 
 def _render_permission_summary(summary: Mapping[str, Any]) -> str:

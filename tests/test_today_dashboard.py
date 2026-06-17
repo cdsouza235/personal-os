@@ -98,6 +98,12 @@ class TodayViewSummaryTest(unittest.TestCase):
         self.assertEqual(summary["side_effect_ledger_summary"]["attempt_count"], 0)
         self.assertTrue(summary["side_effect_ledger_summary"]["no_external_writes"])
         self.assertFalse(summary["side_effect_ledger_summary"]["live_write"])
+        self.assertEqual(summary["scheduler_summary"]["scheduler_job_count"], 0)
+        self.assertEqual(summary["scheduler_summary"]["scheduler_run_count"], 0)
+        self.assertTrue(summary["scheduler_summary"]["no_external_writes"])
+        self.assertTrue(summary["scheduler_summary"]["no_send_mode"])
+        self.assertFalse(summary["scheduler_summary"]["scheduler_activation"])
+        self.assertFalse(summary["scheduler_summary"]["launch_agent_installed"])
         self.assertEqual(
             summary["synthesis_import_preview_summary"]["permission_required"],
             SYNTHESIS_IMPORT_READ_PERMISSION,
@@ -233,6 +239,7 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Briefing Loop", html)
         self.assertIn("Briefing Outputs", html)
         self.assertIn("Side-Effect Ledgers", html)
+        self.assertIn("Scheduler Simulations", html)
         self.assertIn("ChatGPT Synthesis Import Preview", html)
         self.assertIn("/synthesis-import/preview", html)
         self.assertIn("Synthesis Import Previews", html)
@@ -735,7 +742,7 @@ class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
             "no public internet exposure",
             "no live todoist writes",
             "no task/calendar mutation from dashboard",
-            "no scheduler",
+            "no scheduler activation",
             "no production runtime activation",
         )
         for phrase in required_phrases:
@@ -759,7 +766,7 @@ class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
             "manual export preview is read-only",
             "completion report safety flags",
             "no generation button",
-            "no scheduler",
+            "no scheduler activation",
             "no gmail/model/todoist/calendar writes",
             "future real-content redaction",
         )

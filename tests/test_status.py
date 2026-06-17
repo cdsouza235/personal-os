@@ -41,6 +41,8 @@ class StatusSummaryTest(unittest.TestCase):
                 "idempotency_records": 0,
                 "synthesis_apply_runs": 0,
                 "synthesis_apply_items": 0,
+                "scheduler_jobs": 0,
+                "scheduler_runs": 0,
             },
         )
         self.assertEqual(summary["permission_settings"], [])
@@ -90,6 +92,8 @@ class StatusSummaryTest(unittest.TestCase):
                 "idempotency_records": 0,
                 "synthesis_apply_runs": 0,
                 "synthesis_apply_items": 0,
+                "scheduler_jobs": 0,
+                "scheduler_runs": 0,
             },
         )
         self.assertEqual(summary["permission_settings"], [permission])

@@ -3,11 +3,13 @@
 Personal OS is a modular, local-first productivity, routine, priority, and execution operating system. It helps Chris think clearly, maintain routines, manage high-value priorities, generate briefings, create Todoist tasks, schedule Calendar blocks, preserve durable notes, and run reports through OpenClaw on the Mac Mini.
 
 This repository is the private code source of truth for Personal OS. It now
-contains local dev/test foundations through Phase 13D: SQLite migrations and
+contains local dev/test foundations through Phase 13F-D: SQLite migrations and
 state helpers, no-send CLI and dashboard surfaces, fake/simulated execution
 rails, approval-gated internal synthesis apply, side-effect/idempotency
-ledgers, simulated scheduler records, and Phase 13F-A pre-live readiness
-policy docs. It still has no live/prod rails:
+ledgers, simulated scheduler records, Phase 13F-A pre-live readiness policy
+docs, the Phase 13F-B inert readiness evaluator, the Phase 13F-C read-only
+readiness status surface, and Phase 13F-D activation checklist/pilot protocol
+docs. It still has no live/prod rails:
 no live Gmail, Todoist, Calendar, model/API, LaunchAgent, OpenClaw,
 PersonalOS Markdown, production SQLite, or background scheduler activation is
 enabled from this repo.
@@ -83,6 +85,8 @@ Codex must not send email, write Todoist, write Calendar, load LaunchAgents, mod
 Before any Phase 14/live-rail work, the repo must satisfy the docs-only
 [Pre-Live Readiness Gate](docs/PRE_LIVE_READINESS.md), the
 [Live Rail Activation Policy](docs/LIVE_RAIL_ACTIVATION_POLICY.md), the
+[Activation Checklist](docs/ACTIVATION_CHECKLIST.md), the
+[First-Live Pilot Protocol](docs/FIRST_LIVE_PILOT_PROTOCOL.md), the
 [Operator Handoff Contract](docs/OPERATOR_HANDOFF_CONTRACT.md), and the
 [Production DB Policy](docs/PRODUCTION_DB_POLICY.md). These policies do not
 activate live rails, production SQLite, OpenClaw workflows, schedulers, or
@@ -144,16 +148,15 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 13D are complete. The Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-A is
-a docs-only pre-live readiness gate. It adds policy documents for live rail
-activation, operator handoff, and production DB activation before any future
-Phase 14/live-rail work.
+Phases -1 through 13F-C are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-D is
+activation checklist and first-live pilot protocol documentation. It does not
+start Phase 14 or activate any live rail.
 
-Phase 13F-A must not add source code, migrations, configs, runtime state,
-scripts, live rails, scheduler activation, LaunchAgents, crontab entries,
-daemons, background workers, production runtime state, OpenClaw runtime
-operation, or live external writes.
+Phase 13F-D must not add migrations, configs, runtime state, live rails,
+scheduler activation, LaunchAgents, crontab entries, daemons, background
+workers, production runtime state, OpenClaw runtime operation, credential
+loading, production DB activation, or live external writes.
 
 Canonical full-suite test command:
 

@@ -8,6 +8,8 @@ does not approve a production DB path, add migrations, run migrations, create
 runtime artifacts, or activate production state.
 
 Production SQLite activation requires separate explicit Chris approval.
+The future [Activation Checklist](ACTIVATION_CHECKLIST.md) must also be
+completed before any production DB path is approved or used for a live pilot.
 
 ## Environment Classes
 
@@ -50,6 +52,10 @@ Before production activation, Chris must approve:
 The production path must be approved by path, not by vague labels such as
 latest DB, runtime DB, or default DB.
 
+The activation checklist must capture the approved path, backup destination,
+restore-test destination, migration plan, integrity-check plan, rollback
+condition, and completion-report evidence before any production DB mutation.
+
 ## Protected Paths
 
 Protected paths remain off limits unless explicitly approved for the exact
@@ -77,6 +83,8 @@ Production migrations require:
 - A migration preview or plan.
 - Backup before mutation.
 - Restore verification before live migration.
+- Integrity checks before and after the approved operation.
+- Rollback or roll-forward plan bound to the approved path.
 - SQLite foreign key enforcement.
 - Completion report after the attempt.
 

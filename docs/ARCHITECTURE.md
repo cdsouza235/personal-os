@@ -102,10 +102,14 @@ The initial runtime state model should document and eventually implement these e
 Phase 13F-A adds a policy gate before any Phase 14/live-rail work. Phase 13F-B
 adds an inert repo-level readiness model and evaluator for that policy. Phase
 13F-C exposes the inert readiness report through local read-only status
-surfaces. The gate is defined by:
+surfaces. Phase 13F-D defines the future activation checklist and first-live
+pilot protocol that must be completed before any live pilot. The gate is
+defined by:
 
 - [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
 - [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
+- [Activation Checklist](ACTIVATION_CHECKLIST.md)
+- [First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md)
 - [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
 - [Production DB Policy](PRODUCTION_DB_POLICY.md)
 
@@ -121,6 +125,11 @@ status`, existing status summaries, Today View, and static dashboard render
 helpers may show readiness status, gate reasons, and disabled rail status, but
 they must not add apply/send/task/calendar routes or runtime activation
 controls.
+
+The Phase 13F-D checklist and pilot protocol are also informational policy
+artifacts until a later explicit approval completes them for one selected
+pilot. They do not create credentials, production SQLite paths, scheduler
+activation, OpenClaw runtime work, or live rail clients.
 
 ## Dashboard Architecture
 

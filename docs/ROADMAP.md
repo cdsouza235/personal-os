@@ -1,10 +1,9 @@
 # Roadmap
 
-Phases -1 through 13C are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13D are complete. The Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13D work is checkpoint hardening for permissions, status constraints,
-connection cleanup, docs clarity, and operator/test hygiene. This repo still
-has no production runtime activation.
+Phase 13F-A work is docs-only pre-live readiness policy. This repo still has
+no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -1033,7 +1032,7 @@ Non-goals:
 
 ## Phase 13D: Checkpoint Hardening / Permission and Status Cleanup
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -1063,4 +1062,49 @@ Non-goals:
 
 Likely next phase:
 
-- Separate Phase 14 or live-rail planning only after explicit approval.
+- Phase 13F-A docs-only pre-live readiness gate.
+
+## Phase 13F-A: Pre-Live Readiness Gate Docs
+
+Status: current.
+
+Scope:
+
+- Add [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md) as the master gate
+  before any Phase 14/live-rail work.
+- Add [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md) for Gmail,
+  Todoist, Google Calendar, PersonalOS Markdown, OpenClaw runtime workflows,
+  scheduler/LaunchAgent/background loop activation, live model/API calls, and
+  production SQLite state.
+- Add [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md) for the
+  boundary between ChatGPT, Codex/Fable, OpenClaw, and Chris.
+- Add [Production DB Policy](PRODUCTION_DB_POLICY.md) for production SQLite
+  path approval, migration, backup, restore verification, locking, integrity,
+  rollback, audit logging, and repo-local artifact prohibition.
+- Link the new policies from the existing safety, workflow, architecture,
+  roadmap, and README docs.
+
+Non-goals:
+
+- No source code.
+- No tests.
+- No migrations.
+- No configs.
+- No scripts.
+- No runtime state.
+- No live Gmail send/draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No PersonalOS Markdown writes.
+- No OpenClaw runtime operation.
+- No scheduler activation, LaunchAgents, crontab, daemons, or background
+  workers.
+- No live model/API calls.
+- No production DB activation.
+- No protected PersonalOS or `.openclaw` access.
+- No Phase 13E, Phase 14, or live-rail implementation.
+
+Likely next phase:
+
+- Separate implementation or live-rail planning only after explicit approval
+  and only after the pre-live readiness gate is reviewed.

@@ -6,7 +6,8 @@ This repository is the private code source of truth for Personal OS. It now
 contains local dev/test foundations through Phase 13D: SQLite migrations and
 state helpers, no-send CLI and dashboard surfaces, fake/simulated execution
 rails, approval-gated internal synthesis apply, side-effect/idempotency
-ledgers, and simulated scheduler records. It still has no live/prod rails:
+ledgers, simulated scheduler records, and Phase 13F-A pre-live readiness
+policy docs. It still has no live/prod rails:
 no live Gmail, Todoist, Calendar, model/API, LaunchAgent, OpenClaw,
 PersonalOS Markdown, production SQLite, or background scheduler activation is
 enabled from this repo.
@@ -79,6 +80,14 @@ Codex may work on documentation, tests, and repository code after the appropriat
 
 Codex must not send email, write Todoist, write Calendar, load LaunchAgents, modify production ledgers, mutate production SQLite state, run live OpenClaw workflows, inspect `/Users/coldstake/PersonalOS`, inspect `/Users/coldstake/.openclaw`, touch credentials, or touch production state without explicit approval.
 
+Before any Phase 14/live-rail work, the repo must satisfy the docs-only
+[Pre-Live Readiness Gate](docs/PRE_LIVE_READINESS.md), the
+[Live Rail Activation Policy](docs/LIVE_RAIL_ACTIVATION_POLICY.md), the
+[Operator Handoff Contract](docs/OPERATOR_HANDOFF_CONTRACT.md), and the
+[Production DB Policy](docs/PRODUCTION_DB_POLICY.md). These policies do not
+activate live rails, production SQLite, OpenClaw workflows, schedulers, or
+live model/API calls.
+
 The first live-system interaction phase is Phase 0 read-only inventory.
 
 ## Phase 0 Inventory Charter
@@ -135,16 +144,16 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 13C are complete. The Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13D is
-checkpoint hardening for permission cleanup, project/followup status
-constraints, connection cleanup, docs clarity, and operator/test hygiene.
+Phases -1 through 13D are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-A is
+a docs-only pre-live readiness gate. It adds policy documents for live rail
+activation, operator handoff, and production DB activation before any future
+Phase 14/live-rail work.
 
-Phase 13D remains no-send/internal only. It may tighten local dev/test SQLite
-state validation, permission read boundaries, bootstrap permission registry
-defaults, ResourceWarning cleanup, docs wording, and tests. It must not start
-Phase 14, live rails, scheduler activation, LaunchAgents, crontab entries,
-daemons, background workers, production runtime state, or live external writes.
+Phase 13F-A must not add source code, migrations, configs, runtime state,
+scripts, live rails, scheduler activation, LaunchAgents, crontab entries,
+daemons, background workers, production runtime state, OpenClaw runtime
+operation, or live external writes.
 
 Canonical full-suite test command:
 

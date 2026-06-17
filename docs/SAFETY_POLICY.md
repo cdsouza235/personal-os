@@ -6,15 +6,15 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 13C are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13D are complete, and the Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13D work is checkpoint hardening for permission cleanup,
-project/followup status constraints, connection cleanup, docs clarity, and
-operator/test hygiene. It may edit repo-local code, tests, and documentation,
-and may create temporary dev/test SQLite databases during tests. It must not
-inspect or mutate live runtime files, live PersonalOS files or fitness CSVs,
-credentials, external systems, production ledgers, production SQLite state, or
-any production state.
+Phase 13F-A work is docs-only pre-live readiness policy. It may edit only
+approved repository documentation. It must not add source code, tests,
+migrations, configs, runtime state, scripts, live rails, scheduler activation,
+OpenClaw runtime operation, production DB activation, or live external writes.
+It must not inspect or mutate live runtime files, live PersonalOS files or
+fitness CSVs, credentials, external systems, production ledgers, production
+SQLite state, or any production state.
 
 Codex must not inspect:
 
@@ -39,6 +39,20 @@ Codex must not inspect or mutate the following without explicit approval:
 ## Production Operator Rule
 
 OpenClaw is the production and runtime operator. Codex is the primary coding agent and builds repository code, tests, and documentation. Fable is an optional or future alternate coding agent for long-horizon software development work. Codex and Fable may not run live OpenClaw workflows unless a future phase explicitly grants that authority.
+
+## Pre-Live Readiness Rule
+
+Before any Phase 14/live-rail work, the repo must satisfy:
+
+- [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
+- [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
+- [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
+- [Production DB Policy](PRODUCTION_DB_POLICY.md)
+
+These documents define policy only. They do not create live permissions,
+activate production SQLite, activate schedulers, authorize OpenClaw runtime
+workflows, or enable Gmail, Todoist, Calendar, PersonalOS Markdown, or live
+model/API calls.
 
 ## Phase 0 Rule
 

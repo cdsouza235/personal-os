@@ -38,6 +38,11 @@ Fable is an optional or future alternate coding agent for long-horizon software 
 
 OpenClaw is the local runtime operator. It runs approved local workflows, writes approved runtime outputs, and interacts with execution rails through validated modules.
 
+OpenClaw may operate live workflows only after a narrow handoff satisfies the
+[Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md). OpenClaw is not a
+repo implementation, PR review, merge, or test-validation agent unless Chris
+explicitly selects it for a narrow runtime/operator smoke test.
+
 ### Mac Mini
 
 The Mac Mini hosts the runtime, scheduler, local clone, SQLite state, OpenClaw runtime, and local PersonalOS files.
@@ -89,6 +94,23 @@ The initial runtime state model should document and eventually implement these e
 - Codex may not mutate production SQLite state without explicit approval.
 - Production migrations require a backup before migration.
 - Production backups should include periodic JSON and SQLite snapshots.
+- Production DB activation is governed by
+  [Production DB Policy](PRODUCTION_DB_POLICY.md).
+
+## Pre-Live Readiness Architecture
+
+Phase 13F-A adds a docs-only policy gate before any Phase 14/live-rail work.
+The gate is defined by:
+
+- [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
+- [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
+- [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
+- [Production DB Policy](PRODUCTION_DB_POLICY.md)
+
+These documents define activation prerequisites for Gmail, Todoist, Google
+Calendar, PersonalOS Markdown, OpenClaw runtime workflows, schedulers,
+LaunchAgents/background loops, live model/API calls, and production SQLite.
+They do not implement live rails or activate production runtime behavior.
 
 ## Dashboard Architecture
 

@@ -1,0 +1,288 @@
+# Pre-Live Readiness Gate
+
+## Purpose
+
+Phase 13F-A defines the mandatory readiness gate before any Phase 14 or live
+rail work. It is documentation and policy design only. It does not implement
+live rails, add source code, add migrations, activate a scheduler, activate a
+production database, call live APIs, or authorize OpenClaw runtime operation.
+
+No live rail may move from preview/dry-run behavior to live behavior until
+Chris explicitly approves the specific rail, specific production surface,
+specific operator, and specific first-live pilot.
+
+## Scope
+
+This gate applies before any live behavior for:
+
+- Gmail send or draft creation.
+- Todoist task creation or mutation.
+- Google Calendar event creation or mutation.
+- PersonalOS Markdown writes.
+- OpenClaw runtime workflows.
+- Scheduler, LaunchAgent, daemon, crontab, or background loop activation.
+- Live model/API calls.
+- Production SQLite state.
+
+## Default State
+
+All live permissions are disabled by default. Missing, disabled, invalid,
+unknown, approval-only, or undocumented permissions must fail closed. A
+dev/test permission, simulated-write permission, preview permission, dry-run
+permission, or internal SQLite apply permission must never be interpreted as a
+live permission.
+
+No new live permission exists until a later implementation phase adds it in
+source code, tests it, documents it, and Chris approves it by name.
+
+## Terminology
+
+- Preview: validates and reports what would happen without mutating state or
+  calling an adapter.
+- Dry-run: records local dev/test evidence about an intended side effect, but
+  does not perform the side effect.
+- Simulated write: uses fake/recording adapters only and may update local
+  dev/test rows with fake IDs.
+- Internal apply: mutates approved internal SQLite state only, such as
+  priorities, projects, or followups, and does not touch external systems.
+- Live write: mutates Gmail, Todoist, Google Calendar, PersonalOS Markdown,
+  OpenClaw runtime state, production SQLite, a live scheduler, a live model/API
+  provider, or any other production runtime system.
+
+Only live write behavior requires the pre-live gate to pass. Preview, dry-run,
+simulated write, and internal apply behavior remain governed by their existing
+phase-specific dev/test policies.
+
+## Credential Boundary
+
+Credentials, OAuth tokens, API keys, refresh tokens, service account material,
+browser sessions, keychains, and provider-specific auth files remain protected
+runtime assets. Codex and Fable may not inspect, print, copy, modify, rotate,
+or validate credentials unless a future policy explicitly approves a narrow
+credential-read or credential-validation task.
+
+Any live rail that needs credentials must document:
+
+- Credential owner.
+- Credential storage location by label, not by printing secret contents.
+- Read-only versus write-capable scopes.
+- Token rotation and revocation path.
+- Operator allowed to use the credential.
+- Confirmation that repository files do not contain the secret.
+
+## Production DB Approval
+
+Production SQLite activation requires a separate explicit approval under
+[Production DB Policy](PRODUCTION_DB_POLICY.md). Approval must name the
+production DB path, runtime host, owner, backup location, migration plan,
+restore verification method, and rollback condition.
+
+Dev/test/local preview DB approval does not authorize production DB use.
+Repo-local runtime artifacts remain prohibited.
+
+## Migration Workflow
+
+Before production migration:
+
+- The target DB path must be explicitly approved.
+- The exact repo commit and migration set must be identified.
+- Checksums for already-applied migrations must be verified.
+- A backup must be created before migration.
+- Restore verification must be performed on a copy before live migration.
+- A rollback plan must exist before mutation.
+- A completion report must be written after the migration attempt.
+
+No migration may be applied to production SQLite from an implicit path, a
+repo-local `var/` path, an unreviewed script, or an operator guess.
+
+## Backup And Restore Verification
+
+Backups are not sufficient until restore has been verified. Before a first
+production activation, the operator must prove that a backup can be restored
+into a separate safe location and passes integrity checks.
+
+The evidence must include:
+
+- Source DB path label and hash or size/timestamp metadata.
+- Backup path label.
+- Restore test path.
+- `PRAGMA integrity_check` result.
+- Migration metadata consistency result.
+- Table/count sanity checks.
+- Confirmation that the restore test did not touch production state.
+
+## Idempotency
+
+Every live write rail must have deterministic idempotency before activation.
+The idempotency design must state:
+
+- The idempotency key source fields.
+- Payload fingerprint behavior.
+- Duplicate detection behavior.
+- Retry behavior after partial failure.
+- Collision posture for live rails.
+- Whether full digest material is stored for live writes.
+- How stale or superseded intents are handled.
+
+Current dev/test ledger keys are not automatically approved for live rails.
+The live collision posture must be decided before any external write is
+enabled.
+
+## Side-Effect Ledgers
+
+Every live side effect must be represented in a side-effect ledger before it
+is attempted. The ledger record must include target system, operation, risk,
+approval mode, idempotency key, payload fingerprint, validation report, run
+status, and final outcome.
+
+Live rails must never mutate an external system first and backfill the ledger
+later. The ledger is the evidence layer for retries, duplicate prevention,
+audits, rollback planning, and incident review.
+
+## Completion Reports
+
+Every live attempt must produce a completion report that includes:
+
+- Operator.
+- Repo commit or runtime version.
+- Target rail and operation.
+- Input reference and approval reference.
+- Permissions checked.
+- Idempotency key and ledger IDs.
+- Preview/dry-run evidence reference.
+- Started and completed timestamps.
+- Outcome status.
+- External object IDs when relevant.
+- Safety flags.
+- Rollback or undo status.
+- Errors and escalation notes.
+
+Reports must avoid secret values and must not include raw credential material.
+
+## Rollback And Recovery
+
+Every live rail must define rollback or recovery before activation:
+
+- Gmail: whether drafts can be deleted, sent email cannot be unsent, and
+  recovery is correction/escalation.
+- Todoist: whether tasks can be deleted, closed, reverted, or annotated.
+- Google Calendar: whether events can be deleted, canceled, or restored.
+- PersonalOS Markdown: whether writes are append-only, reversible from backup,
+  or repaired by a follow-up edit.
+- OpenClaw runtime workflows: how to stop the workflow and preserve logs.
+- Scheduler activation: how to unload, disable, or stop the job.
+- Production SQLite: how to restore from backup or roll forward.
+- Live model/API calls: how to prevent repeated calls and preserve request
+  metadata without exposing secrets.
+
+If rollback cannot truly undo the action, the policy must say so explicitly
+before approval.
+
+## Global Kill Switch
+
+Before live activation, the system must define a global kill switch that stops
+all live rails. The kill switch must fail closed and be easy for Chris or the
+approved operator to verify.
+
+The kill switch policy must cover:
+
+- Where the disabled state lives.
+- Which rails it disables.
+- Whether scheduler/background loops check it before every run.
+- Whether live model/API calls check it before every call.
+- What completion report is produced when the kill switch blocks work.
+- How activation is restored after Chris approval.
+
+## Scheduler Activation
+
+Scheduler, LaunchAgent, crontab, daemon, and background loop activation are
+separate live rails. A scheduler record in SQLite is not scheduler activation.
+
+Before scheduler activation:
+
+- The exact job, cadence, timezone, and host must be approved.
+- The operator must prove foreground/manual dry-run behavior.
+- The job must check permissions, the global kill switch, idempotency, and
+  side-effect ledgers before any side effect.
+- Logs and completion reports must be written for every run.
+- The disable/unload path must be tested.
+- A first-live pilot must start with one narrow job and one narrow rail.
+
+## Operator Handoff
+
+OpenClaw may operate live workflows only after a handoff satisfies
+[Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md). Handoffs must name
+the objective, allowed files/systems, exact actions, permissions, inputs,
+outputs, safety constraints, logs, ledgers, completion reports, stop
+conditions, and rollback/escalation instructions.
+
+OpenClaw is not a substitute for repository implementation, PR review, merge,
+or test validation.
+
+## First-Live Pilot Scope
+
+The first live pilot must be deliberately small:
+
+- One rail only.
+- One operator only.
+- One runtime host only.
+- One approved production DB path if a DB is involved.
+- One explicit input fixture or approved real input.
+- One bounded operation.
+- One success criterion.
+- One rollback/escalation path.
+
+High-stakes actions, messages to other people, financial/legal/tax/medical
+actions, external meetings, broad scheduler loops, and multi-rail automation
+are excluded from the first-live pilot.
+
+## Test Requirements
+
+Before any live rail activation, the implementation PR must include tests for:
+
+- Permission fail-closed behavior.
+- Kill switch blocking.
+- Preview or dry-run behavior.
+- Idempotency and duplicate prevention.
+- Side-effect ledger creation and attempt recording.
+- Completion report fields.
+- Rollback/recovery planning or execution where practical.
+- Production DB path rejection or explicit approval handling.
+- Protected path rejection.
+- No credential leakage in reports/logs.
+
+Docs-only PRs do not need full test runs unless they change executable
+behavior. Implementation PRs for live behavior require the full suite and
+targeted tests.
+
+## Documentation Requirements
+
+Before live activation, documentation must be current for:
+
+- User-facing operational workflow.
+- Rail-specific activation policy.
+- Permission names and default states.
+- Dry-run/apply/live semantics.
+- Credential and production DB boundaries.
+- Backup, restore, rollback, and recovery.
+- Scheduler activation and disable procedure.
+- Operator handoff contract.
+- Completion report and ledger evidence expectations.
+
+## Chris Approval Requirements
+
+Chris approval must be explicit, specific, and current. Approval must state:
+
+- Rail or production surface.
+- Operator.
+- Runtime host.
+- Exact allowed action.
+- Input scope.
+- Permission to use credentials, if applicable.
+- Permission to use production DB, if applicable.
+- Permission to activate scheduler/background behavior, if applicable.
+- First-live pilot bounds.
+- Stop condition.
+
+General approval to continue development, merge a docs PR, run tests, open a
+PR, or inspect repo-local files does not approve live rail activation.

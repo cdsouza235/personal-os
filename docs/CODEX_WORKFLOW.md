@@ -12,15 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 13C are complete, and the Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13D is
-approved for repo-local code, tests, and documentation only as checkpoint
-hardening for permission cleanup, project/followup status constraints,
-connection cleanup, docs clarity, and operator/test hygiene. Codex may run
-local tests, push the branch, and open or update the PR. Codex must stop
-before merge and must not inspect or mutate protected runtime paths, external
-systems, credentials, production ledgers, production SQLite state, or
-production state.
+Phases -1 through 13D are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-A is
+approved as a docs-only pre-live readiness gate. Codex may edit only the
+approved repository documentation, push the branch, and open the PR. Codex
+must stop after reporting the PR and must not inspect or mutate protected
+runtime paths, external systems, credentials, production ledgers, production
+SQLite state, production state, OpenClaw runtime workflows, or live rails.
 
 Canonical full-suite command:
 
@@ -68,6 +66,18 @@ Required Phase 0 outputs:
 
 After Phase 0, Codex may edit code, tests, and docs in repo branches according to the approved plan.
 
+Before any future Phase 14/live-rail work, Codex/Fable must treat the
+following policy docs as required gates:
+
+- [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
+- [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
+- [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
+- [Production DB Policy](PRODUCTION_DB_POLICY.md)
+
+Phase 13F-A creates these policy gates only. It does not authorize
+implementation work, production DB activation, scheduler activation, OpenClaw
+runtime operation, or live external writes.
+
 ## Allowed Codex Work
 
 Codex may:
@@ -101,6 +111,8 @@ Codex may not:
 - Read or print credentials.
 - Touch runtime or production state.
 - Create scripts that run live workflows.
+- Treat docs-only readiness policy as permission to implement or activate live
+  rails.
 
 ## Development Database Boundary
 

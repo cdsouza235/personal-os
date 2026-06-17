@@ -1,4 +1,4 @@
-"""Minimal read-only local dashboard shell for Personal OS Today View."""
+"""Minimal local dashboard shell for Personal OS Today View."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import argparse
 import json
 import sqlite3
 from collections.abc import Mapping, Sequence
+from contextlib import closing
 from html import escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -62,7 +63,7 @@ def render_today_view_html_from_db_path(
     source_date: str | None = None,
     timezone: str = DEFAULT_TIMEZONE,
 ) -> str:
-    with connect_dashboard_db_read_only(db_path) as connection:
+    with closing(connect_dashboard_db_read_only(db_path)) as connection:
         return render_today_view_html_from_connection(
             connection,
             source_date=source_date,
@@ -76,7 +77,7 @@ def render_today_view_json_from_db_path(
     source_date: str | None = None,
     timezone: str = DEFAULT_TIMEZONE,
 ) -> str:
-    with connect_dashboard_db_read_only(db_path) as connection:
+    with closing(connect_dashboard_db_read_only(db_path)) as connection:
         summary = create_today_view_summary(
             connection,
             source_date=source_date,
@@ -223,12 +224,13 @@ def render_today_view_html(
   <p>{_e(summary["source_date"])} - {_e(summary["timezone"])}</p>
 
   <div class="banner" id="safety-banner">
-    <strong>Read-only preview</strong>
+    <strong>Read-only except explicit local synthesis preview creation</strong>
     <ul>
       <li>no_external_writes={no_external_writes}</li>
       <li>no live Todoist/Calendar/Gmail/model calls</li>
       <li>localhost-only by default</li>
-      <li>no task, calendar, routine, priority, or briefing mutation routes</li>
+      <li>no task, calendar, routine, priority, briefing, apply, or live-rail routes</li>
+      <li>synthesis preview form may persist local preview records only</li>
       <li><a href="/today.json">today.json</a></li>
     </ul>
   </div>
@@ -261,7 +263,7 @@ def render_synthesis_import_page_html_from_db_path(
     source_date: str | None = None,
     timezone: str = DEFAULT_TIMEZONE,
 ) -> str:
-    with connect_dashboard_db_read_only(db_path) as connection:
+    with closing(connect_dashboard_db_read_only(db_path)) as connection:
         summary = create_today_view_summary(
             connection,
             source_date=source_date,
@@ -371,7 +373,7 @@ def create_dashboard_synthesis_import_preview_from_db_path(
     db_path: str | Path,
     form_fields: Mapping[str, object],
 ) -> dict[str, Any]:
-    with connect_dashboard_db_read_write(db_path) as connection:
+    with closing(connect_dashboard_db_read_write(db_path)) as connection:
         return create_dashboard_synthesis_import_preview(connection, form_fields)
 
 
@@ -611,7 +613,12 @@ def validate_dashboard_db_path(db_path: str | Path, *, must_exist: bool = True) 
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Serve the local read-only Today View dashboard.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Serve the local Today View dashboard; read-only except explicit local "
+            "synthesis preview creation."
+        )
+    )
     parser.add_argument("db_path", help="Absolute temp/dev SQLite database path.")
     parser.add_argument("--host", default=DEFAULT_DASHBOARD_HOST)
     parser.add_argument("--port", default=DEFAULT_DASHBOARD_PORT, type=int)

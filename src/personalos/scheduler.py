@@ -43,6 +43,9 @@ SCHEDULER_RUN_TYPES = ("manual_simulated", "due_check_simulated", "no_send_previ
 SCHEDULER_RUN_STATUSES = ("completed", "blocked", "failed", "skipped")
 BRIEFING_WINDOWS = ("morning", "midday", "afternoon", "evening")
 SAFE_NO_SEND_SEED_PROFILE = "safe_no_send"
+SCHEDULER_READ_PERMISSION = "scheduler_dev_test_read"
+SCHEDULER_WRITE_PERMISSION = "scheduler_dev_test_write"
+SCHEDULER_RUN_PERMISSION = "scheduler_dev_test_run"
 
 SCHEDULER_SAFETY_FLAGS = {
     "no_send_mode": True,

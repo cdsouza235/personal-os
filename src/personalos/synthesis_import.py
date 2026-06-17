@@ -20,7 +20,9 @@ from personalos.state import (
     get_permission_setting,
     get_synthesis_import_preview,
     list_synthesis_import_previews,
+    validate_followup_status,
     validate_priority_status,
+    validate_project_status,
 )
 from personalos.todoist import preview_todoist_task
 
@@ -737,7 +739,7 @@ def _validate_project_candidate(candidate: Any, *, index: int) -> dict[str, Any]
         "source_id": _validate_required_text("source_id", item["source_id"]),
         "risk_level": risk_level,
         "approval_mode": approval_mode,
-        "status": _validate_required_text("status", item["status"]),
+        "status": validate_project_status(item["status"]),
     }
     return _with_optional_fields(normalized, item, ("review_note", "domain"))
 
@@ -766,7 +768,7 @@ def _validate_followup_candidate(candidate: Any, *, index: int) -> dict[str, Any
         "source_id": _validate_required_text("source_id", item["source_id"]),
         "risk_level": risk_level,
         "approval_mode": approval_mode,
-        "status": _validate_required_text("status", item["status"]),
+        "status": validate_followup_status(item["status"]),
     }
     return _with_optional_fields(
         normalized,

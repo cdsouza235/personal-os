@@ -533,10 +533,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00011",
                     "00012",
                     "00013",
+                    "00014",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 13)
+            self.assertEqual(len(rows), 14)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -2365,6 +2366,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00011",
                 "00012",
                 "00013",
+                "00014",
             ],
         )
         self.assertEqual(
@@ -2383,6 +2385,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "side_effect_idempotency_ledger_tables",
                 "synthesis_apply_audit_tables",
                 "scheduler_runtime_loop_tables",
+                "project_followup_status_constraints",
             ],
         )
 

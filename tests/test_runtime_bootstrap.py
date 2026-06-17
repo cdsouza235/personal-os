@@ -136,6 +136,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     "00011",
                     "00012",
                     "00013",
+                    "00014",
                 ],
             )
 
@@ -150,7 +151,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     ("runtime_bootstrap_runs",),
                 ).fetchone()
 
-                self.assertEqual(len(rows), 13)
+                self.assertEqual(len(rows), 14)
             self.assertIsNotNone(table)
 
     def test_bootstrap_enables_sqlite_foreign_keys(self) -> None:
@@ -329,6 +330,44 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
         self.assertEqual(categories["synthesis_import_dev_test_read"], "disabled")
         self.assertEqual(categories["synthesis_import_dev_test_write"], "disabled")
         self.assertEqual(categories["synthesis_import_dev_test_preview"], "disabled")
+        self.assertEqual(categories["side_effect_ledger_dev_test_read"], "disabled")
+        self.assertEqual(categories["side_effect_ledger_dev_test_write"], "disabled")
+        self.assertEqual(categories["side_effect_ledger_dev_test_record_attempt"], "disabled")
+        self.assertEqual(categories["scheduler_dev_test_read"], "disabled")
+        self.assertEqual(categories["scheduler_dev_test_write"], "disabled")
+        self.assertEqual(categories["scheduler_dev_test_run"], "disabled")
+
+    def test_seed_profile_does_not_silently_enable_dangerous_permissions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            profile = _profile(temp_path)
+            with _authorized_connection(temp_path) as permission_connection:
+                bootstrap_runtime_database(
+                    profile,
+                    permission_connection=permission_connection,
+                )
+            db_path = Path(profile["db_path"])
+
+            with _sqlite_connection(db_path) as connection:
+                rows = connection.execute(
+                    "SELECT category, mode FROM permission_settings ORDER BY category"
+                ).fetchall()
+
+        categories = {row["category"]: row["mode"] for row in rows}
+        auto_enabled = {
+            category
+            for category, mode in categories.items()
+            if mode == PermissionMode.AUTO_WRITE.value
+        }
+        dangerous_markers = ("_write", "_run", "_apply", "_attempt", "_simulated")
+        self.assertEqual(auto_enabled, {RUNTIME_BOOTSTRAP_READ_PERMISSION})
+        self.assertFalse(
+            [
+                category
+                for category in auto_enabled
+                if any(marker in category for marker in dangerous_markers)
+            ]
+        )
 
     def test_runtime_status_report_includes_table_counts_and_safety_flags(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

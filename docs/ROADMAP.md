@@ -1,10 +1,10 @@
 # Roadmap
 
-Phases -1 through 13B are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13C are complete. The Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13C work is the no-send scheduler/runtime-loop foundation for safe
-foreground simulations only. This repo still has no production runtime
-activation.
+Phase 13D work is checkpoint hardening for permissions, status constraints,
+connection cleanup, docs clarity, and operator/test hygiene. This repo still
+has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -984,7 +984,7 @@ Likely next phase:
 
 ## Phase 13C: No-Send Scheduler / Runtime Loop Foundation
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -1030,6 +1030,36 @@ Non-goals:
   scheduler route.
 - No public/LAN dashboard exposure, auth/login, Apple Health/wearables,
   Notion, TradingView, market-data integration, Phase 14, or live-rail work.
+
+## Phase 13D: Checkpoint Hardening / Permission and Status Cleanup
+
+Status: current.
+
+Scope:
+
+- Add explicit project and followup status vocabularies in helpers and schema.
+- Revalidate project/followup statuses during synthesis import and apply.
+- Require side-effect ledger read permission on operator-facing summary paths.
+- Preserve internal Today/status/dashboard read summaries as no-write helpers.
+- Clarify dashboard wording as read-only except explicit local synthesis
+  preview creation.
+- Clean up practical SQLite ResourceWarnings around DB-path render helpers and
+  direct connection-owner tests.
+- Make the runtime bootstrap known-permission registry explicit and seed newer
+  module permissions disabled by default.
+- Document current idempotency scope and the pre-live collision-posture
+  decision.
+- Document the canonical full-suite test command:
+  `PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py"`.
+
+Non-goals:
+
+- No scheduler activation, LaunchAgents, crontab, daemons, or background
+  workers.
+- No live Gmail send/draft, Todoist writes, Calendar writes, PersonalOS
+  Markdown writes, live model/API calls, `.openclaw` integration, production
+  DB activation, public/LAN dashboard exposure, auth/login, dashboard Apply
+  button, Phase 13E, Phase 14, or live-rail work.
 
 Likely next phase:
 

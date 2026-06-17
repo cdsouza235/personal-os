@@ -1,4 +1,9 @@
-"""Deterministic idempotency keys and payload fingerprints."""
+"""Deterministic idempotency keys and payload fingerprints.
+
+The current truncated SHA-256 keys are for local dev/test ledgers. Before any
+external-write rail is enabled, the live-rail plan must decide the collision
+posture for production idempotency records.
+"""
 
 from __future__ import annotations
 

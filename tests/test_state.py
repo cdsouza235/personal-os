@@ -16,10 +16,14 @@ from personalos.config import (
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.state import (
+    FOLLOWUP_STATUSES,
+    PROJECT_STATUSES,
     count_followups,
     count_priorities,
     count_projects,
     count_routines,
+    create_followup,
+    create_project,
     get_permission_setting,
     list_followups,
     list_permission_settings,
@@ -177,6 +181,124 @@ class StateStoreHelperTest(unittest.TestCase):
         self.assertEqual(projects[0]["metadata"], {"area": "ops"})
         self.assertEqual(followups[0]["source"], "tests")
         self.assertEqual(followups[0]["metadata"], {"channel": "manual"})
+
+    def test_valid_project_statuses_are_accepted(self) -> None:
+        with _migrated_test_connection() as connection:
+            for index, status in enumerate(PROJECT_STATUSES):
+                project = create_project(
+                    connection,
+                    project_id=f"project-{index}",
+                    title=f"Project {index}",
+                    status=status,
+                    created_at_utc="2026-06-13T10:00:00+00:00",
+                )
+
+                self.assertEqual(project["status"], status)
+
+            self.assertEqual(count_projects(connection), len(PROJECT_STATUSES))
+
+    def test_invalid_project_status_is_rejected_without_write(self) -> None:
+        with _migrated_test_connection() as connection:
+            with self.assertRaises(ValueError):
+                create_project(
+                    connection,
+                    project_id="project-invalid",
+                    title="Invalid Project",
+                    status="needs-triage",
+                    created_at_utc="2026-06-13T10:00:00+00:00",
+                )
+
+            self.assertEqual(count_projects(connection), 0)
+
+    def test_valid_followup_statuses_are_accepted(self) -> None:
+        with _migrated_test_connection() as connection:
+            for index, status in enumerate(FOLLOWUP_STATUSES):
+                followup = create_followup(
+                    connection,
+                    followup_id=f"followup-{index}",
+                    title=f"Followup {index}",
+                    status=status,
+                    source="tests",
+                    created_at_utc="2026-06-13T10:00:00+00:00",
+                )
+
+                self.assertEqual(followup["status"], status)
+
+            self.assertEqual(count_followups(connection), len(FOLLOWUP_STATUSES))
+
+    def test_invalid_followup_status_is_rejected_without_write(self) -> None:
+        with _migrated_test_connection() as connection:
+            with self.assertRaises(ValueError):
+                create_followup(
+                    connection,
+                    followup_id="followup-invalid",
+                    title="Invalid Followup",
+                    status="maybe-laterish",
+                    source="tests",
+                    created_at_utc="2026-06-13T10:00:00+00:00",
+                )
+
+            self.assertEqual(count_followups(connection), 0)
+
+    def test_project_and_followup_status_check_constraints_reject_direct_invalid_rows(
+        self,
+    ) -> None:
+        timestamp = "2026-06-13T10:00:00+00:00"
+        with _migrated_test_connection() as connection:
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    """
+                    INSERT INTO projects (
+                        project_id,
+                        title,
+                        status,
+                        metadata_json,
+                        notes,
+                        created_at_utc,
+                        updated_at_utc
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "direct-invalid-project",
+                        "Direct Invalid Project",
+                        "needs-triage",
+                        "{}",
+                        "",
+                        timestamp,
+                        timestamp,
+                    ),
+                )
+
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    """
+                    INSERT INTO followups (
+                        followup_id,
+                        title,
+                        status,
+                        source,
+                        metadata_json,
+                        notes,
+                        created_at_utc,
+                        updated_at_utc
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "direct-invalid-followup",
+                        "Direct Invalid Followup",
+                        "maybe-laterish",
+                        "tests",
+                        "{}",
+                        "",
+                        timestamp,
+                        timestamp,
+                    ),
+                )
+
+            self.assertEqual(count_projects(connection), 0)
+            self.assertEqual(count_followups(connection), 0)
 
     def test_helpers_do_not_create_repo_runtime_artifacts(self) -> None:
         runtime_dir_existed_before = RUNTIME_DIR.exists()

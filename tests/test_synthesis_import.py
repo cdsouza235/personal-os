@@ -52,6 +52,36 @@ class SynthesisImportParsingTest(unittest.TestCase):
         self.assertEqual(len(preview["preview_report"]["accepted_candidates"]), 6)
         self.assertEqual(len(preview["preview_report"]["questions_for_review"]), 1)
 
+    def test_valid_project_and_followup_statuses_are_accepted(self) -> None:
+        candidates = _empty_candidates()
+        candidates["projects"] = [_project_candidate()]
+        candidates["followups"] = [_followup_candidate()]
+
+        preview = build_synthesis_import_preview(json.dumps(_payload(candidates=candidates)))
+        accepted = {
+            item["candidate_type"]: item
+            for item in preview["preview_report"]["accepted_candidates"]
+        }
+
+        self.assertEqual(accepted["projects"]["candidate"]["status"], "active")
+        self.assertEqual(accepted["followups"]["candidate"]["status"], "open")
+        self.assertEqual(preview["preview_report"]["rejected_candidates"], [])
+
+    def test_invalid_project_and_followup_statuses_are_rejected(self) -> None:
+        candidates = _empty_candidates()
+        candidates["projects"] = [{**_project_candidate(), "status": "needs-triage"}]
+        candidates["followups"] = [{**_followup_candidate(), "status": "maybe-laterish"}]
+
+        preview = build_synthesis_import_preview(json.dumps(_payload(candidates=candidates)))
+        rejected = preview["preview_report"]["rejected_candidates"]
+
+        self.assertEqual(
+            {item["candidate_ref"] for item in rejected},
+            {"projects[0]", "followups[0]"},
+        )
+        self.assertTrue(any("project status must be one of" in item["reason"] for item in rejected))
+        self.assertTrue(any("followup status must be one of" in item["reason"] for item in rejected))
+
     def test_markdown_fenced_json_import_is_accepted(self) -> None:
         raw_input = "ChatGPT synthesis follows.\n\n```json\n" + json.dumps(_payload()) + "\n```"
 
@@ -510,6 +540,19 @@ def _priority_candidate() -> dict[str, object]:
         "approval_mode": "auto_allowed",
         "status": "active",
         "review_note": "Review in the next implementation phase.",
+    }
+
+
+def _project_candidate() -> dict[str, object]:
+    return {
+        "title": "Synthesis import status cleanup",
+        "summary": "Keep project statuses constrained before apply.",
+        "source_type": "chatgpt_synthesis",
+        "source_id": "synth-1",
+        "risk_level": "low",
+        "approval_mode": "auto_allowed",
+        "status": "active",
+        "review_note": "Internal project candidate only.",
     }
 
 

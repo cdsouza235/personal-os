@@ -6,13 +6,15 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 13B are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13C are complete, and the Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13C work is the no-send scheduler/runtime-loop foundation. It may edit
-repo-local code, tests, and documentation, and may create temporary dev/test
-SQLite databases during tests. It must not inspect or mutate live runtime
-files, live PersonalOS files or fitness CSVs, credentials, external systems,
-production ledgers, production SQLite state, or any production state.
+Phase 13D work is checkpoint hardening for permission cleanup,
+project/followup status constraints, connection cleanup, docs clarity, and
+operator/test hygiene. It may edit repo-local code, tests, and documentation,
+and may create temporary dev/test SQLite databases during tests. It must not
+inspect or mutate live runtime files, live PersonalOS files or fitness CSVs,
+credentials, external systems, production ledgers, production SQLite state, or
+any production state.
 
 Codex must not inspect:
 
@@ -539,10 +541,20 @@ deterministic canonical JSON SHA-256 fingerprints.
 
 Phase 12B permission keys are `side_effect_ledger_dev_test_read`,
 `side_effect_ledger_dev_test_write`, and
-`side_effect_ledger_dev_test_record_attempt`. Write and attempt helpers fail
-closed unless the relevant dev/test permission is explicitly enabled. These
-keys are not live-write permissions and do not authorize Todoist, Calendar,
-Gmail, PersonalOS Markdown, API, scheduler, or production runtime writes.
+`side_effect_ledger_dev_test_record_attempt`. Operator-facing read summaries,
+write helpers, and attempt helpers fail closed unless the relevant dev/test
+permission is explicitly enabled. Internal Today/status/dashboard read models
+may use an explicit unpermissioned summary helper for local no-write counts.
+These keys are not live-write permissions and do not authorize Todoist,
+Calendar, Gmail, PersonalOS Markdown, API, scheduler, or production runtime
+writes.
+
+Current idempotency keys use truncated SHA-256 material for deterministic
+dev/test ledger keys, with full SHA-256 payload fingerprints stored beside
+them. This is acceptable for local dev/test ledgers. Before any external
+write is enabled, Phase 14/live-rail planning must decide the collision
+posture, including whether to lengthen keys, add secondary uniqueness checks,
+or store full digest material for live rails.
 
 Every Phase 12B completion report and attempt row must preserve
 `no_external_writes=true`, `no_send_mode=true`, `live_write=false`, and
@@ -638,6 +650,23 @@ live Calendar writes, PersonalOS Markdown writes, `.openclaw` integration,
 live model/API calls, OpenAI/OpenRouter/Anthropic integration, dashboard
 mutation controls, public/LAN dashboard exposure, auth/login, Phase 14, or
 live-rail work.
+
+Phase 13D checkpoint hardening is internal/no-send cleanup only. Project
+statuses are constrained to `active`, `paused`, `completed`, and `archived`.
+Followup statuses are constrained to `open`, `proposed`, `completed`,
+`archived`, and `blocked`. Synthesis import and synthesis apply must validate
+those status vocabularies before any internal SQLite apply. The runtime
+bootstrap known-permission registry lists newer module keys and seeds them
+disabled by default, except the existing safe bootstrap read key.
+
+Dashboard and Today View wording must say read-only except explicit local
+synthesis preview creation. Phase 13D must not add new dashboard mutation
+forms, an Apply button, live side-effect execution, scheduler activation,
+LaunchAgents, crontab, daemons/background workers, production runtime
+activation, Gmail send/draft, Todoist writes, Calendar writes, PersonalOS
+Markdown writes, `.openclaw` integration, live model/API calls,
+OpenAI/OpenRouter/Anthropic integration, public/LAN dashboard exposure,
+auth/login, Phase 13E, Phase 14, or live-rail work.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

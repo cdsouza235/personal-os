@@ -2,7 +2,14 @@
 
 Personal OS is a modular, local-first productivity, routine, priority, and execution operating system. It helps Chris think clearly, maintain routines, manage high-value priorities, generate briefings, create Todoist tasks, schedule Calendar blocks, preserve durable notes, and run reports through OpenClaw on the Mac Mini.
 
-This repository is the private code source of truth for Personal OS. It is documentation-first right now: no live workflow scripts, runtime mutations, or production integrations are enabled from this repo yet.
+This repository is the private code source of truth for Personal OS. It now
+contains local dev/test foundations through Phase 13D: SQLite migrations and
+state helpers, no-send CLI and dashboard surfaces, fake/simulated execution
+rails, approval-gated internal synthesis apply, side-effect/idempotency
+ledgers, and simulated scheduler records. It still has no live/prod rails:
+no live Gmail, Todoist, Calendar, model/API, LaunchAgent, OpenClaw,
+PersonalOS Markdown, production SQLite, or background scheduler activation is
+enabled from this repo.
 
 ## Operating Roles
 
@@ -128,14 +135,25 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 13B are complete. The Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete.
+Phases -1 through 13C are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13D is
+checkpoint hardening for permission cleanup, project/followup status
+constraints, connection cleanup, docs clarity, and operator/test hygiene.
 
-The current Phase 13C scope is the no-send scheduler/runtime-loop foundation.
-It may represent scheduler jobs in SQLite and run foreground/manual simulated
-jobs against explicit temp/dev database paths. It does not install or activate
-LaunchAgents, crontab entries, daemons, background workers, production runtime
-state, or live external rails.
+Phase 13D remains no-send/internal only. It may tighten local dev/test SQLite
+state validation, permission read boundaries, bootstrap permission registry
+defaults, ResourceWarning cleanup, docs wording, and tests. It must not start
+Phase 14, live rails, scheduler activation, LaunchAgents, crontab entries,
+daemons, background workers, production runtime state, or live external writes.
+
+Canonical full-suite test command:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py"
+```
+
+Run the suite with `PYTHONPATH=src`; running without it can produce misleading
+import failures that do not reflect the repo state.
 
 Phase 12A added the `personalos` command-line surface so Chris/OpenClaw can
 run existing inert read, preview, export, and static-render workflows without
@@ -172,9 +190,10 @@ which inserts safe dev/test scheduler job records only. The Phase 13A
 internal dev/test SQLite core tables after explicit approval.
 
 Phase 12B adds `external_write_intents`, `external_write_attempts`, and
-`idempotency_records`. The `side-effects summary` command is read-only.
-The `side-effects record-dry-run` command records only local dev/test ledger
-rows from an explicit safe JSON input file and requires explicit
+`idempotency_records`. The `side-effects summary` command is read-only and
+requires explicit `side_effect_ledger_dev_test_read` permission. The
+`side-effects record-dry-run` command records only local dev/test ledger rows
+from an explicit safe JSON input file and requires explicit
 `side_effect_ledger_dev_test_write` and
 `side_effect_ledger_dev_test_record_attempt` permissions. It cannot execute,
 apply, send, draft, write files into PersonalOS, call external APIs, or claim
@@ -186,8 +205,8 @@ Phase 12B permission keys:
 - `side_effect_ledger_dev_test_write`
 - `side_effect_ledger_dev_test_record_attempt`
 
-All Phase 12B write/attempt permissions fail closed when missing, disabled,
-invalid, or approval-only. No live-write permission key is added.
+All Phase 12B read/write/attempt permissions fail closed when missing,
+disabled, invalid, or approval-only. No live-write permission key is added.
 
 Phase 13A adds `synthesis_apply_runs` and `synthesis_apply_items` audit
 tables plus a CLI-only apply path for reviewed synthesis previews. Approval
@@ -251,6 +270,15 @@ PersonalOS Markdown writes, `.openclaw` integration, LaunchAgents, crontab,
 daemons, background processes, live model/API calls, OpenAI/OpenRouter/
 Anthropic integration, production DB activation, dashboard mutation controls,
 public/LAN dashboard exposure, auth/login, Phase 14, or live-rail work.
+
+Phase 13D adds checkpoint hardening only. It constrains project statuses to
+`active`, `paused`, `completed`, and `archived`, and followup statuses to
+`open`, `proposed`, `completed`, `archived`, and `blocked`. Synthesis import
+and apply rerun those validations before any internal SQLite apply. The runtime
+bootstrap known-permission registry lists newer module keys and seeds them
+disabled by default, except the existing safe bootstrap read key. Dashboard and
+Today View wording is read-only except explicit local synthesis preview record
+creation; there is still no Apply button, no live rail, and no external write.
 
 ## Phase 1 Runtime Foundation
 
@@ -524,11 +552,13 @@ execution tasks.
 Local checks:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests
+PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
-`pytest` is configured in `pyproject.toml`, but it is not installed in the
-current local environment used for this phase.
+Run the suite with `PYTHONPATH=src`; running without it can produce misleading
+import failures that do not reflect the repo state. `pytest` is configured in
+`pyproject.toml`, but it is not installed in the current local environment used
+for this phase.
 
 ## Phase 8 Fitness Integration Foundation
 

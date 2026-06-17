@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
@@ -117,7 +118,7 @@ class ValidationHarnessTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with closing(connect_sqlite(config, runtime_dir=runtime_dir)) as connection:
                 apply_migrations(connection)
                 result = validate_no_send(
                     ProposedExecutionAction(

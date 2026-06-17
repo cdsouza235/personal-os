@@ -33,6 +33,7 @@ from personalos.runtime_bootstrap import (
 from personalos.scheduler import count_scheduler_jobs, count_scheduler_runs
 from personalos.side_effects import (
     SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION,
+    SIDE_EFFECT_LEDGER_READ_PERMISSION,
     SIDE_EFFECT_LEDGER_WRITE_PERMISSION,
     count_external_write_attempts,
     count_external_write_intents,
@@ -621,8 +622,20 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(payload["internal_state_mutation"])
         self.assertFalse(payload["external_mutation"])
 
-    def test_side_effects_summary_is_read_only(self) -> None:
+    def test_side_effects_summary_fails_closed_without_read_permission(self) -> None:
         with _seeded_runtime_db() as db_path:
+            before = _table_counts(db_path)
+            result = _run_cli(["side-effects", "summary", "--db", str(db_path), "--json"])
+            after = _table_counts(db_path)
+
+        self.assertEqual(result.code, 1)
+        self.assertEqual(before, after)
+        self.assertIn("side-effect ledger permission", result.stderr.lower())
+
+    def test_side_effects_summary_is_read_only_with_read_permission(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, SIDE_EFFECT_LEDGER_READ_PERMISSION)
             before = _table_counts(db_path)
             result = _run_cli(["side-effects", "summary", "--db", str(db_path), "--json"])
             after = _table_counts(db_path)
@@ -932,7 +945,7 @@ class OperatorCliFileOutputWorkflowTest(unittest.TestCase):
         self.assertEqual(result.code, 0)
         self.assertEqual(before, after)
         self.assertIn("Personal OS Today View", html)
-        self.assertIn("Read-only preview", html)
+        self.assertIn("Read-only except explicit local synthesis preview creation", html)
         self.assertNotIn("<form", html.lower())
         self.assertNotIn("/synthesis-import/preview", html)
         self.assertEqual(payload["status"], "rendered")
@@ -1169,6 +1182,7 @@ def _enable_synthesis_apply_permissions(connection: sqlite3.Connection) -> None:
 
 
 def _enable_side_effect_permissions(connection: sqlite3.Connection) -> None:
+    _set_permission(connection, SIDE_EFFECT_LEDGER_READ_PERMISSION)
     _set_permission(connection, SIDE_EFFECT_LEDGER_WRITE_PERMISSION)
     _set_permission(connection, SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION)
 

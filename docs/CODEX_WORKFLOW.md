@@ -12,13 +12,24 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 13B are complete, and the Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13C is
-approved for repo-local code, tests, and documentation only as the no-send
-scheduler/runtime-loop foundation. Codex may run local tests, push the branch,
-and open or update the PR. Codex must stop before merge and must not inspect
-or mutate protected runtime paths, external systems, credentials, production
-ledgers, production SQLite state, or production state.
+Phases -1 through 13C are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13D is
+approved for repo-local code, tests, and documentation only as checkpoint
+hardening for permission cleanup, project/followup status constraints,
+connection cleanup, docs clarity, and operator/test hygiene. Codex may run
+local tests, push the branch, and open or update the PR. Codex must stop
+before merge and must not inspect or mutate protected runtime paths, external
+systems, credentials, production ledgers, production SQLite state, or
+production state.
+
+Canonical full-suite command:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py"
+```
+
+Run tests with `PYTHONPATH=src`; omitting it can cause misleading import
+failures.
 
 ## Phase Rules
 
@@ -368,9 +379,10 @@ Phase 12B may add local SQLite migrations, helper functions, tests, docs, and
 minimal CLI support for side-effect intent ledgers, idempotency records,
 duplicate prevention, dry-run/simulated attempts, and read-only summaries.
 
-Allowed commands and helpers are read-only summary helpers and simulated
-ledger writes such as `personalos side-effects summary` and
-`personalos side-effects record-dry-run`. They must use explicit safe
+Allowed commands and helpers are permissioned read-only summary helpers and
+simulated ledger writes such as `personalos side-effects summary` and
+`personalos side-effects record-dry-run`. Operator-facing summaries require
+`side_effect_ledger_dev_test_read`. Simulated writes must use explicit safe
 operator paths and must preserve `no_external_writes=true`,
 `no_send_mode=true`, `live_write=false`, and `simulated_or_dry_run=true`.
 
@@ -446,6 +458,22 @@ write Todoist, write Calendar, write PersonalOS Markdown, integrate
 `.openclaw`, call live model/API providers, add OpenAI/OpenRouter/Anthropic
 clients, add dashboard mutation controls, expose public/LAN dashboard access,
 start Phase 14, or start live-rail work.
+
+## Phase 13D Checkpoint Hardening Boundary
+
+Phase 13D may add local SQLite migrations, helper validation, tests, and docs
+to tighten internal state and operator clarity after the Phase 13C checkpoint
+audit. It may constrain project and followup status values, enforce
+side-effect ledger read permission on operator-facing summary paths, make
+known permission seeds auditable and disabled by default, clarify dashboard
+wording, and clean up SQLite ResourceWarnings.
+
+Phase 13D dashboard wording is read-only except explicit local synthesis
+preview creation. It may not add an Apply button, broad dashboard editor,
+live rails, external writes, scheduler activation, production activation,
+LaunchAgents, `.openclaw` integration, PersonalOS Markdown writes, Gmail,
+Todoist, Calendar, live model/API calls, Phase 13E, Phase 14, or live-rail
+work.
 
 ## Runtime Module Validation
 

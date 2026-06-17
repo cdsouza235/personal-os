@@ -141,6 +141,60 @@ class SynthesisApplyApprovalValidationTest(unittest.TestCase):
 
         self.assertEqual(after, before)
 
+    def test_apply_rejects_stored_project_candidate_with_invalid_status(self) -> None:
+        with _migrated_test_connection() as connection:
+            _enable_all_permissions(connection)
+            preview_id = _create_preview(connection, payload=_safe_core_only_payload())
+            _overwrite_preview_candidate_status(
+                connection,
+                preview_id=preview_id,
+                section="projects",
+                status="needs-triage",
+            )
+            before = _core_counts(connection)
+
+            result = apply_synthesis_import_preview(
+                connection,
+                preview_id=preview_id,
+                approval=_approval(preview_id, ("project", 0)),
+            )
+            after = _core_counts(connection)
+            items = list_synthesis_apply_items(
+                connection,
+                apply_run_id=result["apply_run_id"],
+            )
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(after, before)
+        self.assertTrue(any("project status must be one of" in item["error_message"] for item in items))
+
+    def test_apply_rejects_stored_followup_candidate_with_invalid_status(self) -> None:
+        with _migrated_test_connection() as connection:
+            _enable_all_permissions(connection)
+            preview_id = _create_preview(connection, payload=_safe_core_only_payload())
+            _overwrite_preview_candidate_status(
+                connection,
+                preview_id=preview_id,
+                section="followups",
+                status="maybe-laterish",
+            )
+            before = _core_counts(connection)
+
+            result = apply_synthesis_import_preview(
+                connection,
+                preview_id=preview_id,
+                approval=_approval(preview_id, ("followup", 0)),
+            )
+            after = _core_counts(connection)
+            items = list_synthesis_apply_items(
+                connection,
+                apply_run_id=result["apply_run_id"],
+            )
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(after, before)
+        self.assertTrue(any("followup status must be one of" in item["error_message"] for item in items))
+
 
 class SynthesisApplyBehaviorTest(unittest.TestCase):
     def test_safe_priority_project_and_followup_apply_to_internal_state_only(self) -> None:
@@ -602,6 +656,36 @@ def _create_preview(
     if result["status"] != "created":
         raise AssertionError(f"preview setup failed: {result['status']}")
     return result["record"]["id"]
+
+
+def _overwrite_preview_candidate_status(
+    connection: sqlite3.Connection,
+    *,
+    preview_id: str,
+    section: str,
+    status: str,
+) -> None:
+    preview = get_synthesis_import_preview(connection, preview_id)
+    if preview is None:
+        raise AssertionError(f"preview setup failed: missing preview {preview_id}")
+    parsed_json = dict(preview["parsed_json"])
+    candidates = dict(parsed_json["candidates"])
+    items = list(candidates[section])
+    items[0] = {**items[0], "status": status}
+    candidates[section] = items
+    parsed_json["candidates"] = candidates
+    connection.execute(
+        """
+        UPDATE synthesis_import_previews
+        SET parsed_json = ?
+        WHERE id = ?
+        """,
+        (
+            json.dumps(parsed_json, allow_nan=False, separators=(",", ":"), sort_keys=True),
+            preview_id,
+        ),
+    )
+    connection.commit()
 
 
 def _approval(preview_id: str, *refs: tuple[str, int]) -> dict[str, object]:

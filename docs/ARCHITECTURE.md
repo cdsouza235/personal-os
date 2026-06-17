@@ -99,8 +99,9 @@ The initial runtime state model should document and eventually implement these e
 
 ## Pre-Live Readiness Architecture
 
-Phase 13F-A adds a docs-only policy gate before any Phase 14/live-rail work.
-The gate is defined by:
+Phase 13F-A adds a policy gate before any Phase 14/live-rail work. Phase 13F-B
+adds an inert repo-level readiness model and evaluator for that policy. The
+gate is defined by:
 
 - [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
 - [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
@@ -110,7 +111,9 @@ The gate is defined by:
 These documents define activation prerequisites for Gmail, Todoist, Google
 Calendar, PersonalOS Markdown, OpenClaw runtime workflows, schedulers,
 LaunchAgents/background loops, live model/API calls, and production SQLite.
-They do not implement live rails or activate production runtime behavior.
+The Phase 13F-B evaluator reports gate and rail status only. It does not
+implement live clients, load credentials, mutate runtime state, call OpenClaw,
+or activate production runtime behavior.
 
 ## Dashboard Architecture
 

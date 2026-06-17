@@ -75,6 +75,7 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
         self.assertEqual(result.code, 0)
         self.assertIn("Safe local operator CLI", result.stdout)
         self.assertIn("status", result.stdout)
+        self.assertIn("readiness", result.stdout)
         self.assertIn("briefing", result.stdout)
         self.assertIn("synthesis", result.stdout)
         self.assertIn("side-effects", result.stdout)
@@ -306,6 +307,60 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
 
 
 class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
+    def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            before = sorted(Path(temp_dir).iterdir())
+            result = _run_cli(["readiness", "status", "--json"])
+            after = sorted(Path(temp_dir).iterdir())
+
+        payload = json.loads(result.stdout)
+        readiness = payload["readiness"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(before, after)
+        self.assertEqual(payload["status"], "completed")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertEqual(readiness["status"], "not_ready")
+        self.assertTrue(readiness["inert_report_only"])
+        self.assertTrue(readiness["read_only"])
+        self.assertFalse(readiness["live_rails_activated"])
+        self.assertFalse(readiness["credentials_loaded"])
+        self.assertFalse(readiness["credentials_read"])
+        self.assertFalse(readiness["files_created"])
+        self.assertFalse(readiness["runtime_state_mutated"])
+        self.assertFalse(readiness["scheduler_activated"])
+        self.assertFalse(readiness["openclaw_called"])
+        self.assertFalse(readiness["production_db_path_active"])
+        self.assertIn("Missing readiness config fails closed.", readiness["reasons"])
+        self.assertGreater(readiness["blocked_or_missing_gate_count"], 0)
+        self.assertEqual(readiness["blocked_or_non_disabled_rail_count"], 0)
+
+    def test_readiness_status_command_lists_disabled_live_rails_and_gate_reasons(self) -> None:
+        result = _run_cli(["readiness", "status"])
+
+        self.assertEqual(result.code, 0)
+        self.assertIn("command: readiness status", result.stdout)
+        self.assertIn("readiness_status: not_ready", result.stdout)
+        self.assertIn("inert_report_only: true", result.stdout)
+        self.assertIn("live_rails_activated: false", result.stdout)
+        self.assertIn("Missing readiness config fails closed.", result.stdout)
+        for rail in (
+            "gmail",
+            "todoist",
+            "google_calendar",
+            "personalos_markdown",
+            "openclaw_runtime_workflows",
+            "scheduler_launchagent_background_loop",
+            "live_model_api_calls",
+            "production_sqlite_state",
+        ):
+            with self.subTest(rail=rail):
+                self.assertIn(f"{rail}: disabled, active=false", result.stdout)
+
     def test_status_command_works_against_temp_bootstrapped_db(self) -> None:
         with _seeded_runtime_db() as db_path:
             result = _run_cli(["status", "--db", str(db_path), "--json"])
@@ -316,6 +371,21 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(payload["database_write"])
         self.assertTrue(payload["no_external_writes"])
         self.assertIn("routines", payload["summary"]["counts"])
+        readiness = payload["summary"]["pre_live_readiness"]
+        self.assertEqual(readiness["status"], "not_ready")
+        self.assertTrue(readiness["inert_report_only"])
+        self.assertTrue(readiness["no_live_rails_activated"])
+        self.assertEqual(readiness["blocked_or_non_disabled_rail_count"], 0)
+
+    def test_status_command_human_output_includes_readiness_surface(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            result = _run_cli(["status", "--db", str(db_path)])
+
+        self.assertEqual(result.code, 0)
+        self.assertIn("readiness_status: not_ready", result.stdout)
+        self.assertIn("inert_report_only: true", result.stdout)
+        self.assertIn("live_rails_activated: false", result.stdout)
+        self.assertIn("gmail: disabled, active=false", result.stdout)
 
     def test_today_command_is_read_only_and_does_not_mutate_table_counts(self) -> None:
         with _seeded_runtime_db() as db_path:

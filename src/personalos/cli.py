@@ -19,6 +19,7 @@ from personalos.path_safety import (
     validate_existing_sqlite_path,
     validate_output_file_path,
 )
+from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
     create_external_write_intent_and_record_dry_run,
     summarize_side_effect_ledgers,
@@ -68,6 +69,21 @@ def build_parser() -> argparse.ArgumentParser:
     _add_date_timezone_args(today_parser)
     _add_json_arg(today_parser)
     today_parser.set_defaults(func=_command_today)
+
+    readiness_parser = subparsers.add_parser(
+        "readiness",
+        help="Render inert pre-live readiness status.",
+    )
+    readiness_subparsers = readiness_parser.add_subparsers(
+        dest="readiness_command",
+        required=True,
+    )
+    readiness_status_parser = readiness_subparsers.add_parser(
+        "status",
+        help="Print the inert pre-live readiness report without DB or external access.",
+    )
+    _add_json_arg(readiness_status_parser)
+    readiness_status_parser.set_defaults(func=_command_readiness_status)
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
     briefing_subparsers = briefing_parser.add_subparsers(dest="briefing_command", required=True)
@@ -269,6 +285,22 @@ def _command_today(args: argparse.Namespace) -> int:
         "external_mutation": False,
         "no_external_writes": True,
         "summary": summary,
+    }
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_readiness_status(args: argparse.Namespace) -> int:
+    report = {
+        "command": "readiness status",
+        "status": "completed",
+        "database_write": False,
+        "external_mutation": False,
+        "file_write": False,
+        "no_external_writes": True,
+        "no_credentials_loaded": True,
+        "no_live_rails_activated": True,
+        "readiness": create_default_pre_live_readiness_report(),
     }
     _emit_report(report, json_output=args.json)
     return 0
@@ -669,6 +701,15 @@ def _human_report(report: Mapping[str, Any]) -> str:
             lines.append(f"source_date: {source_date}")
         if timezone:
             lines.append(f"timezone: {timezone}")
+        summary_readiness = summary.get("pre_live_readiness") or summary.get(
+            "pre_live_readiness_summary"
+        )
+        if isinstance(summary_readiness, Mapping):
+            _append_readiness_lines(lines, summary_readiness)
+
+    readiness = report.get("readiness")
+    if isinstance(readiness, Mapping):
+        _append_readiness_lines(lines, readiness)
 
     scheduler_run = report.get("scheduler_run")
     if isinstance(scheduler_run, Mapping):
@@ -694,6 +735,32 @@ def _human_report(report: Mapping[str, Any]) -> str:
         lines.append("warnings:")
         lines.extend(f"- {warning}" for warning in warnings)
     return "\n".join(lines)
+
+
+def _append_readiness_lines(lines: list[str], readiness: Mapping[str, Any]) -> None:
+    lines.append(f"readiness_status: {readiness.get('status', 'unknown')}")
+    lines.append(
+        "inert_report_only: "
+        + _format_scalar(readiness.get("inert_report_only", False))
+    )
+    lines.append(
+        "live_rails_activated: "
+        + _format_scalar(readiness.get("live_rails_activated", False))
+    )
+    reasons = readiness.get("reasons")
+    if isinstance(reasons, list) and reasons:
+        lines.append("readiness_reasons:")
+        lines.extend(f"- {reason}" for reason in reasons)
+    rails = readiness.get("rails")
+    if isinstance(rails, list) and rails:
+        lines.append("live_rails:")
+        for rail in rails:
+            if isinstance(rail, Mapping):
+                lines.append(
+                    "- "
+                    + f"{rail.get('rail')}: {rail.get('status')}, "
+                    + f"active={_format_scalar(rail.get('active'))}"
+                )
 
 
 def _format_scalar(value: object) -> str:

@@ -216,6 +216,44 @@ def default_live_rail_statuses() -> tuple[RailResult, ...]:
     return tuple(_disabled_rail_result(rail) for rail in LIVE_RAILS)
 
 
+def create_default_pre_live_readiness_report() -> dict[str, Any]:
+    return readiness_report_to_summary(evaluate_pre_live_readiness())
+
+
+def readiness_report_to_summary(report: PreLiveReadinessReport) -> dict[str, Any]:
+    report_dict = report.to_dict()
+    return {
+        **report_dict,
+        "inert_report_only": True,
+        "read_only": True,
+        "database_write": False,
+        "external_mutation": False,
+        "live_rails_activated": False,
+        "no_live_rails_activated": True,
+        "no_external_writes": True,
+        "no_credentials_loaded": not report.credentials_loaded,
+        "no_production_db_active": not report.production_db_path_active,
+        "no_scheduler_activation": not report.scheduler_activated,
+        "no_openclaw_call": not report.openclaw_called,
+        "summary_text": (
+            "Inert pre-live readiness report only; no live rails are activated."
+        ),
+        "disabled_rail_names": [
+            rail["rail"]
+            for rail in report_dict["rails"]
+            if rail["status"] == LiveRailStatus.DISABLED.value
+        ],
+        "blocked_or_missing_gate_count": sum(
+            1 for gate in report_dict["gates"] if not gate["satisfied"]
+        ),
+        "blocked_or_non_disabled_rail_count": sum(
+            1
+            for rail in report_dict["rails"]
+            if rail["status"] != LiveRailStatus.DISABLED.value or rail["active"]
+        ),
+    }
+
+
 def evaluate_pre_live_readiness(
     config: PreLiveReadinessConfig | None = None,
 ) -> PreLiveReadinessReport:

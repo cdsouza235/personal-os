@@ -96,6 +96,11 @@ class TodayViewSummaryTest(unittest.TestCase):
         self.assertTrue(summary["briefing_output_summary"]["no_external_writes"])
         self.assertTrue(summary["briefing_output_summary"]["no_send_mode"])
         self.assertFalse(summary["synthesis_import_preview_summary"]["available"])
+        readiness = summary["pre_live_readiness_summary"]
+        self.assertEqual(readiness["status"], "not_ready")
+        self.assertTrue(readiness["inert_report_only"])
+        self.assertTrue(readiness["no_live_rails_activated"])
+        self.assertEqual(readiness["blocked_or_non_disabled_rail_count"], 0)
         self.assertEqual(summary["side_effect_ledger_summary"]["intent_count"], 0)
         self.assertEqual(summary["side_effect_ledger_summary"]["attempt_count"], 0)
         self.assertTrue(summary["side_effect_ledger_summary"]["no_external_writes"])
@@ -243,6 +248,11 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Briefing Outputs", html)
         self.assertIn("Side-Effect Ledgers", html)
         self.assertIn("Scheduler Simulations", html)
+        self.assertIn("Pre-Live Readiness", html)
+        self.assertIn("Inert report only", html)
+        self.assertIn("Live rails activated</dt><dd>false", html)
+        self.assertIn("gmail</td><td>disabled</td><td>false", html)
+        self.assertIn("production_sqlite_state</td><td>disabled</td><td>false", html)
         self.assertIn("ChatGPT Synthesis Import Preview", html)
         self.assertIn("/synthesis-import/preview", html)
         self.assertIn("Synthesis Import Previews", html)
@@ -306,7 +316,11 @@ class DashboardShellTest(unittest.TestCase):
             )
 
         payload = json.loads(rendered_json)
+        readiness = payload["pre_live_readiness_summary"]
         briefing_summary = payload["briefing_output_summary"]
+        self.assertEqual(readiness["status"], "not_ready")
+        self.assertTrue(readiness["inert_report_only"])
+        self.assertTrue(readiness["no_live_rails_activated"])
         self.assertEqual(briefing_summary["source_date_briefing_output_count"], 1)
         self.assertEqual(
             briefing_summary["latest_briefing_outputs"][0]["briefing_window_name"],

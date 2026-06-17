@@ -16,6 +16,7 @@ from personalos.pre_live_readiness import (
     ReadinessStatus,
     default_live_rail_statuses,
     evaluate_pre_live_readiness,
+    readiness_report_to_summary,
 )
 
 
@@ -114,6 +115,28 @@ class PreLiveReadinessSafetyTest(unittest.TestCase):
         self.assertEqual(
             gates[ReadinessGate.LIVE_PERMISSIONS_DISABLED_BY_DEFAULT].status,
             GateStatus.BLOCKED,
+        )
+
+    def test_invalid_or_unknown_live_rail_config_fails_closed_in_summary_surface(self) -> None:
+        config = replace(
+            _fully_satisfied_config(),
+            rails={
+                LiveRail.TODOIST: {"status": "unexpected_live_status"},
+                "future_live_rail": {"status": LiveRailStatus.DISABLED},
+            },
+        )
+
+        summary = readiness_report_to_summary(evaluate_pre_live_readiness(config))
+
+        self.assertEqual(summary["status"], "blocked")
+        self.assertTrue(summary["inert_report_only"])
+        self.assertFalse(summary["live_rails_activated"])
+        self.assertGreater(summary["blocked_or_non_disabled_rail_count"], 0)
+        self.assertTrue(
+            any(
+                rail["rail"] == "todoist" and rail["status"] == "blocked"
+                for rail in summary["rails"]
+            )
         )
 
     def test_production_db_path_is_not_active_by_default(self) -> None:

@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from personalos.config import PersonalOSConfig
+from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
     count_external_write_attempts,
     count_external_write_intents,
@@ -57,6 +58,7 @@ def create_status_summary(
         },
         "permission_settings": permission_settings,
         "permission_settings_count": len(permission_settings),
+        "pre_live_readiness": create_default_pre_live_readiness_report(),
         "recent_system_events": list_recent_system_events(
             connection,
             limit=recent_event_limit,

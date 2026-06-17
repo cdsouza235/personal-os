@@ -16,7 +16,12 @@ not-configured, or requires-approval status is not an activation path.
 ## Shared Activation Rules
 
 Every live rail must satisfy the master
-[Pre-Live Readiness Gate](PRE_LIVE_READINESS.md) before activation.
+[Pre-Live Readiness Gate](PRE_LIVE_READINESS.md) before activation. No rail
+can move from disabled or inert to live unless the readiness gate is satisfied,
+the [Activation Checklist](ACTIVATION_CHECKLIST.md) is completed, the
+[First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md) is completed, Chris
+approves the specific pilot, and the first pilot receives post-pilot review
+before expansion.
 
 Shared rules:
 
@@ -30,6 +35,8 @@ Shared rules:
 - Rollback/undo: documented before activation.
 - Approval: explicit Chris approval for the specific rail, operator, runtime
   host, permission, and pilot scope.
+- Post-pilot review: required before expanding beyond the first approved
+  pilot.
 
 Dev/test, preview, simulated-write, and internal apply permissions do not
 authorize live behavior.

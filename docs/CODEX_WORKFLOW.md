@@ -12,13 +12,14 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 13D are complete, and the Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-A is
-approved as a docs-only pre-live readiness gate. Codex may edit only the
-approved repository documentation, push the branch, and open the PR. Codex
-must stop after reporting the PR and must not inspect or mutate protected
-runtime paths, external systems, credentials, production ledgers, production
-SQLite state, production state, OpenClaw runtime workflows, or live rails.
+Phases -1 through 13F-C are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-D is
+approved as activation checklist and first-live pilot protocol documentation.
+Codex may edit only the approved repository documentation, push the branch,
+and open the PR. Codex must stop after reporting the PR and must not inspect
+or mutate protected runtime paths, external systems, credentials, production
+ledgers, production SQLite state, production state, OpenClaw runtime
+workflows, or live rails.
 
 Canonical full-suite command:
 
@@ -71,12 +72,15 @@ following policy docs as required gates:
 
 - [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
 - [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
+- [Activation Checklist](ACTIVATION_CHECKLIST.md)
+- [First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md)
 - [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
 - [Production DB Policy](PRODUCTION_DB_POLICY.md)
 
-Phase 13F-A creates these policy gates only. It does not authorize
-implementation work, production DB activation, scheduler activation, OpenClaw
-runtime operation, or live external writes.
+Phase 13F-A through Phase 13F-D create policy, readiness, checklist, and pilot
+protocol gates only. They do not authorize implementation work, production DB
+activation, scheduler activation, OpenClaw runtime operation, or live external
+writes.
 
 ## Allowed Codex Work
 

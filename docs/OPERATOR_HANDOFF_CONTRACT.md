@@ -245,3 +245,37 @@ Stop condition:
 Rollback/undo instructions:
 Escalation instructions:
 ```
+
+## Future First-Live Pilot Handoff Packet
+
+A first-live pilot handoff packet is required before OpenClaw or any runtime
+operator participates in a future live pilot. The packet must be prepared only
+after the [Activation Checklist](ACTIVATION_CHECKLIST.md) and
+[First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md) are completed for
+the selected pilot and Chris explicitly approves the operator role.
+
+The packet must include:
+
+- Selected rail and exact operation.
+- Repo commit and validation evidence.
+- Readiness report reference.
+- Activation checklist reference.
+- First-live pilot protocol reference.
+- Approval artifact reference.
+- Allowed files and systems.
+- Forbidden files and systems.
+- Exact foreground command or workflow name.
+- Required permission names.
+- Credential label if any, without secret values.
+- Production DB path label if any.
+- Preview or dry-run artifact.
+- Side-effect ledger target.
+- Completion report target.
+- Rollback or undo procedure.
+- Stop condition.
+- Escalation instructions.
+
+Phase 13F-D does not invoke OpenClaw, run runtime workflows, configure
+credentials, activate production SQLite, start schedulers, or perform live
+writes. This section only defines what OpenClaw would need later if Chris
+approves a narrow runtime/operator pilot.

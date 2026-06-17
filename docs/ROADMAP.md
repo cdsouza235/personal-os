@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 13F-B are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13F-C are complete. The Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13F-C work is read-only pre-live readiness status visibility. This repo
-still has no production runtime activation.
+Phase 13F-D work is activation checklist and first-live pilot protocol
+documentation. This repo still has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -1150,7 +1150,7 @@ Likely next phase:
 
 ## Phase 13F-C: Read-Only Readiness Status Surface
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -1180,7 +1180,46 @@ Non-goals:
 - No production DB activation or production ledger mutation.
 - No migrations.
 - No protected PersonalOS or `.openclaw` access.
-- No Phase 13F-D, Phase 13E, Phase 14, or live-rail implementation.
+- No Phase 13E, Phase 14, or live-rail implementation.
+
+Likely next phase:
+
+- Phase 13F-D activation checklist and first-live pilot protocol.
+
+## Phase 13F-D: Activation Checklist And First-Live Pilot Protocol
+
+Status: current.
+
+Scope:
+
+- Add [Activation Checklist](ACTIVATION_CHECKLIST.md) as the final future
+  checklist before any live rail can be activated.
+- Add [First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md) to define how
+  the first live pilot will eventually be selected, rehearsed, approved, run,
+  audited, and halted or expanded.
+- Update the existing pre-live readiness, live rail activation, operator
+  handoff, production DB, safety, and architecture docs to reference the new
+  gates.
+- Keep Phase 13F-D protocol/checklist only. It does not execute the checklist,
+  complete the pilot protocol, approve Phase 14, or activate live systems.
+
+Non-goals:
+
+- No live Gmail send/draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No PersonalOS Markdown writes.
+- No OpenClaw runtime operation.
+- No scheduler activation, LaunchAgents, crontab, daemons, or background
+  workers.
+- No live model/API calls.
+- No credentials or OAuth loading.
+- No production DB activation, creation, migration, or production ledger
+  mutation.
+- No migrations.
+- No source activation controls.
+- No protected PersonalOS or `.openclaw` access.
+- No Phase 13E, Phase 14, or live-rail implementation.
 
 Likely next phase:
 

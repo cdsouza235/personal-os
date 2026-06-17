@@ -4,13 +4,18 @@
 
 Phase 13F-A defines the mandatory readiness gate before any Phase 14 or live
 rail work. Phase 13F-B encodes that policy as inert repo-level readiness
-structures and tests. It does not implement live rails, add migrations,
-activate a scheduler, activate a production database, call live APIs, load
-credentials, or authorize OpenClaw runtime operation.
+structures and tests. Phase 13F-D adds the future
+[Activation Checklist](ACTIVATION_CHECKLIST.md) and
+[First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md). These documents do
+not implement live rails, add migrations, activate a scheduler, activate a
+production database, call live APIs, load credentials, or authorize OpenClaw
+runtime operation.
 
 No live rail may move from preview/dry-run behavior to live behavior until
 Chris explicitly approves the specific rail, specific production surface,
-specific operator, and specific first-live pilot.
+specific operator, and specific first-live pilot. Before Phase 14 or any live
+activation, the activation checklist and first-live pilot protocol must be
+completed as future human approval artifacts.
 
 ## Scope
 
@@ -272,6 +277,8 @@ Before live activation, documentation must be current for:
 
 - User-facing operational workflow.
 - Rail-specific activation policy.
+- Activation checklist.
+- First-live pilot protocol.
 - Permission names and default states.
 - Dry-run/apply/live semantics.
 - Credential and production DB boundaries.
@@ -297,3 +304,21 @@ Chris approval must be explicit, specific, and current. Approval must state:
 
 General approval to continue development, merge a docs PR, run tests, open a
 PR, or inspect repo-local files does not approve live rail activation.
+
+## Phase 14 Gate
+
+Before Phase 14 or any live rail implementation can begin, the future
+activation packet must include:
+
+- A readiness report showing the selected pilot is ready under the approved
+  configuration.
+- A completed [Activation Checklist](ACTIVATION_CHECKLIST.md).
+- A completed
+  [First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md) packet.
+- Chris approval for the selected rail, operator, runtime host, production
+  surface, input scope, stop condition, and rollback/recovery plan.
+- A post-pilot review plan that blocks expansion until the first pilot is
+  reviewed.
+
+Phase 13F-D creates these documents only. It does not complete the checklist
+or protocol and does not start Phase 14.

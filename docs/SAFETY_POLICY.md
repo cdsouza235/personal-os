@@ -6,13 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 13F-B are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13F-C are complete, and the Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13F-C work is read-only pre-live readiness status visibility. It may edit
-only approved repository source, tests, and documentation for inert readiness
-reports. It must not add migrations, runtime state, live rails, scheduler
-activation, OpenClaw runtime operation, production DB activation, credential
-loading, or live external writes.
+Phase 13F-D work is activation checklist and first-live pilot protocol
+documentation. It may edit only approved repository documentation and inert
+references for future readiness gates. It must not add migrations, runtime
+state, live rails, scheduler activation, OpenClaw runtime operation,
+production DB activation, credential loading, or live external writes.
 It must not inspect or mutate live runtime files, live PersonalOS files or
 fitness CSVs, credentials, external systems, production ledgers, production
 SQLite state, or any production state.
@@ -47,6 +47,8 @@ Before any Phase 14/live-rail work, the repo must satisfy:
 
 - [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
 - [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
+- [Activation Checklist](ACTIVATION_CHECKLIST.md)
+- [First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md)
 - [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
 - [Production DB Policy](PRODUCTION_DB_POLICY.md)
 
@@ -56,6 +58,10 @@ read-only CLI/status/dashboard surfaces. These surfaces do not create live
 permissions, activate production SQLite, activate schedulers, authorize
 OpenClaw runtime workflows, or enable Gmail, Todoist, Calendar, PersonalOS
 Markdown, or live model/API calls.
+
+Phase 13F-D adds future checklist and pilot protocol gates only. Completing
+those gates requires later Chris approval and does not happen as part of a
+docs PR.
 
 ## Phase 0 Rule
 

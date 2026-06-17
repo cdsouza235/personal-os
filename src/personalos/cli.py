@@ -23,6 +23,15 @@ from personalos.side_effects import (
     create_external_write_intent_and_record_dry_run,
     summarize_side_effect_ledgers,
 )
+from personalos.scheduler import (
+    BRIEFING_WINDOWS,
+    SAFE_NO_SEND_SEED_PROFILE,
+    SIMULATED_JOB_TYPES,
+    list_scheduler_jobs,
+    preview_scheduler_jobs,
+    run_scheduler_job_simulated,
+    seed_dev_scheduler_jobs,
+)
 from personalos.synthesis_apply import (
     SynthesisApplyValidationError,
     apply_synthesis_import_preview,
@@ -158,6 +167,61 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard_render_parser.add_argument("--output-file", required=True)
     _add_json_arg(dashboard_render_parser)
     dashboard_render_parser.set_defaults(func=_command_dashboard_render)
+
+    scheduler_parser = subparsers.add_parser(
+        "scheduler",
+        help="No-send scheduler job records and foreground simulations.",
+    )
+    scheduler_subparsers = scheduler_parser.add_subparsers(
+        dest="scheduler_command",
+        required=True,
+    )
+
+    scheduler_jobs_parser = scheduler_subparsers.add_parser(
+        "jobs",
+        help="List configured no-send scheduler job records.",
+    )
+    _add_db_arg(scheduler_jobs_parser)
+    _add_json_arg(scheduler_jobs_parser)
+    scheduler_jobs_parser.set_defaults(func=_command_scheduler_jobs)
+
+    scheduler_preview_parser = scheduler_subparsers.add_parser(
+        "preview",
+        help="Preview which dev/test scheduler jobs would be due without running them.",
+    )
+    _add_db_arg(scheduler_preview_parser)
+    _add_date_timezone_args(scheduler_preview_parser)
+    _add_json_arg(scheduler_preview_parser)
+    scheduler_preview_parser.set_defaults(func=_command_scheduler_preview)
+
+    scheduler_run_parser = scheduler_subparsers.add_parser(
+        "run",
+        help="Run one scheduler job as a foreground no-send simulation.",
+    )
+    _add_db_arg(scheduler_run_parser)
+    scheduler_run_parser.add_argument("--scheduler-job-id")
+    scheduler_run_parser.add_argument("--job-type", choices=SIMULATED_JOB_TYPES)
+    scheduler_run_parser.add_argument("--date", help="Source date in YYYY-MM-DD format.")
+    scheduler_run_parser.add_argument("--timezone", default=DEFAULT_TIMEZONE)
+    scheduler_run_parser.add_argument("--window", choices=BRIEFING_WINDOWS)
+    scheduler_run_parser.add_argument("--scheduled-for")
+    scheduler_run_parser.add_argument("--output-file")
+    _add_json_arg(scheduler_run_parser)
+    scheduler_run_parser.set_defaults(func=_command_scheduler_run)
+
+    scheduler_seed_parser = scheduler_subparsers.add_parser(
+        "seed-dev",
+        help="Insert safe dev/test no-send scheduler job records.",
+    )
+    _add_db_arg(scheduler_seed_parser)
+    scheduler_seed_parser.add_argument(
+        "--profile",
+        required=True,
+        choices=(SAFE_NO_SEND_SEED_PROFILE,),
+    )
+    scheduler_seed_parser.add_argument("--timezone", default=DEFAULT_TIMEZONE)
+    _add_json_arg(scheduler_seed_parser)
+    scheduler_seed_parser.set_defaults(func=_command_scheduler_seed_dev)
 
     return parser
 
@@ -361,6 +425,68 @@ def _command_dashboard_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_scheduler_jobs(args: argparse.Namespace) -> int:
+    with closing(_connect_read_only(args.db)) as connection:
+        jobs = list_scheduler_jobs(connection)
+    report = {
+        "command": "scheduler jobs",
+        "status": "completed",
+        "database_write": False,
+        "external_mutation": False,
+        "scheduler_activation": False,
+        "launch_agent_installed": False,
+        "no_external_writes": True,
+        "no_send_mode": True,
+        "scheduler_job_count": len(jobs),
+        "scheduler_jobs": jobs,
+    }
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_scheduler_preview(args: argparse.Namespace) -> int:
+    with closing(_connect_read_only(args.db)) as connection:
+        result = preview_scheduler_jobs(
+            connection,
+            source_date=args.date,
+            timezone=args.timezone,
+        )
+    report = {"command": "scheduler preview", **result}
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_scheduler_run(args: argparse.Namespace) -> int:
+    if args.scheduler_job_id is None and args.job_type is None:
+        raise CliError("scheduler run requires --job-type or --scheduler-job-id")
+    with closing(_connect_read_write(args.db)) as connection:
+        result = run_scheduler_job_simulated(
+            connection,
+            job_type=args.job_type,
+            scheduler_job_id=args.scheduler_job_id,
+            source_date=args.date,
+            timezone=args.timezone,
+            briefing_window_name=args.window,
+            scheduled_for=args.scheduled_for,
+            output_file=args.output_file,
+        )
+    report = {"command": "scheduler run", **result}
+    _emit_report(report, json_output=args.json)
+    return 0 if result.get("status") == "completed" else 1
+
+
+def _command_scheduler_seed_dev(args: argparse.Namespace) -> int:
+    with closing(_connect_read_write(args.db)) as connection:
+        result = seed_dev_scheduler_jobs(
+            connection,
+            profile=args.profile,
+            timezone=args.timezone,
+        )
+    report = {"command": "scheduler seed-dev", **result}
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
 def _connect_read_only(db_path: str) -> sqlite3.Connection:
     validated_path = validate_existing_sqlite_path(db_path, path_label="operator db_path")
     db_uri = f"file:{quote(str(validated_path), safe='/')}?mode=ro"
@@ -517,6 +643,12 @@ def _human_report(report: Mapping[str, Any]) -> str:
         "simulated_or_dry_run",
         "static_html_only",
         "apply_run_id",
+        "scheduler_run_id",
+        "scheduler_job_id",
+        "scheduler_activation",
+        "launch_agent_installed",
+        "daemonized",
+        "background_process_started",
         "preview_id",
         "approval_source_hash",
     ):
@@ -537,6 +669,11 @@ def _human_report(report: Mapping[str, Any]) -> str:
             lines.append(f"source_date: {source_date}")
         if timezone:
             lines.append(f"timezone: {timezone}")
+
+    scheduler_run = report.get("scheduler_run")
+    if isinstance(scheduler_run, Mapping):
+        lines.append(f"scheduler_run_id: {scheduler_run.get('scheduler_run_id')}")
+        lines.append(f"job_type: {scheduler_run.get('job_type')}")
 
     preview_report = report.get("preview_report")
     if isinstance(preview_report, Mapping):

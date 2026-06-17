@@ -30,6 +30,7 @@ from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_WRITE_PERMISSION,
     bootstrap_runtime_database,
 )
+from personalos.scheduler import count_scheduler_jobs, count_scheduler_runs
 from personalos.side_effects import (
     SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION,
     SIDE_EFFECT_LEDGER_WRITE_PERMISSION,
@@ -77,6 +78,7 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
         self.assertIn("synthesis", result.stdout)
         self.assertIn("side-effects", result.stdout)
         self.assertIn("dashboard", result.stdout)
+        self.assertIn("scheduler", result.stdout)
 
     def test_db_backed_commands_require_explicit_db(self) -> None:
         for args in (
@@ -101,6 +103,10 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
             ],
             ["side-effects", "summary"],
             ["side-effects", "record-dry-run", "--input-file", "/tmp/input.json"],
+            ["scheduler", "jobs"],
+            ["scheduler", "preview", "--date", SOURCE_DATE],
+            ["scheduler", "run", "--job-type", "status_summary"],
+            ["scheduler", "seed-dev", "--profile", "safe_no_send"],
         ):
             with self.subTest(args=args):
                 result = _run_cli(args)
@@ -667,6 +673,204 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(payload["simulated_or_dry_run"])
         self.assertFalse(payload["external_mutation"])
 
+    def test_scheduler_seed_dev_creates_safe_no_send_job_records(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                before = count_scheduler_jobs(connection)
+
+            result = _run_cli(
+                [
+                    "scheduler",
+                    "seed-dev",
+                    "--db",
+                    str(db_path),
+                    "--profile",
+                    "safe_no_send",
+                    "--json",
+                ]
+            )
+
+            with _sqlite_connection(db_path) as connection:
+                after = count_scheduler_jobs(connection)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 0)
+        self.assertEqual(after - before, 5)
+        self.assertEqual(payload["status"], "seeded")
+        self.assertEqual(payload["scheduler_job_count"], 5)
+        self.assertTrue(payload["no_send_mode"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertFalse(payload["live_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["scheduler_activation"])
+        self.assertFalse(payload["launch_agent_installed"])
+        for job in payload["scheduler_jobs"]:
+            with self.subTest(job=job["scheduler_job_id"]):
+                self.assertTrue(job["enabled"])
+                self.assertEqual(job["status"], "enabled_dev_test")
+                self.assertTrue(job["no_send_mode"])
+                self.assertTrue(job["no_external_writes"])
+                self.assertTrue(job["fake_model_only"])
+
+    def test_scheduler_jobs_and_preview_are_read_only(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            seed_result = _run_cli(
+                [
+                    "scheduler",
+                    "seed-dev",
+                    "--db",
+                    str(db_path),
+                    "--profile",
+                    "safe_no_send",
+                    "--json",
+                ]
+            )
+            self.assertEqual(seed_result.code, 0)
+            before_jobs = _table_counts(db_path)
+            jobs_result = _run_cli(["scheduler", "jobs", "--db", str(db_path), "--json"])
+            after_jobs = _table_counts(db_path)
+            preview_result = _run_cli(
+                [
+                    "scheduler",
+                    "preview",
+                    "--db",
+                    str(db_path),
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--json",
+                ]
+            )
+            after_preview = _table_counts(db_path)
+
+        jobs_payload = json.loads(jobs_result.stdout)
+        preview_payload = json.loads(preview_result.stdout)
+        self.assertEqual(jobs_result.code, 0)
+        self.assertEqual(preview_result.code, 0)
+        self.assertEqual(before_jobs, after_jobs)
+        self.assertEqual(after_jobs, after_preview)
+        self.assertEqual(jobs_payload["scheduler_job_count"], 5)
+        self.assertFalse(jobs_payload["database_write"])
+        self.assertFalse(preview_payload["database_write"])
+        self.assertFalse(preview_payload["scheduler_activation"])
+        self.assertFalse(preview_payload["launch_agent_installed"])
+
+    def test_scheduler_run_status_summary_records_scheduler_run_only(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            before = _table_counts(db_path)
+            result = _run_cli(
+                [
+                    "scheduler",
+                    "run",
+                    "--db",
+                    str(db_path),
+                    "--job-type",
+                    "status_summary",
+                    "--json",
+                ]
+            )
+            after = _table_counts(db_path)
+
+        payload = json.loads(result.stdout)
+        changed = {
+            table_name: after[table_name] - before.get(table_name, 0)
+            for table_name in after
+            if after[table_name] != before.get(table_name, 0)
+        }
+        report = payload["completion_report"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(changed, {"scheduler_runs": 1})
+        self.assertEqual(payload["status"], "completed")
+        self.assertTrue(report["no_send_mode"])
+        self.assertTrue(report["no_external_writes"])
+        self.assertFalse(report["live_write"])
+        self.assertFalse(report["external_mutation"])
+        self.assertFalse(report["scheduler_activation"])
+        self.assertFalse(report["launch_agent_installed"])
+        self.assertFalse(report["daemonized"])
+        self.assertFalse(report["background_process_started"])
+
+    def test_scheduler_run_briefing_preview_uses_fake_no_send_composer_only(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_permissions(connection)
+                _enable_composer_permissions(connection)
+                before = _briefing_counts(connection)
+                before_scheduler_runs = count_scheduler_runs(connection)
+                before_external_attempts = count_external_write_attempts(connection)
+
+            result = _run_cli(
+                [
+                    "scheduler",
+                    "run",
+                    "--db",
+                    str(db_path),
+                    "--job-type",
+                    "briefing_preview",
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--window",
+                    "morning",
+                    "--json",
+                ]
+            )
+
+            with _sqlite_connection(db_path) as connection:
+                after = _briefing_counts(connection)
+                after_scheduler_runs = count_scheduler_runs(connection)
+                after_external_attempts = count_external_write_attempts(connection)
+
+        payload = json.loads(result.stdout)
+        workflow_report = payload["workflow_report"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(after_scheduler_runs - before_scheduler_runs, 1)
+        self.assertEqual(after["daily_plans"] - before["daily_plans"], 1)
+        self.assertEqual(after["briefing_outputs"] - before["briefing_outputs"], 1)
+        self.assertEqual(after["composer_packets"] - before["composer_packets"], 1)
+        self.assertEqual(after["composer_outputs"] - before["composer_outputs"], 1)
+        self.assertEqual(after["model_runs"] - before["model_runs"], 1)
+        self.assertEqual(after_external_attempts, before_external_attempts)
+        self.assertTrue(workflow_report["no_send_mode"])
+        self.assertTrue(workflow_report["no_external_writes"])
+        self.assertTrue(workflow_report["no_live_model_call"])
+        self.assertTrue(workflow_report["fake_composer_adapter"])
+        self.assertFalse(workflow_report["network_called"])
+        self.assertFalse(payload["completion_report"]["scheduler_activation"])
+        self.assertFalse(payload["completion_report"]["launch_agent_installed"])
+
+    def test_scheduler_dashboard_render_preview_requires_output_file(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                before_scheduler_runs = count_scheduler_runs(connection)
+            result = _run_cli(
+                [
+                    "scheduler",
+                    "run",
+                    "--db",
+                    str(db_path),
+                    "--job-type",
+                    "dashboard_render_preview",
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--json",
+                ]
+            )
+            with _sqlite_connection(db_path) as connection:
+                after_scheduler_runs = count_scheduler_runs(connection)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 1)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertEqual(after_scheduler_runs - before_scheduler_runs, 1)
+        self.assertIn("output_file", payload["workflow_report"]["reason"])
+        self.assertFalse(payload["completion_report"]["external_mutation"])
+        self.assertFalse(payload["completion_report"]["scheduler_activation"])
+
 
 class OperatorCliFileOutputWorkflowTest(unittest.TestCase):
     def test_briefing_export_writes_existing_output_to_explicit_safe_path_only(self) -> None:
@@ -783,7 +987,7 @@ class OperatorCliBoundaryTest(unittest.TestCase):
             "explicit `--output-file`",
             "input paths",
             "no live model/api calls",
-            "no scheduler",
+            "no scheduler activation",
             "no launchagents",
             "no production runtime activation",
         )
@@ -795,6 +999,9 @@ class OperatorCliBoundaryTest(unittest.TestCase):
         source = "\n".join(
             [
                 inspect.getsource(cli),
+                (REPO_ROOT / "src" / "personalos" / "scheduler.py").read_text(
+                    encoding="utf-8"
+                ),
                 (REPO_ROOT / "src" / "personalos" / "path_safety.py").read_text(
                     encoding="utf-8"
                 ),

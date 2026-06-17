@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 12B are complete, and the Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13A is
-approved for repo-local code, tests, and documentation only as the
-approval-gated synthesis apply flow. Codex may run local tests, push the
-branch, and open or update the PR. Codex must stop before merge and must not
-inspect or mutate protected runtime paths, external systems, credentials,
-production ledgers, production SQLite state, or production state.
+Phases -1 through 13B are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13C is
+approved for repo-local code, tests, and documentation only as the no-send
+scheduler/runtime-loop foundation. Codex may run local tests, push the branch,
+and open or update the PR. Codex must stop before merge and must not inspect
+or mutate protected runtime paths, external systems, credentials, production
+ledgers, production SQLite state, or production state.
 
 ## Phase Rules
 
@@ -419,7 +419,33 @@ send/draft, PersonalOS Markdown writes, external write intent creation,
 OpenAI/OpenRouter/Anthropic integration, production DB activation, dashboard
 mutation forms or POST apply routes, public/LAN dashboard exposure,
 auth/login, Apple Health/wearable integration, Notion integration,
-TradingView/market data integration, or Phase 13C/live-rail work.
+TradingView/market data integration, or Phase 14/live-rail work.
+
+## Phase 13C No-Send Scheduler Runtime Loop Boundary
+
+Phase 13C may add local SQLite migrations, helper functions, tests, docs, and
+CLI support for representing scheduler jobs and running foreground/manual
+simulated jobs. It may add read-only scheduler summaries to status, Today View,
+and dashboard output.
+
+Allowed simulated job types are `status_summary`, `today_view`,
+`briefing_preview`, `side_effect_summary`, `synthesis_apply_summary`, and
+`dashboard_render_preview`. Briefing preview must use the existing fake
+Composer no-send path. Dashboard render preview must require an explicit safe
+output file.
+
+Phase 13C completion reports must preserve `no_send_mode=true`,
+`no_external_writes=true`, `fake_model_only=true`, `live_write=false`,
+`external_mutation=false`, `scheduler_activation=false`, and
+`launch_agent_installed=false`. `enabled=true` on a scheduler job means
+enabled for dev/test simulation only.
+
+Phase 13C must not install or load LaunchAgents, edit crontab, start daemons,
+spawn background workers, activate production runtime, send or draft Gmail,
+write Todoist, write Calendar, write PersonalOS Markdown, integrate
+`.openclaw`, call live model/API providers, add OpenAI/OpenRouter/Anthropic
+clients, add dashboard mutation controls, expose public/LAN dashboard access,
+start Phase 14, or start live-rail work.
 
 ## Runtime Module Validation
 

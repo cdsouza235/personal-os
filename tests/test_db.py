@@ -398,6 +398,41 @@ class SQLiteFoundationTest(unittest.TestCase):
             "created_at",
         },
     }
+    expected_phase_13c_tables = {
+        "scheduler_jobs": {
+            "scheduler_job_id",
+            "name",
+            "job_type",
+            "cadence_type",
+            "schedule_json",
+            "timezone",
+            "enabled",
+            "no_send_mode",
+            "no_external_writes",
+            "fake_model_only",
+            "target_window",
+            "status",
+            "created_at",
+            "updated_at",
+        },
+        "scheduler_runs": {
+            "scheduler_run_id",
+            "scheduler_job_id",
+            "job_type",
+            "run_type",
+            "scheduled_for",
+            "started_at",
+            "completed_at",
+            "status",
+            "completion_report_json",
+            "no_send_mode",
+            "no_external_writes",
+            "live_write",
+            "external_mutation",
+            "scheduler_activation",
+            "launch_agent_installed",
+        },
+    }
 
     def test_dev_and_test_connections_open_safely(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -497,10 +532,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00010",
                     "00011",
                     "00012",
+                    "00013",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 12)
+            self.assertEqual(len(rows), 13)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -695,6 +731,46 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "generated",
                     "2026-06-15T10:00:00+00:00",
                     "2026-06-15T10:00:00+00:00",
+                ),
+            ),
+            (
+                "scheduler_runs",
+                """
+                INSERT INTO scheduler_runs (
+                    scheduler_run_id,
+                    scheduler_job_id,
+                    job_type,
+                    run_type,
+                    scheduled_for,
+                    started_at,
+                    completed_at,
+                    status,
+                    completion_report_json,
+                    no_send_mode,
+                    no_external_writes,
+                    live_write,
+                    external_mutation,
+                    scheduler_activation,
+                    launch_agent_installed
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan-scheduler-run",
+                    "missing-scheduler-job",
+                    "status_summary",
+                    "manual_simulated",
+                    None,
+                    "2026-06-15T10:00:00+00:00",
+                    "2026-06-15T10:00:00+00:00",
+                    "completed",
+                    '{"no_send_mode":true,"no_external_writes":true}',
+                    1,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
                 ),
             ),
         )
@@ -1428,6 +1504,109 @@ class SQLiteFoundationTest(unittest.TestCase):
         self.assertTrue(self.expected_phase_13a_tables.keys() <= table_names)
         self.assertEqual(table_columns, self.expected_phase_13a_tables)
 
+    def test_phase_13c_scheduler_tables_and_columns_are_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                table_names = _table_names(connection)
+                table_columns = {
+                    table_name: _column_names(connection, table_name)
+                    for table_name in self.expected_phase_13c_tables
+                }
+
+        self.assertTrue(self.expected_phase_13c_tables.keys() <= table_names)
+        self.assertEqual(table_columns, self.expected_phase_13c_tables)
+
+    def test_phase_13c_scheduler_defaults_are_no_send_and_no_external_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                connection.execute(
+                    """
+                    INSERT INTO scheduler_jobs (
+                        scheduler_job_id,
+                        name,
+                        job_type,
+                        cadence_type,
+                        schedule_json,
+                        timezone,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "scheduler-job-defaults",
+                        "Scheduler defaults",
+                        "status_summary",
+                        "manual",
+                        "{}",
+                        DEFAULT_TIMEZONE,
+                        "2026-06-15T10:00:00+00:00",
+                        "2026-06-15T10:00:00+00:00",
+                    ),
+                )
+                job = connection.execute(
+                    """
+                    SELECT enabled, no_send_mode, no_external_writes, fake_model_only, status
+                    FROM scheduler_jobs
+                    WHERE scheduler_job_id = ?
+                    """,
+                    ("scheduler-job-defaults",),
+                ).fetchone()
+                connection.execute(
+                    """
+                    INSERT INTO scheduler_runs (
+                        scheduler_run_id,
+                        scheduler_job_id,
+                        job_type,
+                        run_type,
+                        started_at,
+                        completed_at,
+                        status,
+                        completion_report_json
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "scheduler-run-defaults",
+                        "scheduler-job-defaults",
+                        "status_summary",
+                        "manual_simulated",
+                        "2026-06-15T10:00:00+00:00",
+                        "2026-06-15T10:00:00+00:00",
+                        "completed",
+                        '{"no_send_mode":true,"no_external_writes":true}',
+                    ),
+                )
+                run = connection.execute(
+                    """
+                    SELECT no_send_mode, no_external_writes, live_write, external_mutation,
+                           scheduler_activation, launch_agent_installed
+                    FROM scheduler_runs
+                    WHERE scheduler_run_id = ?
+                    """,
+                    ("scheduler-run-defaults",),
+                ).fetchone()
+
+        self.assertEqual(job["enabled"], 0)
+        self.assertEqual(job["no_send_mode"], 1)
+        self.assertEqual(job["no_external_writes"], 1)
+        self.assertEqual(job["fake_model_only"], 1)
+        self.assertEqual(job["status"], "draft")
+        self.assertEqual(run["no_send_mode"], 1)
+        self.assertEqual(run["no_external_writes"], 1)
+        self.assertEqual(run["live_write"], 0)
+        self.assertEqual(run["external_mutation"], 0)
+        self.assertEqual(run["scheduler_activation"], 0)
+        self.assertEqual(run["launch_agent_installed"], 0)
+
     def test_phase_13a_apply_items_enforce_apply_run_foreign_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             runtime_dir = Path(temp_dir) / "runtime"
@@ -1545,6 +1724,110 @@ class SQLiteFoundationTest(unittest.TestCase):
                                     values["created_at"],
                                     values["completed_at"],
                                     values["completion_report_json"],
+                                ),
+                            )
+
+    def test_phase_13c_scheduler_safety_checks_reject_activation_values(self) -> None:
+        invalid_run_cases = (
+            ("no_send_mode", 0),
+            ("no_external_writes", 0),
+            ("live_write", 1),
+            ("external_mutation", 1),
+            ("scheduler_activation", 1),
+            ("launch_agent_installed", 1),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                apply_migrations(connection)
+                connection.execute(
+                    """
+                    INSERT INTO scheduler_jobs (
+                        scheduler_job_id,
+                        name,
+                        job_type,
+                        cadence_type,
+                        schedule_json,
+                        timezone,
+                        enabled,
+                        status,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "scheduler-job-safety",
+                        "Scheduler safety",
+                        "status_summary",
+                        "manual",
+                        "{}",
+                        DEFAULT_TIMEZONE,
+                        1,
+                        "enabled_dev_test",
+                        "2026-06-15T10:00:00+00:00",
+                        "2026-06-15T10:00:00+00:00",
+                    ),
+                )
+                for index, (column_name, invalid_value) in enumerate(invalid_run_cases):
+                    with self.subTest(column_name=column_name):
+                        values = {
+                            "scheduler_run_id": f"scheduler-run-safety-{index}",
+                            "scheduler_job_id": "scheduler-job-safety",
+                            "job_type": "status_summary",
+                            "run_type": "manual_simulated",
+                            "started_at": "2026-06-15T10:00:00+00:00",
+                            "completed_at": "2026-06-15T10:00:00+00:00",
+                            "status": "completed",
+                            "completion_report_json": '{"no_send_mode":true}',
+                            "no_send_mode": 1,
+                            "no_external_writes": 1,
+                            "live_write": 0,
+                            "external_mutation": 0,
+                            "scheduler_activation": 0,
+                            "launch_agent_installed": 0,
+                        }
+                        values[column_name] = invalid_value
+
+                        with self.assertRaises(sqlite3.IntegrityError):
+                            connection.execute(
+                                """
+                                INSERT INTO scheduler_runs (
+                                    scheduler_run_id,
+                                    scheduler_job_id,
+                                    job_type,
+                                    run_type,
+                                    started_at,
+                                    completed_at,
+                                    status,
+                                    completion_report_json,
+                                    no_send_mode,
+                                    no_external_writes,
+                                    live_write,
+                                    external_mutation,
+                                    scheduler_activation,
+                                    launch_agent_installed
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    values["scheduler_run_id"],
+                                    values["scheduler_job_id"],
+                                    values["job_type"],
+                                    values["run_type"],
+                                    values["started_at"],
+                                    values["completed_at"],
+                                    values["status"],
+                                    values["completion_report_json"],
+                                    values["no_send_mode"],
+                                    values["no_external_writes"],
+                                    values["live_write"],
+                                    values["external_mutation"],
+                                    values["scheduler_activation"],
+                                    values["launch_agent_installed"],
                                 ),
                             )
 
@@ -2081,6 +2364,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00010",
                 "00011",
                 "00012",
+                "00013",
             ],
         )
         self.assertEqual(
@@ -2098,6 +2382,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "synthesis_import_preview_tables",
                 "side_effect_idempotency_ledger_tables",
                 "synthesis_apply_audit_tables",
+                "scheduler_runtime_loop_tables",
             ],
         )
 

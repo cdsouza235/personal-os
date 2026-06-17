@@ -6,9 +6,9 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 12B are complete, and the Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13B are complete, and the Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13A work is the approval-gated synthesis apply flow. It may edit
+Phase 13C work is the no-send scheduler/runtime-loop foundation. It may edit
 repo-local code, tests, and documentation, and may create temporary dev/test
 SQLite databases during tests. It must not inspect or mutate live runtime
 files, live PersonalOS files or fitness CSVs, credentials, external systems,
@@ -608,8 +608,36 @@ Gmail send/draft, PersonalOS Markdown writes, `.openclaw` integration,
 scheduler, LaunchAgents, live model/API calls, OpenAI/OpenRouter/Anthropic
 integration, production DB activation, dashboard mutation forms, public/LAN
 dashboard exposure, auth/login, Apple Health/wearable integration, Notion
-integration, TradingView/market data integration, or any Phase 13C/live-rail
+integration, TradingView/market data integration, or any Phase 14/live-rail
 work.
+
+Phase 13C scheduler/runtime-loop work is no-send simulation only. It may store
+safe job records in `scheduler_jobs`, store foreground/manual simulated
+attempts in `scheduler_runs`, and show scheduler summaries in status, Today
+View, and the static dashboard. A scheduler job record is not production
+scheduler activation.
+
+Allowed Phase 13C simulated job types are `status_summary`, `today_view`,
+`briefing_preview`, `side_effect_summary`, `synthesis_apply_summary`, and
+`dashboard_render_preview`. `briefing_preview` uses the existing fake Composer
+no-send path only. `dashboard_render_preview` requires an explicit safe output
+file path and writes static HTML only.
+
+Every scheduler run completion report must preserve `no_send_mode=true`,
+`no_external_writes=true`, `fake_model_only=true`, `live_write=false`,
+`external_mutation=false`, `scheduler_activation=false`,
+`launch_agent_installed=false`, `no_todoist_writes=true`,
+`no_calendar_writes=true`, `no_gmail_send=true`,
+`no_gmail_draft=true`, `no_personalos_writes=true`, and
+`no_live_model_call=true`. The scheduler schema rejects live-write,
+external-mutation, scheduler-activation, and LaunchAgent-installed claims.
+
+Phase 13C must not add LaunchAgents, crontab, daemon/background processes,
+production runtime activation, live Gmail send/draft, live Todoist writes,
+live Calendar writes, PersonalOS Markdown writes, `.openclaw` integration,
+live model/API calls, OpenAI/OpenRouter/Anthropic integration, dashboard
+mutation controls, public/LAN dashboard exposure, auth/login, Phase 14, or
+live-rail work.
 
 Low-risk routine Todoist tasks may auto-write after the validated runtime module exists and permission is enabled.
 

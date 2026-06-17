@@ -13,6 +13,7 @@ from personalos.side_effects import (
     count_external_write_intents,
     count_idempotency_records,
 )
+from personalos.scheduler import count_scheduler_jobs, count_scheduler_runs
 from personalos.synthesis_apply import (
     count_synthesis_apply_items,
     count_synthesis_apply_runs,
@@ -51,6 +52,8 @@ def create_status_summary(
             "idempotency_records": count_idempotency_records(connection),
             "synthesis_apply_runs": count_synthesis_apply_runs(connection),
             "synthesis_apply_items": count_synthesis_apply_items(connection),
+            "scheduler_jobs": count_scheduler_jobs(connection),
+            "scheduler_runs": count_scheduler_runs(connection),
         },
         "permission_settings": permission_settings,
         "permission_settings_count": len(permission_settings),

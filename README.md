@@ -128,15 +128,14 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 12B are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13B are complete. The Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete.
 
-The current Phase 13A scope is the approval-gated synthesis apply flow. It
-allows existing `synthesis_import_previews` to be applied candidate-by-candidate
-into safe internal SQLite core state only after an explicit approval JSON file
-is supplied. It does not write Todoist, Calendar, Gmail, PersonalOS Markdown,
-external write intents, scheduler jobs, LaunchAgents, production runtime state,
-or any live external system.
+The current Phase 13C scope is the no-send scheduler/runtime-loop foundation.
+It may represent scheduler jobs in SQLite and run foreground/manual simulated
+jobs against explicit temp/dev database paths. It does not install or activate
+LaunchAgents, crontab entries, daemons, background workers, production runtime
+state, or live external rails.
 
 Phase 12A added the `personalos` command-line surface so Chris/OpenClaw can
 run existing inert read, preview, export, and static-render workflows without
@@ -156,15 +155,21 @@ Supported local CLI commands:
 - `personalos synthesis apply --db /tmp/personalos-preview.sqlite3 --preview-id <preview_id> --approval-file /tmp/synthesis-approval.json`
 - `personalos side-effects summary --db /tmp/personalos-preview.sqlite3`
 - `personalos side-effects record-dry-run --db /tmp/personalos-preview.sqlite3 --input-file /tmp/side-effect-intent.json`
+- `personalos scheduler jobs --db /tmp/personalos-preview.sqlite3`
+- `personalos scheduler preview --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago`
+- `personalos scheduler run --db /tmp/personalos-preview.sqlite3 --job-type status_summary`
+- `personalos scheduler seed-dev --db /tmp/personalos-preview.sqlite3 --profile safe_no_send`
 - `personalos dashboard render --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --output-file /tmp/today.html`
 
 The CLI prints human-readable completion reports by default and supports
-`--json` where practical. It does not bootstrap, seed, migrate, bind a server,
-write PersonalOS Markdown, write Todoist or Calendar, send or draft Gmail,
-call live model APIs, start a scheduler, activate production runtime, access
-protected PersonalOS/OpenClaw paths, or perform live external writes. The
-Phase 13A `synthesis apply` command is the only synthesis apply surface and
-mutates only internal dev/test SQLite core tables after explicit approval.
+`--json` where practical. It does not bootstrap, migrate, bind a server, write
+PersonalOS Markdown, write Todoist or Calendar, send or draft Gmail, call live
+model APIs, install or activate an OS scheduler, activate production runtime,
+access protected PersonalOS/OpenClaw paths, or perform live external writes.
+The only seed command is the explicit Phase 13C `scheduler seed-dev` path,
+which inserts safe dev/test scheduler job records only. The Phase 13A
+`synthesis apply` command is the only synthesis apply surface and mutates only
+internal dev/test SQLite core tables after explicit approval.
 
 Phase 12B adds `external_write_intents`, `external_write_attempts`, and
 `idempotency_records`. The `side-effects summary` command is read-only.
@@ -212,6 +217,40 @@ Phase 13A permission keys:
 Apply requires the dev/test apply permission plus read/write permissions and
 fails closed when they are missing, disabled, invalid, or approval-only. No
 production apply permission and no live rail permission is added.
+
+Phase 13B hardens synthesis apply atomicity and recovery. Internal core-state
+inserts, apply run rows, apply item rows, and preview apply-status updates are
+committed in one explicit SQLite transaction. If an in-transaction write fails,
+the transaction rolls back and any recovery audit must verify that planned
+core-state inserts did not persist. Phase 13B does not expand apply targets or
+add live rails.
+
+Phase 13C adds `scheduler_jobs` and `scheduler_runs` for no-send scheduler
+simulation only. Scheduler jobs are database records, not active OS scheduler
+configuration. The `enabled` flag means enabled for dev/test simulation only.
+Running a job is synchronous, foreground, and manual through the CLI.
+
+Allowed Phase 13C simulated job types:
+
+- `status_summary`
+- `today_view`
+- `briefing_preview`
+- `side_effect_summary`
+- `synthesis_apply_summary`
+- `dashboard_render_preview`
+
+Every scheduler run completion report must expose `no_send_mode=true`,
+`no_external_writes=true`, `fake_model_only=true`, `live_write=false`,
+`external_mutation=false`, `scheduler_activation=false`, and
+`launch_agent_installed=false`. Briefing preview runs use the existing fake
+Composer no-send path only. Dashboard render preview writes only to an explicit
+safe `--output-file`.
+
+Phase 13C does not add Gmail send/draft, Todoist writes, Calendar writes,
+PersonalOS Markdown writes, `.openclaw` integration, LaunchAgents, crontab,
+daemons, background processes, live model/API calls, OpenAI/OpenRouter/
+Anthropic integration, production DB activation, dashboard mutation controls,
+public/LAN dashboard exposure, auth/login, Phase 14, or live-rail work.
 
 ## Phase 1 Runtime Foundation
 

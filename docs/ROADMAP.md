@@ -1,9 +1,10 @@
 # Roadmap
 
-Phases -1 through 12B are complete. The Phase 6B, Phase 7B, Phase 8B,
+Phases -1 through 13B are complete. The Phase 6B, Phase 7B, Phase 8B,
 Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13A work is the approval-gated synthesis apply flow for safe internal
-SQLite core state only. This repo still has no production runtime activation.
+Phase 13C work is the no-send scheduler/runtime-loop foundation for safe
+foreground simulations only. This repo still has no production runtime
+activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -935,7 +936,7 @@ Non-goals:
 
 ## Phase 13B: Synthesis Apply Atomicity / Recovery Hardening
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -979,4 +980,57 @@ Safety behavior:
 
 Likely next phase:
 
-- Separate Phase 13B or live-rail planning only after explicit approval.
+- Phase 13C no-send scheduler/runtime-loop foundation, without live activation.
+
+## Phase 13C: No-Send Scheduler / Runtime Loop Foundation
+
+Status: current.
+
+Scope:
+
+- Add local SQLite `scheduler_jobs` records for dev/test scheduler job
+  definitions.
+- Add local SQLite `scheduler_runs` records for foreground/manual simulated
+  run attempts.
+- Validate scheduler job definitions, cadence settings, timezone/date/window
+  inputs, and fail-closed no-send/no-external-write flags.
+- Support simulated job types for status summary, Today View summary,
+  no-send briefing preview, side-effect ledger summary, synthesis apply
+  history summary, and static dashboard render preview.
+- Add CLI support through `personalos scheduler jobs`, `personalos scheduler
+  preview`, `personalos scheduler run`, and `personalos scheduler seed-dev`.
+- Surface read-only scheduler job/run counts, latest simulated status,
+  warnings, and safety flags in status, Today View, and dashboard summaries.
+
+Safety behavior:
+
+- `enabled=true` means enabled for dev/test simulation only.
+- All runs are synchronous, foreground, and manually invoked through the CLI.
+- Completion reports expose `no_send_mode=true`, `no_external_writes=true`,
+  `fake_model_only=true`, `live_write=false`, `external_mutation=false`,
+  `scheduler_activation=false`, and `launch_agent_installed=false`.
+- The schema rejects live-write, external-mutation, scheduler-activation, and
+  LaunchAgent-installed values.
+- Dashboard render preview requires an explicit safe `--output-file`.
+
+Non-goals:
+
+- No LaunchAgents.
+- No crontab.
+- No daemon/background process.
+- No production runtime activation.
+- No live Gmail send/draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No PersonalOS Markdown writes.
+- No `.openclaw` integration.
+- No live model/API calls.
+- No OpenAI/OpenRouter/Anthropic integration.
+- No dashboard Run button, scheduler enable button, mutation form, or POST
+  scheduler route.
+- No public/LAN dashboard exposure, auth/login, Apple Health/wearables,
+  Notion, TradingView, market-data integration, Phase 14, or live-rail work.
+
+Likely next phase:
+
+- Separate Phase 14 or live-rail planning only after explicit approval.

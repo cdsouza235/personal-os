@@ -502,6 +502,45 @@ Synthesis apply completion reports expose `no_external_writes=true`,
 `no_personalos_writes=true`, and `no_live_model_call=true`. No external write
 intent is created by this flow.
 
+## No-Send Scheduler Runtime Loop Foundation
+
+Phase 13C introduces a scheduler/runtime-loop representation without
+activating a scheduler. `scheduler_jobs` stores configured dev/test scheduler
+job definitions. `scheduler_runs` stores foreground/manual simulated run
+attempts and their completion reports.
+
+Scheduler jobs are internal SQLite records only. `enabled=true` means enabled
+for dev/test simulation, not enabled in launchd, cron, a daemon, OpenClaw, or
+production runtime. No LaunchAgent files are written, no `launchctl` or
+crontab commands are part of the module, and no background process is started.
+
+Allowed simulated job types are `status_summary`, `today_view`,
+`briefing_preview`, `side_effect_summary`, `synthesis_apply_summary`, and
+`dashboard_render_preview`. A `dashboard_render_preview` may write only a
+static HTML file to an explicit safe output path. A `briefing_preview` uses
+the existing fake Composer no-send path and existing briefing permission
+checks.
+
+The scheduler schema constrains every job and run to no-send/no-external-write
+semantics. Run rows store `live_write=0`, `external_mutation=0`,
+`scheduler_activation=0`, and `launch_agent_installed=0`. Completion reports
+also expose `no_send_mode=true`, `no_external_writes=true`,
+`fake_model_only=true`, `scheduler_activation=false`, and
+`launch_agent_installed=false`.
+
+The CLI surface is limited to:
+
+- `personalos scheduler jobs --db <safe_db>`
+- `personalos scheduler preview --db <safe_db> --date YYYY-MM-DD --timezone America/Chicago`
+- `personalos scheduler run --db <safe_db> --job-type <allowed_type>`
+- `personalos scheduler seed-dev --db <safe_db> --profile safe_no_send`
+
+Status, Today View, and dashboard surfaces expose scheduler job/run counts,
+latest simulated run status, warnings, and safety flags as read-only summaries
+only. There is no dashboard Run button, scheduler enable button, mutation
+form, POST scheduler route, LaunchAgent install control, or production
+activation path.
+
 ## Validated Runtime Module Definition
 
 A module is validated only after:

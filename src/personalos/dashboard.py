@@ -245,6 +245,7 @@ def render_today_view_html(
   {_render_briefing_loop_summary(summary["briefing_loop_summary"])}
   {_render_briefing_output_summary(summary["briefing_output_summary"])}
   {_render_side_effect_ledger_summary(summary["side_effect_ledger_summary"])}
+  {_render_scheduler_summary(summary["scheduler_summary"])}
   {_render_permission_summary(summary["permission_summary"])}
   {_render_system_status_summary(summary["system_status_summary"])}
   {_render_warnings(summary["warnings"])}
@@ -900,6 +901,36 @@ def _render_side_effect_ledger_summary(summary: Mapping[str, Any]) -> str:
     )
 
 
+def _render_scheduler_summary(summary: Mapping[str, Any]) -> str:
+    latest_status = summary["latest_status"] or "none"
+    latest_job_type = summary["latest_job_type"] or "none"
+    return _section(
+        "scheduler-summary",
+        "Scheduler Simulations",
+        _definition_list(
+            (
+                ("Scheduler jobs", summary["scheduler_job_count"]),
+                ("Scheduler runs", summary["scheduler_run_count"]),
+                ("Enabled dev/test jobs", summary["enabled_dev_test_job_count"]),
+                ("Job types", _format_counts(summary["counts_by_job_type"])),
+                ("Job statuses", _format_counts(summary["counts_by_job_status"])),
+                ("Run statuses", _format_counts(summary["counts_by_run_status"])),
+                ("Latest job type", latest_job_type),
+                ("Latest status", latest_status),
+                ("no_external_writes", _format_bool(summary["no_external_writes"])),
+                ("no_send_mode", _format_bool(summary["no_send_mode"])),
+                ("live_write", _format_bool(summary["live_write"])),
+                ("scheduler_activation", _format_bool(summary["scheduler_activation"])),
+                (
+                    "launch_agent_installed",
+                    _format_bool(summary["launch_agent_installed"]),
+                ),
+            )
+        )
+        + _render_list(summary.get("warnings", [])),
+    )
+
+
 def _render_permission_summary(summary: Mapping[str, Any]) -> str:
     return _section(
         "permission-summary",
@@ -931,6 +962,8 @@ def _render_system_status_summary(summary: Mapping[str, Any]) -> str:
                 ("Follow-ups", counts["followups"]),
                 ("Permission settings", summary["permission_settings_count"]),
                 ("Runtime bootstrap runs", summary["runtime_bootstrap_run_count"]),
+                ("Scheduler jobs", counts["scheduler_jobs"]),
+                ("Scheduler runs", counts["scheduler_runs"]),
                 ("no_external_writes", _format_bool(summary["no_external_writes"])),
             )
         ),

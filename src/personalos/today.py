@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.config import DEFAULT_TIMEZONE
+from personalos.scheduler import summarize_scheduler
 from personalos.side_effects import summarize_side_effect_ledgers
 from personalos.state import (
     count_briefing_outputs,
@@ -41,7 +42,7 @@ from personalos.synthesis_import import (
 
 SAFETY_WARNINGS = (
     "Read-only Today View preview; no dashboard mutation routes are available.",
-    "No scheduler, production runtime activation, or daily briefing loop is active.",
+    "No OS scheduler, LaunchAgent, production runtime activation, or live daily loop is active.",
     "No live Todoist, Calendar, Gmail, model, or external API calls are made.",
 )
 BRIEFING_COMPLETION_SAFETY_FLAGS = (
@@ -95,6 +96,7 @@ def create_today_view_summary(
         "synthesis_import_preview_summary": _synthesis_import_preview_summary(connection),
         "synthesis_apply_summary": _synthesis_apply_summary(connection),
         "side_effect_ledger_summary": summarize_side_effect_ledgers(connection),
+        "scheduler_summary": summarize_scheduler(connection),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
         "warnings": list(SAFETY_WARNINGS),

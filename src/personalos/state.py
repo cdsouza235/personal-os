@@ -35,6 +35,8 @@ COUNTABLE_STATE_TABLES = (
 )
 ROUTINE_STATUSES = ("active", "paused", "archived")
 PRIORITY_STATUSES = ("active", "paused", "completed", "archived")
+PROJECT_STATUSES = ("active", "paused", "completed", "archived")
+FOLLOWUP_STATUSES = ("open", "proposed", "completed", "archived", "blocked")
 COMPOSER_PACKET_TYPES = ("daily_brief", "window_brief", "ad_hoc_preview")
 COMPOSER_BRIEFING_WINDOWS = ("morning", "midday", "afternoon", "evening", "none")
 COMPOSER_PACKET_STATUSES = (
@@ -707,7 +709,7 @@ def create_project(
 ) -> dict[str, Any]:
     project_id = _validate_required_text("project_id", project_id)
     title = _validate_required_text("title", title)
-    status = _validate_required_text("status", status)
+    status = validate_project_status(status)
     metadata_json = _serialize_metadata(
         _validate_metadata("metadata", {} if metadata is None else metadata)
     )
@@ -807,7 +809,7 @@ def create_followup(
 ) -> dict[str, Any]:
     followup_id = _validate_required_text("followup_id", followup_id)
     title = _validate_required_text("title", title)
-    status = _validate_required_text("status", status)
+    status = validate_followup_status(status)
     source = _validate_required_text("source", source)
     metadata_json = _serialize_metadata(
         _validate_metadata("metadata", {} if metadata is None else metadata)
@@ -880,6 +882,20 @@ def validate_priority_status(status: str) -> str:
     if not isinstance(status, str) or status not in PRIORITY_STATUSES:
         allowed = ", ".join(PRIORITY_STATUSES)
         raise ValueError(f"priority status must be one of: {allowed}")
+    return status
+
+
+def validate_project_status(status: str) -> str:
+    if not isinstance(status, str) or status not in PROJECT_STATUSES:
+        allowed = ", ".join(PROJECT_STATUSES)
+        raise ValueError(f"project status must be one of: {allowed}")
+    return status
+
+
+def validate_followup_status(status: str) -> str:
+    if not isinstance(status, str) or status not in FOLLOWUP_STATUSES:
+        allowed = ", ".join(FOLLOWUP_STATUSES)
+        raise ValueError(f"followup status must be one of: {allowed}")
     return status
 
 

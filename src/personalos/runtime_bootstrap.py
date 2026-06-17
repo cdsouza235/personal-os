@@ -16,6 +16,16 @@ from uuid import uuid4
 from personalos.config import DEFAULT_TIMEZONE, REPO_ROOT
 from personalos.db.migrations import MIGRATION_METADATA_TABLE, apply_migrations, discover_migrations
 from personalos.permissions import PermissionMode
+from personalos.scheduler import (
+    SCHEDULER_READ_PERMISSION,
+    SCHEDULER_RUN_PERMISSION,
+    SCHEDULER_WRITE_PERMISSION,
+)
+from personalos.side_effects import (
+    SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION,
+    SIDE_EFFECT_LEDGER_READ_PERMISSION,
+    SIDE_EFFECT_LEDGER_WRITE_PERMISSION,
+)
 from personalos.state import (
     create_priority,
     create_routine,
@@ -34,6 +44,53 @@ ALLOWED_SEED_PROFILES = ("mvp_preview_safe_seed", "none")
 SAFE_SEED_PROFILE_NAME = "mvp_preview_safe_seed"
 BOOTSTRAP_RUN_STATUSES = ("planned", "completed", "failed")
 BACKUP_PATH_ATTEMPTS = 100
+KNOWN_PERMISSION_DEFAULT_MODES: dict[str, str] = {
+    RUNTIME_BOOTSTRAP_READ_PERMISSION: PermissionMode.AUTO_WRITE.value,
+    RUNTIME_BOOTSTRAP_WRITE_PERMISSION: PermissionMode.DISABLED.value,
+    RUNTIME_BOOTSTRAP_RUN_PERMISSION: PermissionMode.DISABLED.value,
+    "routine_todoist_tasks": PermissionMode.DISABLED.value,
+    "self_calendar_blocks": PermissionMode.DISABLED.value,
+    "high_value_review_tasks": PermissionMode.DISABLED.value,
+    "high_value_execution_actions": PermissionMode.DISABLED.value,
+    "messages_to_other_people": PermissionMode.DISABLED.value,
+    "external_calendar_events": PermissionMode.DISABLED.value,
+    "routine_engine_dev_test_read": PermissionMode.DISABLED.value,
+    "routine_engine_dev_test_write": PermissionMode.DISABLED.value,
+    "priority_engine_dev_test_read": PermissionMode.DISABLED.value,
+    "priority_engine_dev_test_write": PermissionMode.DISABLED.value,
+    "todoist_module_dev_test_read": PermissionMode.DISABLED.value,
+    "todoist_module_dev_test_write": PermissionMode.DISABLED.value,
+    "todoist_module_dev_test_simulated_write": PermissionMode.DISABLED.value,
+    "calendar_module_dev_test_read": PermissionMode.DISABLED.value,
+    "calendar_module_dev_test_write": PermissionMode.DISABLED.value,
+    "calendar_module_dev_test_simulated_write": PermissionMode.DISABLED.value,
+    "composer_module_dev_test_read": PermissionMode.DISABLED.value,
+    "composer_module_dev_test_write": PermissionMode.DISABLED.value,
+    "composer_module_dev_test_run": PermissionMode.DISABLED.value,
+    "briefing_loop_dev_test_read": PermissionMode.DISABLED.value,
+    "briefing_loop_dev_test_write": PermissionMode.DISABLED.value,
+    "briefing_loop_dev_test_run": PermissionMode.DISABLED.value,
+    "synthesis_import_dev_test_read": PermissionMode.DISABLED.value,
+    "synthesis_import_dev_test_write": PermissionMode.DISABLED.value,
+    "synthesis_import_dev_test_preview": PermissionMode.DISABLED.value,
+    "synthesis_apply_dev_test_read": PermissionMode.DISABLED.value,
+    "synthesis_apply_dev_test_write": PermissionMode.DISABLED.value,
+    "synthesis_apply_dev_test_apply": PermissionMode.DISABLED.value,
+    SIDE_EFFECT_LEDGER_READ_PERMISSION: PermissionMode.DISABLED.value,
+    SIDE_EFFECT_LEDGER_WRITE_PERMISSION: PermissionMode.DISABLED.value,
+    SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION: PermissionMode.DISABLED.value,
+    SCHEDULER_READ_PERMISSION: PermissionMode.DISABLED.value,
+    SCHEDULER_WRITE_PERMISSION: PermissionMode.DISABLED.value,
+    SCHEDULER_RUN_PERMISSION: PermissionMode.DISABLED.value,
+    "report_jobs_dev_test_read": PermissionMode.DISABLED.value,
+    "report_jobs_dev_test_write": PermissionMode.DISABLED.value,
+    "report_jobs_dev_test_run": PermissionMode.DISABLED.value,
+    "chart_pack_reviews_dev_test_read": PermissionMode.DISABLED.value,
+    "chart_pack_reviews_dev_test_write": PermissionMode.DISABLED.value,
+    "fitness_integration_dev_test_read": PermissionMode.DISABLED.value,
+    "fitness_integration_dev_test_write": PermissionMode.DISABLED.value,
+    "fitness_integration_dev_test_validate": PermissionMode.DISABLED.value,
+}
 
 _DATABASE_SUFFIXES = {".sqlite", ".sqlite3", ".db"}
 _PRODUCTION_MARKERS = {"prod", "production", "live"}
@@ -370,42 +427,8 @@ def _seed_permission_settings(
     *,
     created_at: str,
 ) -> list[dict[str, Any]]:
-    categories = {
-        RUNTIME_BOOTSTRAP_READ_PERMISSION: PermissionMode.AUTO_WRITE.value,
-        RUNTIME_BOOTSTRAP_WRITE_PERMISSION: PermissionMode.AUTO_WRITE.value,
-        RUNTIME_BOOTSTRAP_RUN_PERMISSION: PermissionMode.AUTO_WRITE.value,
-        "routine_todoist_tasks": PermissionMode.DISABLED.value,
-        "self_calendar_blocks": PermissionMode.DISABLED.value,
-        "high_value_review_tasks": PermissionMode.DISABLED.value,
-        "high_value_execution_actions": PermissionMode.DISABLED.value,
-        "messages_to_other_people": PermissionMode.DISABLED.value,
-        "external_calendar_events": PermissionMode.DISABLED.value,
-        "todoist_module_dev_test_read": PermissionMode.DISABLED.value,
-        "todoist_module_dev_test_write": PermissionMode.DISABLED.value,
-        "todoist_module_dev_test_simulated_write": PermissionMode.DISABLED.value,
-        "calendar_module_dev_test_read": PermissionMode.DISABLED.value,
-        "calendar_module_dev_test_write": PermissionMode.DISABLED.value,
-        "calendar_module_dev_test_simulated_write": PermissionMode.DISABLED.value,
-        "composer_module_dev_test_read": PermissionMode.DISABLED.value,
-        "composer_module_dev_test_write": PermissionMode.DISABLED.value,
-        "composer_module_dev_test_run": PermissionMode.DISABLED.value,
-        "synthesis_import_dev_test_read": PermissionMode.DISABLED.value,
-        "synthesis_import_dev_test_write": PermissionMode.DISABLED.value,
-        "synthesis_import_dev_test_preview": PermissionMode.DISABLED.value,
-        "synthesis_apply_dev_test_read": PermissionMode.DISABLED.value,
-        "synthesis_apply_dev_test_write": PermissionMode.DISABLED.value,
-        "synthesis_apply_dev_test_apply": PermissionMode.DISABLED.value,
-        "report_jobs_dev_test_read": PermissionMode.DISABLED.value,
-        "report_jobs_dev_test_write": PermissionMode.DISABLED.value,
-        "report_jobs_dev_test_run": PermissionMode.DISABLED.value,
-        "chart_pack_reviews_dev_test_read": PermissionMode.DISABLED.value,
-        "chart_pack_reviews_dev_test_write": PermissionMode.DISABLED.value,
-        "fitness_integration_dev_test_read": PermissionMode.DISABLED.value,
-        "fitness_integration_dev_test_write": PermissionMode.DISABLED.value,
-        "fitness_integration_dev_test_validate": PermissionMode.DISABLED.value,
-    }
     seeded = []
-    for category, mode in sorted(categories.items()):
+    for category, mode in sorted(KNOWN_PERMISSION_DEFAULT_MODES.items()):
         seeded.append(
             upsert_permission_setting(
                 connection,

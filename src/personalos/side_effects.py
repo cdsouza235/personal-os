@@ -713,6 +713,14 @@ def count_idempotency_records(connection: sqlite3.Connection) -> int:
 
 
 def summarize_side_effect_ledgers(connection: sqlite3.Connection) -> dict[str, Any]:
+    require_side_effect_ledger_permission(
+        connection,
+        category=SIDE_EFFECT_LEDGER_READ_PERMISSION,
+    )
+    return summarize_side_effect_ledgers_unchecked(connection)
+
+
+def summarize_side_effect_ledgers_unchecked(connection: sqlite3.Connection) -> dict[str, Any]:
     return {
         "intent_count": count_external_write_intents(connection),
         "attempt_count": count_external_write_attempts(connection),

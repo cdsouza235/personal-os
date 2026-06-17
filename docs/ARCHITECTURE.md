@@ -434,8 +434,16 @@ completion reporting before any controlled live test, but Phase 12B itself
 performs no live write. The only CLI mutation path is
 `personalos side-effects record-dry-run`, which records local SQLite rows from
 an explicit safe JSON input file after dev/test ledger permissions are
-enabled. The summary path is read-only and is also surfaced in status, Today
-View, and the static dashboard.
+enabled. Operator-facing summary paths are read-only and require
+`side_effect_ledger_dev_test_read`. Today View, status, and the static
+dashboard use an explicit internal no-write summary helper so those read
+models can remain safe without granting operator ledger read permission.
+
+Current idempotency keys are truncated SHA-256 keys suitable for deterministic
+dev/test ledgers, while payload fingerprints store full SHA-256 material.
+Before any external write rail is enabled, the live-rail plan must decide the
+collision posture, including whether to lengthen idempotency keys, add
+secondary uniqueness checks, or persist full digest material for live writes.
 
 Phase 12B completion reports always expose `no_external_writes=true`,
 `no_send_mode=true`, `live_write=false`, and `simulated_or_dry_run=true`.
@@ -540,6 +548,26 @@ latest simulated run status, warnings, and safety flags as read-only summaries
 only. There is no dashboard Run button, scheduler enable button, mutation
 form, POST scheduler route, LaunchAgent install control, or production
 activation path.
+
+## Phase 13D Checkpoint Hardening
+
+Phase 13D tightens internal contracts without expanding runtime scope.
+Projects now use constrained statuses: `active`, `paused`, `completed`, and
+`archived`. Followups now use constrained statuses: `open`, `proposed`,
+`completed`, `archived`, and `blocked`. The state helpers validate these
+vocabularies, synthesis import rejects invalid project/followup candidates,
+and synthesis apply reruns validation before any internal SQLite mutation.
+
+The runtime bootstrap permission registry is explicit for newer modules,
+including synthesis, side-effect ledgers, and scheduler records. The safe seed
+keeps known permissions disabled by default except the existing safe bootstrap
+read key; write, apply, run, attempt, and simulated-write keys are not
+silently enabled.
+
+Dashboard wording is read-only except explicit local synthesis preview record
+creation. There is still no dashboard Apply button, no broad dashboard editor,
+no live rail, no external write, and no production scheduler/runtime
+activation.
 
 ## Validated Runtime Module Definition
 

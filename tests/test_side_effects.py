@@ -15,7 +15,9 @@ from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
 from personalos.side_effects import (
     SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION,
+    SIDE_EFFECT_LEDGER_READ_PERMISSION,
     SIDE_EFFECT_LEDGER_WRITE_PERMISSION,
+    SideEffectLedgerPermissionDenied,
     SideEffectLedgerValidationError,
     build_external_write_intent,
     build_side_effect_completion_report,
@@ -26,6 +28,7 @@ from personalos.side_effects import (
     get_idempotency_record,
     record_simulated_external_write_attempt,
     summarize_side_effect_ledgers,
+    summarize_side_effect_ledgers_unchecked,
 )
 from personalos.state import upsert_permission_setting
 
@@ -315,6 +318,36 @@ class SideEffectLedgerFlowTest(unittest.TestCase):
         self.assertEqual(summary["idempotency_record_count"], 1)
         self.assertFalse(summary["live_write"])
 
+    def test_summary_fails_closed_without_read_permission(self) -> None:
+        with _migrated_test_connection() as connection:
+            _set_permission(connection, SIDE_EFFECT_LEDGER_WRITE_PERMISSION)
+            _set_permission(connection, SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION)
+
+            with self.assertRaises(SideEffectLedgerPermissionDenied):
+                summarize_side_effect_ledgers(connection)
+
+    def test_summary_succeeds_with_read_permission(self) -> None:
+        with _migrated_test_connection() as connection:
+            _set_permission(connection, SIDE_EFFECT_LEDGER_READ_PERMISSION)
+
+            summary = summarize_side_effect_ledgers(connection)
+
+        self.assertEqual(summary["intent_count"], 0)
+        self.assertEqual(summary["attempt_count"], 0)
+        self.assertTrue(summary["no_external_writes"])
+        self.assertFalse(summary["live_write"])
+
+    def test_internal_status_summary_helper_remains_read_only_without_permission(self) -> None:
+        with _migrated_test_connection() as connection:
+            before = _table_counts(connection)
+            summary = summarize_side_effect_ledgers_unchecked(connection)
+            after = _table_counts(connection)
+
+        self.assertEqual(before, after)
+        self.assertEqual(summary["intent_count"], 0)
+        self.assertEqual(summary["attempt_count"], 0)
+        self.assertTrue(summary["no_external_writes"])
+
     def test_completion_report_shape_is_explicitly_no_send_and_dry_run(self) -> None:
         report = build_side_effect_completion_report(
             status="succeeded",
@@ -491,6 +524,7 @@ def _migrated_test_connection() -> Iterator[sqlite3.Connection]:
 
 
 def _enable_ledger_permissions(connection: sqlite3.Connection) -> None:
+    _set_permission(connection, SIDE_EFFECT_LEDGER_READ_PERMISSION)
     _set_permission(connection, SIDE_EFFECT_LEDGER_WRITE_PERMISSION)
     _set_permission(connection, SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION)
 

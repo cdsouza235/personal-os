@@ -1,3 +1,4 @@
+import gc
 import json
 import inspect
 import os
@@ -5,6 +6,7 @@ import re
 import sqlite3
 import tempfile
 import unittest
+import warnings
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -226,10 +228,11 @@ class DashboardShellTest(unittest.TestCase):
                 )
 
         self.assertIn("Personal OS Today View", html)
-        self.assertIn("Read-only preview", html)
+        self.assertIn("Read-only except explicit local synthesis preview creation", html)
         self.assertIn("no_external_writes=true", html)
         self.assertIn("no live Todoist/Calendar/Gmail/model calls", html)
         self.assertIn("localhost-only by default", html)
+        self.assertIn("synthesis preview form may persist local preview records only", html)
         self.assertIn("Routines", html)
         self.assertIn("Priorities", html)
         self.assertIn("Follow-ups", html)
@@ -352,7 +355,33 @@ class DashboardShellTest(unittest.TestCase):
             )
 
         self.assertIn("Personal OS Today View", html)
-        self.assertIn("Read-only preview", html)
+        self.assertIn("Read-only except explicit local synthesis preview creation", html)
+
+    def test_dashboard_db_path_render_helpers_do_not_leak_sqlite_connections(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", ResourceWarning)
+                dashboard.render_today_view_html_from_db_path(
+                    db_path,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+                dashboard.render_today_view_json_from_db_path(
+                    db_path,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+                dashboard.render_synthesis_import_page_html_from_db_path(
+                    db_path,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+                gc.collect()
+
+        resource_warnings = [
+            warning for warning in caught if issubclass(warning.category, ResourceWarning)
+        ]
+        self.assertEqual(resource_warnings, [])
 
     def test_dashboard_server_defaults_to_localhost_and_rejects_public_bind(self) -> None:
         self.assertEqual(dashboard.DEFAULT_DASHBOARD_HOST, "localhost")
@@ -724,15 +753,19 @@ class DashboardSynthesisImportPreviewTest(unittest.TestCase):
 
 class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
     def test_docs_describe_phase_10a_dashboard_boundary(self) -> None:
-        docs_text = "\n".join(
-            [
-                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
-            ]
-        ).lower()
+        docs_text = " ".join(
+            "\n".join(
+                [
+                    (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
+                ]
+            )
+            .lower()
+            .split()
+        )
 
         required_phrases = (
             "phase 10a local dashboard today view foundation",
@@ -750,15 +783,19 @@ class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
                 self.assertIn(phrase, docs_text)
 
     def test_docs_describe_phase_10c_dashboard_briefing_boundary(self) -> None:
-        docs_text = "\n".join(
-            [
-                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
-            ]
-        ).lower()
+        docs_text = " ".join(
+            "\n".join(
+                [
+                    (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
+                ]
+            )
+            .lower()
+            .split()
+        )
 
         required_phrases = (
             "phase 10c dashboard briefing integration",
@@ -802,6 +839,36 @@ class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
             "no live model/api calls",
             "localhost-only",
             "no lan/public bind relaxation",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, docs_text)
+
+    def test_docs_describe_phase_13d_dashboard_and_test_command_boundary(self) -> None:
+        docs_text = " ".join(
+            "\n".join(
+                [
+                    (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
+                    (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
+                ]
+            )
+            .lower()
+            .split()
+        )
+
+        required_phrases = (
+            "phase 13d",
+            "read-only except explicit local synthesis preview",
+            "synthesis preview record creation",
+            "pythonpath=src python3 -m unittest discover -s tests -p",
+            "running without it can produce misleading import failures",
+            "no live/prod rails",
+            "no apply button",
+            "no live rail",
+            "no external write",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

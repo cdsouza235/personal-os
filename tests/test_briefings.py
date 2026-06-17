@@ -258,7 +258,7 @@ class BriefingLoopPermissionTest(unittest.TestCase):
                 briefing_outputs = count_briefing_outputs(connection)
 
         self.assertEqual(result["status"], "blocked")
-        self.assertIn("Missing briefing loop permission", result["reason"])
+        self.assertIn(BRIEFING_LOOP_WRITE_PERMISSION, result["reason"])
         self.assertEqual(daily_plans, 0)
         self.assertEqual(briefing_outputs, 0)
 

@@ -205,6 +205,32 @@ class SchedulerSimulationTest(unittest.TestCase):
         self.assertFalse(report["daemonized"])
         self.assertFalse(report["background_process_started"])
 
+    def test_side_effect_summary_run_handles_missing_read_permission_safely(self) -> None:
+        with _migrated_connection() as connection:
+            before = _table_counts(connection)
+            result = run_scheduler_job_simulated(
+                connection,
+                job_type="side_effect_summary",
+                run_at=RUN_AT,
+            )
+            after = _table_counts(connection)
+
+        changed = {
+            table_name: after[table_name] - before.get(table_name, 0)
+            for table_name in after
+            if after[table_name] != before.get(table_name, 0)
+        }
+        report = result["completion_report"]
+        workflow_report = result["workflow_report"]
+        self.assertEqual(changed, {"scheduler_runs": 1})
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(workflow_report["status"], "blocked")
+        self.assertIn("side-effect ledger permission", workflow_report["reason"])
+        self.assertTrue(report["no_send_mode"])
+        self.assertTrue(report["no_external_writes"])
+        self.assertFalse(report["live_write"])
+        self.assertFalse(report["scheduler_activation"])
+
     def test_briefing_preview_run_uses_fake_no_send_composer_only(self) -> None:
         with _seeded_runtime_db() as db_path:
             with _sqlite_connection(db_path) as connection:

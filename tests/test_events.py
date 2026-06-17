@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -26,7 +27,7 @@ class SystemEventTest(unittest.TestCase):
             runtime_dir = Path(temp_dir) / "runtime"
             config = _config_for(runtime_dir, Environment.TEST)
 
-            with connect_sqlite(config, runtime_dir=runtime_dir) as connection:
+            with closing(connect_sqlite(config, runtime_dir=runtime_dir)) as connection:
                 apply_migrations(connection)
                 event = create_system_event(
                     source="tests.system_events",

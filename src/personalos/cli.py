@@ -8,6 +8,7 @@ import sqlite3
 import sys
 from collections.abc import Mapping, Sequence
 from contextlib import closing
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -16,6 +17,8 @@ from personalos.config import DEFAULT_TIMEZONE
 from personalos.dashboard import render_today_view_html_from_connection
 from personalos.operator_status import create_operator_status_report
 from personalos.path_safety import (
+    is_under_repo,
+    is_under_temp,
     validate_existing_input_file_path,
     validate_existing_sqlite_path,
     validate_output_file_path,
@@ -53,19 +56,159 @@ class CliError(RuntimeError):
     """Raised for expected fail-closed CLI errors."""
 
 
+SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
+    {
+        "name": "readiness status",
+        "safe_local_action": "Run readiness report",
+        "command": "personalos readiness status [--json]",
+        "mode": "inert / report-only",
+        "local_effect": "no DB opened; no files written",
+        "output": "stdout human report or stdout JSON",
+    },
+    {
+        "name": "operator status JSON export",
+        "safe_local_action": "Inspect local status",
+        "command": "personalos readiness status --json OR personalos status --db <safe_db> --json",
+        "mode": "inert / report-only",
+        "local_effect": "read explicit safe local SQLite only for status variant",
+        "output": "stdout JSON suitable for ChatGPT audit",
+    },
+    {
+        "name": "ChatGPT synthesis import preview",
+        "safe_local_action": "Preview ChatGPT synthesis import",
+        "command": (
+            "personalos synthesis preview --db <safe_db> "
+            "--input-file <safe_json_or_markdown> --source-type chatgpt_synthesis"
+        ),
+        "mode": "inert / no-send / preview",
+        "local_effect": "valid previews persist one local SQLite preview record",
+        "output": "stdout report with preview_id and candidate counts",
+    },
+    {
+        "name": "approved synthesis apply to local SQLite only",
+        "safe_local_action": "Apply approved synthesis preview to local SQLite state only",
+        "command": (
+            "personalos synthesis apply --db <safe_db> "
+            "--preview-id <preview_id> --approval-file <safe_approval_json>"
+        ),
+        "mode": "approved local apply / no-send",
+        "local_effect": (
+            "approved priorities/projects/followups may be inserted into local SQLite only"
+        ),
+        "output": "stdout report with apply_run_id and item counts",
+    },
+    {
+        "name": "no-send briefing preview/export",
+        "safe_local_action": "Generate no-send briefing preview",
+        "command": (
+            "personalos briefing preview --db <safe_db> --date <YYYY-MM-DD> --window <window>; "
+            "personalos briefing export --db <safe_db> --briefing-output-id <id> "
+            "--output-file <safe_output_file>"
+        ),
+        "mode": "inert / no-send / fake Composer",
+        "local_effect": (
+            "preview writes local daily_plan/briefing/composer/model rows; "
+            "export reads DB and writes only the explicit output file"
+        ),
+        "output": "stdout report, optional explicit Markdown export file",
+    },
+    {
+        "name": "Today View/status preview",
+        "safe_local_action": "Inspect local status",
+        "command": (
+            "personalos today --db <safe_db> --date <YYYY-MM-DD>; "
+            "personalos status --db <safe_db>"
+        ),
+        "mode": "inert / report-only",
+        "local_effect": "read explicit safe local SQLite only",
+        "output": "stdout human report or stdout JSON",
+    },
+    {
+        "name": "side-effect/idempotency ledger inspection",
+        "safe_local_action": "Inspect side-effect/idempotency ledgers",
+        "command": "personalos side-effects summary --db <safe_db> [--json]",
+        "mode": "inert / report-only / ledger",
+        "local_effect": "read local dev/test ledger counts only",
+        "output": "stdout ledger summary",
+    },
+    {
+        "name": "simulated scheduler preview",
+        "safe_local_action": "Preview simulated scheduler jobs",
+        "command": (
+            "personalos scheduler jobs --db <safe_db>; "
+            "personalos scheduler preview --db <safe_db> --date <YYYY-MM-DD>"
+        ),
+        "mode": "inert / no-send / simulated scheduler",
+        "local_effect": "read local scheduler job records only; no scheduler activation",
+        "output": "stdout report with simulated job counts",
+    },
+)
+
+
+class PersonalOSArgumentParser(argparse.ArgumentParser):
+    """argparse parser with no-send specific operator error text."""
+
+    def error(self, message: str) -> None:
+        if "--db" in message and "required" in message:
+            message = (
+                "Cannot run this safe local no-send workflow: --db is required. "
+                "No external writes were attempted. "
+                "Next: rerun with --db <path-to-local-test-db>."
+            )
+        elif "--input-file" in message and "required" in message:
+            message = (
+                "Cannot run this safe local no-send workflow: --input-file is required. "
+                "No external writes were attempted. "
+                "Next: rerun with an explicit temp/dev input file."
+            )
+        elif "--output-file" in message and "required" in message:
+            message = (
+                "Cannot export this no-send workflow output: --output-file is required. "
+                "No external writes were attempted. "
+                "Next: rerun with --output-file <explicit-safe-output-path>."
+            )
+        elif "--approval-file" in message and "required" in message:
+            message = (
+                "Cannot apply synthesis: --approval-file is required. "
+                "No external writes were attempted. "
+                "Next: rerun with an explicit temp/dev approval JSON file."
+            )
+        super().error(message)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = PersonalOSArgumentParser(
         prog="personalos",
-        description="Safe local operator CLI for Personal OS no-send workflows.",
+        description=(
+            "Safe local operator CLI for inert/no-send Personal OS workflows. "
+            "Live rails remain blocked until explicit Phase 14/live approval."
+        ),
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    status_parser = subparsers.add_parser("status", help="Render local status from a DB.")
+    workflows_parser = subparsers.add_parser(
+        "workflows",
+        help="List available inert/no-send workflows and blocked live actions.",
+        description=(
+            "List safe local report-only, preview, export, approved local apply, "
+            "ledger, and simulated scheduler workflows."
+        ),
+    )
+    _add_json_arg(workflows_parser)
+    workflows_parser.set_defaults(func=_command_workflows)
+
+    status_parser = subparsers.add_parser(
+        "status",
+        help="Render inert local status/readiness from an explicit safe DB.",
+    )
     _add_db_arg(status_parser)
     _add_json_arg(status_parser)
     status_parser.set_defaults(func=_command_status)
 
-    today_parser = subparsers.add_parser("today", help="Render the read-only Today View.")
+    today_parser = subparsers.add_parser(
+        "today",
+        help="Preview the read-only Today View from an explicit safe DB.",
+    )
     _add_db_arg(today_parser)
     _add_date_timezone_args(today_parser)
     _add_json_arg(today_parser)
@@ -105,7 +248,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     briefing_export_parser = briefing_subparsers.add_parser(
         "export",
-        help="Export an existing briefing output to an explicit safe file path.",
+        help="Export an existing no-send briefing output to an explicit safe file path.",
     )
     _add_db_arg(briefing_export_parser)
     briefing_export_parser.add_argument("--briefing-output-id", required=True)
@@ -113,7 +256,10 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(briefing_export_parser)
     briefing_export_parser.set_defaults(func=_command_briefing_export)
 
-    synthesis_parser = subparsers.add_parser("synthesis", help="Preview synthesis imports.")
+    synthesis_parser = subparsers.add_parser(
+        "synthesis",
+        help="ChatGPT synthesis preview and approved local SQLite apply workflows.",
+    )
     synthesis_subparsers = synthesis_parser.add_subparsers(
         dest="synthesis_command",
         required=True,
@@ -121,7 +267,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     synthesis_preview_parser = synthesis_subparsers.add_parser(
         "preview",
-        help="Persist one structured synthesis import preview record.",
+        help="Validate and persist one ChatGPT synthesis preview record; no external writes.",
     )
     _add_db_arg(synthesis_preview_parser)
     synthesis_preview_parser.add_argument("--input-file", required=True)
@@ -135,7 +281,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     synthesis_apply_parser = synthesis_subparsers.add_parser(
         "apply",
-        help="Apply an existing synthesis import preview from an explicit approval file.",
+        help="Apply approved synthesis candidates to local SQLite only; no external writes.",
     )
     _add_db_arg(synthesis_apply_parser)
     synthesis_apply_parser.add_argument("--preview-id", required=True)
@@ -145,7 +291,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     side_effects_parser = subparsers.add_parser(
         "side-effects",
-        help="Side-effect ledger summaries and simulated dry-run records.",
+        help="Side-effect/idempotency ledger summaries and no-send dry-run records.",
     )
     side_effects_subparsers = side_effects_parser.add_subparsers(
         dest="side_effects_command",
@@ -154,7 +300,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     side_effects_summary_parser = side_effects_subparsers.add_parser(
         "summary",
-        help="Read side-effect and idempotency ledger counts.",
+        help="Inspect side-effect and idempotency ledger counts without mutation.",
     )
     _add_db_arg(side_effects_summary_parser)
     _add_json_arg(side_effects_summary_parser)
@@ -162,14 +308,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     side_effects_record_parser = side_effects_subparsers.add_parser(
         "record-dry-run",
-        help="Record one future-write intent and dry-run attempt from a safe JSON file.",
+        help="Record one local dry-run ledger intent/attempt from a safe JSON file.",
     )
     _add_db_arg(side_effects_record_parser)
     side_effects_record_parser.add_argument("--input-file", required=True)
     _add_json_arg(side_effects_record_parser)
     side_effects_record_parser.set_defaults(func=_command_side_effects_record_dry_run)
 
-    dashboard_parser = subparsers.add_parser("dashboard", help="Static dashboard exports.")
+    dashboard_parser = subparsers.add_parser(
+        "dashboard",
+        help="Static report-only dashboard exports.",
+    )
     dashboard_subparsers = dashboard_parser.add_subparsers(
         dest="dashboard_command",
         required=True,
@@ -187,7 +336,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     scheduler_parser = subparsers.add_parser(
         "scheduler",
-        help="No-send scheduler job records and foreground simulations.",
+        help="No-send scheduler job records and foreground-only simulations.",
+        description=(
+            "No-send scheduler job records and foreground-only simulations. These "
+            "commands never activate a scheduler, LaunchAgent, crontab, daemon, "
+            "background loop, or production runtime."
+        ),
     )
     scheduler_subparsers = scheduler_parser.add_subparsers(
         dest="scheduler_command",
@@ -196,7 +350,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     scheduler_jobs_parser = scheduler_subparsers.add_parser(
         "jobs",
-        help="List configured no-send scheduler job records.",
+        help="List configured no-send scheduler job records without activating a scheduler.",
+        description=(
+            "List configured no-send scheduler job records from an explicit safe DB. "
+            "This is inert/report-only and does not activate a scheduler, LaunchAgent, "
+            "crontab, daemon, background loop, or production runtime."
+        ),
     )
     _add_db_arg(scheduler_jobs_parser)
     _add_json_arg(scheduler_jobs_parser)
@@ -204,7 +363,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     scheduler_preview_parser = scheduler_subparsers.add_parser(
         "preview",
-        help="Preview which dev/test scheduler jobs would be due without running them.",
+        help="Preview due dev/test scheduler jobs without running or activating them.",
+        description=(
+            "Preview due dev/test scheduler jobs without running them. This is a "
+            "simulated no-send workflow and does not activate a scheduler, LaunchAgent, "
+            "crontab, daemon, background loop, or production runtime."
+        ),
     )
     _add_db_arg(scheduler_preview_parser)
     _add_date_timezone_args(scheduler_preview_parser)
@@ -213,7 +377,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     scheduler_run_parser = scheduler_subparsers.add_parser(
         "run",
-        help="Run one scheduler job as a foreground no-send simulation.",
+        help="Run one scheduler job as a foreground no-send simulation only.",
+        description=(
+            "Run one scheduler job as a foreground no-send simulation only. This never "
+            "installs or activates a scheduler, LaunchAgent, crontab, daemon, background "
+            "loop, or production runtime."
+        ),
     )
     _add_db_arg(scheduler_run_parser)
     scheduler_run_parser.add_argument("--scheduler-job-id")
@@ -228,7 +397,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     scheduler_seed_parser = scheduler_subparsers.add_parser(
         "seed-dev",
-        help="Insert safe dev/test no-send scheduler job records.",
+        help="Insert safe dev/test no-send scheduler job records; no scheduler activation.",
+        description=(
+            "Insert safe dev/test no-send scheduler job records into an explicit safe DB. "
+            "This does not activate a scheduler, LaunchAgent, crontab, daemon, background "
+            "loop, or production runtime."
+        ),
     )
     _add_db_arg(scheduler_seed_parser)
     scheduler_seed_parser.add_argument(
@@ -249,26 +423,79 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         result = args.func(args)
     except CliError as error:
-        print(f"error: {error}", file=sys.stderr)
+        print(f"error: {_format_cli_error(error)}", file=sys.stderr)
         return 1
     except (OSError, PermissionError, sqlite3.Error, ValueError) as error:
-        print(f"error: {error}", file=sys.stderr)
+        print(f"error: {_format_cli_error(error)}", file=sys.stderr)
         return 1
     return result
+
+
+def _command_workflows(args: argparse.Namespace) -> int:
+    readiness = create_default_pre_live_readiness_report()
+    operator_status = create_operator_status_report(
+        readiness=readiness,
+        database_access="not_applicable_no_db_opened",
+        database_write=False,
+    )
+    report = _with_workflow_context(
+        {
+            "command": "workflows",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_live_rails_activated": True,
+            "safe_local_workflows": list(SAFE_LOCAL_WORKFLOW_SPECS),
+            "safe_local_actions": operator_status["safe_local_actions"],
+            "blocked_actions": operator_status["blocked_actions"],
+            "readiness_status": operator_status["readiness_status"],
+            "inert_report_only": operator_status["inert_report_only"],
+            "live_rails_activated": operator_status["live_rails_activated"],
+            "operator_status": operator_status,
+        },
+        workflow_name="No-send workflow catalog",
+        workflow_mode="inert / no-send / report-only",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Choose one listed command and run it against an explicit safe DB if needed.",
+            "Use --json when pasting output back to ChatGPT for audit.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
 
 
 def _command_status(args: argparse.Namespace) -> int:
     with closing(_connect_read_only(args.db)) as connection:
         summary = create_status_summary(connection, database_path=args.db)
-    report = {
-        "command": "status",
-        "status": "completed",
-        "database_write": False,
-        "external_mutation": False,
-        "no_external_writes": True,
-        "summary": summary,
-        "operator_status": summary["operator_status"],
-    }
+    report = _with_workflow_context(
+        {
+            "command": "status",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "summary": summary,
+            "operator_status": summary["operator_status"],
+        },
+        workflow_name="Local status preview",
+        workflow_mode="inert / no-send / report-only",
+        database_path=args.db,
+        database_access="read_only_status",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review operator status evidence.",
+            "Run personalos workflows to discover other no-send commands.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
@@ -280,36 +507,61 @@ def _command_today(args: argparse.Namespace) -> int:
             source_date=args.date,
             timezone=args.timezone,
         )
-    report = {
-        "command": "today",
-        "status": "completed",
-        "database_write": False,
-        "external_mutation": False,
-        "no_external_writes": True,
-        "summary": summary,
-    }
+    report = _with_workflow_context(
+        {
+            "command": "today",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "summary": summary,
+        },
+        workflow_name="Today View/status preview",
+        workflow_mode="inert / no-send / report-only",
+        database_path=args.db,
+        database_access="read_only_today_view",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review Today View preview.",
+            "Use personalos dashboard render for an explicit static HTML export.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
 
 def _command_readiness_status(args: argparse.Namespace) -> int:
     readiness = create_default_pre_live_readiness_report()
-    report = {
-        "command": "readiness status",
-        "status": "completed",
-        "database_write": False,
-        "external_mutation": False,
-        "file_write": False,
-        "no_external_writes": True,
-        "no_credentials_loaded": True,
-        "no_live_rails_activated": True,
-        "readiness": readiness,
-        "operator_status": create_operator_status_report(
-            readiness=readiness,
-            database_access="not_applicable_no_db_opened",
-            database_write=False,
+    report = _with_workflow_context(
+        {
+            "command": "readiness status",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_live_rails_activated": True,
+            "readiness": readiness,
+            "operator_status": create_operator_status_report(
+                readiness=readiness,
+                database_access="not_applicable_no_db_opened",
+                database_write=False,
+            ),
+        },
+        workflow_name="Readiness status",
+        workflow_mode="inert / no-send / report-only",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review readiness blockers.",
+            "Paste --json output back to ChatGPT for audit if needed.",
         ),
-    }
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
@@ -323,7 +575,23 @@ def _command_briefing_preview(args: argparse.Namespace) -> int:
             briefing_window_name=args.window,
             delivery_mode="no_send",
         )
-    report = {"command": "briefing preview", **result}
+    report = _with_workflow_context(
+        {"command": "briefing preview", **result},
+        workflow_name="No-send briefing preview",
+        workflow_mode="inert / no-send / fake Composer",
+        database_path=args.db,
+        database_access="read_write_local_preview",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the generated preview output.",
+            (
+                "Export with personalos briefing export only if an explicit safe output path "
+                "is appropriate."
+            ),
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0 if result.get("status") == "generated" else 1
 
@@ -344,16 +612,30 @@ def _command_briefing_export(args: argparse.Namespace) -> int:
     output_path.write_text(briefing_output["manual_export_markdown"], encoding="utf-8")
     completion_report = briefing_output.get("completion_report_json")
     safety_flags = _safety_flags_from_report(completion_report)
-    report = {
-        "command": "briefing export",
-        "status": "exported",
-        "briefing_output_id": briefing_output["id"],
-        "output_file": str(output_path),
-        "file_write": True,
-        "database_write": False,
-        "external_mutation": False,
-        **safety_flags,
-    }
+    report = _with_workflow_context(
+        {
+            "command": "briefing export",
+            "status": "exported",
+            "briefing_output_id": briefing_output["id"],
+            "output_file": str(output_path),
+            "file_write": True,
+            "database_write": False,
+            "external_mutation": False,
+            **safety_flags,
+        },
+        workflow_name="No-send briefing export",
+        workflow_mode="inert / no-send / explicit export",
+        database_path=args.db,
+        database_access="read_only_briefing_export",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="file",
+        output_file=str(output_path),
+        safe_next_actions=(
+            "Review the exported Markdown file.",
+            "Paste the completion report back to ChatGPT for audit if needed.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
@@ -370,7 +652,20 @@ def _command_synthesis_preview(args: argparse.Namespace) -> int:
             result = create_synthesis_import_preview_record(connection, raw_input)
     except SynthesisImportValidationError as error:
         result = _synthesis_rejected_result(reason=str(error), source_type=args.source_type)
-    report = {"command": "synthesis preview", **result}
+    report = _with_workflow_context(
+        {"command": "synthesis preview", **result},
+        workflow_name="ChatGPT synthesis preview",
+        workflow_mode="inert / no-send / preview",
+        database_path=args.db,
+        database_access="read_write_local_preview",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review preview candidate changes.",
+            "Apply approved synthesis to local SQLite only if appropriate.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0 if result.get("status") == "created" else 1
 
@@ -393,7 +688,20 @@ def _command_synthesis_apply(args: argparse.Namespace) -> int:
             )
     except SynthesisApplyValidationError as error:
         raise CliError(str(error)) from error
-    report = {"command": "synthesis apply", **result}
+    report = _with_workflow_context(
+        {"command": "synthesis apply", **result},
+        workflow_name="Approved synthesis apply",
+        workflow_mode="approved local apply / no-send",
+        database_path=args.db,
+        database_access="read_write_local_apply",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review apply run and item counts.",
+            "Inspect status or Today View from the same safe local DB.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0 if result.get("status") in {"completed", "partially_completed", "no_op"} else 1
 
@@ -401,14 +709,27 @@ def _command_synthesis_apply(args: argparse.Namespace) -> int:
 def _command_side_effects_summary(args: argparse.Namespace) -> int:
     with closing(_connect_read_only(args.db)) as connection:
         summary = summarize_side_effect_ledgers(connection)
-    report = {
-        "command": "side-effects summary",
-        "status": "completed",
-        "database_write": False,
-        "external_mutation": False,
-        "summary": summary,
-        **summary["safety_flags"],
-    }
+    report = _with_workflow_context(
+        {
+            "command": "side-effects summary",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "summary": summary,
+            **summary["safety_flags"],
+        },
+        workflow_name="Side-effect/idempotency ledger inspection",
+        workflow_mode="inert / no-send / report-only",
+        database_path=args.db,
+        database_access="read_only_ledger_summary",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review ledger counts and duplicate evidence.",
+            "Use record-dry-run only for local dev/test ledger evidence.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
@@ -432,7 +753,20 @@ def _command_side_effects_record_dry_run(args: argparse.Namespace) -> int:
             intent=intent,
             attempt=attempt,
         )
-    report = {"command": "side-effects record-dry-run", **result}
+    report = _with_workflow_context(
+        {"command": "side-effects record-dry-run", **result},
+        workflow_name="Side-effect dry-run ledger record",
+        workflow_mode="inert / no-send / dry-run ledger",
+        database_path=args.db,
+        database_access="read_write_local_ledger_dry_run",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review ledger intent, attempt, and idempotency result.",
+            "Inspect side-effects summary from the same safe local DB.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0 if result.get("status") in {"recorded", "skipped_duplicate"} else 1
 
@@ -450,17 +784,31 @@ def _command_dashboard_render(args: argparse.Namespace) -> int:
             include_synthesis_import_form=False,
         )
     output_path.write_text(html, encoding="utf-8")
-    report = {
-        "command": "dashboard render",
-        "status": "rendered",
-        "output_file": str(output_path),
-        "file_write": True,
-        "database_write": False,
-        "external_mutation": False,
-        "no_external_writes": True,
-        "no_send_mode": True,
-        "static_html_only": True,
-    }
+    report = _with_workflow_context(
+        {
+            "command": "dashboard render",
+            "status": "rendered",
+            "output_file": str(output_path),
+            "file_write": True,
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "no_send_mode": True,
+            "static_html_only": True,
+        },
+        workflow_name="Static Today View dashboard export",
+        workflow_mode="inert / no-send / static export",
+        database_path=args.db,
+        database_access="read_only_dashboard_render",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="file",
+        output_file=str(output_path),
+        safe_next_actions=(
+            "Open or review the static HTML file locally.",
+            "Paste the completion report back to ChatGPT for audit if needed.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
@@ -468,18 +816,31 @@ def _command_dashboard_render(args: argparse.Namespace) -> int:
 def _command_scheduler_jobs(args: argparse.Namespace) -> int:
     with closing(_connect_read_only(args.db)) as connection:
         jobs = list_scheduler_jobs(connection)
-    report = {
-        "command": "scheduler jobs",
-        "status": "completed",
-        "database_write": False,
-        "external_mutation": False,
-        "scheduler_activation": False,
-        "launch_agent_installed": False,
-        "no_external_writes": True,
-        "no_send_mode": True,
-        "scheduler_job_count": len(jobs),
-        "scheduler_jobs": jobs,
-    }
+    report = _with_workflow_context(
+        {
+            "command": "scheduler jobs",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "scheduler_activation": False,
+            "launch_agent_installed": False,
+            "no_external_writes": True,
+            "no_send_mode": True,
+            "scheduler_job_count": len(jobs),
+            "scheduler_jobs": jobs,
+        },
+        workflow_name="No-send scheduler job inspection",
+        workflow_mode="inert / no-send / simulated scheduler",
+        database_path=args.db,
+        database_access="read_only_scheduler_jobs",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review configured simulated jobs.",
+            "Run scheduler preview to see due simulations without activation.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
@@ -491,7 +852,20 @@ def _command_scheduler_preview(args: argparse.Namespace) -> int:
             source_date=args.date,
             timezone=args.timezone,
         )
-    report = {"command": "scheduler preview", **result}
+    report = _with_workflow_context(
+        {"command": "scheduler preview", **result},
+        workflow_name="Simulated scheduler preview",
+        workflow_mode="inert / no-send / simulated scheduler",
+        database_path=args.db,
+        database_access="read_only_scheduler_preview",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review due simulated jobs.",
+            "Run one foreground simulation only if local DB effects are appropriate.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
 
@@ -510,7 +884,21 @@ def _command_scheduler_run(args: argparse.Namespace) -> int:
             scheduled_for=args.scheduled_for,
             output_file=args.output_file,
         )
-    report = {"command": "scheduler run", **result}
+    report = _with_workflow_context(
+        {"command": "scheduler run", **result},
+        workflow_name="Foreground scheduler simulation",
+        workflow_mode="inert / no-send / foreground simulation",
+        database_path=args.db,
+        database_access="read_write_local_scheduler_run",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        output_file=args.output_file,
+        safe_next_actions=(
+            "Review scheduler run completion report.",
+            "Inspect scheduler jobs or status from the same safe local DB.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0 if result.get("status") == "completed" else 1
 
@@ -522,9 +910,110 @@ def _command_scheduler_seed_dev(args: argparse.Namespace) -> int:
             profile=args.profile,
             timezone=args.timezone,
         )
-    report = {"command": "scheduler seed-dev", **result}
+    report = _with_workflow_context(
+        {"command": "scheduler seed-dev", **result},
+        workflow_name="Seed no-send scheduler dev jobs",
+        workflow_mode="inert / no-send / dev-test seed",
+        database_path=args.db,
+        database_access="read_write_local_scheduler_seed",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review seeded simulated jobs.",
+            "Run scheduler preview; no LaunchAgent/crontab/daemon is activated.",
+        ),
+    )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _with_workflow_context(
+    report: dict[str, Any],
+    *,
+    workflow_name: str,
+    workflow_mode: str,
+    database_path: str | Path | None = None,
+    database_access: str,
+    local_sqlite_read: bool,
+    local_sqlite_changed: bool | None,
+    output_kind: str,
+    output_file: str | Path | None = None,
+    safe_next_actions: Sequence[str] = (),
+) -> dict[str, Any]:
+    database_target = _database_target_report(
+        database_path,
+        database_access=database_access,
+    )
+    enriched = {
+        **report,
+        "workflow_name": workflow_name,
+        "workflow_mode": workflow_mode,
+        "database_target": database_target,
+        "local_sqlite_read": local_sqlite_read,
+        "local_sqlite_changed": local_sqlite_changed,
+        "external_writes": "none",
+        "credentials": "not_loaded",
+        "production_db_active": False,
+        "output_target": _output_target_report(output_kind, output_file=output_file),
+        "safe_next_actions": list(safe_next_actions),
+    }
+    if "operator_status" not in enriched:
+        readiness = create_default_pre_live_readiness_report()
+        enriched["operator_status"] = create_operator_status_report(
+            readiness=readiness,
+            database_path=database_path,
+            database_access=database_access,
+            database_write=bool(local_sqlite_changed),
+        )
+    operator_status = enriched.get("operator_status")
+    if isinstance(operator_status, Mapping):
+        enriched.setdefault("blocked_actions", operator_status.get("blocked_actions", []))
+    return enriched
+
+
+def _database_target_report(
+    database_path: str | Path | None,
+    *,
+    database_access: str,
+) -> dict[str, Any]:
+    if database_path is None:
+        return {
+            "path": None,
+            "path_classification": "not_applicable_no_db_opened",
+            "access": database_access,
+            "safe_local_db": False,
+            "production_db_active": False,
+        }
+    path = Path(database_path).expanduser().resolve()
+    if is_under_temp(path):
+        classification = "temporary_test_local_safe_db"
+    elif is_under_repo(path):
+        classification = "repo_local_dev_safe_db"
+    else:
+        classification = "unknown_explicit_sqlite"
+    return {
+        "path": str(path),
+        "path_classification": classification,
+        "access": database_access,
+        "safe_local_db": classification in {
+            "temporary_test_local_safe_db",
+            "repo_local_dev_safe_db",
+        },
+        "production_db_active": False,
+    }
+
+
+def _output_target_report(
+    output_kind: str,
+    *,
+    output_file: str | Path | None,
+) -> dict[str, Any]:
+    path = str(Path(output_file).expanduser().resolve()) if output_file else None
+    return {
+        "kind": output_kind,
+        "path": path,
+    }
 
 
 def _connect_read_only(db_path: str) -> sqlite3.Connection:
@@ -562,6 +1051,37 @@ def _add_json_arg(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Print the completion report as JSON.",
     )
+
+
+def _format_cli_error(error: BaseException) -> str:
+    message = str(error)
+    if "No external writes were attempted." in message:
+        return message
+    if "must contain JSON" in message:
+        return (
+            f"{message}\n"
+            "No external writes were attempted.\n"
+            "Next: fix the JSON file and rerun the same no-send command."
+        )
+    if "must point to an existing SQLite file" in message:
+        return (
+            f"{message}\n"
+            "No external writes were attempted.\n"
+            "Next: rerun with --db <path-to-local-test-db>."
+        )
+    if "must point to an existing file" in message:
+        return (
+            f"{message}\n"
+            "No external writes were attempted.\n"
+            "Next: rerun with an explicit temp/dev input file."
+        )
+    if "not found" in message or "permission" in message.lower() or "blocked" in message:
+        return (
+            f"{message}\n"
+            "No external writes were attempted.\n"
+            "Next: use a safe local preview/status command or fix the local dev/test input."
+        )
+    return message
 
 
 def _merge_synthesis_source_type(raw_input: str, *, source_type: str) -> str:
@@ -658,10 +1178,18 @@ def _emit_report(report: Mapping[str, Any], *, json_output: bool) -> None:
 
 
 def _human_report(report: Mapping[str, Any]) -> str:
-    lines = [
+    lines: list[str] = []
+    _append_workflow_completion_lines(lines, report)
+
+    if report.get("command") == "workflows":
+        _append_workflow_catalog_lines(lines, report)
+
+    lines.extend(
+        [
         f"command: {report.get('command', 'unknown')}",
         f"status: {report.get('status', 'unknown')}",
-    ]
+        ]
+    )
     for key in (
         "reason",
         "briefing_window_name",
@@ -753,6 +1281,175 @@ def _human_report(report: Mapping[str, Any]) -> str:
         lines.append("warnings:")
         lines.extend(f"- {warning}" for warning in warnings)
     return "\n".join(lines)
+
+
+def _append_workflow_completion_lines(
+    lines: list[str],
+    report: Mapping[str, Any],
+) -> None:
+    workflow_name = str(report.get("workflow_name") or report.get("command") or "unknown")
+    workflow_mode = str(report.get("workflow_mode") or "inert / no-send / report-only")
+    lines.append(f"Workflow complete: {workflow_name}")
+    lines.append(f"Mode: {workflow_mode}")
+    lines.append(f"DB target: {_database_target_text(report.get('database_target'))}")
+    lines.append(
+        "Production DB: "
+        + ("active" if report.get("production_db_active") is True else "not active")
+    )
+    lines.append(f"Local SQLite read: {_yes_no_unavailable(report.get('local_sqlite_read'))}")
+    lines.append(f"Local SQLite changes: {_local_sqlite_changes_text(report)}")
+    if "internal_state_mutation" in report:
+        lines.append(
+            "Approved local apply: "
+            + _yes_no_unavailable(report.get("internal_state_mutation"))
+        )
+    lines.append(f"External writes: {report.get('external_writes', 'none')}")
+    lines.append(f"Credentials: {report.get('credentials', 'not_loaded').replace('_', ' ')}")
+    lines.append(f"Output: {_output_target_text(report.get('output_target'))}")
+
+    _append_candidate_or_ledger_summary(lines, report)
+
+    safe_next_actions = report.get("safe_next_actions")
+    if isinstance(safe_next_actions, list) and safe_next_actions:
+        lines.append("Safe next action:")
+        lines.extend(f"- {action}" for action in safe_next_actions)
+
+    blocked_actions = _blocked_actions_for_report(report)
+    if blocked_actions:
+        lines.append("Blocked:")
+        lines.extend(f"- {action}" for action in blocked_actions)
+
+
+def _append_workflow_catalog_lines(
+    lines: list[str],
+    report: Mapping[str, Any],
+) -> None:
+    workflows = report.get("safe_local_workflows")
+    if isinstance(workflows, list) and workflows:
+        lines.append("Available safe local workflows:")
+        for workflow in workflows:
+            if not isinstance(workflow, Mapping):
+                continue
+            lines.append(f"- {workflow.get('name', 'unknown')}")
+            lines.append(f"  Command: {workflow.get('command', 'unavailable')}")
+            lines.append(f"  Local effect: {workflow.get('local_effect', 'unavailable')}")
+            lines.append(f"  Output: {workflow.get('output', 'unavailable')}")
+    blocked_actions = report.get("blocked_actions")
+    if isinstance(blocked_actions, list) and blocked_actions:
+        lines.append("Blocked until explicit Phase 14/live approval:")
+        lines.extend(f"- {action}" for action in blocked_actions)
+
+
+def _database_target_text(database_target: object) -> str:
+    if not isinstance(database_target, Mapping):
+        return "unavailable"
+    classification = str(database_target.get("path_classification", "unavailable"))
+    label = {
+        "not_applicable_no_db_opened": "not applicable - no DB opened",
+        "temporary_test_local_safe_db": "temporary/test/local safe DB",
+        "repo_local_dev_safe_db": "repo-local dev safe DB",
+        "unknown_explicit_sqlite": "unknown explicit SQLite path",
+    }.get(classification, classification)
+    access = database_target.get("access")
+    path = database_target.get("path")
+    if path:
+        return f"{label}; access={access}; path={path}"
+    return f"{label}; access={access}"
+
+
+def _output_target_text(output_target: object) -> str:
+    if not isinstance(output_target, Mapping):
+        return "unavailable"
+    kind = str(output_target.get("kind", "unavailable")).replace("_", " ")
+    path = output_target.get("path")
+    if path:
+        return f"{path} ({kind})"
+    return kind
+
+
+def _local_sqlite_changes_text(report: Mapping[str, Any]) -> str:
+    changed = report.get("local_sqlite_changed")
+    if changed is None:
+        return "unavailable"
+    if changed is not True:
+        return "none"
+    if report.get("internal_state_mutation") is True:
+        return "internal SQLite state changed"
+    command = str(report.get("command", ""))
+    if "preview" in command:
+        return "local preview/audit rows changed"
+    if "ledger" in str(report.get("workflow_mode", "")) or command.startswith("side-effects"):
+        return "local ledger rows changed"
+    if command.startswith("scheduler"):
+        return "local scheduler/dev-test rows changed"
+    return "local SQLite audit/dev-test rows changed"
+
+
+def _append_candidate_or_ledger_summary(
+    lines: list[str],
+    report: Mapping[str, Any],
+) -> None:
+    preview_report = report.get("preview_report")
+    if isinstance(preview_report, Mapping):
+        candidate_counts = preview_report.get("candidate_counts")
+        if isinstance(candidate_counts, Mapping):
+            lines.append(
+                "Candidate changes: "
+                + ", ".join(
+                    f"{key}={value}" for key, value in sorted(candidate_counts.items())
+                )
+            )
+
+    completion_report = report.get("completion_report")
+    if isinstance(completion_report, Mapping):
+        counts = completion_report.get("counts")
+        if isinstance(counts, Mapping):
+            lines.append(
+                "Apply/item counts: "
+                + ", ".join(f"{key}={value}" for key, value in sorted(counts.items()))
+            )
+        if completion_report.get("rollback_verified") is True:
+            lines.append("Rollback/recovery: verified for failed transaction")
+
+    summary = report.get("summary")
+    if isinstance(summary, Mapping):
+        if {
+            "intent_count",
+            "attempt_count",
+            "idempotency_record_count",
+        }.issubset(summary.keys()):
+            lines.append(
+                "Ledger/idempotency: "
+                f"intents={summary.get('intent_count')}, "
+                f"attempts={summary.get('attempt_count')}, "
+                f"idempotency_records={summary.get('idempotency_record_count')}"
+            )
+
+    if "scheduler_job_count" in report:
+        scheduler_text = f"jobs={report.get('scheduler_job_count')}"
+        if "due_simulated_job_count" in report:
+            scheduler_text += f", due={report.get('due_simulated_job_count')}"
+        lines.append(f"Simulated scheduler: {scheduler_text}")
+
+
+def _blocked_actions_for_report(report: Mapping[str, Any]) -> list[str]:
+    blocked = report.get("blocked_actions")
+    if isinstance(blocked, list) and blocked:
+        return [str(action) for action in blocked]
+    operator_status = report.get("operator_status")
+    if isinstance(operator_status, Mapping):
+        operator_blocked = operator_status.get("blocked_actions")
+        if isinstance(operator_blocked, list):
+            return [str(action) for action in operator_blocked]
+    return []
+
+
+def _yes_no_unavailable(value: object) -> str:
+    if value is True:
+        return "yes"
+    if value is False:
+        return "no"
+    return "unavailable"
 
 
 def _append_readiness_lines(lines: list[str], readiness: Mapping[str, Any]) -> None:

@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 13F-C are complete. The Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13F-D work is activation checklist and first-live pilot protocol
-documentation. This repo still has no production runtime activation.
+Phases -1 through 13F-D and Phase 13E-A are complete. The Phase 6B, Phase 7B,
+Phase 8B, Phase 12A, and Phase 12B fake/local smoke tests are complete. The
+current Phase 13E-B work is CLI no-send workflow polish. This repo still has
+no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -1066,7 +1066,7 @@ Likely next phase:
 
 ## Phase 13E-A: Operator Status Vocabulary And Report Shape
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -1096,11 +1096,44 @@ Non-goals:
 - No production DB activation or production ledger mutation.
 - No migrations.
 - No protected PersonalOS or `.openclaw` access.
-- No Phase 13E-B, Phase 14, or live-rail implementation.
+- No Phase 14 or live-rail implementation.
 
-Likely next phase:
+## Phase 13E-B: CLI No-Send Workflow Polish
 
-- Separate Phase 13E follow-up only after explicit approval.
+Status: current.
+
+Scope:
+
+- Improve CLI help text for existing inert/no-send workflows.
+- Add `personalos workflows` and `personalos workflows --json` as a
+  report-only command catalog.
+- List safe local workflows, the exact commands to run, local effects, output
+  targets, and blocked live actions.
+- Improve human-readable completion summaries for preview, export, approved
+  local apply, ledger, status, readiness, and simulated scheduler commands.
+- Preserve existing JSON output fields while adding stable workflow context for
+  ChatGPT audit.
+- Improve plain-English fail-closed errors for missing safe DB/input/output
+  arguments, malformed JSON, and unsafe local workflow mistakes.
+- Reuse `operator_status.v1`, `readiness_status`, `inert_report_only`,
+  `live_rails_activated`, safe local actions, blocked actions, credentials,
+  external-write, scheduler, and production DB status vocabulary.
+
+Non-goals:
+
+- No live Gmail send/draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No PersonalOS Markdown writes.
+- No OpenClaw runtime operation.
+- No scheduler activation, LaunchAgents, crontab, daemons, or background
+  workers.
+- No live model/API calls.
+- No credentials or OAuth loading.
+- No production DB activation or production ledger mutation.
+- No migrations.
+- No protected PersonalOS or `.openclaw` access.
+- No Phase 13E-C, Phase 14, or live-rail implementation.
 
 ## Phase 13F-A: Pre-Live Readiness Gate Docs
 

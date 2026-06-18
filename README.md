@@ -10,8 +10,9 @@ ledgers, simulated scheduler records, Phase 13F-A pre-live readiness policy
 docs, the Phase 13F-B inert readiness evaluator, the Phase 13F-C read-only
 readiness status surface, and Phase 13F-D activation checklist/pilot protocol
 docs. Phase 13E-A adds a unified operator status report shape for audit and
-copy/paste review. It still has no live/prod rails:
-no live Gmail, Todoist, Calendar, model/API, LaunchAgent, OpenClaw,
+copy/paste review. Phase 13E-B improves CLI discovery and completion
+summaries for existing inert/no-send workflows. It still has no live/prod
+rails: no live Gmail, Todoist, Calendar, model/API, LaunchAgent, OpenClaw,
 PersonalOS Markdown, production SQLite, or background scheduler activation is
 enabled from this repo.
 
@@ -149,13 +150,14 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 13F-D are complete. Phase 13E-A adds operator status
-vocabulary and a unified report shape for existing inert status/readiness
-surfaces. The Phase 6B, Phase 7B, Phase 8B, Phase 12A, and Phase 12B
-fake/local smoke tests are complete. Phase 13E-A does not start Phase 14 or
+Phases -1 through 13F-D and Phase 13E-A are complete. Phase 13E-B polishes
+the operator CLI for existing inert/no-send workflows by making safe commands,
+completion summaries, preview/export locations, and no-live evidence easier to
+find and audit. The Phase 6B, Phase 7B, Phase 8B, Phase 12A, and Phase 12B
+fake/local smoke tests are complete. Phase 13E-B does not start Phase 14 or
 activate any live rail.
 
-Phase 13E-A must not add migrations, configs, runtime state, live rails,
+Phase 13E-B must not add migrations, configs, runtime state, live rails,
 scheduler activation, LaunchAgents, crontab entries, daemons, background
 workers, production runtime state, OpenClaw runtime operation, credential
 loading, production DB activation, or live external writes.
@@ -179,6 +181,8 @@ credential/OAuth-looking paths, production-looking paths, and repo-local
 
 Supported local CLI commands:
 
+- `personalos workflows`
+- `personalos workflows --json`
 - `personalos status --db /tmp/personalos-preview.sqlite3`
 - `personalos status --db /tmp/personalos-preview.sqlite3 --json`
 - `personalos readiness status`
@@ -197,7 +201,20 @@ Supported local CLI commands:
 - `personalos dashboard render --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --output-file /tmp/today.html`
 
 The CLI prints human-readable completion reports by default and supports
-`--json` where practical. `personalos readiness status` and
+`--json` where practical. `personalos workflows` lists the available safe
+local workflows, the exact commands to run, what each command does locally,
+where output goes, and which live actions remain blocked. Use
+`personalos workflows --json` when ChatGPT or another auditor needs stable
+machine-readable command inventory.
+
+Phase 13E-B completion summaries for no-send workflows include the workflow
+name, mode, DB target classification, whether local SQLite was read or
+changed, whether external writes occurred, credential status, output target,
+safe next action, and blocked live actions. Preview/apply/ledger/scheduler
+commands also surface relevant candidate, apply, ledger, or simulated job
+counts when those fields exist.
+
+`personalos readiness status` and
 `personalos status --db <safe_db>` include a unified operator status report
 showing `readiness_status=not_ready`, `inert_report_only=true`,
 `live_rails_activated=false`, disabled live rails, inactive scheduler,

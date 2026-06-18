@@ -9,7 +9,8 @@ rails, approval-gated internal synthesis apply, side-effect/idempotency
 ledgers, simulated scheduler records, Phase 13F-A pre-live readiness policy
 docs, the Phase 13F-B inert readiness evaluator, the Phase 13F-C read-only
 readiness status surface, and Phase 13F-D activation checklist/pilot protocol
-docs. It still has no live/prod rails:
+docs. Phase 13E-A adds a unified operator status report shape for audit and
+copy/paste review. It still has no live/prod rails:
 no live Gmail, Todoist, Calendar, model/API, LaunchAgent, OpenClaw,
 PersonalOS Markdown, production SQLite, or background scheduler activation is
 enabled from this repo.
@@ -148,12 +149,13 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 13F-C are complete. The Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-D is
-activation checklist and first-live pilot protocol documentation. It does not
-start Phase 14 or activate any live rail.
+Phases -1 through 13F-D are complete. Phase 13E-A adds operator status
+vocabulary and a unified report shape for existing inert status/readiness
+surfaces. The Phase 6B, Phase 7B, Phase 8B, Phase 12A, and Phase 12B
+fake/local smoke tests are complete. Phase 13E-A does not start Phase 14 or
+activate any live rail.
 
-Phase 13F-D must not add migrations, configs, runtime state, live rails,
+Phase 13E-A must not add migrations, configs, runtime state, live rails,
 scheduler activation, LaunchAgents, crontab entries, daemons, background
 workers, production runtime state, OpenClaw runtime operation, credential
 loading, production DB activation, or live external writes.
@@ -178,6 +180,9 @@ credential/OAuth-looking paths, production-looking paths, and repo-local
 Supported local CLI commands:
 
 - `personalos status --db /tmp/personalos-preview.sqlite3`
+- `personalos status --db /tmp/personalos-preview.sqlite3 --json`
+- `personalos readiness status`
+- `personalos readiness status --json`
 - `personalos today --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago`
 - `personalos briefing preview --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --window morning`
 - `personalos briefing export --db /tmp/personalos-preview.sqlite3 --briefing-output-id <id> --output-file /tmp/morning-brief.md`
@@ -192,10 +197,17 @@ Supported local CLI commands:
 - `personalos dashboard render --db /tmp/personalos-preview.sqlite3 --date 2026-06-15 --timezone America/Chicago --output-file /tmp/today.html`
 
 The CLI prints human-readable completion reports by default and supports
-`--json` where practical. It does not bootstrap, migrate, bind a server, write
-PersonalOS Markdown, write Todoist or Calendar, send or draft Gmail, call live
-model APIs, install or activate an OS scheduler, activate production runtime,
-access protected PersonalOS/OpenClaw paths, or perform live external writes.
+`--json` where practical. `personalos readiness status` and
+`personalos status --db <safe_db>` include a unified operator status report
+showing `readiness_status=not_ready`, `inert_report_only=true`,
+`live_rails_activated=false`, disabled live rails, inactive scheduler,
+inactive production DB, credentials not loaded/read, external writes as none,
+safe local actions, blocked live actions, and evidence fields suitable for
+pasting back into ChatGPT for audit. It does not bootstrap, migrate, bind a
+server, write PersonalOS Markdown, write Todoist or Calendar, send or draft
+Gmail, call live model APIs, install or activate an OS scheduler, activate
+production runtime, access protected PersonalOS/OpenClaw paths, or perform
+live external writes.
 The only seed command is the explicit Phase 13C `scheduler seed-dev` path,
 which inserts safe dev/test scheduler job records only. The Phase 13A
 `synthesis apply` command is the only synthesis apply surface and mutates only

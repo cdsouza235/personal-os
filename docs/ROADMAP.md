@@ -1064,6 +1064,44 @@ Likely next phase:
 
 - Phase 13F-A docs-only pre-live readiness gate.
 
+## Phase 13E-A: Operator Status Vocabulary And Report Shape
+
+Status: current.
+
+Scope:
+
+- Add a unified operator status report shape for existing inert readiness and
+  status surfaces.
+- Make `personalos readiness status` and `personalos status --db <safe_db>`
+  human-readable enough for immediate operator review.
+- Preserve JSON output for copy/paste audit by ChatGPT.
+- Surface current mode, safe local actions, blocked live actions, and evidence
+  that Personal OS remains inert/report-only.
+- Keep readiness at `not_ready`, `inert_report_only=true`,
+  `live_rails_activated=false`, live rails disabled, scheduler inactive,
+  production DB inactive, credentials not loaded/read, external writes as
+  none, and OpenClaw uncalled.
+
+Non-goals:
+
+- No live Gmail send/draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No PersonalOS Markdown writes.
+- No OpenClaw runtime operation.
+- No scheduler activation, LaunchAgents, crontab, daemons, or background
+  workers.
+- No live model/API calls.
+- No credentials or OAuth loading.
+- No production DB activation or production ledger mutation.
+- No migrations.
+- No protected PersonalOS or `.openclaw` access.
+- No Phase 13E-B, Phase 14, or live-rail implementation.
+
+Likely next phase:
+
+- Separate Phase 13E follow-up only after explicit approval.
+
 ## Phase 13F-A: Pre-Live Readiness Gate Docs
 
 Status: complete.
@@ -1188,7 +1226,7 @@ Likely next phase:
 
 ## Phase 13F-D: Activation Checklist And First-Live Pilot Protocol
 
-Status: current.
+Status: complete.
 
 Scope:
 

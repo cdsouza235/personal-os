@@ -63,6 +63,22 @@ Phase 13F-D adds future checklist and pilot protocol gates only. Completing
 those gates requires later Chris approval and does not happen as part of a
 docs PR.
 
+Phase 13E-A adds only operator status vocabulary and a unified report shape
+for existing inert readiness/status surfaces. The report may be printed by
+`personalos readiness status`, `personalos readiness status --json`,
+`personalos status --db <safe_db>`, and
+`personalos status --db <safe_db> --json`. It exists so Chris and ChatGPT can
+audit mode, safe local actions, blocked live actions, and no-live evidence
+without treating the report as approval to activate live rails.
+
+The operator status report must keep `readiness_status=not_ready`,
+`inert_report_only=true`, `live_rails_activated=false`, credentials not
+loaded/read, production DB inactive, scheduler inactive, external writes as
+none, and OpenClaw uncalled until a later explicit approval changes those
+facts. It must not load credentials, initialize live clients, mutate
+production state, activate scheduler/background behavior, call live model/API
+providers, or call OpenClaw.
+
 ## Phase 0 Rule
 
 Phase 0 is read-only inventory first. It requires explicit approval before it starts. Its purpose is to observe approved surfaces and produce an evidence-backed map without mutation.

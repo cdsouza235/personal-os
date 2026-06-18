@@ -51,6 +51,15 @@ The CLI/status/dashboard report is informational only. It may show readiness
 status, gate results, live rail statuses, and missing or blocked reasons, but
 it must not turn a ready, not-ready, or blocked report into live activation.
 
+Phase 13E-A adds a unified operator status report shape on top of the same
+inert readiness evaluator. The report is for human review and JSON audit
+copy/paste only. It summarizes the current mode, safe local actions, blocked
+live actions, and evidence fields such as `inert_report_only=true`,
+`live_rails_activated=false`, `readiness_status=not_ready`, no credentials
+loaded/read, inactive scheduler, inactive production DB, and no external
+writes. It does not inspect credentials, initialize external clients, activate
+schedulers, create production databases, call OpenClaw, or start Phase 14.
+
 ## Terminology
 
 - Preview: validates and reports what would happen without mutating state or
@@ -68,6 +77,38 @@ it must not turn a ready, not-ready, or blocked report into live activation.
 Only live write behavior requires the pre-live gate to pass. Preview, dry-run,
 simulated write, and internal apply behavior remain governed by their existing
 phase-specific dev/test policies.
+
+## Operator Status Reports
+
+`personalos readiness status` prints a no-DB, no-write readiness and operator
+status report. `personalos readiness status --json` emits the same data as
+stable JSON for ChatGPT audit.
+
+`personalos status --db <safe_temp_or_repo_dev_db>` reads an explicit
+validated local SQLite database and includes the same operator status model in
+the status summary. `personalos status --db <safe_db> --json` is the preferred
+copy/paste form when ChatGPT needs machine-readable evidence.
+
+`not_ready` means Personal OS is not approved for live operation. In the
+current baseline, `not_ready` is expected because the Phase 14/live approval
+markers, selected pilot scope, production DB approval, kill switch evidence,
+and other pre-live gates have not all been satisfied.
+
+`inert_report_only` means the report is informational. It may read local
+dev/test SQLite state when an explicit safe `--db` is supplied, but it must not
+send Gmail, write Todoist or Google Calendar, write PersonalOS Markdown, load
+credentials, activate a scheduler, use production SQLite, call live model/API
+providers, or call OpenClaw.
+
+Currently allowed safe local actions are readiness reports, local status
+inspection, ChatGPT synthesis import previews, explicitly approved synthesis
+apply into local SQLite state only, no-send briefing previews,
+side-effect/idempotency ledger inspection, and simulated scheduler previews.
+
+Blocked actions remain Gmail send/draft, Todoist writes, Google Calendar
+writes, PersonalOS Markdown writes, credential loading, scheduler/LaunchAgent/
+crontab/daemon/background activation, production DB use, live model/API calls,
+and OpenClaw runtime calls.
 
 ## Credential Boundary
 

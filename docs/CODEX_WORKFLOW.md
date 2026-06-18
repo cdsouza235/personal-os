@@ -12,14 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 13F-C are complete, and the Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13F-D is
-approved as activation checklist and first-live pilot protocol documentation.
-Codex may edit only the approved repository documentation, push the branch,
-and open the PR. Codex must stop after reporting the PR and must not inspect
-or mutate protected runtime paths, external systems, credentials, production
-ledgers, production SQLite state, production state, OpenClaw runtime
-workflows, or live rails.
+Phases -1 through 13F-D and Phase 13E-A are complete, and the Phase 6B,
+Phase 7B, Phase 8B, Phase 12A, and Phase 12B fake/local smoke tests are
+complete. Phase 13E-B is approved only for CLI no-send workflow polish inside
+the repository. Codex may edit repository code, tests, and documentation for
+this phase. Codex must not inspect or mutate protected runtime paths, external
+systems, credentials, production ledgers, production SQLite state, production
+state, OpenClaw runtime workflows, or live rails.
 
 Canonical full-suite command:
 
@@ -402,6 +401,19 @@ Phase 13E-A must not start Phase 14, add live integrations, load credentials,
 activate production SQLite, create LaunchAgents/crontab entries, start
 daemons/background loops, call OpenClaw, call live model/API providers, or
 write Gmail, Todoist, Google Calendar, or PersonalOS Markdown.
+
+Phase 13E-B may polish the existing local operator CLI by improving help text,
+adding `personalos workflows`, clarifying human-readable completion summaries,
+preserving JSON output, improving safe next-step errors, and documenting how
+to paste no-send CLI evidence back to ChatGPT for audit. It must reuse the
+Phase 13E-A `operator_status.v1` vocabulary for readiness, safe local actions,
+blocked actions, credentials, external writes, scheduler status, and
+production DB status.
+
+Phase 13E-B must not create live integrations, load credentials, activate
+production SQLite, create LaunchAgents/crontab entries, start daemons or
+background loops, call OpenClaw, call live model/API providers, write
+PersonalOS Markdown, or write Gmail, Todoist, or Google Calendar.
 
 ## Phase 12B Side-Effect and Idempotency Ledger Boundary
 

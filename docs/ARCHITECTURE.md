@@ -438,7 +438,9 @@ Phase 12A adds a local `personalos` CLI for operator-safe no-send workflows.
 The CLI is a thin command layer over existing module APIs rather than a second
 business-logic implementation. Supported commands cover status summaries,
 read-only Today View output, fake/no-send briefing preview, briefing manual
-export, structured synthesis import preview, and static dashboard HTML render.
+export, structured synthesis import preview, approved local synthesis apply,
+side-effect/idempotency ledger inspection, simulated scheduler previews, and
+static dashboard HTML render.
 
 All DB-backed CLI commands require an explicit `--db` path to an existing
 safe local/dev SQLite file. File-writing commands require an explicit
@@ -455,6 +457,20 @@ state. Phase 12A adds no scheduler, LaunchAgents, live Todoist/Calendar/Gmail
 write path, live model/API client, OpenClaw integration, PersonalOS Markdown
 writer, apply/save import flow, public/LAN dashboard exposure, or production
 runtime activation.
+
+Phase 13E-B adds a report-only workflow catalog through
+`personalos workflows`. The catalog reuses `operator_status.v1` safe local
+actions and blocked actions, maps them to concrete CLI commands, and reports
+that live Gmail, Todoist, Calendar, PersonalOS Markdown, credential loading,
+scheduler activation, production DB activation, OpenClaw runtime calls, and
+live model/API calls remain blocked.
+
+Human-readable CLI completion summaries include workflow name, mode, DB target
+classification, local SQLite read/change flags, external-write status,
+credential status, output target, safe next action, and blocked live actions.
+JSON output preserves existing command fields and adds the same workflow
+context for audit. These summaries are presentation and audit surfaces only;
+they do not authorize live rails or production runtime operation.
 
 ## Side-Effect and Idempotency Ledgers
 

@@ -6,13 +6,12 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 13F-C are complete, and the Phase 6B, Phase 7B, Phase 8B,
-Phase 12A, and Phase 12B fake/local smoke tests are complete. The current
-Phase 13F-D work is activation checklist and first-live pilot protocol
-documentation. It may edit only approved repository documentation and inert
-references for future readiness gates. It must not add migrations, runtime
-state, live rails, scheduler activation, OpenClaw runtime operation,
-production DB activation, credential loading, or live external writes.
+Phases -1 through 13F-D and Phase 13E-A are complete, and the Phase 6B,
+Phase 7B, Phase 8B, Phase 12A, and Phase 12B fake/local smoke tests are
+complete. The current Phase 13E-B work is CLI no-send workflow polish inside
+the repository. It must not add migrations, runtime state, live rails,
+scheduler activation, OpenClaw runtime operation, production DB activation,
+credential loading, or live external writes.
 It must not inspect or mutate live runtime files, live PersonalOS files or
 fitness CSVs, credentials, external systems, production ledgers, production
 SQLite state, or any production state.
@@ -78,6 +77,12 @@ none, and OpenClaw uncalled until a later explicit approval changes those
 facts. It must not load credentials, initialize live clients, mutate
 production state, activate scheduler/background behavior, call live model/API
 providers, or call OpenClaw.
+
+Phase 13E-B may add `personalos workflows`, improve CLI help text, improve
+human-readable completion summaries, preserve JSON output, and clarify
+operator-safe error messages for existing no-send workflows. It must build on
+`operator_status.v1`; it must not create a second readiness vocabulary or
+imply that blocked live rails are available.
 
 ## Phase 0 Rule
 
@@ -553,6 +558,9 @@ seeds, migrates, or creates a database implicitly. Read commands use existing
 status and Today View helpers. Preview commands use existing fake/no-send
 briefing and synthesis import helpers. File-output commands require explicit
 `--output-file` and write only to paths that pass the shared safety checks.
+`personalos workflows` is a report-only catalog for these safe local
+workflows and their blocked live actions; it does not open a DB or touch
+external systems.
 
 Phase 12A rejects protected PersonalOS paths, protected OpenClaw paths,
 LaunchAgents paths, credential/OAuth-looking paths, production-looking paths,
@@ -562,6 +570,13 @@ server. Briefing export reads an existing briefing output and writes only the
 existing manual export content to the explicit safe output path. Synthesis
 preview reads only explicit safe input files, remains preview-only, and
 persists only `synthesis_import_previews`.
+
+Phase 13E-B CLI completion summaries must state the workflow name, mode, DB
+target classification, whether local SQLite was read or changed, whether
+external writes occurred, credential status, output target, safe next action,
+and blocked live actions. If candidate, apply, ledger, idempotency, or
+simulated scheduler counts are available from existing state, the CLI may
+surface them. It must not invent unavailable evidence.
 
 Phase 12A does not add a scheduler, LaunchAgents, live Gmail send/draft,
 Todoist writes, Calendar writes, live model/API calls, OpenAI/OpenRouter/

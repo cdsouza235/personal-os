@@ -60,6 +60,13 @@ loaded/read, inactive scheduler, inactive production DB, and no external
 writes. It does not inspect credentials, initialize external clients, activate
 schedulers, create production databases, call OpenClaw, or start Phase 14.
 
+Phase 13E-B improves CLI discovery and completion summaries for the same
+inert/no-send workflows. `personalos workflows` lists safe local commands and
+blocked live actions without opening a DB. Existing no-send command summaries
+must make local SQLite reads, local SQLite changes, output targets,
+credentials, external writes, and blocked live actions explicit while
+preserving the `operator_status.v1` vocabulary.
+
 ## Terminology
 
 - Preview: validates and reports what would happen without mutating state or
@@ -84,6 +91,11 @@ phase-specific dev/test policies.
 status report. `personalos readiness status --json` emits the same data as
 stable JSON for ChatGPT audit.
 
+`personalos workflows` prints a no-DB, no-write catalog of safe local
+workflows and blocked live actions. `personalos workflows --json` emits the
+same command inventory, safe local workflow list, blocked action list, and
+operator status evidence as JSON for ChatGPT audit.
+
 `personalos status --db <safe_temp_or_repo_dev_db>` reads an explicit
 validated local SQLite database and includes the same operator status model in
 the status summary. `personalos status --db <safe_db> --json` is the preferred
@@ -104,6 +116,8 @@ Currently allowed safe local actions are readiness reports, local status
 inspection, ChatGPT synthesis import previews, explicitly approved synthesis
 apply into local SQLite state only, no-send briefing previews,
 side-effect/idempotency ledger inspection, and simulated scheduler previews.
+The CLI workflow catalog maps these actions to the concrete commands and
+output locations a human operator can run locally.
 
 Blocked actions remain Gmail send/draft, Todoist writes, Google Calendar
 writes, PersonalOS Markdown writes, credential loading, scheduler/LaunchAgent/

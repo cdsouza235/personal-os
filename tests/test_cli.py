@@ -74,6 +74,8 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
 
         self.assertEqual(result.code, 0)
         self.assertIn("Safe local operator CLI", result.stdout)
+        self.assertIn("inert/no-send", result.stdout)
+        self.assertIn("workflows", result.stdout)
         self.assertIn("status", result.stdout)
         self.assertIn("readiness", result.stdout)
         self.assertIn("briefing", result.stdout)
@@ -81,6 +83,32 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
         self.assertIn("side-effects", result.stdout)
         self.assertIn("dashboard", result.stdout)
         self.assertIn("scheduler", result.stdout)
+
+    def test_scheduler_help_keeps_simulated_no_send_no_activation_wording(self) -> None:
+        scheduler_result = _run_cli(["scheduler", "--help"])
+        scheduler_help = " ".join(scheduler_result.stdout.split())
+        self.assertEqual(scheduler_result.code, 0)
+        self.assertIn("No-send scheduler", scheduler_help)
+        self.assertIn("never activate a scheduler", scheduler_help)
+        self.assertIn("foreground no-send simulation only", scheduler_help)
+        self.assertIn("scheduler activation", scheduler_help)
+
+        expected_phrases = (
+            "no-send",
+            "scheduler",
+            "LaunchAgent",
+            "crontab",
+            "daemon",
+            "background loop",
+            "production runtime",
+        )
+        for command in ("jobs", "preview", "run", "seed-dev"):
+            with self.subTest(command=command):
+                result = _run_cli(["scheduler", command, "--help"])
+                help_text = " ".join(result.stdout.split())
+                self.assertEqual(result.code, 0)
+                for phrase in expected_phrases:
+                    self.assertIn(phrase, help_text)
 
     def test_db_backed_commands_require_explicit_db(self) -> None:
         for args in (
@@ -114,6 +142,8 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
                 result = _run_cli(args)
                 self.assertEqual(result.code, 2)
                 self.assertIn("--db", result.stderr)
+                self.assertIn("No external writes were attempted.", result.stderr)
+                self.assertIn("Next: rerun with --db <path-to-local-test-db>.", result.stderr)
 
     def test_cli_rejects_protected_and_production_db_paths(self) -> None:
         protected = Path.home() / "PersonalOS" / "runtime.sqlite3"
@@ -307,6 +337,67 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
 
 
 class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
+    def test_workflows_command_lists_safe_local_and_blocked_live_actions(self) -> None:
+        result = _run_cli(["workflows"])
+
+        self.assertEqual(result.code, 0)
+        self.assertIn("Workflow complete: No-send workflow catalog", result.stdout)
+        self.assertIn("Mode: inert / no-send / report-only", result.stdout)
+        self.assertIn("DB target: not applicable - no DB opened", result.stdout)
+        self.assertIn("Local SQLite read: no", result.stdout)
+        self.assertIn("Local SQLite changes: none", result.stdout)
+        self.assertIn("External writes: none", result.stdout)
+        self.assertIn("Credentials: not loaded", result.stdout)
+        self.assertIn("Available safe local workflows:", result.stdout)
+        for workflow_name in (
+            "readiness status",
+            "operator status JSON export",
+            "ChatGPT synthesis import preview",
+            "approved synthesis apply to local SQLite only",
+            "no-send briefing preview/export",
+            "Today View/status preview",
+            "side-effect/idempotency ledger inspection",
+            "simulated scheduler preview",
+        ):
+            with self.subTest(workflow_name=workflow_name):
+                self.assertIn(f"- {workflow_name}", result.stdout)
+        self.assertIn("Command: personalos readiness status [--json]", result.stdout)
+        self.assertIn("Blocked until explicit Phase 14/live approval:", result.stdout)
+        self.assertIn("- Send Gmail", result.stdout)
+        self.assertIn("- Write Todoist", result.stdout)
+        self.assertIn("- Write Google Calendar", result.stdout)
+        self.assertIn("- Load credentials", result.stdout)
+        self.assertIn("- Call OpenClaw runtime", result.stdout)
+
+    def test_workflows_command_json_is_stable_operator_status_compatible(self) -> None:
+        result = _run_cli(["workflows", "--json"])
+
+        payload = json.loads(result.stdout)
+        workflow_names = {workflow["name"] for workflow in payload["safe_local_workflows"]}
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "workflows")
+        self.assertEqual(payload["status"], "completed")
+        self.assertEqual(payload["readiness_status"], "not_ready")
+        self.assertTrue(payload["inert_report_only"])
+        self.assertFalse(payload["live_rails_activated"])
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertEqual(payload["external_writes"], "none")
+        self.assertEqual(payload["credentials"], "not_loaded")
+        self.assertEqual(payload["operator_status"]["schema_version"], "operator_status.v1")
+        self.assertEqual(payload["operator_status"]["readiness_status"], "not_ready")
+        self.assertTrue(payload["operator_status"]["inert_report_only"])
+        self.assertFalse(payload["operator_status"]["live_rails_activated"])
+        self.assertEqual(payload["operator_status"]["credential_status"]["status"], "not_loaded")
+        self.assertEqual(payload["operator_status"]["external_write_status"]["status"], "none")
+        self.assertIn("ChatGPT synthesis import preview", workflow_names)
+        self.assertIn("simulated scheduler preview", workflow_names)
+        self.assertIn("Send Gmail", payload["blocked_actions"])
+        self.assertIn("Call live model/API", payload["blocked_actions"])
+
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             before = sorted(Path(temp_dir).iterdir())
@@ -392,6 +483,14 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(result.code, 0)
         self.assertEqual(payload["status"], "completed")
         self.assertFalse(payload["database_write"])
+        self.assertTrue(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertEqual(
+            payload["database_target"]["path_classification"],
+            "temporary_test_local_safe_db",
+        )
+        self.assertEqual(payload["external_writes"], "none")
+        self.assertEqual(payload["credentials"], "not_loaded")
         self.assertTrue(payload["no_external_writes"])
         self.assertIn("routines", payload["summary"]["counts"])
         readiness = payload["summary"]["pre_live_readiness"]
@@ -412,6 +511,13 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             result = _run_cli(["status", "--db", str(db_path)])
 
         self.assertEqual(result.code, 0)
+        self.assertIn("Workflow complete: Local status preview", result.stdout)
+        self.assertIn("Mode: inert / no-send / report-only", result.stdout)
+        self.assertIn("DB target: temporary/test/local safe DB", result.stdout)
+        self.assertIn("Local SQLite read: yes", result.stdout)
+        self.assertIn("Local SQLite changes: none", result.stdout)
+        self.assertIn("External writes: none", result.stdout)
+        self.assertIn("Credentials: not loaded", result.stdout)
         self.assertIn("Personal OS status: NOT READY", result.stdout)
         self.assertIn("Safe local actions:", result.stdout)
         self.assertIn("Blocked until explicit Phase 14/live approval:", result.stdout)
@@ -525,6 +631,43 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(payload["no_gmail_send"])
         self.assertTrue(payload["no_live_model_call"])
 
+    def test_synthesis_preview_human_output_has_no_send_completion_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / "synthesis.json"
+            input_path.write_text(json.dumps(_synthesis_payload()), encoding="utf-8")
+            with _seeded_runtime_db() as db_path:
+                with _sqlite_connection(db_path) as connection:
+                    _enable_synthesis_permissions(connection)
+
+                result = _run_cli(
+                    [
+                        "synthesis",
+                        "preview",
+                        "--db",
+                        str(db_path),
+                        "--input-file",
+                        str(input_path),
+                        "--source-type",
+                        "chatgpt_synthesis",
+                    ]
+                )
+
+        self.assertEqual(result.code, 0)
+        self.assertIn("Workflow complete: ChatGPT synthesis preview", result.stdout)
+        self.assertIn("Mode: inert / no-send / preview", result.stdout)
+        self.assertIn("DB target: temporary/test/local safe DB", result.stdout)
+        self.assertIn("Local SQLite read: yes", result.stdout)
+        self.assertIn("Local SQLite changes: local preview/audit rows changed", result.stdout)
+        self.assertIn("External writes: none", result.stdout)
+        self.assertIn("Credentials: not loaded", result.stdout)
+        self.assertIn("Output: stdout human", result.stdout)
+        self.assertIn("Candidate changes:", result.stdout)
+        self.assertIn("Safe next action:", result.stdout)
+        self.assertIn("- Review preview candidate changes.", result.stdout)
+        self.assertIn("Blocked:", result.stdout)
+        self.assertIn("- Send Gmail", result.stdout)
+        self.assertIn("- Write Todoist", result.stdout)
+
     def test_synthesis_preview_rejects_raw_prose_and_persists_no_preview(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             input_path = Path(temp_dir) / "notes.txt"
@@ -617,6 +760,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
 
         self.assertEqual(result.code, 1)
         self.assertIn("input file must contain JSON", result.stderr)
+        self.assertIn("No external writes were attempted.", result.stderr)
+        self.assertIn("Next: fix the JSON file", result.stderr)
 
     def test_synthesis_apply_rejects_mismatched_preview_id(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

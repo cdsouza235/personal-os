@@ -12,13 +12,13 @@ ChatGPT remains the strategy, synthesis, and audit layer.
 
 ## Current Work Type
 
-Phases -1 through 13F-D and Phase 13E-A are complete, and the Phase 6B,
-Phase 7B, Phase 8B, Phase 12A, and Phase 12B fake/local smoke tests are
-complete. Phase 13E-B is approved only for CLI no-send workflow polish inside
-the repository. Codex may edit repository code, tests, and documentation for
-this phase. Codex must not inspect or mutate protected runtime paths, external
-systems, credentials, production ledgers, production SQLite state, production
-state, OpenClaw runtime workflows, or live rails.
+Phases -1 through 13F-D plus Phase 13E-A and Phase 13E-B are complete, and
+the Phase 6B, Phase 7B, Phase 8B, Phase 12A, and Phase 12B fake/local smoke
+tests are complete. Phase 13E-C is approved only for dashboard safe-action and
+status polish inside the repository. Codex may edit repository code, tests,
+and documentation for this phase. Codex must not inspect or mutate protected
+runtime paths, external systems, credentials, production ledgers, production
+SQLite state, production state, OpenClaw runtime workflows, or live rails.
 
 Canonical full-suite command:
 
@@ -414,6 +414,19 @@ Phase 13E-B must not create live integrations, load credentials, activate
 production SQLite, create LaunchAgents/crontab entries, start daemons or
 background loops, call OpenClaw, call live model/API providers, write
 PersonalOS Markdown, or write Gmail, Todoist, or Google Calendar.
+
+Phase 13E-C may polish dashboard/status presentation by rendering the
+existing `operator_status_summary` as a NOT READY inert/no-send/report-only
+banner, safe local action list, blocked live action list, and inert evidence
+panel. It may clarify dashboard wording for previews, approved local apply
+history, no-send briefing output, and simulated scheduler summaries. It must
+reuse `operator_status.v1` vocabulary and keep the panels informational only.
+
+Phase 13E-C must not add dashboard activation controls, credential/OAuth UI,
+scheduler controls, production DB toggles, new live routes, live integrations,
+credential loading, LaunchAgent/crontab entries, daemons/background loops,
+OpenClaw calls, live model/API calls, PersonalOS Markdown writes, Gmail sends,
+Todoist writes, or Google Calendar writes.
 
 ## Phase 12B Side-Effect and Idempotency Ledger Boundary
 

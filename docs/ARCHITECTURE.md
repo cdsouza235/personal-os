@@ -472,6 +472,15 @@ JSON output preserves existing command fields and adds the same workflow
 context for audit. These summaries are presentation and audit surfaces only;
 they do not authorize live rails or production runtime operation.
 
+Phase 13E-C carries the same `operator_status.v1` posture into the dashboard
+and Today View status surface. The dashboard renders the existing
+`operator_status_summary` as a NOT READY inert/no-send/report-only banner,
+Safe To Do Now actions, Blocked Until Phase 14/Live Approval actions, and
+Inert Evidence values for readiness, live rails, credentials, external writes,
+scheduler, production DB, and OpenClaw. The panels are display-only and do
+not add credential setup, OAuth, live-rail activation, scheduler activation,
+production DB toggles, POST apply routes, or external write controls.
+
 ## Side-Effect and Idempotency Ledgers
 
 Phase 12B adds the shared ledger layer required before any future live write
@@ -835,6 +844,14 @@ serve read-only HTML/JSON routes when explicitly started. It binds to
 localhost-only by default and rejects public bind hosts such as `0.0.0.0`.
 Dashboard DB paths must be explicit temp or repo-local dev SQLite paths, and
 protected, credential/OAuth-looking, and production-looking paths are rejected.
+
+The Today View summary includes `operator_status_summary`, and the dashboard
+HTML renders that existing model instead of creating a second dashboard status
+vocabulary. The human surface shows Personal OS as NOT READY, mode as inert /
+no-send / report-only, live rails disabled, scheduler inactive, production DB
+not active, credentials not loaded, external writes as none, safe local
+actions, blocked live actions, and inert evidence. The JSON output keeps these
+fields under `operator_status_summary` for ChatGPT audit.
 
 Phase 10A adds no new permission keys and no mutation routes. It does not add
 live Todoist writes, live Calendar writes, Gmail send, live model/API calls,

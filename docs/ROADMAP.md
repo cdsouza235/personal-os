@@ -1,9 +1,9 @@
 # Roadmap
 
-Phases -1 through 13F-D and Phase 13E-A are complete. The Phase 6B, Phase 7B,
-Phase 8B, Phase 12A, and Phase 12B fake/local smoke tests are complete. The
-current Phase 13E-B work is CLI no-send workflow polish. This repo still has
-no production runtime activation.
+Phases -1 through 13F-D plus Phase 13E-A and Phase 13E-B are complete. The
+Phase 6B, Phase 7B, Phase 8B, Phase 12A, and Phase 12B fake/local smoke tests
+are complete. The current Phase 13E-C work is dashboard safe-action/status
+polish. This repo still has no production runtime activation.
 
 ## Phase -1: Codex Setup and Repo Foundation
 
@@ -1100,7 +1100,7 @@ Non-goals:
 
 ## Phase 13E-B: CLI No-Send Workflow Polish
 
-Status: current.
+Status: complete.
 
 Scope:
 
@@ -1133,7 +1133,45 @@ Non-goals:
 - No production DB activation or production ledger mutation.
 - No migrations.
 - No protected PersonalOS or `.openclaw` access.
-- No Phase 13E-C, Phase 14, or live-rail implementation.
+- No Phase 14 or live-rail implementation.
+
+## Phase 13E-C: Dashboard Safe-Action/Status Polish
+
+Status: current.
+
+Scope:
+
+- Improve the local dashboard/status display for existing inert/no-send
+  workflows.
+- Reuse `operator_status.v1` and the existing `operator_status_summary`
+  emitted by Today View JSON.
+- Add a visible NOT READY, inert/no-send/report-only dashboard posture banner.
+- Show safe local actions, blocked live actions, and inert evidence on the
+  dashboard.
+- Clarify dashboard wording for synthesis previews, approved local apply
+  history, no-send briefing output, and simulated scheduler summaries.
+- Preserve dashboard JSON compatibility while making
+  `operator_status_summary.safe_local_actions`, `blocked_actions`, and
+  `evidence` useful for ChatGPT audit.
+
+Non-goals:
+
+- No live Gmail send/draft.
+- No live Todoist writes.
+- No live Calendar writes.
+- No PersonalOS Markdown writes.
+- No OpenClaw runtime operation.
+- No scheduler activation, LaunchAgents, crontab, daemons, or background
+  workers.
+- No live model/API calls.
+- No credentials or OAuth loading.
+- No credential/OAuth setup UI.
+- No production DB activation or production ledger mutation.
+- No dashboard activation controls, scheduler controls, or production runtime
+  toggles.
+- No migrations.
+- No protected PersonalOS or `.openclaw` access.
+- No Phase 13E-D, Phase 14, or live-rail implementation.
 
 ## Phase 13F-A: Pre-Live Readiness Gate Docs
 

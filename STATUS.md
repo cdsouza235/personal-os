@@ -6,10 +6,12 @@ Last updated: 2026-06-18
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated baseline before Phase 13E-D-0 control-plane docs: `66a7652bec4d26a86787729f47493bb194ad5f42`
-- Latest merged PR: PR #28, Phase 13E-C dashboard safe-action/status polish
-- Completed through: Phase 13E-C plus Phase 13F-D policy/readiness docs
-- Current / next phase: Phase 13E-D synthetic end-to-end no-send demo
+- Last validated main baseline after PR #29: `3244d8d91030e48eebb37d6448204f87791b9194`
+- Latest substantive merged PR at that baseline: PR #29, Phase 13E-D-0 control-plane docs
+- Status refresh: this branch refreshes `STATUS.md` after PR #29. It does not
+  predict the future merge commit for this status-only PR.
+- Completed through: Phase 13E-D-0 control-plane docs
+- Current / next phase: Phase 13E-D - synthetic end-to-end no-send demo
 - Phase 14: not started
 
 ## Validated State
@@ -17,6 +19,8 @@ Last updated: 2026-06-18
 - Full suite: 453 tests OK
 - ResourceWarning-sensitive suite: 453 tests OK
 - Hygiene: clean
+- Repo-local `var/`: none found
+- SQLite/DB artifacts outside `.git`: none found
 - `readiness.status=not_ready`
 - `inert_report_only=true`
 - `live_rails_activated=false`
@@ -35,10 +39,20 @@ and edit repo code, tests, migrations, and Markdown docs inside the approved
 phase scope. Dev/test SQLite work must use explicit safe paths and must not
 activate production runtime state.
 
+## Live Rails Disabled
+
+- Gmail
+- Todoist
+- Google Calendar
+- PersonalOS Markdown writes
+- OpenClaw runtime workflows
+- Scheduler/background loop
+- Live model/API
+- Production SQLite
+
 ## Allowed Work Now
 
-- Documentation/control-plane cleanup.
-- Phase 13E-D planning documentation.
+- STATUS refresh after PR #29.
 - Future Phase 13E-D implementation only after explicit approval.
 - Local tests and hygiene checks.
 
@@ -54,17 +68,20 @@ activate production runtime state.
 
 ## Recent PRs
 
+- PR #26: Phase 13E-A operator status report model and no-send status clarity.
+- PR #27: Phase 13E-B CLI no-send workflow polish.
 - PR #28: Phase 13E-C dashboard safe-action/status polish.
-- Phase 13F-D: activation checklist and first-live pilot protocol docs.
-- Phase 13F-C: inert readiness status surfaces.
-- Phase 13F-B: inert readiness evaluator.
-- Phase 13F-A: pre-live readiness policy docs.
+- PR #29: Phase 13E-D-0 control-plane docs.
 
 ## Known Gaps
 
 - Phase 13E-D synthetic end-to-end no-send demo is not implemented yet.
-- Phase 14 requires explicit design, approval, and readiness-gate completion.
-- Live rails remain disabled until a future approved pilot.
+- Phase 14 design has not started.
+- Live rails remain intentionally disabled.
+- `STATUS.md` must continue to be updated at each substantive phase/PR boundary
+  after merge validation.
+- Do not create a status-only PR loop after this refresh branch; the next
+  substantive branch should carry the next `STATUS.md` update.
 
 ## Core Docs
 

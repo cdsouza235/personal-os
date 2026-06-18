@@ -101,6 +101,14 @@ class TodayViewSummaryTest(unittest.TestCase):
         self.assertTrue(readiness["inert_report_only"])
         self.assertTrue(readiness["no_live_rails_activated"])
         self.assertEqual(readiness["blocked_or_non_disabled_rail_count"], 0)
+        operator_status = summary["operator_status_summary"]
+        self.assertEqual(operator_status["readiness_status"], "not_ready")
+        self.assertTrue(operator_status["inert_report_only"])
+        self.assertFalse(operator_status["live_rails_activated"])
+        self.assertEqual(operator_status["scheduler_status"]["status"], "inactive")
+        self.assertEqual(operator_status["production_db_status"]["status"], "not_active")
+        self.assertEqual(operator_status["credential_status"]["status"], "not_loaded")
+        self.assertEqual(operator_status["external_write_status"]["status"], "none")
         self.assertEqual(summary["side_effect_ledger_summary"]["intent_count"], 0)
         self.assertEqual(summary["side_effect_ledger_summary"]["attempt_count"], 0)
         self.assertTrue(summary["side_effect_ledger_summary"]["no_external_writes"])
@@ -317,10 +325,13 @@ class DashboardShellTest(unittest.TestCase):
 
         payload = json.loads(rendered_json)
         readiness = payload["pre_live_readiness_summary"]
+        operator_status = payload["operator_status_summary"]
         briefing_summary = payload["briefing_output_summary"]
         self.assertEqual(readiness["status"], "not_ready")
         self.assertTrue(readiness["inert_report_only"])
         self.assertTrue(readiness["no_live_rails_activated"])
+        self.assertEqual(operator_status["readiness_status"], "not_ready")
+        self.assertEqual(operator_status["external_write_status"]["status"], "none")
         self.assertEqual(briefing_summary["source_date_briefing_output_count"], 1)
         self.assertEqual(
             briefing_summary["latest_briefing_outputs"][0]["briefing_window_name"],

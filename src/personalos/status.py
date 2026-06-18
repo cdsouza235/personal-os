@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from personalos.config import PersonalOSConfig
+from personalos.operator_status import create_operator_status_report
 from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
     count_external_write_attempts,
@@ -36,29 +37,49 @@ def create_status_summary(
     *,
     config: PersonalOSConfig | None = None,
     recent_event_limit: int = 5,
+    database_path: str | None = None,
 ) -> dict[str, Any]:
     permission_settings = list_permission_settings(connection)
+    generated_at_utc = _utc_now()
+    counts = {
+        "routines": count_routines(connection),
+        "priorities": count_priorities(connection),
+        "projects": count_projects(connection),
+        "followups": count_followups(connection),
+        "fitness_integration_state": count_fitness_integration_states(connection),
+        "fitness_validation_runs": count_fitness_validation_runs(connection),
+        "fitness_file_contracts": count_fitness_file_contracts(connection),
+        "external_write_intents": count_external_write_intents(connection),
+        "external_write_attempts": count_external_write_attempts(connection),
+        "idempotency_records": count_idempotency_records(connection),
+        "synthesis_apply_runs": count_synthesis_apply_runs(connection),
+        "synthesis_apply_items": count_synthesis_apply_items(connection),
+        "scheduler_jobs": count_scheduler_jobs(connection),
+        "scheduler_runs": count_scheduler_runs(connection),
+    }
+    readiness = create_default_pre_live_readiness_report()
     summary: dict[str, Any] = {
-        "generated_at_utc": _utc_now(),
-        "counts": {
-            "routines": count_routines(connection),
-            "priorities": count_priorities(connection),
-            "projects": count_projects(connection),
-            "followups": count_followups(connection),
-            "fitness_integration_state": count_fitness_integration_states(connection),
-            "fitness_validation_runs": count_fitness_validation_runs(connection),
-            "fitness_file_contracts": count_fitness_file_contracts(connection),
-            "external_write_intents": count_external_write_intents(connection),
-            "external_write_attempts": count_external_write_attempts(connection),
-            "idempotency_records": count_idempotency_records(connection),
-            "synthesis_apply_runs": count_synthesis_apply_runs(connection),
-            "synthesis_apply_items": count_synthesis_apply_items(connection),
-            "scheduler_jobs": count_scheduler_jobs(connection),
-            "scheduler_runs": count_scheduler_runs(connection),
-        },
+        "generated_at_utc": generated_at_utc,
+        "counts": counts,
         "permission_settings": permission_settings,
         "permission_settings_count": len(permission_settings),
-        "pre_live_readiness": create_default_pre_live_readiness_report(),
+        "pre_live_readiness": readiness,
+        "operator_status": create_operator_status_report(
+            readiness=readiness,
+            generated_at_utc=generated_at_utc,
+            database_path=database_path,
+            database_access="read_only_status",
+            database_write=False,
+            external_write_ledger_counts={
+                "external_write_intents": counts["external_write_intents"],
+                "external_write_attempts": counts["external_write_attempts"],
+                "idempotency_records": counts["idempotency_records"],
+            },
+            scheduler_counts={
+                "scheduler_job_count": counts["scheduler_jobs"],
+                "scheduler_run_count": counts["scheduler_runs"],
+            },
+        ),
         "recent_system_events": list_recent_system_events(
             connection,
             limit=recent_event_limit,

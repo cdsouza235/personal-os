@@ -14,6 +14,7 @@ from urllib.parse import quote
 from personalos.briefings import generate_no_send_briefing_preview, read_briefing_output
 from personalos.config import DEFAULT_TIMEZONE
 from personalos.dashboard import render_today_view_html_from_connection
+from personalos.operator_status import create_operator_status_report
 from personalos.path_safety import (
     validate_existing_input_file_path,
     validate_existing_sqlite_path,
@@ -258,7 +259,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def _command_status(args: argparse.Namespace) -> int:
     with closing(_connect_read_only(args.db)) as connection:
-        summary = create_status_summary(connection)
+        summary = create_status_summary(connection, database_path=args.db)
     report = {
         "command": "status",
         "status": "completed",
@@ -266,6 +267,7 @@ def _command_status(args: argparse.Namespace) -> int:
         "external_mutation": False,
         "no_external_writes": True,
         "summary": summary,
+        "operator_status": summary["operator_status"],
     }
     _emit_report(report, json_output=args.json)
     return 0
@@ -291,6 +293,7 @@ def _command_today(args: argparse.Namespace) -> int:
 
 
 def _command_readiness_status(args: argparse.Namespace) -> int:
+    readiness = create_default_pre_live_readiness_report()
     report = {
         "command": "readiness status",
         "status": "completed",
@@ -300,7 +303,12 @@ def _command_readiness_status(args: argparse.Namespace) -> int:
         "no_external_writes": True,
         "no_credentials_loaded": True,
         "no_live_rails_activated": True,
-        "readiness": create_default_pre_live_readiness_report(),
+        "readiness": readiness,
+        "operator_status": create_operator_status_report(
+            readiness=readiness,
+            database_access="not_applicable_no_db_opened",
+            database_write=False,
+        ),
     }
     _emit_report(report, json_output=args.json)
     return 0
@@ -687,8 +695,18 @@ def _human_report(report: Mapping[str, Any]) -> str:
         if key in report:
             lines.append(f"{key}: {_format_scalar(report[key])}")
 
+    top_level_operator_status = report.get("operator_status")
+    if isinstance(top_level_operator_status, Mapping):
+        _append_operator_status_lines(lines, top_level_operator_status)
+
     summary = report.get("summary")
     if isinstance(summary, Mapping):
+        operator_status = summary.get("operator_status")
+        if (
+            isinstance(operator_status, Mapping)
+            and not isinstance(top_level_operator_status, Mapping)
+        ):
+            _append_operator_status_lines(lines, operator_status)
         counts = summary.get("counts")
         if isinstance(counts, Mapping):
             lines.append(
@@ -761,6 +779,99 @@ def _append_readiness_lines(lines: list[str], readiness: Mapping[str, Any]) -> N
                     + f"{rail.get('rail')}: {rail.get('status')}, "
                     + f"active={_format_scalar(rail.get('active'))}"
                 )
+
+
+def _append_operator_status_lines(
+    lines: list[str],
+    operator_status: Mapping[str, Any],
+) -> None:
+    readiness_status = str(operator_status.get("readiness_status", "unknown"))
+    readiness_status = readiness_status.replace("_", " ").upper()
+    lines.append(f"Personal OS status: {readiness_status}")
+    lines.append("Mode: inert / report-only")
+    live_rails = operator_status.get("live_rails")
+    live_rails_disabled = _operator_live_rails_disabled(live_rails)
+    lines.append(f"Live rails: {'disabled' if live_rails_disabled else 'not disabled'}")
+    scheduler_status = _operator_nested_value(
+        operator_status,
+        "scheduler_status",
+        "status",
+        "unknown",
+    )
+    production_db_status = _operator_nested_value(
+        operator_status,
+        "production_db_status",
+        "status",
+        "unknown",
+    ).replace("_", " ")
+    credential_status = _operator_nested_value(
+        operator_status,
+        "credential_status",
+        "status",
+        "unknown",
+    ).replace("_", " ")
+    external_write_status = _operator_nested_value(
+        operator_status,
+        "external_write_status",
+        "status",
+        "unknown",
+    )
+    lines.append(f"Scheduler: {scheduler_status}")
+    lines.append(f"Production DB: {production_db_status}")
+    lines.append(f"Credentials: {credential_status}")
+    lines.append(f"External writes: {external_write_status}")
+
+    safe_local_actions = operator_status.get("safe_local_actions")
+    if isinstance(safe_local_actions, list) and safe_local_actions:
+        lines.append("Safe local actions:")
+        lines.extend(f"- {action}" for action in safe_local_actions)
+
+    blocked_actions = operator_status.get("blocked_actions")
+    if isinstance(blocked_actions, list) and blocked_actions:
+        lines.append("Blocked until explicit Phase 14/live approval:")
+        lines.extend(f"- {action}" for action in blocked_actions)
+
+    evidence = operator_status.get("evidence")
+    if isinstance(evidence, Mapping):
+        lines.append("Evidence:")
+        for key in (
+            "inert_report_only",
+            "live_rails_activated",
+            "readiness_evaluator_result",
+            "live_rails_disabled",
+            "credential_loading",
+            "external_write_clients_initialized",
+            "scheduler_activated",
+            "production_db_active",
+            "database_write",
+            "no_external_writes",
+            "openclaw_called",
+        ):
+            if key in evidence:
+                lines.append(f"- {key}={_format_scalar(evidence[key])}")
+
+
+def _operator_live_rails_disabled(live_rails: object) -> bool:
+    if not isinstance(live_rails, Mapping):
+        return False
+    return all(
+        isinstance(rail, Mapping)
+        and rail.get("status") == "disabled"
+        and rail.get("active") is False
+        for rail in live_rails.values()
+    )
+
+
+def _operator_nested_value(
+    source: Mapping[str, Any],
+    parent_key: str,
+    child_key: str,
+    default: str,
+) -> str:
+    parent = source.get(parent_key)
+    if not isinstance(parent, Mapping):
+        return default
+    return str(parent.get(child_key, default))
 
 
 def _format_scalar(value: object) -> str:

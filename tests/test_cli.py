@@ -315,6 +315,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
 
         payload = json.loads(result.stdout)
         readiness = payload["readiness"]
+        operator_status = payload["operator_status"]
         self.assertEqual(result.code, 0)
         self.assertEqual(before, after)
         self.assertEqual(payload["status"], "completed")
@@ -338,11 +339,33 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Missing readiness config fails closed.", readiness["reasons"])
         self.assertGreater(readiness["blocked_or_missing_gate_count"], 0)
         self.assertEqual(readiness["blocked_or_non_disabled_rail_count"], 0)
+        self.assertEqual(operator_status["readiness_status"], "not_ready")
+        self.assertTrue(operator_status["inert_report_only"])
+        self.assertFalse(operator_status["live_rails_activated"])
+        self.assertEqual(operator_status["scheduler_status"]["status"], "inactive")
+        self.assertEqual(operator_status["production_db_status"]["status"], "not_active")
+        self.assertEqual(operator_status["credential_status"]["status"], "not_loaded")
+        self.assertEqual(operator_status["external_write_status"]["status"], "none")
+        self.assertIn("Run readiness report", operator_status["safe_local_actions"])
+        self.assertIn("Call live model/API", operator_status["blocked_actions"])
 
     def test_readiness_status_command_lists_disabled_live_rails_and_gate_reasons(self) -> None:
         result = _run_cli(["readiness", "status"])
 
         self.assertEqual(result.code, 0)
+        self.assertIn("Personal OS status: NOT READY", result.stdout)
+        self.assertIn("Mode: inert / report-only", result.stdout)
+        self.assertIn("Live rails: disabled", result.stdout)
+        self.assertIn("Scheduler: inactive", result.stdout)
+        self.assertIn("Production DB: not active", result.stdout)
+        self.assertIn("Credentials: not loaded", result.stdout)
+        self.assertIn("External writes: none", result.stdout)
+        self.assertIn("Safe local actions:", result.stdout)
+        self.assertIn("- Preview ChatGPT synthesis import", result.stdout)
+        self.assertIn("Blocked until explicit Phase 14/live approval:", result.stdout)
+        self.assertIn("- Send Gmail", result.stdout)
+        self.assertIn("Evidence:", result.stdout)
+        self.assertIn("- inert_report_only=true", result.stdout)
         self.assertIn("command: readiness status", result.stdout)
         self.assertIn("readiness_status: not_ready", result.stdout)
         self.assertIn("inert_report_only: true", result.stdout)
@@ -372,16 +395,26 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(payload["no_external_writes"])
         self.assertIn("routines", payload["summary"]["counts"])
         readiness = payload["summary"]["pre_live_readiness"]
+        operator_status = payload["operator_status"]
         self.assertEqual(readiness["status"], "not_ready")
         self.assertTrue(readiness["inert_report_only"])
         self.assertTrue(readiness["no_live_rails_activated"])
         self.assertEqual(readiness["blocked_or_non_disabled_rail_count"], 0)
+        self.assertEqual(operator_status["readiness_status"], "not_ready")
+        self.assertEqual(
+            operator_status["production_db_status"]["path_classification"],
+            "temp_dev_test_sqlite",
+        )
+        self.assertEqual(operator_status["external_write_status"]["status"], "none")
 
     def test_status_command_human_output_includes_readiness_surface(self) -> None:
         with _seeded_runtime_db() as db_path:
             result = _run_cli(["status", "--db", str(db_path)])
 
         self.assertEqual(result.code, 0)
+        self.assertIn("Personal OS status: NOT READY", result.stdout)
+        self.assertIn("Safe local actions:", result.stdout)
+        self.assertIn("Blocked until explicit Phase 14/live approval:", result.stdout)
         self.assertIn("readiness_status: not_ready", result.stdout)
         self.assertIn("inert_report_only: true", result.stdout)
         self.assertIn("live_rails_activated: false", result.stdout)

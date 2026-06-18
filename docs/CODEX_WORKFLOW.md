@@ -389,6 +389,20 @@ Markdown, write Todoist or Calendar, send or draft Gmail, call live model
 APIs, create LaunchAgents, inspect protected PersonalOS or OpenClaw paths, or
 perform live external writes.
 
+Phase 13E-A may improve the operator/status report vocabulary and JSON shape
+only. The relevant commands are `personalos readiness status`,
+`personalos readiness status --json`, `personalos status --db <safe_db>`, and
+`personalos status --db <safe_db> --json`. The report should make the current
+inert posture obvious: `not_ready`, report-only mode, disabled live rails,
+inactive scheduler, inactive production DB, credentials not loaded/read, no
+external writes, safe local actions, blocked live actions, and evidence that
+can be pasted back into ChatGPT for audit.
+
+Phase 13E-A must not start Phase 14, add live integrations, load credentials,
+activate production SQLite, create LaunchAgents/crontab entries, start
+daemons/background loops, call OpenClaw, call live model/API providers, or
+write Gmail, Todoist, Google Calendar, or PersonalOS Markdown.
+
 ## Phase 12B Side-Effect and Idempotency Ledger Boundary
 
 Phase 12B may add local SQLite migrations, helper functions, tests, docs, and

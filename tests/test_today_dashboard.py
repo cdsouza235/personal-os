@@ -241,11 +241,43 @@ class DashboardShellTest(unittest.TestCase):
                 )
 
         self.assertIn("Personal OS Today View", html)
+        self.assertIn("Personal OS status: NOT READY", html)
+        self.assertIn("mode=inert / no-send / report-only", html)
+        self.assertIn("live_rails=disabled", html)
         self.assertIn("Read-only except explicit local synthesis preview creation", html)
         self.assertIn("no_external_writes=true", html)
         self.assertIn("no live Todoist/Calendar/Gmail/model calls", html)
         self.assertIn("localhost-only by default", html)
         self.assertIn("synthesis preview form may persist local preview records only", html)
+        self.assertIn("Operator Status", html)
+        self.assertIn("Personal OS status</dt><dd>NOT READY", html)
+        self.assertIn("Mode</dt><dd>inert / no-send / report-only", html)
+        self.assertIn("Live rails</dt><dd>disabled", html)
+        self.assertIn("Scheduler</dt><dd>inactive", html)
+        self.assertIn("Production DB</dt><dd>not_active", html)
+        self.assertIn("Credentials</dt><dd>not_loaded", html)
+        self.assertIn("External writes</dt><dd>none", html)
+        self.assertIn("Safe To Do Now", html)
+        self.assertIn("Safe to do now:", html)
+        self.assertIn("Run readiness report", html)
+        self.assertIn("Preview ChatGPT synthesis import", html)
+        self.assertIn("Apply approved synthesis preview to local SQLite state only", html)
+        self.assertIn("Preview simulated scheduler jobs", html)
+        self.assertIn("Blocked Until Phase 14/Live Approval", html)
+        self.assertIn("Blocked until explicit Phase 14/live approval:", html)
+        self.assertIn("Send Gmail", html)
+        self.assertIn("Write Todoist", html)
+        self.assertIn("Write Google Calendar", html)
+        self.assertIn("Call OpenClaw runtime", html)
+        self.assertIn("Inert Evidence", html)
+        self.assertIn("readiness_status=not_ready", html)
+        self.assertIn("inert_report_only=true", html)
+        self.assertIn("live_rails_activated=false", html)
+        self.assertIn("credentials=not_loaded", html)
+        self.assertIn("external_writes=none", html)
+        self.assertIn("scheduler=inactive", html)
+        self.assertIn("production_db=not_active", html)
+        self.assertIn("openclaw_called=false", html)
         self.assertIn("Routines", html)
         self.assertIn("Priorities", html)
         self.assertIn("Follow-ups", html)
@@ -331,7 +363,18 @@ class DashboardShellTest(unittest.TestCase):
         self.assertTrue(readiness["inert_report_only"])
         self.assertTrue(readiness["no_live_rails_activated"])
         self.assertEqual(operator_status["readiness_status"], "not_ready")
+        self.assertTrue(operator_status["inert_report_only"])
+        self.assertFalse(operator_status["live_rails_activated"])
         self.assertEqual(operator_status["external_write_status"]["status"], "none")
+        self.assertEqual(operator_status["credential_status"]["status"], "not_loaded")
+        self.assertIn("Run readiness report", operator_status["safe_local_actions"])
+        self.assertIn(
+            "Apply approved synthesis preview to local SQLite state only",
+            operator_status["safe_local_actions"],
+        )
+        self.assertIn("Send Gmail", operator_status["blocked_actions"])
+        self.assertIn("Call live model/API", operator_status["blocked_actions"])
+        self.assertFalse(operator_status["evidence"]["openclaw_called"])
         self.assertEqual(briefing_summary["source_date_briefing_output_count"], 1)
         self.assertEqual(
             briefing_summary["latest_briefing_outputs"][0]["briefing_window_name"],
@@ -339,6 +382,30 @@ class DashboardShellTest(unittest.TestCase):
         )
         self.assertIn("Personal OS Midday Brief Preview", briefing_summary["manual_export_excerpt"])
         self.assertIs(briefing_summary["safety_flags"]["no_external_writes"], True)
+
+    def test_dashboard_operator_status_panel_marks_missing_fields_unavailable(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        summary["operator_status_summary"] = {}
+        html = dashboard.render_today_view_html(
+            summary,
+            include_synthesis_import_form=False,
+        )
+
+        self.assertIn("Personal OS status: unavailable", html)
+        self.assertIn("live_rails=unavailable", html)
+        self.assertIn("Personal OS status</dt><dd>unavailable", html)
+        self.assertIn("Live rails</dt><dd>unavailable", html)
+        self.assertIn("inert_report_only=unavailable", html)
+        self.assertIn("live_rails_activated=unavailable", html)
+        self.assertIn("openclaw_called=unavailable", html)
 
     def test_dashboard_has_only_synthesis_preview_form_and_no_external_action_routes(
         self,
@@ -364,6 +431,9 @@ class DashboardShellTest(unittest.TestCase):
         self.assertNotIn("save to state", html)
         self.assertNotIn("create tasks", html)
         self.assertNotIn("write files", html)
+        self.assertNotIn("connect your accounts", html)
+        self.assertNotIn("enable live mode", html)
+        self.assertNotIn("start scheduler", html)
         self.assertIn("def do_POST", source)
         self.assertIn('"/synthesis-import/preview"', source)
         for forbidden_route in ('"/apply', '"/send', '"/tasks', '"/calendar'):

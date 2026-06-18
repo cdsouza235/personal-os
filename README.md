@@ -11,7 +11,8 @@ docs, the Phase 13F-B inert readiness evaluator, the Phase 13F-C read-only
 readiness status surface, and Phase 13F-D activation checklist/pilot protocol
 docs. Phase 13E-A adds a unified operator status report shape for audit and
 copy/paste review. Phase 13E-B improves CLI discovery and completion
-summaries for existing inert/no-send workflows. It still has no live/prod
+summaries for existing inert/no-send workflows. Phase 13E-C improves the
+dashboard/status display for the same inert posture. It still has no live/prod
 rails: no live Gmail, Todoist, Calendar, model/API, LaunchAgent, OpenClaw,
 PersonalOS Markdown, production SQLite, or background scheduler activation is
 enabled from this repo.
@@ -150,17 +151,18 @@ Protected live runtime paths are outside this repository and must not be inspect
 
 ## Current Phase
 
-Phases -1 through 13F-D and Phase 13E-A are complete. Phase 13E-B polishes
-the operator CLI for existing inert/no-send workflows by making safe commands,
-completion summaries, preview/export locations, and no-live evidence easier to
-find and audit. The Phase 6B, Phase 7B, Phase 8B, Phase 12A, and Phase 12B
-fake/local smoke tests are complete. Phase 13E-B does not start Phase 14 or
-activate any live rail.
+Phases -1 through 13F-D plus Phase 13E-A and Phase 13E-B are complete. Phase
+13E-C polishes the local dashboard/status surface for existing inert/no-send
+workflows by making the operator posture, safe local actions, blocked actions,
+and no-live evidence easier to see and audit. The Phase 6B, Phase 7B, Phase
+8B, Phase 12A, and Phase 12B fake/local smoke tests are complete. Phase 13E-C
+does not start Phase 14 or activate any live rail.
 
-Phase 13E-B must not add migrations, configs, runtime state, live rails,
+Phase 13E-C must not add migrations, configs, runtime state, live rails,
 scheduler activation, LaunchAgents, crontab entries, daemons, background
 workers, production runtime state, OpenClaw runtime operation, credential
-loading, production DB activation, or live external writes.
+loading, production DB activation, dashboard activation controls,
+credential/OAuth setup UI, or live external writes.
 
 Canonical full-suite test command:
 
@@ -229,6 +231,18 @@ The only seed command is the explicit Phase 13C `scheduler seed-dev` path,
 which inserts safe dev/test scheduler job records only. The Phase 13A
 `synthesis apply` command is the only synthesis apply surface and mutates only
 internal dev/test SQLite core tables after explicit approval.
+
+The Today View dashboard and `personalos dashboard render` reuse the same
+`operator_status_summary` data. The rendered dashboard now shows a NOT READY
+banner, inert/no-send/report-only mode, live rails disabled, external writes
+as none, a Safe To Do Now list, a Blocked Until Phase 14/Live Approval list,
+and inert evidence such as credentials not loaded, scheduler inactive,
+production DB not active, and OpenClaw uncalled. These panels are
+informational only; they do not add activation controls, credential/OAuth UI,
+scheduler controls, live-rail controls, or production runtime toggles. The
+dashboard JSON remains suitable for ChatGPT audit through
+`operator_status_summary.safe_local_actions`, `blocked_actions`, and
+`evidence`.
 
 Phase 12B adds `external_write_intents`, `external_write_attempts`, and
 `idempotency_records`. The `side-effects summary` command is read-only and

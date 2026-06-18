@@ -92,6 +92,10 @@ def render_today_view_html(
     include_synthesis_import_form: bool = True,
 ) -> str:
     no_external_writes = _format_bool(summary["no_external_writes"])
+    operator_status_value = summary.get("operator_status_summary", {})
+    operator_status = (
+        operator_status_value if isinstance(operator_status_value, Mapping) else {}
+    )
     synthesis_form_html = (
         render_synthesis_import_preview_form_html()
         if include_synthesis_import_form
@@ -224,9 +228,12 @@ def render_today_view_html(
   <p>{_e(summary["source_date"])} - {_e(summary["timezone"])}</p>
 
   <div class="banner" id="safety-banner">
-    <strong>Read-only except explicit local synthesis preview creation</strong>
+    <strong>Personal OS status: {_e(_readiness_display_status(operator_status))}</strong>
     <ul>
+      <li>mode={_e(_operator_mode_label(operator_status))}</li>
+      <li>live_rails={_e(_live_rails_status_label(operator_status))}</li>
       <li>no_external_writes={no_external_writes}</li>
+      <li>Read-only except explicit local synthesis preview creation</li>
       <li>no live Todoist/Calendar/Gmail/model calls</li>
       <li>localhost-only by default</li>
       <li>no task, calendar, routine, priority, briefing, apply, or live-rail routes</li>
@@ -235,6 +242,7 @@ def render_today_view_html(
     </ul>
   </div>
 
+  {_render_operator_status_panels(operator_status)}
   {_render_synthesis_import_preview_summary(summary["synthesis_import_preview_summary"])}
   {_render_synthesis_apply_summary(summary["synthesis_apply_summary"])}
   {synthesis_form_html}
@@ -306,12 +314,13 @@ def render_synthesis_import_preview_form_html() -> str:
         "ChatGPT Synthesis Import Preview",
         """
 <div class="banner" id="synthesis-import-safety-banner">
-  <strong>Preview-only</strong>
+  <strong>Preview-only local SQLite record</strong>
   <ul>
     <li>No core state mutation</li>
     <li>No PersonalOS Markdown writes</li>
     <li>No Todoist/Calendar/Gmail writes</li>
     <li>No live model/API calls</li>
+    <li>No external writes</li>
   </ul>
 </div>
 <form method="post" action="/synthesis-import/preview">
@@ -652,6 +661,93 @@ def _render_routine_summary(summary: Mapping[str, Any]) -> str:
     )
 
 
+def _render_operator_status_panels(operator_status: Mapping[str, Any]) -> str:
+    return (
+        _render_operator_status_banner(operator_status)
+        + _render_safe_local_actions_panel(operator_status)
+        + _render_blocked_actions_panel(operator_status)
+        + _render_inert_evidence_panel(operator_status)
+    )
+
+
+def _render_operator_status_banner(operator_status: Mapping[str, Any]) -> str:
+    body = _definition_list(
+        (
+            ("Personal OS status", _readiness_display_status(operator_status)),
+            ("Mode", _operator_mode_label(operator_status)),
+            ("Live rails", _live_rails_status_label(operator_status)),
+            ("Scheduler", _status_value(operator_status.get("scheduler_status"))),
+            ("Production DB", _status_value(operator_status.get("production_db_status"))),
+            ("Credentials", _status_value(operator_status.get("credential_status"))),
+            ("External writes", _status_value(operator_status.get("external_write_status"))),
+            ("Dashboard", "informational only; no live rail activation"),
+        )
+    )
+    return _section("operator-status-banner", "Operator Status", body)
+
+
+def _readiness_display_status(operator_status: Mapping[str, Any]) -> str:
+    readiness_status = str(operator_status.get("readiness_status", "unavailable"))
+    if readiness_status in {"", "unavailable"}:
+        return "unavailable"
+    return readiness_status.upper().replace("_", " ")
+
+
+def _operator_mode_label(operator_status: Mapping[str, Any]) -> str:
+    if operator_status.get("inert_report_only") is True:
+        return "inert / no-send / report-only"
+    return str(operator_status.get("mode", "unavailable"))
+
+
+def _live_rails_status_label(operator_status: Mapping[str, Any]) -> str:
+    if operator_status.get("live_rails_activated") is False:
+        return "disabled"
+    if operator_status.get("live_rails_activated") is True:
+        return "activated"
+    return "unavailable"
+
+
+def _render_safe_local_actions_panel(operator_status: Mapping[str, Any]) -> str:
+    actions = _string_list(operator_status.get("safe_local_actions"))
+    body = (
+        "<p>Safe to do now:</p>"
+        + _render_list(actions)
+        + "<p>These are local inert/no-send workflows only.</p>"
+    )
+    return _section("safe-local-actions", "Safe To Do Now", body)
+
+
+def _render_blocked_actions_panel(operator_status: Mapping[str, Any]) -> str:
+    blocked_actions = _string_list(operator_status.get("blocked_actions"))
+    body = (
+        "<p>Blocked until explicit Phase 14/live approval:</p>"
+        + _render_list(blocked_actions)
+        + "<p>Display-only; no dashboard control activates these actions.</p>"
+    )
+    return _section(
+        "blocked-actions",
+        "Blocked Until Phase 14/Live Approval",
+        body,
+    )
+
+
+def _render_inert_evidence_panel(operator_status: Mapping[str, Any]) -> str:
+    evidence = operator_status.get("evidence", {})
+    evidence_map = evidence if isinstance(evidence, Mapping) else {}
+    rows = (
+        f"readiness_status={operator_status.get('readiness_status', 'unavailable')}",
+        f"inert_report_only={_format_bool_or_unavailable(operator_status.get('inert_report_only'))}",
+        f"live_rails_activated={_format_bool_or_unavailable(operator_status.get('live_rails_activated'))}",
+        f"live_rails_disabled={_format_bool_or_unavailable(evidence_map.get('live_rails_disabled'))}",
+        f"credentials={_status_value(operator_status.get('credential_status'))}",
+        f"external_writes={_status_value(operator_status.get('external_write_status'))}",
+        f"scheduler={_status_value(operator_status.get('scheduler_status'))}",
+        f"production_db={_status_value(operator_status.get('production_db_status'))}",
+        f"openclaw_called={_format_bool_or_unavailable(evidence_map.get('openclaw_called'))}",
+    )
+    return _section("inert-evidence", "Inert Evidence", _render_list(rows))
+
+
 def _render_priority_summary(summary: Mapping[str, Any]) -> str:
     active_titles = [
         priority["title"]
@@ -725,12 +821,16 @@ def _render_calendar_block_summary(summary: Mapping[str, Any]) -> str:
 
 def _render_synthesis_apply_summary(summary: Mapping[str, Any]) -> str:
     availability = "available" if summary.get("available") else "permission required"
+    external_writes = (
+        "none" if summary.get("latest_no_external_writes") is True else "detected_or_unavailable"
+    )
     return _section(
         "synthesis-apply-summary",
         "Synthesis Apply History",
         _definition_list(
             (
                 ("Status", availability),
+                ("Mode", "approved local SQLite apply history only"),
                 ("Required permission", summary.get("permission_required", "")),
                 ("Apply runs", summary.get("apply_run_count", 0)),
                 ("Apply items", summary.get("apply_item_count", 0)),
@@ -739,6 +839,8 @@ def _render_synthesis_apply_summary(summary: Mapping[str, Any]) -> str:
                 ("Latest blocked", summary.get("latest_blocked_candidate_count", 0)),
                 ("Latest skipped", summary.get("latest_skipped_candidate_count", 0)),
                 ("Latest failed", summary.get("latest_failed_candidate_count", 0)),
+                ("Local SQLite changes", "only through separate approved CLI apply flow"),
+                ("External writes", external_writes),
                 ("No external writes", _format_bool(summary.get("latest_no_external_writes"))),
                 ("No-send mode", _format_bool(summary.get("latest_no_send_mode"))),
                 ("Live write", _format_bool(summary.get("latest_live_write"))),
@@ -779,6 +881,7 @@ def _render_briefing_loop_summary(summary: Mapping[str, Any]) -> str:
         "Briefing Loop",
         _definition_list(
             (
+                ("Mode", "no-send preview/status only"),
                 ("Latest outputs", summary["latest_briefing_output_count"]),
                 ("Outputs for source date", summary["source_date_briefing_output_count"]),
                 ("Window statuses", _format_counts(summary["briefing_windows_status"])),
@@ -820,6 +923,7 @@ def _render_briefing_output_summary(summary: Mapping[str, Any]) -> str:
     body = (
         _definition_list(
             (
+                ("Mode", "no-send preview/export output only"),
                 ("Total outputs", summary["total_briefing_output_count"]),
                 ("Outputs for source date", summary["source_date_briefing_output_count"]),
                 ("Daily plans for source date", summary["source_date_daily_plan_count"]),
@@ -831,6 +935,10 @@ def _render_briefing_output_summary(summary: Mapping[str, Any]) -> str:
                 ("Warnings", summary["warning_count"]),
                 ("Status counts", _format_counts(summary["counts_by_status"])),
                 ("Delivery modes", _format_counts(summary["counts_by_delivery_mode"])),
+                (
+                    "External writes",
+                    "none" if summary.get("no_external_writes") is True else "detected",
+                ),
                 ("Completion safety flags", _format_safety_flags(summary["safety_flags"])),
             )
         )
@@ -860,8 +968,13 @@ def _render_synthesis_import_preview_summary(summary: Mapping[str, Any]) -> str:
             _definition_list(
                 (
                     ("Available", "false"),
+                    ("Mode", "preview-only local SQLite records"),
                     ("Permission required", summary.get("permission_required", "")),
                     ("Reason", summary.get("reason", "")),
+                    (
+                        "External writes",
+                        "none" if summary.get("no_external_writes") is True else "detected",
+                    ),
                     ("no_external_writes", _format_bool(summary.get("no_external_writes"))),
                 )
             ),
@@ -871,6 +984,7 @@ def _render_synthesis_import_preview_summary(summary: Mapping[str, Any]) -> str:
         "Synthesis Import Previews",
         _definition_list(
             (
+                ("Mode", "preview-only local SQLite records"),
                 ("synthesis_import_preview_count", summary["synthesis_import_preview_count"]),
                 ("Latest preview timestamp", summary["latest_preview_timestamp"] or "none"),
                 ("Latest preview status", summary["latest_preview_status"] or "none"),
@@ -878,6 +992,10 @@ def _render_synthesis_import_preview_summary(summary: Mapping[str, Any]) -> str:
                 ("Latest blocked count", summary["latest_blocked_count"]),
                 ("Latest rejected count", summary["latest_rejected_count"]),
                 ("Latest warnings count", summary["latest_warnings_count"]),
+                (
+                    "External writes",
+                    "none" if summary.get("no_external_writes") is True else "detected",
+                ),
                 ("no_external_writes", _format_bool(summary["no_external_writes"])),
             )
         ),
@@ -917,6 +1035,7 @@ def _render_scheduler_summary(summary: Mapping[str, Any]) -> str:
         "Scheduler Simulations",
         _definition_list(
             (
+                ("Mode", "simulated / no-send only"),
                 ("Scheduler jobs", summary["scheduler_job_count"]),
                 ("Scheduler runs", summary["scheduler_run_count"]),
                 ("Enabled dev/test jobs", summary["enabled_dev_test_job_count"]),
@@ -1061,6 +1180,26 @@ def _format_counts(counts: Mapping[str, int]) -> str:
 
 def _format_bool(value: object) -> str:
     return "true" if value is True else "false"
+
+
+def _format_bool_or_unavailable(value: object) -> str:
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    return "unavailable"
+
+
+def _status_value(value: object) -> str:
+    if isinstance(value, Mapping):
+        return str(value.get("status", "unavailable"))
+    return "unavailable"
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        return []
+    return [str(item) for item in value]
 
 
 def _format_safety_flags(flags: Mapping[str, object]) -> str:

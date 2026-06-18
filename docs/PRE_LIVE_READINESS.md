@@ -67,6 +67,14 @@ must make local SQLite reads, local SQLite changes, output targets,
 credentials, external writes, and blocked live actions explicit while
 preserving the `operator_status.v1` vocabulary.
 
+Phase 13E-C improves dashboard/status visibility for the same posture. The
+dashboard and static dashboard render show NOT READY, inert/no-send/report-only
+mode, live rails disabled, external writes as none, safe local actions,
+blocked live actions, and inert evidence from `operator_status_summary`.
+These panels are informational only; no dashboard control activates live
+rails, loads credentials, starts a scheduler, switches to production SQLite,
+calls OpenClaw, or writes externally.
+
 ## Terminology
 
 - Preview: validates and reports what would happen without mutating state or
@@ -100,6 +108,13 @@ operator status evidence as JSON for ChatGPT audit.
 validated local SQLite database and includes the same operator status model in
 the status summary. `personalos status --db <safe_db> --json` is the preferred
 copy/paste form when ChatGPT needs machine-readable evidence.
+
+`personalos dashboard render --db <safe_db> --output-file <safe_html_file>`
+writes a static dashboard HTML file to an explicit safe path. It includes the
+same `operator_status_summary` safe local actions, blocked actions, and
+evidence in dashboard form, and `today.json` exposes the underlying JSON for
+audit. Rendering does not bind a server, activate a scheduler, load
+credentials, use production SQLite, or perform external writes.
 
 `not_ready` means Personal OS is not approved for live operation. In the
 current baseline, `not_ready` is expected because the Phase 14/live approval

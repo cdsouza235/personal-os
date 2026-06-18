@@ -6,12 +6,13 @@ Personal OS should feel lightweight to use while remaining safety-aware, configu
 
 ## Current Boundary
 
-Phases -1 through 13F-D and Phase 13E-A are complete, and the Phase 6B,
-Phase 7B, Phase 8B, Phase 12A, and Phase 12B fake/local smoke tests are
-complete. The current Phase 13E-B work is CLI no-send workflow polish inside
-the repository. It must not add migrations, runtime state, live rails,
-scheduler activation, OpenClaw runtime operation, production DB activation,
-credential loading, or live external writes.
+Phases -1 through 13F-D plus Phase 13E-A and Phase 13E-B are complete, and
+the Phase 6B, Phase 7B, Phase 8B, Phase 12A, and Phase 12B fake/local smoke
+tests are complete. The current Phase 13E-C work is dashboard safe-action and
+status polish inside the repository. It must not add migrations, runtime
+state, live rails, scheduler activation, OpenClaw runtime operation,
+production DB activation, credential loading, dashboard activation controls,
+credential/OAuth setup UI, or live external writes.
 It must not inspect or mutate live runtime files, live PersonalOS files or
 fitness CSVs, credentials, external systems, production ledgers, production
 SQLite state, or any production state.
@@ -83,6 +84,16 @@ human-readable completion summaries, preserve JSON output, and clarify
 operator-safe error messages for existing no-send workflows. It must build on
 `operator_status.v1`; it must not create a second readiness vocabulary or
 imply that blocked live rails are available.
+
+Phase 13E-C may add dashboard/status presentation for the same operator
+posture. The dashboard may show a NOT READY inert/no-send/report-only banner,
+safe local actions, blocked live actions, and inert evidence such as
+credentials not loaded, external writes as none, scheduler inactive,
+production DB not active, and OpenClaw uncalled. It must reuse
+`operator_status.v1`; it must not add dashboard controls or routes that
+activate live rails, load credentials, configure OAuth, start a scheduler,
+install LaunchAgents, write crontab entries, use production SQLite, call
+OpenClaw, call live model/API providers, or write externally.
 
 ## Phase 0 Rule
 

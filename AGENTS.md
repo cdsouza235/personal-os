@@ -4,6 +4,9 @@ Personal OS is Chris's private, local-first productivity, routine, priority,
 briefing, and execution operating system. This GitHub repository is the source
 of truth for repo code, tests, migrations, and Markdown documentation.
 
+Before starting repo work, read `STATUS.md`, this `AGENTS.md`, and the
+relevant docs under `docs/`.
+
 ## Role Boundaries
 
 - Chris: owner, final approver, and source of judgment.

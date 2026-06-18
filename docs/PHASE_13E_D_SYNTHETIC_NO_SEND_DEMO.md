@@ -38,6 +38,22 @@ PYTHONPATH=src python3 -m personalos.cli demo no-send-e2e --output-dir <safe_out
 The command does not exist yet. Phase 13E-D implementation, when explicitly
 approved, should use this target unless Chris changes the contract.
 
+## Required Synthetic Fixture Coverage
+
+The future demo fixture set should include:
+
+- routines
+- priorities
+- projects/focus areas, if supported
+- follow-ups
+- Todoist candidates as preview/simulated only
+- Calendar candidates as preview/simulated only
+- Gmail/no-send briefing export only
+- Markdown note candidates as preview/review-only
+- blocked high-stakes candidates
+- side-effect/idempotency evidence
+- scheduler simulation evidence, if used
+
 ## Expected Evidence Bundle
 
 The future demo should write only under `<safe_output_dir>` and should produce

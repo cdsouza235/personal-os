@@ -1,136 +1,1161 @@
-# Personal OS PRD v0.2
+# Personal OS - Master PRD / Architecture Brief v0.2
 
-Last updated: 2026-06-18
+Status: Updated working draft for review
+Owner: Chris
+Updated: 2026-06-18
+Development model: ChatGPT + Codex/Fable + OpenClaw
+Product: Personal OS
+Runtime host: Mac Mini
+Code source of truth: private GitHub repo `cdsouza235/personal-os`
+Local repo: `/Users/coldstake/dev/personal-os`
+Structured runtime state: SQLite
+Durable notes / memory: PersonalOS / Obsidian / Markdown
+Runtime/operator layer: OpenClaw, only after approved runtime workflows exist
 
-## Product Definition
+## 0. v0.2 Revision Summary
 
-Personal OS is a modular, local-first productivity, routine, priority,
-briefing, reporting, and execution operating system. It helps Chris maintain
-routines, reason about priorities, generate no-send briefings, review
-candidate actions, preserve durable notes later, and eventually operate gated
-execution rails through approved runtime paths.
+This v0.2 revision updates the original Master PRD / Architecture Brief so it
+matches the current repo state instead of the older Phase 0-era roadmap wording.
 
-## Product Principles
+Key changes from v0.1:
 
-- Chris remains the owner, final approver, and source of judgment.
-- GitHub is the source of truth for repo code, tests, migrations, and docs.
-- SQLite is the structured runtime state store.
-- ChatGPT is the strategy, synthesis, PRD, architecture, and audit layer.
-- Codex/Fable is the repository implementation layer.
-- OpenClaw is the approved runtime/operator layer only.
-- Todoist, Google Calendar, Gmail, and Markdown are future gated rails.
-- Safety should be explicit in architecture and low-friction in local use.
+- Clarifies that the project is not starting from scratch.
+- Records the current validated repo baseline:
+  - last validated main baseline before Phase 13E-D-0 control-plane docs:
+    `66a7652bec4d26a86787729f47493bb194ad5f42`
+  - latest merged PR: PR #28, Phase 13E-C dashboard safe-action/status polish
+  - full suite: 453 tests OK
+  - ResourceWarning-sensitive suite: 453 tests OK
+  - readiness remains `not_ready`
+  - `inert_report_only=true`
+  - `live_rails_activated=false`
+- Clarifies that Codex/Fable owns repo implementation, tests, docs,
+  migrations, PRs, and validation.
+- Clarifies that OpenClaw is not the repo implementation layer and should not
+  perform repo work unless explicitly authorized later for a narrow
+  runtime/operator smoke test.
+- Reframes future V1 live rails as product targets, not current permission to
+  activate Gmail, Todoist, Calendar, PersonalOS Markdown writes, OpenClaw
+  runtime integration, production DB, scheduler, or model/API calls.
+- Defines Phase 13E-D as the current/next recommended phase: a synthetic
+  end-to-end no-send demo using fixture data and a temporary SQLite DB only.
+- Adds a repository documentation standard: keep the canonical PRD as Markdown
+  inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
+  operating instructions, and use DOCX as a review/export artifact rather than
+  the machine-readable source of truth.
 
-## Current State
+## 1. Product Vision
 
-The canonical current project snapshot is [../STATUS.md](../STATUS.md).
+Personal OS is a modular, local-first productivity, routine, priority, and
+execution operating system.
 
-As of 2026-06-18, the repo has completed through Phase 13E-C plus Phase 13F-D
-policy/readiness docs. The current/next phase is Phase 13E-D: a synthetic
-end-to-end no-send demo. Phase 14 has not started. Live rails remain disabled.
+It helps Chris think clearly, capture and maintain priorities, execute daily
+routines, track high-value projects, generate useful briefings, create Todoist
+tasks, schedule Calendar blocks, preserve durable notes without bloat, run
+reports and dashboards, and operate approved runtime workflows on the Mac Mini.
 
-Current validated posture:
+The system should feel like a disciplined personal assistant, not a pile of
+automations.
 
-- `readiness.status=not_ready`
-- `inert_report_only=true`
-- `live_rails_activated=false`
-- no credentials loaded or read
-- no production DB active
-- no scheduler active
-- no external writes
-- no OpenClaw call
+Core concept:
 
-## V1 Product Scope
+- Chris owns judgment, values, approvals, and final decisions.
+- ChatGPT synthesizes raw input into clean priorities, state, requirements,
+  review artifacts, and implementation instructions.
+- Codex/Fable builds and validates the repo software.
+- OpenClaw operates approved runtime workflows after the repo is ready and
+  Chris approves.
+- SQLite stores structured runtime state.
+- PersonalOS / Obsidian / Markdown stores durable notes, logs, protocols,
+  reviews, and long-term context.
+- Todoist, Google Calendar, Gmail, and other rails stay behind permission gates
+  and validation.
 
-V1 remains a local-first operating shell with explicit safety and review
-boundaries:
+## 2. Problem Statement
 
-- Local dashboard and CLI status surfaces.
-- Today view.
-- Routine and priority foundations.
-- ChatGPT synthesis import preview and approved local apply into dev/test
-  SQLite only.
-- No-send briefing previews.
-- Todoist and Calendar candidate previews.
-- Side-effect and idempotency ledgers.
-- Scheduler simulation records only.
-- Report/jobs and chart-pack foundations.
-- Fitness integration contract foundations.
-- System status, safety evidence, and completion reports.
+Chris has the pieces of a personal operating system, but the long-term value
+depends on keeping them cleanly layered:
 
-Future gated rails may include Todoist writes, Calendar writes, Gmail
-briefings, PersonalOS Markdown durable notes, live model/API calls, production
-SQLite activation, scheduler activation, and OpenClaw runtime operation. None
-of those rails are currently active.
+- ChatGPT for synthesis and analysis.
+- Codex/Fable for repo implementation.
+- SQLite for structured runtime state.
+- OpenClaw on the Mac Mini for approved runtime operation.
+- Todoist for concrete actions.
+- Google Calendar for real time commitments.
+- Gmail for briefings and communication rails.
+- PersonalOS / Obsidian / Markdown for durable notes and long-term memory.
+- TradingView and market inputs for chart-pack workflows.
 
-## Role Boundaries
+Current risks include inconsistent routine execution, scattered priorities,
+Todoist/Calendar drift, incomplete briefing integration, manual relay between
+tools, note bloat, and accidental live activation before the system is ready.
+
+The repo has now advanced beyond the original early roadmap. The next problem is
+not foundation creation. The next problem is proving the existing inert
+foundations compose safely in one deterministic no-send workflow before any live
+rail work begins.
+
+## 3. Core Roles And Boundaries
 
 ### Chris
 
-Chris owns priorities, approves high-stakes decisions, and decides when phase
-gates may advance.
+Chris is the owner, final approver, and source of values, priorities, and
+judgment.
+
+Chris approves:
+
+- Product direction.
+- Phase scope.
+- PR merges.
+- Live rail activation.
+- High-stakes decisions.
+- Runtime/operator use.
 
 ### ChatGPT
 
-ChatGPT is the thought partner, synthesis layer, strategy layer, PRD writer,
-architect, and auditor. It may produce structured plans and reviews. It does
-not mutate live systems.
+ChatGPT is the strategy, synthesis, PRD, architecture, acceptance criteria,
+audit, review, and instruction-writing layer.
 
-### Codex/Fable
+ChatGPT should:
 
-Codex/Fable may edit repository code, tests, migrations, and documentation
-inside approved phase scope. They may run repo-local validation. They must not
-operate production workflows, inspect protected personal/runtime paths, load
-credentials, activate live rails, or perform external writes.
+- Synthesize messy input before execution.
+- Separate raw notes, durable insights, emotional spikes, recurring patterns,
+  action candidates, PersonalOS updates, Todoist-ready tasks, and questions for
+  review.
+- Produce clean Codex/Fable prompts for repo implementation.
+- Produce OpenClaw instructions only after runtime/operator work is approved.
+- Review and audit builder/operator reports.
+
+ChatGPT should not treat raw emotional notes, altered-state notes, or passing
+ideas as automatic tasks, beliefs, goals, or permanent memory.
+
+### Codex / Fable
+
+Codex/Fable is the repo implementation layer.
+
+Codex/Fable may, within approved phase scope:
+
+- Create branches.
+- Edit code, tests, docs, fixtures, migrations, and repo protocols.
+- Run unit and integration tests.
+- Run local simulation scripts.
+- Prepare PRs.
+- Report implementation evidence.
+
+Codex/Fable may not, unless explicitly approved in a future live phase:
+
+- Send email.
+- Write Todoist tasks.
+- Write Calendar events.
+- Load credentials/OAuth.
+- Activate LaunchAgents, crontab, daemons, scheduler loops, or background jobs.
+- Mutate production SQLite state.
+- Modify production ledgers.
+- Inspect or mutate `/Users/coldstake/PersonalOS` or
+  `/Users/coldstake/.openclaw` unless specifically authorized.
+- Run live OpenClaw workflows.
+- Perform external writes.
 
 ### OpenClaw
 
-OpenClaw is the approved runtime/operator layer only. It is not the repo
-implementation layer and must not be involved in Codex/Fable repo work unless
-Chris explicitly approves a narrow runtime/operator task.
+OpenClaw is the runtime/operator layer, not the repo implementation layer.
 
-## Source Boundaries
+OpenClaw eventually runs approved local jobs, creates approved
+tasks/events/drafts/writes, manages runtime workflows, and produces
+logs/reports. It should receive clean approved instructions, not raw
+unstructured project material.
 
-- Code/docs source of truth: GitHub repo.
-- Structured runtime state: SQLite.
-- Durable notes later: PersonalOS/Obsidian/Markdown.
-- Execution rails later: Todoist, Google Calendar, Gmail, OpenClaw.
+OpenClaw should not handle repo implementation, PR review, merges, validation,
+or development work unless Chris later explicitly chooses it for a narrow
+runtime/operator smoke test.
 
-Execution rails are gated by readiness policies, activation checklists, pilot
-protocols, and explicit Chris approval.
+### Mac Mini
 
-## Dashboard And CLI Requirements
-
-Dashboard and CLI surfaces must remain local, inert, no-send, and
-evidence-oriented until a later approved phase changes that posture. They may
-show readiness status, safe local actions, blocked live actions, completion
-reports, and no-live evidence. They must not expose activation controls,
-credential setup, live send/write controls, scheduler activation, production DB
-activation, or OpenClaw calls.
-
-## High-Stakes Domains
-
-Legal, tax, medical, health, investment, portfolio, crypto, relationship,
-family-sensitive, external-message, external-meeting, and large-financial
-commitment items require explicit review or manual handling. They must not be
-auto-executed or treated as low-risk rails.
-
-## Current Non-Goals
-
-- No Phase 14 work.
-- No live Gmail, Todoist, Google Calendar, PersonalOS Markdown, or OpenClaw
-  execution.
-- No credential loading or reading.
-- No production DB activation.
-- No scheduler, LaunchAgent, crontab, daemon, or background-loop activation.
-- No external writes.
-- No protected path inspection or mutation.
-
-## Phase 13E-D Product Target
-
-Phase 13E-D should demonstrate the existing no-send pipeline end to end using
-synthetic local inputs and explicit safe output paths. Its canonical future
-target is defined in
-[PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
-That document is a planning artifact only until implementation is explicitly
+The Mac Mini is the always-on runtime host for the local Personal OS runtime,
+OpenClaw, SQLite, repo clone, scheduler, and local files once live operation is
 approved.
+
+### GitHub
+
+GitHub is the private source of truth for code, tests, docs, schemas,
+migrations, fixtures, module definitions, and development workflow docs.
+
+## 4. Product Principles
+
+1. Clean state first.
+   Raw input goes through synthesis before storage or execution.
+
+2. Editable state, not hardcoded routines.
+   Routine changes should be state/config driven, not code edits.
+
+3. Narrow model packets.
+   Composer/model calls should receive only narrow, validated state packets.
+
+4. Execution is validated.
+   Composer output must be structured, schema-valid, permission-gated, and
+   deduplicated before execution.
+
+5. Safety-light UX, safety-aware architecture.
+   The UI should not feel paranoid, but architecture must include permissions,
+   ledgers, idempotency, rollback/recovery posture, logs, completion reports,
+   and explicit safety flags.
+
+6. No-send before send.
+   Any live external rail should first exist as preview/simulation/no-send
+   evidence.
+
+7. Local-first, modular growth.
+   Future modules should plug into the same state, dashboard, scheduler,
+   composer, permission, and evidence layers.
+
+8. High-stakes review stays explicit.
+   Tax, legal/estate, portfolio/crypto/investments, relationship messages,
+   health/medical decisions, large financial commitments, family conflict, and
+   emotionally charged communication require extra review before execution.
+
+## 5. Source-Of-Truth And Documentation Architecture
+
+### Canonical Source Locations
+
+- Code, tests, schemas, migrations, fixtures: GitHub repo,
+  `/Users/coldstake/dev/personal-os` locally.
+- Canonical PRD for Codex/Fable: `docs/PRD.md`.
+- Architecture detail: `docs/ARCHITECTURE.md`.
+- Safety policy: `docs/SAFETY_POLICY.md`.
+- Roadmap: `docs/ROADMAP.md`.
+- Codex/Fable development workflow: `docs/CODEX_WORKFLOW.md`.
+- Phase runbooks: `docs/PHASE_*.md`.
+- Repo-level agent instructions: `AGENTS.md` at repo root.
+- Structured runtime state: SQLite.
+- Durable personal notes later: PersonalOS / Obsidian / Markdown.
+
+### Recommended Repo Documentation Pattern
+
+The PRD should be in the repo, but not as a loose root-level DOCX.
+
+Recommended pattern:
+
+```text
+/Users/coldstake/dev/personal-os/
+  AGENTS.md
+  README.md
+  docs/
+    PRD.md
+    ARCHITECTURE.md
+    SAFETY_POLICY.md
+    ROADMAP.md
+    CODEX_WORKFLOW.md
+    PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md
+    archive/
+      Personal_OS_Master_PRD_Architecture_Brief_v0_1.docx
+```
+
+`docs/PRD.md` is the canonical machine-readable PRD that Codex/Fable can
+reference every session. The Word document is useful for human review, sharing,
+and archival snapshots, but Markdown is the repo source of truth.
+
+`AGENTS.md` should stay concise. It should point Codex/Fable to the relevant
+docs, state the hard safety boundaries, list validation commands, and define
+stop conditions. It should not become the full PRD.
+
+## 6. Current Repo State Reconciliation
+
+The canonical current snapshot is `../STATUS.md`. This PRD records the current
+product baseline but should not invent a future merge commit or claim that a
+pre-merge HEAD will remain current after this branch lands.
+
+As of this v0.2 update:
+
+- Last validated main baseline before Phase 13E-D-0 control-plane docs:
+  `66a7652bec4d26a86787729f47493bb194ad5f42`
+- Latest merged PR: PR #28, Phase 13E-C dashboard safe-action/status polish
+- Completed through: Phase 13E-C plus Phase 13F-D policy/readiness docs
+- Current/next phase: Phase 13E-D synthetic end-to-end no-send demo
+- Phase 14: not started
+- Full test suite: 453 tests OK
+- ResourceWarning-sensitive suite: 453 tests OK
+- Hygiene clean
+- No repo-local `var/`
+- No SQLite/DB artifacts outside `.git`
+- Readiness reports `not_ready`
+- `inert_report_only=true`
+- `live_rails_activated=false`
+- All live rails disabled
+- No credentials loaded/read
+- No production DB active
+- No scheduler active
+- No LaunchAgent, crontab, daemon, or background loop active
+- No external writes
+- No OpenClaw call
+- Dashboard has no activation controls
+- Dashboard has no credential/OAuth UI
+
+This state is the baseline. Do not restart from earlier roadmap phases.
+
+## 7. Completed Implementation Through Phase 13E-C
+
+Completed major phases:
+
+- Phase 1: runtime foundation.
+- Phase 2: dashboard/state foundation.
+- Phase 3: routine engine foundation.
+- Phase 4: priority engine foundation.
+- Phase 5: Todoist/Calendar module foundation, fake/simulated only.
+- Phase 6: composer model integration foundation, fake/local only.
+- Phase 7: report jobs / weekly chart pack foundation.
+- Phase 8: fitness integration foundation.
+- Phase 9A: correctness hardening.
+- Phase 9B: runtime DB bootstrap.
+- Phase 10A: Today View / dashboard shell.
+- Phase 10B: no-send briefing loop.
+- Phase 10C: dashboard briefing integration.
+- Phase 11A: ChatGPT synthesis import preview backend.
+- Phase 11B: dashboard synthesis preview UI.
+- Phase 12A: operator CLI for no-send workflows.
+- Phase 12B: side-effect/idempotency ledgers.
+- Phase 13A: approval-gated synthesis apply flow.
+- Phase 13B: synthesis apply atomicity/recovery hardening.
+- Phase 13C: no-send scheduler/runtime loop foundation.
+- Phase 13D: checkpoint hardening / permissions and status cleanup.
+- Phase 13F-A: pre-live readiness policy docs.
+- Phase 13F-B: inert fail-closed readiness evaluator/tests.
+- Phase 13F-C: read-only CLI/status/dashboard readiness visibility.
+- Phase 13F-D: activation checklist and first-live pilot protocol.
+- Phase 13E-A: operator status vocabulary and report shape.
+- Phase 13E-B: CLI no-send workflow polish.
+- Phase 13E-C: dashboard safe-action/status polish via PR #28.
+
+The next recommended phase is Phase 13E-D. Phase 14 has not started.
+
+## 8. Current Capability
+
+The repo currently supports:
+
+- SQLite runtime foundation.
+- Migration system and FK enforcement.
+- Dashboard/status/Today View shell.
+- No-send briefing loop.
+- ChatGPT synthesis import preview.
+- Approval-gated synthesis apply into internal SQLite state.
+- Atomic apply and audit trail.
+- Side-effect/idempotency ledgers.
+- Simulated scheduler job/run tables.
+- CLI operator surface for safe local workflows.
+- `operator_status.v1`.
+- `personalos workflows` / `workflows --json`.
+- Inert pre-live readiness evaluator.
+- Read-only readiness CLI/status/dashboard display.
+- Dashboard safe-action/status panels.
+- Formal activation checklist and first-live pilot protocol.
+
+All of these are local, fake/simulated/no-send/inert foundations unless
+explicitly proven otherwise in a later approved phase.
+
+## 9. Phase 13E-D - Synthetic End-To-End No-Send Demo
+
+### Objective
+
+Phase 13E-D should add a deterministic local demo workflow that proves the
+Personal OS inert/no-send system works end to end using fixture data, a
+temporary SQLite DB, fake/local adapters only, and a JSON-first evidence bundle.
+
+This PRD defines the target. It does not implement Phase 13E-D and does not
+authorize Phase 14.
+
+### Canonical Demo Command Target
+
+Preferred shape:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli demo no-send-e2e --output-dir <safe_output_dir> --json
+```
+
+Exact naming can follow existing CLI conventions, but the repo should end Phase
+13E-D with one obvious copy/paste command for local audit.
+
+### Required Demo Path
+
+The demo should prove this flow:
+
+1. Create isolated temp workspace and temp SQLite DB.
+2. Bootstrap local demo DB using existing migrations and FK enforcement.
+3. Seed deterministic synthetic routines, priorities, follow-ups, and safe
+   simulated state.
+4. Import a deterministic synthetic ChatGPT synthesis payload.
+5. Generate a synthesis preview.
+6. Apply only approved internal SQLite-safe synthesis items.
+7. Generate a no-send briefing preview using fake Composer/local adapter only.
+8. Generate a no-send briefing export to the explicit output directory only.
+9. Produce workflow/status/readiness/Today View/dashboard evidence.
+10. Produce side-effect/idempotency ledger summary.
+11. Emit a final `demo_report.json` with safety assertions.
+
+### Required Synthetic Fixture Coverage
+
+The future demo fixture set should include:
+
+- routines
+- priorities
+- projects/focus areas, if supported
+- follow-ups
+- Todoist candidates as preview/simulated only
+- Calendar candidates as preview/simulated only
+- Gmail/no-send briefing export only
+- Markdown note candidates as preview/review-only
+- blocked high-stakes candidates
+- side-effect/idempotency evidence
+- scheduler simulation evidence, if used
+
+### Required Safety Proof
+
+The demo report must show:
+
+- `readiness_status=not_ready`
+- `inert_report_only=true`
+- `live_rails_activated=false`
+- `credentials_loaded=false`
+- `credentials_read=false`
+- `production_db_path_active=false`
+- `scheduler_activated=false`
+- `openclaw_called=false`
+- `external_services_contacted=false`
+- `external_mutation=false`
+- live Gmail disabled
+- live Todoist disabled
+- live Calendar disabled
+- PersonalOS Markdown writes disabled
+- live model/API disabled
+
+### Phase 13E-D Non-Goals
+
+Do not add or activate:
+
+- live Gmail
+- live Todoist
+- live Calendar
+- PersonalOS Markdown writes
+- credentials/OAuth
+- production DB activation
+- scheduler activation
+- LaunchAgent
+- crontab
+- daemon/background loop
+- OpenClaw integration
+- live model/API calls
+- OpenAI/OpenRouter/Anthropic integration
+- external writes
+- dashboard activation controls
+- live send/apply/task/calendar controls
+- Phase 14 implementation
+
+## 10. V1 Product Scope
+
+V1 product goals remain useful as the north star, but they are not permission to
+activate live rails during Phase 13E-D.
+
+### V1 Includes
+
+- Local dashboard shell.
+- Routine editor.
+- Today View.
+- Priority registry.
+- ChatGPT synthesis import box.
+- SQLite runtime state store.
+- 8am / 12pm / 4pm / 8pm briefing generation.
+- Todoist auto-write for low-risk routines and follow-ups, after future live
+  approval.
+- Calendar auto-write for approved self-only blocks, after future live
+  approval.
+- Gmail briefings, after future live approval.
+- PersonalOS Markdown Clarity Notes and General Follow-Up Notes, after future
+  approved-write design.
+- Configurable permissions.
+- System status/logs.
+- Reports/jobs module shell.
+- Fitness integration hook.
+- Weekly chart pack workflow hook.
+
+### V1 Stretch
+
+- Todoist / Calendar preview screen.
+- Weekly chart pack workflow operational.
+- Fitness tracker dashboard link.
+- Permissions editor.
+- Basic report runner.
+- Routine adherence tracking.
+
+### Not V1
+
+- Full investment analytics dashboard.
+- Autonomous investment interpretation.
+- Reply parser.
+- Public internet dashboard access.
+- External-user collaboration.
+- Local AI inference box.
+- Autonomous legal/tax/portfolio execution.
+
+## 11. Dashboard Requirements
+
+The dashboard is the primary local user interface.
+
+### Access
+
+- Local network only.
+- No public internet exposure.
+- No login/password for V1 unless later security design requires it.
+- Mobile-friendly for iPhone.
+- Usable from Windows/Mac browser.
+
+### Sections
+
+- Today View: briefing windows, routines, Todoist task previews, calendar block
+  previews, priorities, carryovers, follow-ups, and system status.
+- Routine Editor: add/edit/disable/delete routines, cadence, windows,
+  Todoist/Calendar behavior, missed behavior, rotation, priority.
+- Priority Editor: high-value priorities, project status, review cadence, next
+  review date, follow-up notes, source notes.
+- Todoist / Calendar Preview: tasks/blocks to create, duplicates skipped,
+  blocked items, review-required items, auto-written items after future
+  approval.
+- System Status / Logs: scheduler, email, Todoist, Calendar, ledgers, model
+  routing, OpenClaw health, errors, last completion report.
+- Settings / Permissions: auto-write rules, review-required rules, models,
+  routine defaults, Todoist mappings, Calendar behavior, email cadence,
+  missed-task behavior.
+
+During inert phases, the dashboard must not include activation controls,
+credential/OAuth UI, live send controls, or live task/calendar write controls.
+
+## 12. Structured Runtime State
+
+SQLite stores structured runtime state.
+
+Expected stored entities:
+
+- routines
+- routine_completions
+- routine_rotations
+- missed_routine_events
+- priorities
+- projects
+- followups
+- todoist_tasks
+- calendar_blocks
+- daily_plans
+- briefing_windows
+- briefing_outputs
+- composer_packets
+- composer_outputs
+- model_runs
+- permissions
+- system_events
+- report_jobs
+- chart_pack_reviews
+- fitness_integration_state
+- ledgers/idempotency records
+- readiness/operator status evidence
+
+Production DB activation is blocked until a future approved phase defines
+path/config, backups, restore tests, integrity checks, migration policy,
+permissions, and operator procedures.
+
+## 13. ChatGPT Synthesis Import
+
+V1 must include an Import ChatGPT Synthesis flow. The current repo already has
+preview and approval-gated apply foundations.
+
+The import flow should accept:
+
+- Markdown.
+- JSON.
+- Structured text.
+
+Output candidates may include:
+
+- priorities
+- projects
+- follow-ups
+- clarity notes
+- routine changes
+- Todoist candidates
+- Calendar candidates
+- review tasks
+- blocked/high-stakes candidates
+
+Import requirements:
+
+- Preview before save.
+- Validation.
+- Reject option.
+- Rollback/recovery posture.
+- Source timestamp.
+- Source note/reference field.
+- Explicit approval file or approval record before internal SQLite apply.
+- Unsupported/external candidates must remain blocked or review-only.
+
+## 14. Routine Engine
+
+Initial default routines:
+
+- Cleaning: 1 task/day, Monday-Friday.
+- Reading: 4x/week.
+- Prayer / Meditation: 2x/week.
+- Grease-the-Groove: rotating exercises as needed; target 45 reps per exercise
+  per week.
+- Fitness / Strength: separate from GTG; integrate existing fitness tracker
+  later.
+- Shutdown / Review: daily evening.
+
+Routine object fields:
+
+- routine_id
+- name
+- category
+- description
+- cadence_rule
+- preferred_windows
+- enabled
+- todoist_behavior
+- calendar_behavior
+- email_behavior
+- missed_behavior
+- rotation_group
+- target_count
+- target_unit
+- weekly_target
+- priority
+- last_completed
+- next_due
+- created_at
+- updated_at
+
+Cadence types:
+
+- daily
+- weekdays
+- x_times_per_week
+- weekly
+- every_n_days
+- specific_days
+- rotating_sequence
+- manual_only
+
+Missed behavior options:
+
+- combine_with_next
+- bump_schedule_by_one_day
+- carry_forward_within_week
+- skip_and_continue
+- escalate_to_review
+
+Recommended defaults:
+
+- Cleaning missed combines once, then escalates if repeated.
+- Reading carries forward within week.
+- Prayer/meditation skips and continues.
+- GTG bumps rotation or carries forward.
+- Shutdown skips and continues.
+
+All defaults must be editable.
+
+## 15. Todoist Module
+
+Todoist is the action rail, not the brain.
+
+### Auto-Write Allowed After Future Live Approval
+
+- routine_todoist_tasks
+- cleaning tasks
+- reading tasks
+- prayer/meditation tasks
+- GTG tasks
+- shutdown/review tasks
+- high-value review/follow-up tasks
+
+### Approval Required
+
+- investment execution actions
+- legal/tax instructions
+- relationship messages
+- messages to other people
+- large financial commitments
+- health/medical decisions
+
+### Task Schema
+
+- task_title
+- description
+- source_type
+- source_id
+- project
+- labels
+- due_date_or_due_string
+- priority
+- risk_level
+- approval_mode
+- dedupe_key
+- status
+
+Stable routines can use recurring task patterns where appropriate. Dynamic items
+are generated from state. Completed Todoist tasks should be removed from later
+briefings.
+
+During Phase 13E-D, Todoist may only appear as simulated/preview/blocked/
+candidate evidence. No live Todoist writes.
+
+## 16. Calendar Module
+
+V1 uses preferred windows first. Availability-aware scheduling comes later.
+
+### Auto-Write Allowed After Future Live Approval
+
+- self-only review blocks
+- deep work blocks
+- admin cleanup blocks
+- routine blocks explicitly configured for calendar
+- weekly chart pack review block
+- fitness/recovery review block if approved
+
+### Approval Required
+
+- events involving other people
+- external meetings
+- legal/tax appointments
+- family-sensitive events
+- financial commitments
+
+### Calendar Object Schema
+
+- title
+- description
+- source_type
+- source_id
+- start_time
+- end_time
+- duration_minutes
+- calendar_id
+- timezone
+- approval_mode
+- risk_level
+- dedupe_key
+- status
+
+During Phase 13E-D, Calendar may only appear as simulated/preview/blocked/
+candidate evidence. No live Calendar writes.
+
+## 17. Gmail / Briefing Module
+
+### Cadence
+
+- 8am - Morning Brief.
+- 12pm - Midday Reset.
+- 4pm - Afternoon Checkpoint.
+- 8pm - Evening Shutdown.
+- Timezone: America/Chicago.
+
+Daily plan is generated once in the morning. Each briefing is generated
+just-in-time before its window. Todoist/Calendar baseline writes happen in the
+morning only after future live approval. Later windows adjust based on updated
+state.
+
+If the 8am briefing includes a task and Chris completes it in Todoist at 10am,
+the 12pm briefing should not show that task as remaining once live sync exists.
+
+Briefing content:
+
+- current window focus
+- remaining routines
+- open priority tasks
+- calendar awareness
+- Todoist changes
+- missed/carryover items
+- follow-ups
+- warnings/blockers
+
+During Phase 13E-D, Gmail may only appear as no-send briefing preview/export.
+No Gmail draft. No Gmail send.
+
+## 18. Composer Model Architecture
+
+The composer model writes high-quality daily content and structured tasks/events
+from a narrow Composer Packet.
+
+### Allowed Input
+
+- routine state
+- priority titles
+- selected follow-up summaries
+- calendar availability summary
+- Todoist task summaries
+- today's schedule
+- WSP/routine rules
+- prior briefing results
+- completion status
+
+### Not Allowed Input
+
+- full PersonalOS vault
+- raw notes
+- legal/tax source documents
+- credentials
+- unrestricted file access
+- full journal archive
+- arbitrary filesystem access
+
+### Output
+
+Composer output must be structured JSON plus readable text.
+
+Required sections:
+
+- email_briefs
+- todoist_tasks
+- calendar_blocks
+- followups
+- warnings
+
+No prose-only output may be used for execution.
+
+### Model Roles
+
+- operator_model
+- composer_model
+- high_stakes_review_model
+- coding_model
+
+During Phase 13E-D, composer behavior must use fake/local adapters only. No live
+model/API calls.
+
+## 19. Permissions Model
+
+Permissions must be simple and editable from the dashboard.
+
+Initial permission examples:
+
+- `routine_todoist_tasks = auto_write` after future live approval
+- `self_calendar_blocks = auto_write` after future live approval
+- `high_value_review_tasks = auto_write` after future live approval
+- `high_value_execution_actions = approval_required`
+- `messages_to_other_people = approval_required`
+- `external_calendar_events = approval_required`
+
+Architecture requirements:
+
+- fail closed
+- explicit readiness status
+- live rails disabled by default
+- no credentials loaded/read during inert phases
+- no production DB activation during inert phases
+- no scheduler/background activation during inert phases
+- no external write without configured permission and explicit phase approval
+- ledgers/idempotency for all write-like operations
+- rollback/recovery posture for state-changing operations
+
+## 20. Notes And PersonalOS Markdown
+
+PersonalOS / Obsidian / Markdown is the durable memory layer, not the initial
+raw capture dumping ground.
+
+### Clarity Notes
+
+For high-signal synthesis:
+
+- big objectives
+- durable insights
+- priority changes
+- relationship/family insights
+- investment thesis shifts
+- fitness/physical weak-area insights
+- decision logs
+
+Created after ChatGPT synthesis and Chris approval.
+
+### General Follow-Up Notes
+
+For:
+
+- things to revisit
+- open questions
+- loose admin notes
+- project reminders
+- people/family follow-ups
+- research threads
+
+They become Todoist tasks only if they meet the task schema.
+
+During Phase 13E-D, PersonalOS Markdown may only appear as candidate/preview
+evidence. No writes to `/Users/coldstake/PersonalOS`.
+
+## 21. Weekly Chart Pack Workflow
+
+Every weekend Chris produces Weekly Chart Packs and gathers TradingView alerts.
+Chris sends chart pack and alerts to ChatGPT. ChatGPT synthesizes market/thesis
+review. OpenClaw eventually stores the synthesis, tracks week-over-week changes,
+and creates follow-up review tasks if approved.
+
+OpenClaw does not analyze investments independently. It stores and delivers
+workflow outputs. ChatGPT handles thesis synthesis and chart-pack
+interpretation.
+
+Portfolio/crypto/investment actions remain high-stakes and review-required.
+
+## 22. Fitness Integration
+
+Fitness/strength is separate from GTG.
+
+Existing OpenClaw/ChatGPT CSV-based fitness tracking should be preserved.
+
+V1:
+
+- fitness module shell
+- dashboard link/status
+- no rebuild of the existing CSV tracker
+
+V1.5:
+
+- deeper integration with existing CSV tracker
+- recovery/training context in briefings
+
+Principles:
+
+- local CSV-based
+- library-first
+- minimal verbosity
+- no Notion dependency
+
+Core files remain:
+
+- `workout_sessions.csv`
+- `workout_exercises.csv`
+- `weekly_recovery.csv`
+- `exercise_library.csv`
+
+## 23. Reports And Dashboard Jobs
+
+Reports are coded jobs, not a separate analyst persona.
+
+Chris + ChatGPT define requirements. Codex/Fable builds jobs. OpenClaw
+eventually runs approved runtime jobs. ChatGPT interprets reports if needed.
+
+Potential jobs:
+
+- weekly chart pack index
+- macro calendar
+- earnings calendar
+- TradingView alert digest
+- priority status report
+- routine adherence report
+- Todoist completion report
+- calendar utilization report
+
+## 24. Codex/Fable Workflow
+
+Codex/Fable works through repo branches, tests, docs, migrations, and PRs. Repo
+work starts by reading `STATUS.md`, `AGENTS.md`, and the relevant docs under
+`docs/`.
+
+Codex/Fable should:
+
+- verify branch and worktree state before edits
+- keep changes inside the approved phase scope
+- prefer repo-local tests and deterministic fixtures
+- preserve explicit `--db` and safe output paths for local workflows
+- report changed files and validation output
+- stop at the approved boundary, especially between audit, implementation, PR
+  creation, merge, and live operation
+
+Codex/Fable should not:
+
+- operate production workflows
+- inspect protected personal/runtime paths
+- load credentials
+- activate live rails
+- perform external writes
+- call OpenClaw
+- start Phase 14 without explicit approval
+
+## 25. Evidence Standard
+
+### Development Work
+
+Required evidence:
+
+- branch name
+- diff summary
+- files changed
+- implementation notes
+- test logs
+- unit/integration output
+- hygiene output
+- demo evidence when applicable
+- deviations and rationale
+- PR number if opened
+
+### Runtime/Live Operations
+
+Required evidence after future approval:
+
+- persisted completion report
+- ledger/log snapshot
+- safety flags
+- idempotency evidence
+- rollback/recovery information where applicable
+
+### Forensic Bundles
+
+Only required for:
+
+- incidents
+- production activation
+- high-stakes operations
+- duplicate/mutation anomalies
+- suspected credential or external-write issues
+
+Phase 13E-D should produce a development/demo evidence bundle, not a live
+forensic bundle.
+
+## 26. Phase 14 Dependency Inventory
+
+Do not start Phase 14 until these are designed and approved:
+
+- Production DB path/config, backup, restore test, integrity checks, migration
+  policy.
+- Credential loading strategy with owner/scope/rotation/revocation labels,
+  without exposing secrets.
+- Live permission keys and fail-closed enforcement per rail.
+- Live read-only probes before live writes.
+- Gmail draft/send pilot dependency and no-send preview evidence.
+- Todoist live write pilot dependency, ledger/idempotency integration,
+  rollback/undo path.
+- Calendar live write pilot dependency, self-only/external-attendee boundaries,
+  rollback path.
+- Scheduler activation dependency, kill switch, unload/stop proof, no background
+  default.
+- OpenClaw runtime smoke-test handoff packet and stop conditions.
+- PersonalOS Markdown approved-write dependency, backup/restore or
+  patch/preview flow.
+
+## 27. Current Roadmap
+
+### Completed Through Current Main Baseline
+
+Phases 1 through 13E-C are complete on the last validated main baseline listed
+in Section 6.
+
+### Current Recommended Phase
+
+Phase 13E-D - Synthetic End-to-End No-Send Demo.
+
+Purpose:
+
+- prove the existing inert workflow end to end
+- use fixture data only
+- use temp SQLite only
+- emit JSON-first evidence
+- prove no live rails, credentials, production DB, scheduler activation,
+  external writes, or OpenClaw calls
+
+### Not Yet Started
+
+Phase 14 - live rail design and pilot activation.
+
+Phase 14 requires separate design and explicit Chris approval.
+
+## 28. V1 Acceptance Criteria
+
+V1 is acceptable only when:
+
+- Dashboard works locally from phone/laptop.
+- SQLite state store exists and is backed up.
+- Routine editor can add/edit/disable routines.
+- Today View shows routines, priorities, tasks, calendar blocks, and status.
+- ChatGPT synthesis import can create structured state.
+- Daily routine rules are configurable.
+- Todoist auto-write works for approved low-risk routine tasks after live
+  approval.
+- Calendar auto-write works for approved self-only blocks after live approval.
+- 8 / 12 / 4 / 8 briefings generate from current state.
+- Completed Todoist tasks are removed from later briefings once live sync exists.
+- High-value review/follow-up tasks can be created after permission approval.
+- High-stakes execution actions remain gated.
+- Composer model uses narrow state packets only.
+- OpenClaw executes validated outputs only after runtime approval.
+- Logs/completion reports exist for runtime operations.
+- No live production mutation occurs without configured permission.
+- Codex/Fable development workflow is repo-based and tested.
+
+## 29. Immediate Next Step
+
+The immediate repo-level next step is Phase 13E-D, but only after explicit
+implementation approval.
+
+Phase 13E-D should add a deterministic, local-only, fixture-driven no-send demo
+workflow that uses a temporary SQLite DB, existing fake/simulated modules, no
+credentials, no production DB, no scheduler activation, no external writes, no
+live model/API calls, and no OpenClaw call.
+
+Codex/Fable should update repo docs so Phase 13E-C remains marked complete and
+Phase 13E-D remains defined as current/next. Phase 14 must not begin from this
+docs/control-plane update.
+
+## Appendix A - Fresh Chat Carryover Prompt
+
+We are continuing the Personal OS repo buildout in a fresh ChatGPT thread.
+
+Do not start from scratch.
+
+Current project:
+
+- Product: Personal OS
+- Repo: `/Users/coldstake/dev/personal-os`
+- GitHub repo: `cdsouza235/personal-os`
+- Runtime host: Mac Mini
+- Structured state: SQLite
+- Durable notes later: PersonalOS / Obsidian / Markdown
+- Execution rails later: Todoist, Google Calendar, Gmail
+
+Role boundary:
+
+- ChatGPT = strategy, synthesis, PRD, architecture, audit, review, and
+  instruction-writing.
+- Codex/Fable = repo implementation, tests, docs, migrations, PRs, merges, and
+  post-merge validation.
+- OpenClaw = approved runtime/operator only after repo is ready and Chris
+  approves.
+- Chris = owner/final approver.
+
+Important correction:
+
+Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
+handle repo implementation, PR review, merge, or validation unless explicitly
+chosen later for a narrow runtime/operator smoke test.
+
+Last validated main baseline before Phase 13E-D-0 control-plane docs:
+
+`66a7652bec4d26a86787729f47493bb194ad5f42`
+
+Current validated state:
+
+- Full suite: 453 tests OK
+- ResourceWarning-sensitive suite: 453 tests OK
+- Hygiene clean
+- No repo-local var/
+- No SQLite/DB artifacts outside .git
+- Readiness reports not_ready
+- inert_report_only true
+- live_rails_activated false
+- All live rails disabled
+- No credentials loaded/read
+- No production DB active
+- No scheduler active
+- No LaunchAgent/crontab/daemon/background loop active
+- No external writes
+- No OpenClaw call
+- Dashboard has no activation controls
+- Dashboard has no credential/OAuth UI
+
+Recommended next phase:
+
+Phase 13E-D - synthetic end-to-end no-send demo.
+
+Do not start Phase 14 yet.

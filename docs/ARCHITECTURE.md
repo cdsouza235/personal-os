@@ -1,965 +1,107 @@
-# Personal OS Architecture Brief v0.1
+# Personal OS Architecture Brief v0.2
+
+Last updated: 2026-06-18
 
 ## System Definition
 
-Personal OS is a modular, local-first productivity, routine, priority, and execution operating system. It coordinates strategy, state, durable notes, local automation, external execution rails, and reporting through clear operator boundaries.
+Personal OS is a local-first system that separates strategy, repository
+implementation, structured runtime state, durable notes, local no-send
+surfaces, and future gated execution rails.
 
-## Runtime Topology
+The canonical current-state snapshot is [../STATUS.md](../STATUS.md).
 
-- GitHub private repo: code source of truth.
-- Mac Mini: runtime and deployment host, always-on scheduler host, local repo clone, SQLite state host, and local PersonalOS file host.
-- OpenClaw: local Personal Assistant and runtime operator on the Mac Mini.
+## Control Plane
+
+- Chris: owner and final approver.
+- ChatGPT: synthesis/control, strategy, PRD, architecture, and audit.
+- Codex/Fable: repo implementation, tests, docs, migrations, and PRs.
+- OpenClaw: future approved runtime/operator only.
+
+ChatGPT may synthesize and audit. Codex/Fable may implement inside the repo.
+OpenClaw may operate approved runtime workflows later. These roles should not
+be collapsed without explicit Chris approval.
+
+## Source And State Topology
+
+- GitHub repo: code, tests, migrations, and Markdown docs source of truth.
 - SQLite: structured runtime state.
-- Markdown, Obsidian, and PersonalOS: durable notes, logs, protocols, and reviews.
-- Todoist, Calendar, and Gmail: execution rails touched only by validated runtime modules.
-- Codex: primary coding agent and development layer for repository code.
-- Fable: optional or future alternate coding agent for long-horizon development work.
-- ChatGPT: synthesis, analysis, architecture, PRD, and audit layer.
-
-## Role Boundaries
-
-### Chris
-
-Chris owns the system, approves high-stakes actions, and supplies judgment and priorities.
-
-### ChatGPT
-
-ChatGPT is the thought partner, synthesis layer, analysis layer, PRD writer, architect, and auditor. It produces structured thinking and review artifacts, not live mutations.
-
-### Codex
-
-Codex is the primary coding agent and software development layer. It edits repository code, tests, and documentation after phase gates. It does not operate production workflows.
-
-### Fable
-
-Fable is an optional or future alternate coding agent for long-horizon software development work. It has the same production boundary as Codex unless a future policy says otherwise.
-
-### OpenClaw
-
-OpenClaw is the local runtime operator. It runs approved local workflows, writes approved runtime outputs, and interacts with execution rails through validated modules.
-
-OpenClaw may operate live workflows only after a narrow handoff satisfies the
-[Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md). OpenClaw is not a
-repo implementation, PR review, merge, or test-validation agent unless Chris
-explicitly selects it for a narrow runtime/operator smoke test.
-
-### Mac Mini
-
-The Mac Mini hosts the runtime, scheduler, local clone, SQLite state, OpenClaw runtime, and local PersonalOS files.
-
-## State Architecture
-
-Personal OS uses a split state model:
-
-- Code state lives in the private GitHub repo.
-- Structured runtime state lives in SQLite on the Mac Mini.
-- Durable narrative state lives in Markdown, Obsidian, and PersonalOS.
-- Execution state lives in Todoist, Calendar, and Gmail, but those systems are not treated as the source of truth for thinking.
-
-## SQLite Entities
-
-The initial runtime state model should document and eventually implement these entities:
-
-- routines
-- routine_completions
-- routine_rotations
-- missed_routine_events
-- priorities
-- projects
-- followups
-- todoist_tasks
-- calendar_blocks
-- daily_plans
-- briefing_windows
-- briefing_outputs
-- composer_packets
-- composer_outputs
-- model_runs
-- synthesis_import_previews
-- synthesis_apply_runs
-- synthesis_apply_items
-- permissions
-- system_events
-- report_jobs
-- chart_pack_reviews
-- fitness_integration_state
-- fitness_validation_runs
-- fitness_file_contracts
-
-## SQLite Environment Separation
-
-- Production SQLite state lives on the Mac Mini runtime path.
-- Development and test SQLite files live inside repo-local temporary or test paths.
-- Codex may create and edit dev/test databases in the repository.
-- Codex may not mutate production SQLite state without explicit approval.
-- Production migrations require a backup before migration.
-- Production backups should include periodic JSON and SQLite snapshots.
-- Production DB activation is governed by
-  [Production DB Policy](PRODUCTION_DB_POLICY.md).
-
-## Pre-Live Readiness Architecture
-
-Phase 13F-A adds a policy gate before any Phase 14/live-rail work. Phase 13F-B
-adds an inert repo-level readiness model and evaluator for that policy. Phase
-13F-C exposes the inert readiness report through local read-only status
-surfaces. Phase 13F-D defines the future activation checklist and first-live
-pilot protocol that must be completed before any live pilot. The gate is
-defined by:
-
-- [Pre-Live Readiness Gate](PRE_LIVE_READINESS.md)
-- [Live Rail Activation Policy](LIVE_RAIL_ACTIVATION_POLICY.md)
-- [Activation Checklist](ACTIVATION_CHECKLIST.md)
-- [First-Live Pilot Protocol](FIRST_LIVE_PILOT_PROTOCOL.md)
-- [Operator Handoff Contract](OPERATOR_HANDOFF_CONTRACT.md)
-- [Production DB Policy](PRODUCTION_DB_POLICY.md)
-
-These documents define activation prerequisites for Gmail, Todoist, Google
-Calendar, PersonalOS Markdown, OpenClaw runtime workflows, schedulers,
-LaunchAgents/background loops, live model/API calls, and production SQLite.
-The Phase 13F-B evaluator reports gate and rail status only. It does not
-implement live clients, load credentials, mutate runtime state, call OpenClaw,
-or activate production runtime behavior.
-
-The Phase 13F-C status surface is informational only. `personalos readiness
-status`, existing status summaries, Today View, and static dashboard render
-helpers may show readiness status, gate reasons, and disabled rail status, but
-they must not add apply/send/task/calendar routes or runtime activation
-controls.
-
-The Phase 13F-D checklist and pilot protocol are also informational policy
-artifacts until a later explicit approval completes them for one selected
-pilot. They do not create credentials, production SQLite paths, scheduler
-activation, OpenClaw runtime work, or live rail clients.
-
-## Dashboard Architecture
-
-The V1 dashboard is a local-network-only web surface. It should have no public internet exposure and no login or password requirement for V1 by choice. It should work well on iPhone and in Windows or Mac browsers.
-
-Threat model:
-
-- Risks include accidental local network access, stale browser sessions, and exposure from trusted devices on the network.
-- Future security options may include a password, device allowlist, Tailscale/VPN access, or local-only binding.
-
-Sections:
-
-- Today View
-- Routine Editor
-- Priority Editor
-- Todoist/Calendar Preview
-- System Status/Logs
-- Settings/Permissions
-- Reports/Jobs shell
-
-## Routine Engine
-
-Routines must be data-driven, not hardcoded. The editor must support add, edit, disable, and delete operations.
-
-The Phase 3 routine engine foundation is narrower than the full routine system.
-It provides dev/test-only data access, validation, permission-gated read/write
-helpers, and dry-run-safe completion recording on top of the Phase 2 SQLite
-tables. It does not implement scheduling, recurrence expansion, default routine
-seeding, editor UI, dashboard UI, OpenClaw wiring, or external integrations.
-Routine completions are append-only dev/test records in Phase 3 and do not yet
-enforce idempotency by `routine_id` plus `completed_for_date`. Scheduler and
-idempotency rules are deferred to a future scheduler/runtime phase before any
-automated recurring completion loop is activated.
-
-Cadence rules:
-
-- daily
-- weekdays
-- x_times_per_week
-- weekly
-- every_n_days
-- specific_days
-- rotating_sequence
-- manual_only
-
-Missed behavior options:
-
-- combine_with_next
-- bump_schedule_by_one_day
-- carry_forward_within_week
-- skip_and_continue
-- escalate_to_review
-
-Default routines:
-
-- Cleaning: 1 task/day, Monday-Friday.
-- Reading: 4x/week.
-- Prayer / Meditation: 2x/week.
-- Grease-the-Groove: rotating exercises as needed, target 45 reps per exercise per week.
-- Fitness / Strength: separate from Grease-the-Groove and integrated later from the existing tracker.
-- Shutdown / Review: daily evening.
-
-## Priority Engine
-
-The Phase 4 priority engine foundation is narrower than the full priority
-system. It provides dev/test-only priority registry access, validation,
-permission-gated read/write helpers, dry-run-safe create/update/status
-transition flows, and deterministic read models on top of the Phase 2 SQLite
-`priorities` table.
-
-Priority statuses are deterministic registry states:
-
-- active
-- paused
-- completed
-- archived
-
-Phase 4 does not infer priorities from raw notes, rank priorities
-automatically, score tasks, generate Todoist tasks, create Calendar blocks,
-write Gmail briefs, call OpenClaw, produce composer packets, activate
-schedulers, add dashboard UI, or touch production state. Scheduler behavior,
-idempotency/send ledger rules, Todoist/Calendar modules, composer integration,
-and dashboard UI remain later-phase work.
-
-## Todoist and Calendar Module Foundation
-
-The Phase 5 Todoist and Calendar foundation is narrower than live execution.
-It adds dev/test-only module objects, validation, persistence, permission
-gates, preview flows, fake adapters, simulated write reports, and
-module-level dedupe.
-
-Todoist is the action rail, not the brain. Phase 5 stores normalized Todoist
-task proposals in `todoist_tasks` with required task/source/project fields,
-labels serialized as JSON, Todoist-like priorities 1 through 4, risk level,
-approval mode, dedupe key, status, and a nullable fake/future external task
-ID.
-
-Calendar is for real time-bound blocks and commitments. Phase 5 stores
-normalized Calendar block proposals in `calendar_blocks` with required
-title/source/window/calendar fields, timezone-aware start and end times,
-duration consistency checks, risk level, approval mode, dedupe key, status,
-and a nullable fake/future external event ID.
-
-Risk levels are:
-
-- low: routine/admin/self-only tasks or blocks.
-- medium: self-only but sensitive, ambiguous, unusually time-consuming, or tied
-  to a larger project.
-- high: legal, tax, portfolio/crypto/investment execution, health/medical
-  decisions, relationship messages, messages to other people, external
-  meetings, family-sensitive events, or large financial commitments.
-
-Approval modes are:
-
-- auto_allowed: valid only with low risk.
-- approval_required: default for medium and high risk.
-- manual_only: storable and previewable, but not routable to a write client.
-
-Phase 5 permission keys are:
-
-- `todoist_module_dev_test_read`
-- `todoist_module_dev_test_write`
-- `todoist_module_dev_test_simulated_write`
-- `calendar_module_dev_test_read`
-- `calendar_module_dev_test_write`
-- `calendar_module_dev_test_simulated_write`
-
-These keys fail closed by default. No live-write permission keys exist in
-Phase 5.
-
-Module-level dedupe is scoped to `todoist_tasks` and `calendar_blocks`.
-`dedupe_key` is required and unique within each table. When a caller omits a
-dedupe key, the modules generate one deterministically from stable normalized
-fields such as module/object type, source type, source ID, title, due date, or
-start time. Duplicate creates return the existing object explicitly and do not
-silently insert another row.
-
-Fake Todoist and Calendar clients are recording adapters for tests and
-simulated write flows only. They never read credentials, touch the network, or
-mutate external systems. Their fake external IDs are deterministic and derived
-from dedupe keys.
-
-Phase 5 does not add live Todoist writes, live Calendar writes, credentials,
-OAuth, scheduler activation, production SQLite access, Gmail integration,
-composer/model integration, dashboard UI, OpenClaw wiring, LaunchAgents,
-public internet exposure, external-user collaboration, autonomous
-legal/tax/portfolio execution, or a broader scheduler idempotency/send ledger.
-Any post-merge live smoke test is a separate OpenClaw-approved operation, not
-part of this PR.
-
-## Briefing Architecture
-
-Timezone: America/Chicago.
-
-America/Chicago is Chris's operating timezone for briefings and routines. The Mac Mini system timezone may differ. Scheduler code must explicitly use the configured operating timezone and must not assume the host timezone.
-
-- 8am Morning Brief.
-- 12pm Midday Reset.
-- 4pm Afternoon Checkpoint.
-- 8pm Evening Shutdown.
-
-The daily plan is generated once in the morning. Each email is generated just-in-time before its briefing window. Todoist and Calendar baseline writes happen in the morning. Later windows use updated state, including completed tasks and schedule changes.
-
-## Composer Model Architecture
-
-Phase 6 creates the Composer model integration foundation without live model
-integration. The composer receives only a dedicated Composer Packet built from
-narrow dev/test summaries. It must not receive broad filesystem access, raw
-notes, the full PersonalOS vault, protected runtime paths, credentials,
-legal/tax source documents, Gmail bodies, live Todoist API data, live Calendar
-API data, or unrestricted files.
-
-Composer Packet `composer_packet.v1` contains:
-
-- `packet_id`
-- `packet_type`: `daily_brief`, `window_brief`, or `ad_hoc_preview`
-- `briefing_window`: `morning`, `midday`, `afternoon`, `evening`, or `none`
-- `source_date`
-- `timezone`: `America/Chicago`
-- `generated_at`
-- `inputs`
-- `omissions`
-- `warnings`
-
-Allowed `inputs` sections are routine state, priority summaries, selected
-follow-up summaries, Todoist task summaries, Calendar block summaries,
-Calendar availability summary, today's schedule summary, WSP/routine rules,
-prior briefing summaries, and completion status.
-
-Composer Output `composer_output.v1` must include structured JSON plus
-non-empty readable text. Required output sections are:
-
-- `email_briefs`
-- `todoist_tasks`
-- `calendar_blocks`
-- `followups`
-- `warnings`
-
-No prose-only output may be used for execution. Output validation rejects
-missing required sections, missing readable text, malformed Todoist or Calendar
-candidates, medium/high-risk `auto_allowed` candidates, and forbidden
-fields/claims.
-
-Phase 6 routes Todoist and Calendar candidates through the Phase 5 preview
-validators only. Candidate routing produces a structured report with
-`accepted_candidates`, `rejected_candidates`, `blocked_candidates`, `warnings`,
-and `no_external_writes: true`. Accepted candidates are not executed.
-
-The only model adapter in Phase 6 is `FakeComposerAdapter`
-(`adapter_name = fake_composer_adapter`, `model_name = fake-composer-v1`).
-It is deterministic, dry-run only, and records fake model-run metadata in
-`model_runs`. It never touches network, credentials, live model APIs, Todoist,
-Calendar, Gmail, OpenClaw, LaunchAgents, production SQLite, or production
-state.
-
-Phase 6 permission keys are:
-
-- `composer_module_dev_test_read`
-- `composer_module_dev_test_write`
-- `composer_module_dev_test_run`
-
-These keys fail closed by default and allow dev/test work only when explicitly
-set to `auto_write`.
-
-## Synthesis Import Architecture
-
-Phase 11A adds a preview-only intake layer for structured ChatGPT synthesis.
-It is for material that has already been synthesized by ChatGPT or manually
-structured by Chris. It is not raw journal ingestion, raw note parsing, or
-automatic task creation.
-
-Accepted input formats are canonical JSON, Markdown containing one fenced JSON
-block, and a small structured Markdown heading/bullet subset. Unsupported
-prose is rejected with a validation error that asks for structured synthesis.
-Accepted source types are `chatgpt_synthesis`, `manual_structured_import`, and
-`fake_fixture`; raw notes, raw journals, full vault dumps, legal/tax source
-documents, credential dumps, and unrestricted file input are rejected.
-
-Canonical imports use schema `synthesis_import.v1`:
-
-- `schema_version`
-- `source_type`
-- `source_timestamp`
-- `source_reference`
-- `summary`
-- `candidates`
-- `warnings`
-
-Candidate sections are priorities, projects, follow-ups, routine changes,
-Todoist tasks, Calendar blocks, clarity notes, and review questions. Priority,
-follow-up, routine-change, and clarity-note candidates are preview objects
-only. Todoist and Calendar candidates route through the existing Phase 5
-preview validators, which validate shape and risk/approval fields without
-creating rows or calling adapters.
-
-Preview reports include `preview_id`, source/input metadata, candidate counts,
-accepted/rejected/blocked/review-required/manual-only candidate lists,
-questions for review, warnings, and explicit flags:
-`no_external_writes`, `no_state_mutation`, `no_personalos_writes`,
-`no_todoist_writes`, `no_calendar_writes`, `no_gmail_send`, and
-`no_live_model_call`.
-
-Phase 11A stores optional local preview records in
-`synthesis_import_previews`. It does not add apply/save tables, dashboard edit
-forms, a paste box, live model adapters, PersonalOS Markdown writers,
-Todoist/Calendar/Gmail writers, or production runtime activation.
-
-## Dashboard Synthesis Import Preview
-
-Phase 11B connects the Phase 11A preview engine to the local dashboard. The
-dashboard now includes a `ChatGPT Synthesis Import Preview` section with a
-preview-only safety banner, a structured synthesis textarea, `source_type`,
-optional `source_reference`, optional `source_timestamp`, and one `Preview
-import` button.
-
-The dashboard routes are narrow: `GET /synthesis-import` renders the import
-surface and `POST /synthesis-import/preview` accepts form-encoded structured
-synthesis input. The POST route opens only the validated local/dev SQLite
-database path, calls the existing Phase 11A preview engine, and may persist
-only a `synthesis_import_previews` record. It does not write priorities,
-routines, follow-ups, Todoist tasks, Calendar blocks, PersonalOS Markdown,
-Gmail, or any external system.
-
-Preview submission requires `synthesis_import_dev_test_write` and
-`synthesis_import_dev_test_preview`. Reading prior-preview counts and latest
-preview status in Today View requires `synthesis_import_dev_test_read`. No
-apply, live model, live execution, or external-write permission is introduced.
-
-The rendered result shows `preview_id`, source/input metadata, candidate
-counts, accepted/rejected/blocked/review-required/manual-only candidate lists,
-warnings, questions for review, and the Phase 11A safety flags:
-`no_external_writes`, `no_state_mutation`, `no_personalos_writes`,
-`no_todoist_writes`, `no_calendar_writes`, `no_gmail_send`, and
-`no_live_model_call`. Untrusted content is HTML-escaped and raw input is shown
-only as the bounded Phase 11A `raw_excerpt`.
-
-Phase 11B keeps the dashboard localhost-only by default and rejects public
-bind hosts. It adds no broad editor framework, auth/login, LAN/public bind
-relaxation, scheduler, LaunchAgents, production runtime activation,
-credentials/OAuth, live model/API calls, protected PersonalOS access, or
-`.openclaw` access.
-
-## Operator CLI
-
-Phase 12A adds a local `personalos` CLI for operator-safe no-send workflows.
-The CLI is a thin command layer over existing module APIs rather than a second
-business-logic implementation. Supported commands cover status summaries,
-read-only Today View output, fake/no-send briefing preview, briefing manual
-export, structured synthesis import preview, approved local synthesis apply,
-side-effect/idempotency ledger inspection, simulated scheduler previews, and
-static dashboard HTML render.
-
-All DB-backed CLI commands require an explicit `--db` path to an existing
-safe local/dev SQLite file. File-writing commands require an explicit
-`--output-file`. Synthesis preview input files and all output files reject
-protected PersonalOS paths, protected OpenClaw paths, LaunchAgents paths,
-credential/OAuth-looking paths, production-looking paths, and repo-local
-`var/` paths. `dashboard render` writes static HTML only and does not start a
-server.
-
-The CLI preserves the existing no-send boundaries: briefing preview uses only
-the fake Composer adapter, synthesis preview stores only
-`synthesis_import_previews`, and read/export/render commands do not mutate DB
-state. Phase 12A adds no scheduler, LaunchAgents, live Todoist/Calendar/Gmail
-write path, live model/API client, OpenClaw integration, PersonalOS Markdown
-writer, apply/save import flow, public/LAN dashboard exposure, or production
-runtime activation.
-
-Phase 13E-B adds a report-only workflow catalog through
-`personalos workflows`. The catalog reuses `operator_status.v1` safe local
-actions and blocked actions, maps them to concrete CLI commands, and reports
-that live Gmail, Todoist, Calendar, PersonalOS Markdown, credential loading,
-scheduler activation, production DB activation, OpenClaw runtime calls, and
-live model/API calls remain blocked.
-
-Human-readable CLI completion summaries include workflow name, mode, DB target
-classification, local SQLite read/change flags, external-write status,
-credential status, output target, safe next action, and blocked live actions.
-JSON output preserves existing command fields and adds the same workflow
-context for audit. These summaries are presentation and audit surfaces only;
-they do not authorize live rails or production runtime operation.
-
-Phase 13E-C carries the same `operator_status.v1` posture into the dashboard
-and Today View status surface. The dashboard renders the existing
-`operator_status_summary` as a NOT READY inert/no-send/report-only banner,
-Safe To Do Now actions, Blocked Until Phase 14/Live Approval actions, and
-Inert Evidence values for readiness, live rails, credentials, external writes,
-scheduler, production DB, and OpenClaw. The panels are display-only and do
-not add credential setup, OAuth, live-rail activation, scheduler activation,
-production DB toggles, POST apply routes, or external write controls.
-
-## Side-Effect and Idempotency Ledgers
-
-Phase 12B adds the shared ledger layer required before any future live write
-rail is allowed. The schema contains:
-
-- `external_write_intents`: validated future side-effect candidates, including
-  target system, operation, risk, approval mode, status, idempotency key,
-  dedupe key, payload, validation report, and hard safety flags.
-- `external_write_attempts`: dry-run, simulated, or live-blocked attempt
-  records linked to an intent.
-- `idempotency_records`: durable duplicate guards keyed by deterministic
-  idempotency keys and payload fingerprints.
-
-The ledger sits below future Todoist, Calendar, Gmail, and PersonalOS Markdown
-rails. Those rails may later use it to prove duplicate prevention and
-completion reporting before any controlled live test, but Phase 12B itself
-performs no live write. The only CLI mutation path is
-`personalos side-effects record-dry-run`, which records local SQLite rows from
-an explicit safe JSON input file after dev/test ledger permissions are
-enabled. Operator-facing summary paths are read-only and require
-`side_effect_ledger_dev_test_read`. Today View, status, and the static
-dashboard use an explicit internal no-write summary helper so those read
-models can remain safe without granting operator ledger read permission.
-
-Current idempotency keys are truncated SHA-256 keys suitable for deterministic
-dev/test ledgers, while payload fingerprints store full SHA-256 material.
-Before any external write rail is enabled, the live-rail plan must decide the
-collision posture, including whether to lengthen idempotency keys, add
-secondary uniqueness checks, or persist full digest material for live writes.
-
-Phase 12B completion reports always expose `no_external_writes=true`,
-`no_send_mode=true`, `live_write=false`, and `simulated_or_dry_run=true`.
-The schema also rejects attempts to persist live-write claims. No scheduler,
-LaunchAgents, `.openclaw` integration, production DB activation, live
-model/API call, Gmail send/draft, Todoist write, Calendar write, PersonalOS
-Markdown write, apply/save import flow, or dashboard mutation form is added.
-
-## Approval-Gated Synthesis Apply
-
-Phase 13A bridges structured synthesis import previews to durable internal
-SQLite state. It does not bridge to external execution rails. The apply flow
-loads an existing `synthesis_import_previews` record, verifies an explicit
-approval JSON file for the same `preview_id`, re-runs candidate validation,
-and applies only candidate-by-candidate approved internal targets.
-
-Allowed Phase 13A apply targets are `priorities`, `projects`, and
-`followups`. Applied rows use deterministic IDs derived from the preview ID,
-candidate key, and candidate hash so repeated approvals safely become
-`skipped_duplicate` audit outcomes instead of duplicate internal records.
-Rollback metadata records which internal row was inserted.
-
-Phase 13B keeps those targets and IDs unchanged but changes the write boundary:
-candidate outcomes are planned before mutation where practical, then core row
-inserts, apply run insertion, apply item insertion, and preview apply-status
-updates run inside one explicit SQLite transaction. If any in-transaction write
-fails, SQLite rolls back the whole apply attempt so core state cannot commit
-without the matching apply audit rows.
-
-The audit model contains:
-
-- `synthesis_apply_runs`: one row for each apply attempt, including approval
-  source hash, final status, item counts, safety flags, and completion report.
-- `synthesis_apply_items`: one row for each preview candidate considered by
-  an apply attempt, including candidate key/hash, approval status, apply
-  status, target table/ID when applicable, validation report, rollback
-  metadata, and error message.
-
-Unsupported targets such as routine changes, Todoist tasks, Calendar blocks,
-clarity notes, review questions, Gmail messages, PersonalOS Markdown notes,
-relationship messages, external rail actions, and high-stakes execution
-instructions remain non-executable. They are recorded as skipped,
-unsupported, review-required, blocked, or failed at item level.
-
-The only mutation surface in Phase 13A is the CLI command
-`personalos synthesis apply --db <safe_db> --preview-id <id> --approval-file
-<safe_json>`. The approval file must be an explicit safe input file and must
-not live under protected PersonalOS, `.openclaw`, repo-local `var/`,
-credential/OAuth, or production-looking paths. Today View, status, and the
-static dashboard expose apply history as read-only summaries only; there is no
-dashboard Apply button and no POST apply route.
-
-Phase 13B recovery remains internal-state-only. After rollback, a failed
-recovery audit may be written only if planned core inserts are verified absent.
-Recovery completion reports set `rolled_back=true`,
-`rollback_verified=true`, and `internal_state_mutation=false`; recovery items
-do not claim `apply_status=applied`. Successful applies set
-`internal_state_mutation=true` only when core rows actually changed, while
-duplicate/no-op and blocked reports keep it false.
-
-Synthesis apply completion reports expose `no_external_writes=true`,
-`no_send_mode=true`, `live_write=false`, `no_todoist_writes=true`,
-`no_calendar_writes=true`, `no_gmail_send=true`,
-`no_personalos_writes=true`, and `no_live_model_call=true`. No external write
-intent is created by this flow.
-
-## No-Send Scheduler Runtime Loop Foundation
-
-Phase 13C introduces a scheduler/runtime-loop representation without
-activating a scheduler. `scheduler_jobs` stores configured dev/test scheduler
-job definitions. `scheduler_runs` stores foreground/manual simulated run
-attempts and their completion reports.
-
-Scheduler jobs are internal SQLite records only. `enabled=true` means enabled
-for dev/test simulation, not enabled in launchd, cron, a daemon, OpenClaw, or
-production runtime. No LaunchAgent files are written, no `launchctl` or
-crontab commands are part of the module, and no background process is started.
-
-Allowed simulated job types are `status_summary`, `today_view`,
-`briefing_preview`, `side_effect_summary`, `synthesis_apply_summary`, and
-`dashboard_render_preview`. A `dashboard_render_preview` may write only a
-static HTML file to an explicit safe output path. A `briefing_preview` uses
-the existing fake Composer no-send path and existing briefing permission
-checks.
-
-The scheduler schema constrains every job and run to no-send/no-external-write
-semantics. Run rows store `live_write=0`, `external_mutation=0`,
-`scheduler_activation=0`, and `launch_agent_installed=0`. Completion reports
-also expose `no_send_mode=true`, `no_external_writes=true`,
-`fake_model_only=true`, `scheduler_activation=false`, and
-`launch_agent_installed=false`.
-
-The CLI surface is limited to:
-
-- `personalos scheduler jobs --db <safe_db>`
-- `personalos scheduler preview --db <safe_db> --date YYYY-MM-DD --timezone America/Chicago`
-- `personalos scheduler run --db <safe_db> --job-type <allowed_type>`
-- `personalos scheduler seed-dev --db <safe_db> --profile safe_no_send`
-
-Status, Today View, and dashboard surfaces expose scheduler job/run counts,
-latest simulated run status, warnings, and safety flags as read-only summaries
-only. There is no dashboard Run button, scheduler enable button, mutation
-form, POST scheduler route, LaunchAgent install control, or production
-activation path.
-
-## Phase 13D Checkpoint Hardening
-
-Phase 13D tightens internal contracts without expanding runtime scope.
-Projects now use constrained statuses: `active`, `paused`, `completed`, and
-`archived`. Followups now use constrained statuses: `open`, `proposed`,
-`completed`, `archived`, and `blocked`. The state helpers validate these
-vocabularies, synthesis import rejects invalid project/followup candidates,
-and synthesis apply reruns validation before any internal SQLite mutation.
-
-The runtime bootstrap permission registry is explicit for newer modules,
-including synthesis, side-effect ledgers, and scheduler records. The safe seed
-keeps known permissions disabled by default except the existing safe bootstrap
-read key; write, apply, run, attempt, and simulated-write keys are not
-silently enabled.
-
-Dashboard wording is read-only except explicit local synthesis preview record
-creation. There is still no dashboard Apply button, no broad dashboard editor,
-no live rail, no external write, and no production scheduler/runtime
-activation.
-
-## Validated Runtime Module Definition
-
-A module is validated only after:
-
-- Schema exists.
-- Unit tests exist.
-- Dry-run or no-send mode exists.
-- Dedupe behavior exists where applicable.
-- Permissions behavior is tested.
-- Logging or completion report exists.
-- One controlled live test passes if the module has side effects.
-
-## Model Roles
-
-- operator_model
-- composer_model
-- high_stakes_review_model
-- coding_model
-
-## Permissions Architecture
-
-Permissions must be editable from the dashboard, safety-aware, configurable, logged, and reversible.
-
-Default permissions:
-
-- routine_todoist_tasks: auto_write
-- self_calendar_blocks: auto_write
-- high_value_review_tasks: auto_write
-- high_value_execution_actions: approval_required
-- messages_to_other_people: approval_required
-- external_calendar_events: approval_required
-
-## Integration Boundaries
-
-### Todoist
-
-Todoist is the action rail. Low-risk routine tasks and high-value review/follow-up tasks may auto-write. High-stakes execution actions require approval. Raw emotional notes and vague thoughts do not become Todoist tasks. Completed Todoist tasks should drop out of later briefings.
-
-### Calendar
-
-Calendar scheduling should use preferred windows first. Availability-aware scheduling is later-phase work. Self-only review, deep work, admin, and routine blocks may auto-write after validation. Events involving other people or high-stakes appointments require review.
-
-### Gmail
-
-Gmail is a briefing delivery rail. Gmail state and sending behavior remain protected until validated runtime modules and gates exist.
-
-Gmail phase boundaries:
-
-- Phase 0: no Gmail access.
-- Phase 1: no-send scheduler and email infrastructure.
-- Later: metadata or read-only access only if explicitly approved.
-- Later: draft generation.
-- Later: send-enabled only with ledger, idempotency, and permission gates.
-- Gmail send remains an OpenClaw runtime responsibility, not a Codex development responsibility.
-
-## Reports and Jobs
-
-Reports are coded jobs, not a separate analyst persona. Chris and ChatGPT
-define requirements. Codex builds job definitions, schemas, validation,
-deterministic local runners, tests, and documentation. OpenClaw runs approved
-jobs and stores approved outputs later, but Phase 7 does not add scheduler or
-live runtime wiring.
-
-Phase 7 stores report job definitions in `report_jobs`, local run records in
-`report_runs`, and Weekly Chart Pack reviews in `chart_pack_reviews`. Supported
-job types are weekly chart pack index, TradingView alert digest, macro
-calendar, earnings calendar, priority status report, routine adherence report,
-Todoist completion report, and Calendar utilization report.
-
-Report runs are preview, dry-run, or simulated records only. The deterministic
-fake report runner produces structured local-only output with
-`no_external_writes: true`. It never fetches market data, calls TradingView,
-calls model APIs, writes Todoist, writes Calendar, sends Gmail, touches
-credentials, starts schedulers, loads LaunchAgents, or mutates production
-SQLite.
-
-Phase 7 permission keys are:
-
-- `report_jobs_dev_test_read`
-- `report_jobs_dev_test_write`
-- `report_jobs_dev_test_run`
-- `chart_pack_reviews_dev_test_read`
-- `chart_pack_reviews_dev_test_write`
-
-These keys fail closed by default and allow dev/test work only when explicitly
-set to `auto_write`.
-
-## Weekly Chart Pack Hook
-
-The weekend workflow reminds Chris to produce chart packs. Chris sends chart
-packs and TradingView alerts to ChatGPT. TradingView alerts are manually
-supplied; Phase 7 stores them as validated JSON and does not fetch them live.
-ChatGPT is the interpretation layer for market and thesis synthesis. OpenClaw
-stores approved synthesis and updates weekly chart review notes in a later
-approved runtime workflow. The system tracks week-over-week changes. OpenClaw
-does not independently analyze investments.
-
-The chart pack review schema stores review date, week start/end, source type,
-source ID, title, thesis context, chart pack JSON, TradingView alert digest
-JSON, synthesis markdown, structured summary JSON, status, and timestamps.
-Structured summaries must include market context, BTC context, ETH context,
-miner/HPC context, portfolio watch items, week-over-week changes, follow-up
-candidates, and warnings.
-
-Phase 7 does not add live market data fetching, TradingView API access,
-investment recommendations, portfolio execution, Todoist writes, Calendar
-writes, Gmail send, live model/API calls, credentials, OAuth, scheduler
-activation, LaunchAgents, production SQLite access, dashboard UI, protected
-PersonalOS vault access, or unrestricted filesystem access. Follow-up
-candidates are review/logging candidates only and are not execution tasks.
-
-## Fitness Hook
-
-Phase 8 Fitness Integration Foundation preserves the existing CSV-based local
-fitness tracker and adds a contract/status shell around it. The existing
-CSV-based local fitness tracker is preserved; this repository does not rebuild
-or migrate it in Phase 8.
-
-Fitness/strength is separate from Grease-the-Groove. The local tracker contract
-is library-first and CSV-based, with no Notion dependency. The expected files
-are:
-
-- `workout_sessions.csv`
-- `workout_exercises.csv`
-- `weekly_recovery.csv`
-- `exercise_library.csv`
-
-Phase 8 stores only integration labels, expected filenames, fixture validation
-runs, and file contracts in dev/test SQLite. It uses `personal_os_fitness_csvs`
-as a label, not an absolute live path. Fixture validation checks
-caller-supplied CSV headers only and returns reports with
-`no_external_writes: true` and `no_live_personalos_access: true`.
-
-Phase 8 permission keys are:
-
-- `fitness_integration_dev_test_read`
-- `fitness_integration_dev_test_write`
-- `fitness_integration_dev_test_validate`
-
-These keys fail closed by default and allow dev/test work only when explicitly
-set to `auto_write`.
-
-Phase 8 has no live PersonalOS CSV reads or writes, no Apple Health or wearable
-API integration, no Notion integration, no workout recommendation engine, no
-medical/health advice engine, no Todoist/Calendar/Gmail writes, no live
-model/API calls, no credentials or OAuth, no scheduler or LaunchAgents, no
-production SQLite/runtime state, no dashboard UI yet, no full PersonalOS vault
-access, and no unrestricted filesystem access. V1.5 may later add deeper
-recovery/training context in briefings after separate approval.
-
-## Runtime DB Bootstrap
-
-Phase 9B adds the local/dev-preview runtime SQLite bootstrap bridge needed
-before a dashboard, no-send briefing loop, scheduler, or live integration is
-activated. It is not production activation and not a live runtime launch.
-
-Runtime bootstrap profiles must use an explicit database path, a
-`dev_runtime` or `local_runtime_preview` mode, `no_external_writes: true`, and
-`no_send_mode: true`. The bootstrap layer rejects protected PersonalOS,
-OpenClaw, LaunchAgents, credential/OAuth-looking, and production-looking paths.
-Only explicit temp/dev runtime DB paths are eligible for mutation in this
-phase.
-
-The bootstrap preview is non-mutating. It reports the target DB path, pending
-migrations, possible backup path, seed profile, and safety flags. Bootstrap
-execution creates a timestamped backup before migrating an existing DB, creates
-a new DB only when the target does not exist, applies migrations through the
-existing checksum-tracked migration system, and keeps SQLite foreign keys
-enabled on the bootstrap connection.
-
-Phase 9B stores bootstrap evidence in `runtime_bootstrap_runs` and inert
-briefing schedule definitions in `briefing_windows`. Briefing windows support
-only `no_send` or `manual_export` delivery modes and `draft`, `active`, or
-`disabled` statuses. They are definitions only; no scheduler or briefing loop
-exists yet.
-
-The safe MVP preview seed profile writes only local SQLite state. It disables
-external/live-facing permissions, creates paused disabled preview routines,
-creates a fake paused preview priority, and creates no-send draft briefing
-windows for morning, midday, afternoon, and evening.
-
-Phase 9B permission keys are:
-
-- `runtime_bootstrap_dev_test_read`
-- `runtime_bootstrap_dev_test_write`
-- `runtime_bootstrap_dev_test_run`
-
-These keys fail closed by default and allow dev/test work only when explicitly
-set to `auto_write`. No production runtime permission or live external write
-permission exists in Phase 9B.
-
-## Local Dashboard Today View
-
-Phase 10A local dashboard Today View foundation adds the first visible local
-dashboard surface on top of the existing runtime state architecture. It is a
-read-only local dashboard shell, not a production runtime launch.
-
-The Today View read model accepts an existing SQLite connection plus explicit
-source date and timezone parameters. It reads existing state only and returns
-routine summaries, priority summaries, follow-up summaries, Todoist candidate
-counts, Calendar block counts, briefing window definitions, permission safety
-state, system/runtime status, warnings, and `no_external_writes: true`.
-
-The dashboard shell is standard-library only. It can render `Personal OS Today
-View` HTML from a supplied connection or read-only SQLite DB path, and it can
-serve read-only HTML/JSON routes when explicitly started. It binds to
-localhost-only by default and rejects public bind hosts such as `0.0.0.0`.
-Dashboard DB paths must be explicit temp or repo-local dev SQLite paths, and
-protected, credential/OAuth-looking, and production-looking paths are rejected.
-
-The Today View summary includes `operator_status_summary`, and the dashboard
-HTML renders that existing model instead of creating a second dashboard status
-vocabulary. The human surface shows Personal OS as NOT READY, mode as inert /
-no-send / report-only, live rails disabled, scheduler inactive, production DB
-not active, credentials not loaded, external writes as none, safe local
-actions, blocked live actions, and inert evidence. The JSON output keeps these
-fields under `operator_status_summary` for ChatGPT audit.
-
-Phase 10A adds no new permission keys and no mutation routes. It does not add
-live Todoist writes, live Calendar writes, Gmail send, live model/API calls,
-Notion, Apple Health, TradingView/API calls, credentials/OAuth,
-scheduler/LaunchAgents, public internet exposure, login/auth, task/calendar
-mutation from dashboard, routine editor, priority editor, synthesis import,
-no-send daily briefing generation loop, production SQLite/runtime state
-mutation, protected PersonalOS or OpenClaw access, or production runtime
-activation.
-
-## No-Send Daily Briefing Loop
-
-Phase 10B no-send daily briefing loop foundation adds the first local/manual
-preview loop on top of runtime bootstrap, inert briefing windows, Composer
-packets/outputs, and Today View. It is not a scheduler and not production
-runtime activation.
-
-The briefing loop stores local daily plan state in `daily_plans` and local
-preview output state in `briefing_outputs`. A daily plan contains the source
-date, timezone, Today View summary, active/draft briefing windows, routine
-summary, priority summary, follow-up summary, warnings,
-`no_external_writes: true`, and `no_send_mode: true`.
-
-For a selected `morning`, `midday`, `afternoon`, or `evening` window, Phase
-10B builds a Composer Packet from existing state and runs the fake Composer
-path only. The resulting Composer Output is validated through the existing
-Composer output rules and stored locally. The briefing output then stores
-readable text, output JSON, manual export only markdown, and a completion
-report with explicit no-send/no-external-write flags.
-
-Phase 10B permission keys are:
-
-- `briefing_loop_dev_test_read`
-- `briefing_loop_dev_test_write`
-- `briefing_loop_dev_test_run`
-
-Read/list/count helpers require the read key. Generating and storing a no-send
-preview requires the write and run keys. Permissions fail closed when missing,
-disabled, invalid, or approval-only. No live/send permission is introduced.
-
-Phase 10B adds no Gmail sending, no Gmail drafts, no live Todoist writes, no
-live Calendar writes, no Todoist/Calendar writes, no live model calls, no
-OpenAI/OpenRouter/Anthropic calls, no credentials or OAuth, no scheduler or
-LaunchAgents, no public internet exposure, no dashboard mutation, no routine
-or priority editors, no synthesis import, no real model routing, no production
-SQLite/runtime state mutation, no protected PersonalOS or OpenClaw access, and
-no external writes of any kind.
-
-## Dashboard Briefing Visibility
-
-Phase 10C dashboard briefing integration connects existing Phase 10B no-send
-briefing outputs to the read-only Today View and local dashboard shell. The
-Today View read model now exposes a `briefing_output_summary` derived from the
-local `daily_plans` and `briefing_outputs` tables for the selected source date
-and timezone.
-
-The dashboard Briefing Outputs section shows the latest briefing
-window/name/status, delivery mode, created timestamp, warning and failed counts,
-the latest manual export preview, and completion report safety flags. The same
-summary appears in the existing `/today.json` read-only render path. The
-manual export preview is read-only and does not create a send, draft, or
-generation workflow.
-
-Phase 10C adds no generation button, no scheduler, no Gmail/model/Todoist/Calendar
-writes, no Gmail drafts, no live model/API calls, no credentials or OAuth, no
-LaunchAgents, no production SQLite/runtime state mutation, no protected
-PersonalOS or OpenClaw access, no public internet exposure, no dashboard
-mutation, no routine or priority editors, no synthesis import, and no external
-writes of any kind.
-
-Phase 10B manual exports are local fake/no-send content. Future real-content
-redaction or review may be needed before broader network exposure or any
-non-local dashboard access is considered.
-
-Likely next steps after Phase 10C are ChatGPT synthesis import preview or
-controlled manual live rail testing after ledgers and separate approval.
-
-## Phase 0 Inventory Charter
-
-Phase 0 requires explicit approval before starting. It is read-only. Phase 0 may inspect specified live paths only after explicit approval for that inventory scope.
-
-Proposed read-only paths may include:
-
-- `/Users/coldstake/PersonalOS`
-- `/Users/coldstake/.openclaw`
-- `/Users/coldstake/Library/LaunchAgents`
-- `/Users/coldstake/dev/personal-os`
-
-Forbidden actions:
-
-- Sending email.
-- Executing `gog gmail send`.
-- Mutating Todoist.
-- Mutating Calendar.
-- Loading or unloading LaunchAgents.
-- Modifying production ledgers.
-- Modifying production SQLite state.
-- Reading or printing credentials.
-
-Required Phase 0 outputs:
-
-- Current file/module inventory.
-- Inventory report.
-- Protected path map.
-- Boundary map.
-- Current runtime architecture map.
-- Config, ledger, and LaunchAgent inventory.
-- Risk register.
-- Migration recommendations.
-- Recommended Phase 1 implementation plan.
-- Open questions.
+- Dashboard/CLI: local no-send and inert status/report surfaces.
+- PersonalOS/Obsidian/Markdown: durable notes later, behind explicit gates.
+- Todoist, Google Calendar, Gmail: gated execution rails later.
+- OpenClaw: approved runtime/operator layer later.
+
+## Repo-Local Surfaces
+
+Current local surfaces may report state, render previews, run deterministic
+fake/no-send flows, and write only approved dev/test SQLite or explicit safe
+output files. They must keep completion evidence visible:
+
+- readiness status
+- inert/report-only mode
+- disabled live rails
+- credential state
+- production DB state
+- scheduler state
+- OpenClaw call state
+- external-write state
+
+Dashboard and CLI surfaces must not add activation controls, credential setup,
+OAuth setup, live send/write controls, production DB activation, scheduler
+activation, LaunchAgent/crontab/daemon setup, or OpenClaw calls.
+
+## Current Safety Posture
+
+The repo remains inert and no-send:
+
+- `readiness.status=not_ready`
+- `inert_report_only=true`
+- `live_rails_activated=false`
+- credentials not loaded/read
+- production DB inactive
+- scheduler inactive
+- OpenClaw uncalled
+- external services not contacted
+- external mutation false
+
+Any change to this posture must update [../STATUS.md](../STATUS.md) and pass
+the relevant readiness and activation policy gates.
+
+## Gated Rails
+
+The following rails are future-only until explicit design and approval:
+
+- Gmail send/draft/read behavior.
+- Todoist live writes.
+- Google Calendar live writes.
+- PersonalOS Markdown writes.
+- Live model/API calls.
+- Production SQLite activation.
+- Scheduler, LaunchAgent, crontab, daemon, or background-loop activation.
+- OpenClaw runtime workflows.
+
+Activation policies live in:
+
+- [PRE_LIVE_READINESS.md](PRE_LIVE_READINESS.md)
+- [LIVE_RAIL_ACTIVATION_POLICY.md](LIVE_RAIL_ACTIVATION_POLICY.md)
+- [ACTIVATION_CHECKLIST.md](ACTIVATION_CHECKLIST.md)
+- [FIRST_LIVE_PILOT_PROTOCOL.md](FIRST_LIVE_PILOT_PROTOCOL.md)
+- [OPERATOR_HANDOFF_CONTRACT.md](OPERATOR_HANDOFF_CONTRACT.md)
+- [PRODUCTION_DB_POLICY.md](PRODUCTION_DB_POLICY.md)
+
+These docs define gates only; they do not activate rails.
+
+## State Separation
+
+Development and tests use explicit safe DB paths and local fixtures. Production
+SQLite paths, production ledgers, credentials, protected PersonalOS paths,
+OpenClaw runtime paths, LaunchAgents, crontab, and other production runtime
+state are outside Codex/Fable scope unless Chris explicitly approves a narrow
+operation.
+
+## Phase 13E-D Architecture Target
+
+Phase 13E-D is planned as a synthetic end-to-end no-send demo over existing
+local surfaces. It should produce a stable evidence bundle from synthetic
+inputs and explicit safe output paths. It must not start Phase 14, activate
+live rails, touch protected paths, load credentials, activate production DB,
+activate schedulers, call OpenClaw, or perform external writes.

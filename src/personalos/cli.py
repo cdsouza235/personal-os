@@ -142,6 +142,17 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "local_effect": "read local scheduler job records only; no scheduler activation",
         "output": "stdout report with simulated job counts",
     },
+    {
+        "name": "synthetic no-send end-to-end demo",
+        "safe_local_action": "Generate Phase 13E-D synthetic no-send evidence bundle",
+        "command": "personalos demo no-send-e2e --output-dir <safe_output_dir> --json",
+        "mode": "inert / no-send / synthetic fixture demo",
+        "local_effect": (
+            "writes fixture artifacts and one demo SQLite DB only under the explicit "
+            "safe output directory"
+        ),
+        "output": "stdout completion JSON plus evidence bundle files",
+    },
 )
 
 
@@ -196,6 +207,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_json_arg(workflows_parser)
     workflows_parser.set_defaults(func=_command_workflows)
+
+    demo_parser = subparsers.add_parser(
+        "demo",
+        help="Synthetic local no-send demo workflows.",
+    )
+    demo_subparsers = demo_parser.add_subparsers(dest="demo_command", required=True)
+    demo_no_send_parser = demo_subparsers.add_parser(
+        "no-send-e2e",
+        help="Run the Phase 13E-D synthetic end-to-end no-send evidence demo.",
+        description=(
+            "Run the deterministic Phase 13E-D synthetic end-to-end no-send demo. "
+            "Artifacts and the demo SQLite DB are written only under --output-dir. "
+            "Live rails, credentials, production DB, schedulers, OpenClaw, and "
+            "external writes remain blocked."
+        ),
+    )
+    demo_no_send_parser.add_argument("--output-dir", required=True)
+    _add_json_arg(demo_no_send_parser)
+    demo_no_send_parser.set_defaults(func=_command_demo_no_send_e2e)
 
     status_parser = subparsers.add_parser(
         "status",
@@ -467,6 +497,14 @@ def _command_workflows(args: argparse.Namespace) -> int:
             "Use --json when pasting output back to ChatGPT for audit.",
         ),
     )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_demo_no_send_e2e(args: argparse.Namespace) -> int:
+    from personalos.demo.no_send_e2e import run_no_send_e2e_demo
+
+    report = run_no_send_e2e_demo(args.output_dir)
     _emit_report(report, json_output=args.json)
     return 0
 

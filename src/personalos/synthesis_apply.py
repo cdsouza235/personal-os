@@ -133,7 +133,9 @@ def apply_synthesis_import_preview(
     approval: Mapping[str, Any],
     approval_source_type: str = "json_object",
     approval_source_hash: str | None = None,
+    apply_run_id: str | None = None,
     created_at: str | None = None,
+    completed_at: str | None = None,
 ) -> dict[str, Any]:
     preview_id = rails.validate_required_text("preview_id", preview_id)
     approval_source_type = _validate_choice(
@@ -169,8 +171,17 @@ def apply_synthesis_import_preview(
     if not isinstance(candidates, Mapping):
         raise SynthesisApplyValidationError("Stored synthesis import preview has no candidates.")
 
-    apply_run_id = f"synthesis-apply-run-{uuid4()}"
+    apply_run_id = (
+        rails.validate_required_text("apply_run_id", apply_run_id)
+        if apply_run_id is not None
+        else f"synthesis-apply-run-{uuid4()}"
+    )
     created = _validate_iso_datetime("created_at", created_at or _utc_now())
+    completed = (
+        _validate_iso_datetime("completed_at", completed_at)
+        if completed_at is not None
+        else None
+    )
     approved_refs = normalized_approval["approved_refs"]
     rejected_refs = normalized_approval["rejected_refs"]
     candidate_entries = _iter_preview_candidates(candidates)
@@ -219,6 +230,7 @@ def apply_synthesis_import_preview(
             approved_candidate_count=len(approved_refs),
             plan_items=plan_items,
             created_at=created,
+            completed_at=completed,
         )
     except (sqlite3.Error, RuntimeError, ValueError, TypeError) as error:
         transaction_result = _record_rolled_back_apply_failure(
@@ -230,6 +242,7 @@ def apply_synthesis_import_preview(
             approved_candidate_count=len(approved_refs),
             plan_items=plan_items,
             created_at=created,
+            completed_at=completed,
             error=error,
         )
 
@@ -501,6 +514,23 @@ def stable_candidate_hash(
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
+def _stable_apply_item_id(
+    *,
+    apply_run_id: str,
+    candidate_key: str,
+    candidate_hash: str,
+) -> str:
+    material = _json_dumps(
+        {
+            "apply_run_id": apply_run_id,
+            "candidate_key": candidate_key,
+            "candidate_hash": candidate_hash,
+        }
+    )
+    digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
+    return f"synthesis-apply-item-{digest}"
+
+
 def _plan_candidate_item(
     connection: sqlite3.Connection,
     *,
@@ -516,7 +546,11 @@ def _plan_candidate_item(
     created_at: str,
 ) -> dict[str, Any]:
     base = {
-        "apply_item_id": f"synthesis-apply-item-{uuid4()}",
+        "apply_item_id": _stable_apply_item_id(
+            apply_run_id=apply_run_id,
+            candidate_key=candidate_key,
+            candidate_hash=candidate_hash,
+        ),
         "apply_run_id": apply_run_id,
         "preview_id": preview_id,
         "candidate_type": section,
@@ -774,8 +808,9 @@ def _commit_apply_plan(
     approved_candidate_count: int,
     plan_items: Sequence[_ApplyPlanItem],
     created_at: str,
+    completed_at: str | None = None,
 ) -> dict[str, Any]:
-    completed = _utc_now()
+    completed = completed_at or _utc_now()
     with connection:
         items = [_execute_plan_item(connection, plan_item) for plan_item in plan_items]
         counts = _item_counts(items, approved_candidate_count=approved_candidate_count)
@@ -844,6 +879,7 @@ def _record_rolled_back_apply_failure(
     approved_candidate_count: int,
     plan_items: Sequence[_ApplyPlanItem],
     created_at: str,
+    completed_at: str | None = None,
     error: Exception,
 ) -> dict[str, Any]:
     persisted_after_rollback = _persisted_planned_mutations(connection, plan_items)
@@ -857,7 +893,7 @@ def _record_rolled_back_apply_failure(
             f"visible after rollback: {persisted}"
         ) from error
 
-    completed = _utc_now()
+    completed = completed_at or _utc_now()
     error_message = str(error)
     items = [_rolled_back_plan_item(plan_item.item, error_message) for plan_item in plan_items]
     counts = _item_counts(items, approved_candidate_count=approved_candidate_count)

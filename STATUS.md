@@ -6,10 +6,11 @@ Last updated: 2026-06-18
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #29: `3244d8d91030e48eebb37d6448204f87791b9194`
-- Latest substantive merged PR at that baseline: PR #29, Phase 13E-D-0 control-plane docs
-- Status refresh: this branch refreshes `STATUS.md` after PR #29. It does not
-  predict the future merge commit for this status-only PR.
+- Last validated main baseline after PR #30: `290d1647fa4013b00cb913d5ac3a89261dcae3dc`
+- Latest merged PR at that baseline: PR #30, post-merge STATUS refresh after PR #29
+- Current branch: Phase 13E-D synthetic end-to-end no-send demo implementation
+  candidate. Final Phase 13E-D completion depends on PR merge and post-merge
+  validation.
 - Completed through: Phase 13E-D-0 control-plane docs
 - Current / next phase: Phase 13E-D - synthetic end-to-end no-send demo
 - Phase 14: not started
@@ -52,9 +53,10 @@ activate production runtime state.
 
 ## Allowed Work Now
 
-- STATUS refresh after PR #29.
-- Future Phase 13E-D implementation only after explicit approval.
+- Phase 13E-D synthetic end-to-end no-send demo candidate implementation in
+  this branch.
 - Local tests and hygiene checks.
+- PR creation for review after validation.
 
 ## Blocked Work
 
@@ -72,16 +74,17 @@ activate production runtime state.
 - PR #27: Phase 13E-B CLI no-send workflow polish.
 - PR #28: Phase 13E-C dashboard safe-action/status polish.
 - PR #29: Phase 13E-D-0 control-plane docs.
+- PR #30: post-merge STATUS refresh after PR #29.
 
 ## Known Gaps
 
-- Phase 13E-D synthetic end-to-end no-send demo is not implemented yet.
+- Phase 13E-D synthetic end-to-end no-send demo is implemented in this branch
+  as a candidate only; it is not complete or merged until PR merge and
+  post-merge validation.
 - Phase 14 design has not started.
 - Live rails remain intentionally disabled.
 - `STATUS.md` must continue to be updated at each substantive phase/PR boundary
   after merge validation.
-- Do not create a status-only PR loop after this refresh branch; the next
-  substantive branch should carry the next `STATUS.md` update.
 
 ## Core Docs
 

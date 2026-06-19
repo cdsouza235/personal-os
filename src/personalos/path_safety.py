@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -18,6 +20,33 @@ SENSITIVE_PATH_MARKERS = (
     "o" + "auth",
     "pass" + "word",
     "sec" + "ret",
+)
+DEMO_OUTPUT_DIR_SCHEDULER_MARKERS = frozenset(
+    {
+        "scheduler",
+        "launchagent",
+        "launchagents",
+        "launch_agent",
+        "crontab",
+        "daemon",
+        "background",
+        "background_loop",
+        "background-loop",
+    }
+)
+DEMO_OUTPUT_DIR_CREDENTIAL_MARKERS = frozenset(
+    {
+        "credential",
+        "credentials",
+        "token",
+        "secret",
+        "oauth",
+        "api",
+        "api_key",
+        "apikey",
+        "client_secret",
+        "password",
+    }
 )
 
 
@@ -55,7 +84,10 @@ def reject_protected_path(path: Path, *, path_label: str) -> None:
 
 def reject_sensitive_path(path: Path, *, path_label: str) -> None:
     lowered = str(path).lower()
-    if any(marker in lowered for marker in SENSITIVE_PATH_MARKERS):
+    if any(marker in lowered for marker in SENSITIVE_PATH_MARKERS) or _path_has_marker(
+        path,
+        DEMO_OUTPUT_DIR_CREDENTIAL_MARKERS,
+    ):
         raise ValueError(f"{path_label} looks like a credential or authorization path")
 
 
@@ -111,12 +143,82 @@ def validate_output_file_path(path_value: str | Path, *, path_label: str) -> Pat
     return resolved
 
 
+def validate_demo_output_dir_path(path_value: str | Path, *, path_label: str) -> Path:
+    normalized = normalize_explicit_absolute_path_no_stat(path_value, path_label=path_label)
+    reject_demo_output_dir_lexical(normalized, path_label=path_label)
+    resolved = normalized.resolve(strict=False)
+    reject_demo_output_dir_lexical(resolved, path_label=path_label)
+    if not is_under_temp(resolved):
+        raise ValueError(f"{path_label} must stay under an explicit OS temp directory")
+    if resolved.exists() and not resolved.is_dir():
+        raise ValueError(f"{path_label} must point to a directory, not a file")
+    return resolved
+
+
+def normalize_explicit_absolute_path_no_stat(
+    path_value: str | Path,
+    *,
+    path_label: str,
+) -> Path:
+    path_text = str(path_value).strip()
+    if not path_text:
+        raise ValueError(f"{path_label} must be provided explicitly")
+    expanded = Path(path_text).expanduser()
+    if not expanded.is_absolute():
+        raise ValueError(f"{path_label} must be an explicit absolute path")
+    return Path(os.path.normpath(str(expanded)))
+
+
+def reject_demo_output_dir_lexical(path: Path, *, path_label: str) -> None:
+    home = Path.home()
+    protected_personalos = home / "PersonalOS"
+    protected_openclaw = home / ".openclaw"
+    if _is_same_or_under_path(path, protected_personalos):
+        raise ValueError(f"{path_label} points at a protected PersonalOS path")
+    if _is_same_or_under_path(path, protected_openclaw) or ".openclaw" in path.parts:
+        raise ValueError(f"{path_label} points at a protected OpenClaw path")
+    if _is_same_or_under_path(path, REPO_ROOT):
+        raise ValueError(f"{path_label} must not be inside the repository")
+    if ".git" in path.parts:
+        raise ValueError(f"{path_label} points at a protected Git metadata path")
+    lowered = str(path).lower()
+    if "openclaw" in lowered:
+        raise ValueError(f"{path_label} looks like a protected OpenClaw path")
+    if any(marker in lowered for marker in SENSITIVE_PATH_MARKERS) or _path_has_marker(
+        path,
+        DEMO_OUTPUT_DIR_CREDENTIAL_MARKERS,
+    ):
+        raise ValueError(f"{path_label} looks like a credential or authorization path")
+    if _path_has_marker(path, PRODUCTION_MARKERS):
+        raise ValueError(f"production-looking {path_label} is blocked in Phase 13E-D")
+    if _path_has_marker(path, DEMO_OUTPUT_DIR_SCHEDULER_MARKERS):
+        raise ValueError(
+            f"{path_label} looks like a scheduler, LaunchAgent, crontab, or daemon path"
+        )
+
+
 def is_under_repo(path: Path) -> bool:
     try:
         path.relative_to(REPO_ROOT.resolve())
     except ValueError:
         return False
     return True
+
+
+def _is_same_or_under_path(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+    except ValueError:
+        return False
+    return True
+
+
+def _path_has_marker(path: Path, markers: frozenset[str]) -> bool:
+    for part in path.parts:
+        tokens = {token for token in re.split(r"[^a-z0-9]+", part.lower()) if token}
+        if tokens & markers:
+            return True
+    return False
 
 
 def is_under_repo_var(path: Path) -> bool:

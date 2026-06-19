@@ -82,15 +82,14 @@ They do not authorize live rails, production DB activation, scheduler
 activation, OpenClaw runtime operation, credential loading, or external writes
 by themselves.
 
-## Phase 13E-D Boundary
+## Phase 13E-D / 13G Boundary
 
-Phase 13E-D is the current/next phase: a synthetic end-to-end no-send demo.
-The planning document is
+Phase 13E-D is implemented and post-merge validated. The planning/evidence
+document is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
 
-Phase 13E-D must use synthetic inputs, explicit safe output paths, local
-dev/test state, and no-send evidence. It must not start Phase 14 or activate
-any live rail.
+Phase 13G is a planning/control-plane readiness matrix. It must not start
+Phase 14, authorize a live pilot, or activate any live rail.
 
 ## High-Stakes Domains
 

@@ -8,11 +8,15 @@ only source for current validated state.
 
 ## Current / Next
 
-Phase 13E-D is current/next: synthetic end-to-end no-send demo.
+Phase 13E-D is implemented and post-merge validated. Phase 13G is the current
+planning/control-plane candidate: pre-live activation decision packet and
+rail-by-rail readiness matrix.
 
-The Phase 13E-D planning doc is
+The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
-This phase must remain synthetic, local, no-send, and evidence-oriented.
+The Phase 13G decision packet is
+[PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](PHASE_13G_PRE_LIVE_READINESS_MATRIX.md).
+Phase 13G must remain planning-only and must not activate live rails.
 
 ## Future Blocked Work
 
@@ -53,6 +57,8 @@ readiness reports, or activation checklists.
 - Phase 13E-A: unified operator status report shape.
 - Phase 13E-B: CLI discovery and completion-summary polish.
 - Phase 13E-C: dashboard safe-action/status polish, complete via PR #28.
+- Phase 13E-D: synthetic end-to-end no-send demo, complete via PR #31 with
+  post-merge STATUS refresh via PR #32.
 - Phase 13F-A: pre-live readiness policy docs.
 - Phase 13F-B: inert readiness evaluator.
 - Phase 13F-C: read-only readiness status surfaces.

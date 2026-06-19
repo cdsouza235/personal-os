@@ -89,7 +89,7 @@ protected runtime/personal paths were touched.
 
 ## Phase Boundaries
 
-Phase 13E-D is current/next and remains synthetic, local, no-send, and
-evidence-oriented until Chris approves implementation. Phase 14 is not started.
-Docs, readiness reports, checklists, and pilot protocols do not activate live
-rails by themselves.
+Phase 13E-D is implemented and post-merge validated. Phase 13G is a
+planning/control-plane readiness matrix candidate only. Phase 14 is not
+started. Docs, readiness reports, checklists, pilot protocols, and readiness
+matrices do not activate live rails by themselves.

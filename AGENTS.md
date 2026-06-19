@@ -14,6 +14,23 @@ relevant docs under `docs/`.
 - Codex/Fable: repository implementation, tests, docs, migrations, and PRs.
 - OpenClaw: approved runtime/operator only; not repo implementation.
 
+## Long-Run Work Packets
+
+Long-run Codex/Fable work packets are allowed for repo-local, inert,
+fake/local, docs-only, test-only, read-only, report-only, no-send, preview, or
+dry-run work inside an approved envelope. When long-run mode is authorized,
+Codex/Fable should not stop after every small milestone; it should continue
+until the packet is complete, the PR or PR stack is ready, validation fails in
+a way that needs judgment, or a mandatory stop boundary is reached.
+
+Codex/Fable must stop before live rails, credentials/secrets/OAuth/API
+keys/tokens, production DB paths, protected paths, scheduler/background/
+LaunchAgent/crontab/daemon work, OpenClaw runtime, external runtime writes,
+high-stakes execution, major product decisions, and merge approval.
+
+See [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md)
+and [docs/CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md).
+
 ## Source Of Truth
 
 - GitHub repo: code, tests, migrations, and docs.
@@ -54,6 +71,8 @@ find . -path ./.git -prune -o \( -name "*.sqlite" -o -name "*.sqlite3" -o -name 
 - [docs/PRD.md](docs/PRD.md): product truth.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): system and role topology.
 - [docs/SAFETY_POLICY.md](docs/SAFETY_POLICY.md): safety and activation gates.
+- [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md):
+  long-run Codex/Fable packet rules.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and next phase.
 - [docs/CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md): repo workflow.
 

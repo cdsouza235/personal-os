@@ -32,6 +32,36 @@ Codex/Fable may:
 - create commits and PRs when approved
 - write completion reports
 
+## Long-Run Mode
+
+Long-run mode lets Codex/Fable continue through multiple approved inert
+subphases without stopping after every small milestone. It is appropriate for
+bounded repo-local docs, tests, fake/local behavior, inert evaluators,
+read-only/report-only surfaces, no-send workflows, previews, dry-runs, and
+safe dev/test work.
+
+In long-run mode, Codex/Fable should continue until:
+
+- the packet is complete
+- the PR or approved PR stack is ready
+- a safety boundary is reached
+- a human decision is required
+- validation fails in a way that needs judgment
+- the approved envelope becomes ambiguous
+
+Codex/Fable should keep a running implementation log in status updates, PR
+notes, a packet document, or the final report. The final report must include
+subphases completed, files changed, validation, safety assertions, deviations,
+and the next human decision.
+
+Long-run mode never authorizes live rails, credentials, production DB paths,
+protected path access, scheduler/background activation, OpenClaw runtime,
+external runtime writes, high-stakes execution, major product decisions, or
+merges.
+
+The canonical packet rules live in
+[AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md).
+
 ## Prohibited Work
 
 Codex/Fable must not:

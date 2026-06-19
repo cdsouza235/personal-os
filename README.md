@@ -19,6 +19,8 @@ Markdown documentation. The current project snapshot lives in
   model.
 - [docs/SAFETY_POLICY.md](docs/SAFETY_POLICY.md): safety posture, protected
   systems, readiness gates, and prohibited work.
+- [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md):
+  long-run Codex/Fable work packet protocol.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and current/next phase.
 - [docs/CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md): branch, validation, PR,
   and completion-report workflow.
@@ -55,6 +57,7 @@ for that narrow action.
 Before any live-rail work, the repo must satisfy the applicable readiness and
 activation policies:
 
+- [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md)
 - [docs/PRE_LIVE_READINESS.md](docs/PRE_LIVE_READINESS.md)
 - [docs/LIVE_RAIL_ACTIVATION_POLICY.md](docs/LIVE_RAIL_ACTIVATION_POLICY.md)
 - [docs/ACTIVATION_CHECKLIST.md](docs/ACTIVATION_CHECKLIST.md)

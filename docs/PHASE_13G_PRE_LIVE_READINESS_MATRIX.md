@@ -18,6 +18,12 @@ scope, selected rail, operator, runtime host, input scope, credential boundary,
 production DB boundary, stop condition, rollback/recovery plan, and post-pilot
 review requirement.
 
+Phase 13G also memorializes the long-run agent work packet protocol in
+[AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md). That protocol
+allows longer Codex/Fable repo work inside approved inert envelopes, but it
+does not weaken the rail, credential, production DB, scheduler, OpenClaw,
+external-write, protected-path, high-stakes, or merge stop boundaries.
+
 ## Current Validated Repo State
 
 - Repo: `cdsouza235/personal-os`

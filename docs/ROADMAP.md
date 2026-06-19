@@ -26,6 +26,35 @@ scope, readiness evidence, and the narrow live rail or pilot being considered.
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, or activation checklists.
 
+## Phase And Work Packet Semantics
+
+Phase labels describe product maturity and safety posture. Work packets
+describe how much Codex/Fable may do before stopping for human review.
+
+A work packet may span multiple inert subphases when Chris approves that
+bounded envelope. This can include docs/control-plane alignment, tests,
+fake/local adapters, read-only/report-only surfaces, no-send workflows,
+previews, dry-runs, and safe dev/test work.
+
+A work packet may not cross into live activation, credentials/OAuth/API keys,
+production DB paths, protected paths, scheduler/background/LaunchAgent/
+crontab/daemon work, OpenClaw runtime operation, external runtime writes,
+live model/API providers, high-stakes execution, major product decisions, or
+merge approval without explicit Chris approval.
+
+The canonical work packet protocol is
+[AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md).
+
+Phase 13G is the final pre-Phase-14 readiness/control-plane bridge unless
+blockers are found.
+
+Future Phase 14 should be structured as:
+
+- Phase 14-A: first live pilot design, no activation.
+- Phase 14-B: pilot gates and fail-closed implementation, no live mutation
+  unless explicitly approved.
+- Phase 14-C: first approved live pilot.
+
 ## Completed Phase Groups
 
 - Phase -1: repo scaffold and initial docs.

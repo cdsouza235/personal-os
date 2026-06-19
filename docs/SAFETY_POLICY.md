@@ -66,6 +66,22 @@ Codex/Fable must not:
 - perform external writes
 - start Phase 14
 
+## Long-Run Mode Safety Rule
+
+Long-run Codex/Fable work packets never weaken these safety gates. Long-run
+mode only changes how long Codex/Fable may continue inside an approved
+repo-local inert envelope before stopping.
+
+Prompts may narrow safety rules, add stricter stop conditions, or require
+extra validation. Prompts may not weaken this policy, `../AGENTS.md`,
+[AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md), or
+[CODEX_WORKFLOW.md](CODEX_WORKFLOW.md).
+
+Live rails, credentials, production DB paths, protected paths,
+scheduler/background work, LaunchAgents, crontab, daemons, OpenClaw runtime,
+external runtime writes, live model/API calls, and high-stakes execution still
+require explicit Chris approval for the exact scope.
+
 ## Readiness And Activation Gates
 
 Before any live-rail work, the repo must satisfy the applicable gates:

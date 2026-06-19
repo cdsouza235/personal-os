@@ -9,7 +9,8 @@ Last updated: 2026-06-19
 - Last validated main baseline after PR #31: `39924943d36c544e86fe8b57f3c8af4d9dfb9008`
 - Latest merged PR at that baseline: PR #31, Phase 13E-D synthetic
   end-to-end no-send demo
-- Current branch: post-merge STATUS refresh after PR #31
+- Current repo state: Phase 13E-D implemented on main; post-merge STATUS
+  refresh complete after PR #32
 - Completed through: Phase 13E-D synthetic end-to-end no-send demo
 - Current / next phase: Phase 13E-D post-merge validation complete; Phase 14
   remains blocked pending explicit approval
@@ -64,8 +65,8 @@ activate production runtime state.
 
 ## Allowed Work Now
 
-- Post-merge STATUS refresh after PR #31.
 - Local tests and hygiene checks.
+- Future phase work only after explicit Chris approval.
 
 ## Blocked Work
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-06-18
+Last updated: 2026-06-20
 
 [../STATUS.md](../STATUS.md) is the canonical current phase snapshot. This
 roadmap records phase history and near-term sequencing; it should not be the
@@ -9,9 +9,9 @@ only source for current validated state.
 ## Current / Next
 
 Phase 13E-D is implemented and post-merge validated. Phase 13G is implemented
-and post-merge validated. Phase 14-A/B preparation is the current inert
-control-plane packet: first live pilot design plus fail-closed scaffolding, no
-activation.
+and post-merge validated. Phase 14-A/B preparation is implemented and
+post-merge validated as an inert control-plane packet: first live pilot design
+plus fail-closed scaffolding, no activation.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -51,8 +51,8 @@ merge approval without explicit Chris approval.
 The canonical work packet protocol is
 [AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md).
 
-Phase 13G is the final pre-Phase-14 readiness/control-plane bridge unless
-blockers are found.
+Phase 14-A/B is the current pre-live preparation boundary unless blockers are
+found.
 
 Future Phase 14 should be structured as:
 
@@ -101,7 +101,8 @@ Future Phase 14 should be structured as:
 - Phase 13G: pre-live readiness matrix and Long-Run Agent Work Packet Protocol
   v1, complete via PR #33 with post-merge STATUS refresh via PR #34.
 - Phase 14-A/B: first live pilot preparation, proposed-only design, and
-  fail-closed scaffolding. No live pilot authorized or run.
+  fail-closed scaffolding, complete via PR #35. No live pilot authorized or
+  run.
 
 ## Historical Boundary Reference
 

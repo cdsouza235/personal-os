@@ -6,14 +6,14 @@ Last updated: 2026-06-20
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #36:
-  `28332f1836db1637af36816e5ef791cdb3b858ae`
-- Latest merged PR at that baseline: PR #36, post-merge STATUS refresh after
-  PR #35
+- Last validated main baseline after PR #37:
+  `2382d454d9168701c5b5001d9f8ea1c595a4a51d`
+- Latest merged PR at that baseline: PR #37, pre-Phase-14-C
+  candidate-selection preparation
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
-  implemented as inert process/template/validator scaffolding
+  implemented on `main` as inert process/template/validator scaffolding
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
-  pre-Phase-14-C candidate-selection preparation in this packet
+  pre-Phase-14-C candidate-selection preparation on `main`
 - Current / next phase: candidate-selection process prepared; Phase 14-C live
   pilot remains blocked pending explicit candidate selection and approval
 - Phase 14 live pilot: not started; no pilot authorized or run
@@ -37,7 +37,8 @@ Last updated: 2026-06-20
 - Phase 14-A/B candidate handling: human selection required before any future
   live authorization packet
 - Pre-Phase-14-C candidate-selection preparation: process/template/validator
-  added; no real Todoist candidate selected
+  added and post-merge validated; no real Todoist candidate selected
+- PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
 - `live_rails_activated=false`
@@ -105,6 +106,7 @@ production runtime state.
 - PR #34: post-merge STATUS refresh after PR #33.
 - PR #35: Phase 14-A/B first live pilot preparation.
 - PR #36: post-merge STATUS refresh after PR #35.
+- PR #37: pre-Phase-14-C candidate-selection preparation.
 
 ## Known Gaps
 
@@ -113,8 +115,9 @@ production runtime state.
 - Long-Run Agent Work Packet Protocol v1 is implemented on `main`.
 - Phase 14-A/B preparation is implemented on `main` as a proposed design and
   fail-closed scaffolding packet, and passed post-merge validation.
-- Pre-Phase-14-C candidate-selection preparation is implemented as inert
-  process/template/validator scaffolding.
+- Pre-Phase-14-C candidate-selection preparation is implemented on `main` as
+  inert process/template/validator scaffolding and passed post-merge
+  validation.
 - No clear concrete validated Phase 13G candidate exists in repo artifacts for
   automatic selection; human candidate selection is required before Phase 14-C.
 - No real Todoist candidate is selected by the candidate-selection preparation
@@ -126,7 +129,7 @@ production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 for
   repo-local inert/testable work inside approved envelopes.
 - No OpenClaw, credentials, production DB, scheduler/background loop, external
-  runtime writes, or protected paths were used during PR #35 merge validation.
+  runtime writes, or protected paths were used during PR #37 merge validation.
 
 ## Core Docs
 

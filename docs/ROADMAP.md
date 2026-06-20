@@ -12,8 +12,8 @@ Phase 13E-D is implemented and post-merge validated. Phase 13G is implemented
 and post-merge validated. Phase 14-A/B preparation is implemented and
 post-merge validated as an inert control-plane packet: first live pilot design
 plus fail-closed scaffolding, no activation. Pre-Phase-14-C
-candidate-selection preparation is implemented as inert process/template/
-validator scaffolding, with no candidate selected.
+candidate-selection preparation is implemented and post-merge validated as
+inert process/template/validator scaffolding, with no candidate selected.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -109,8 +109,8 @@ Future Phase 14 should be structured as:
   fail-closed scaffolding, complete via PR #35. No live pilot authorized or
   run.
 - Pre-Phase-14-C candidate-selection preparation: inert candidate-selection
-  process, blank fail-closed template, and validator scaffolding. No Todoist
-  candidate selected, approved, authorized, or run.
+  process, blank fail-closed template, and validator scaffolding, complete via
+  PR #37. No Todoist candidate selected, approved, authorized, or run.
 
 ## Historical Boundary Reference
 

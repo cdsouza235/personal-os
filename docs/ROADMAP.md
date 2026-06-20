@@ -8,11 +8,15 @@ only source for current validated state.
 
 ## Current / Next
 
-Phase 13E-D is current/next: synthetic end-to-end no-send demo.
+Phase 13E-D is implemented and post-merge validated. Phase 13G is the current
+planning/control-plane candidate: pre-live activation decision packet and
+rail-by-rail readiness matrix.
 
-The Phase 13E-D planning doc is
+The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
-This phase must remain synthetic, local, no-send, and evidence-oriented.
+The Phase 13G decision packet is
+[PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](PHASE_13G_PRE_LIVE_READINESS_MATRIX.md).
+Phase 13G must remain planning-only and must not activate live rails.
 
 ## Future Blocked Work
 
@@ -21,6 +25,35 @@ scope, readiness evidence, and the narrow live rail or pilot being considered.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, or activation checklists.
+
+## Phase And Work Packet Semantics
+
+Phase labels describe product maturity and safety posture. Work packets
+describe how much Codex/Fable may do before stopping for human review.
+
+A work packet may span multiple inert subphases when Chris approves that
+bounded envelope. This can include docs/control-plane alignment, tests,
+fake/local adapters, read-only/report-only surfaces, no-send workflows,
+previews, dry-runs, and safe dev/test work.
+
+A work packet may not cross into live activation, credentials/OAuth/API keys,
+production DB paths, protected paths, scheduler/background/LaunchAgent/
+crontab/daemon work, OpenClaw runtime operation, external runtime writes,
+live model/API providers, high-stakes execution, major product decisions, or
+merge approval without explicit Chris approval.
+
+The canonical work packet protocol is
+[AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md).
+
+Phase 13G is the final pre-Phase-14 readiness/control-plane bridge unless
+blockers are found.
+
+Future Phase 14 should be structured as:
+
+- Phase 14-A: first live pilot design, no activation.
+- Phase 14-B: pilot gates and fail-closed implementation, no live mutation
+  unless explicitly approved.
+- Phase 14-C: first approved live pilot.
 
 ## Completed Phase Groups
 
@@ -53,6 +86,8 @@ readiness reports, or activation checklists.
 - Phase 13E-A: unified operator status report shape.
 - Phase 13E-B: CLI discovery and completion-summary polish.
 - Phase 13E-C: dashboard safe-action/status polish, complete via PR #28.
+- Phase 13E-D: synthetic end-to-end no-send demo, complete via PR #31 with
+  post-merge STATUS refresh via PR #32.
 - Phase 13F-A: pre-live readiness policy docs.
 - Phase 13F-B: inert readiness evaluator.
 - Phase 13F-C: read-only readiness status surfaces.

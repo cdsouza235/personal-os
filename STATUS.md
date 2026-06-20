@@ -14,6 +14,8 @@ Last updated: 2026-06-19
 - Completed through: Phase 13E-D synthetic end-to-end no-send demo
 - Current / next phase: Phase 13E-D post-merge validation complete; Phase 14
   remains blocked pending explicit approval
+- Open PR candidate: PR #33 includes the Phase 13G readiness matrix and
+  long-run agent work packet protocol candidate; PR #33 is not merged
 - Phase 14: not started
 
 ## Validated State
@@ -86,6 +88,12 @@ activate production runtime state.
 - PR #29: Phase 13E-D-0 control-plane docs.
 - PR #30: post-merge STATUS refresh after PR #29.
 - PR #31: Phase 13E-D synthetic end-to-end no-send demo.
+- PR #32: post-merge STATUS refresh after PR #31.
+
+## Open PR Candidates
+
+- PR #33: Phase 13G readiness matrix and long-run agent work packet protocol
+  candidate; not merged.
 
 ## Known Gaps
 
@@ -105,6 +113,8 @@ activate production runtime state.
 - [docs/PRD.md](docs/PRD.md)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/SAFETY_POLICY.md](docs/SAFETY_POLICY.md)
+- [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 - [docs/CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md)
 - [docs/PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](docs/PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md)
+- [docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md)

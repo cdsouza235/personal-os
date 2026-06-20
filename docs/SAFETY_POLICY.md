@@ -66,6 +66,22 @@ Codex/Fable must not:
 - perform external writes
 - start Phase 14
 
+## Long-Run Mode Safety Rule
+
+Long-run Codex/Fable work packets never weaken these safety gates. Long-run
+mode only changes how long Codex/Fable may continue inside an approved
+repo-local inert envelope before stopping.
+
+Prompts may narrow safety rules, add stricter stop conditions, or require
+extra validation. Prompts may not weaken this policy, `../AGENTS.md`,
+[AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md), or
+[CODEX_WORKFLOW.md](CODEX_WORKFLOW.md).
+
+Live rails, credentials, production DB paths, protected paths,
+scheduler/background work, LaunchAgents, crontab, daemons, OpenClaw runtime,
+external runtime writes, live model/API calls, and high-stakes execution still
+require explicit Chris approval for the exact scope.
+
 ## Readiness And Activation Gates
 
 Before any live-rail work, the repo must satisfy the applicable gates:
@@ -82,15 +98,14 @@ They do not authorize live rails, production DB activation, scheduler
 activation, OpenClaw runtime operation, credential loading, or external writes
 by themselves.
 
-## Phase 13E-D Boundary
+## Phase 13E-D / 13G Boundary
 
-Phase 13E-D is the current/next phase: a synthetic end-to-end no-send demo.
-The planning document is
+Phase 13E-D is implemented and post-merge validated. The planning/evidence
+document is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
 
-Phase 13E-D must use synthetic inputs, explicit safe output paths, local
-dev/test state, and no-send evidence. It must not start Phase 14 or activate
-any live rail.
+Phase 13G is a planning/control-plane readiness matrix. It must not start
+Phase 14, authorize a live pilot, or activate any live rail.
 
 ## High-Stakes Domains
 

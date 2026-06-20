@@ -6,16 +6,16 @@ Last updated: 2026-06-19
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #31: `39924943d36c544e86fe8b57f3c8af4d9dfb9008`
-- Latest merged PR at that baseline: PR #31, Phase 13E-D synthetic
-  end-to-end no-send demo
-- Current repo state: Phase 13E-D implemented on main; post-merge STATUS
-  refresh complete after PR #32
-- Completed through: Phase 13E-D synthetic end-to-end no-send demo
-- Current / next phase: Phase 13E-D post-merge validation complete; Phase 14
+- Last validated main baseline after PR #33:
+  `ed648b0be4797ebb2068487a844a107a2dda64f9`
+- Latest merged PR at that baseline: PR #33, Phase 13G pre-live readiness
+  matrix and Long-Run Agent Work Packet Protocol v1
+- Current repo state: Phase 13G pre-live readiness matrix implemented on
+  `main`; Long-Run Agent Work Packet Protocol v1 implemented on `main`
+- Completed through: Phase 13G pre-live readiness matrix and long-run agent
+  work packet protocol
+- Current / next phase: Phase 13G post-merge validation complete; Phase 14
   remains blocked pending explicit approval
-- Open PR candidate: PR #33 includes the Phase 13G readiness matrix and
-  long-run agent work packet protocol candidate; PR #33 is not merged
 - Phase 14: not started
 
 ## Validated State
@@ -25,6 +25,7 @@ Last updated: 2026-06-19
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
+- PR #33 post-merge read-only CLI validation: passed
 - Phase 13E-D demo command: completed on merged `main`
 - Phase 13E-D demo evidence bundle: generated under a safe temporary output
   directory during post-merge validation
@@ -89,22 +90,22 @@ activate production runtime state.
 - PR #30: post-merge STATUS refresh after PR #29.
 - PR #31: Phase 13E-D synthetic end-to-end no-send demo.
 - PR #32: post-merge STATUS refresh after PR #31.
-
-## Open PR Candidates
-
-- PR #33: Phase 13G readiness matrix and long-run agent work packet protocol
-  candidate; not merged.
+- PR #33: Phase 13G pre-live readiness matrix and Long-Run Agent Work Packet
+  Protocol v1.
 
 ## Known Gaps
 
-- Phase 13E-D synthetic end-to-end no-send demo is implemented on `main` and
-  passed post-merge validation.
+- Phase 13G pre-live readiness matrix is implemented on `main` and passed
+  post-merge validation.
+- Long-Run Agent Work Packet Protocol v1 is implemented on `main`.
 - Phase 14 design has not started.
 - Live rails remain intentionally disabled.
 - `STATUS.md` must continue to be updated at each substantive phase/PR boundary
   after merge validation.
+- Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 for
+  repo-local inert/testable work inside approved envelopes.
 - No OpenClaw, credentials, production DB, scheduler/background loop, external
-  runtime writes, or protected paths were used during PR #31 merge validation.
+  runtime writes, or protected paths were used during PR #33 merge validation.
 
 ## Core Docs
 

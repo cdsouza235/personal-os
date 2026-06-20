@@ -46,6 +46,11 @@ specific candidate is low-risk, self-only, foreground-only, or future-only.
 Those candidate-specific facts must be established by a future human-selected
 Phase 13G-compatible candidate before any live pilot can proceed.
 
+The inert follow-up candidate-selection preparation artifact is
+[PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md).
+It prepares a blank template and fail-closed validator only; it does not select
+or approve a candidate.
+
 ## Required Candidate Criteria
 
 A future candidate must satisfy all of these criteria before it can be proposed

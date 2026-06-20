@@ -86,6 +86,7 @@ Activation policies live in:
 - [ACTIVATION_CHECKLIST.md](ACTIVATION_CHECKLIST.md)
 - [FIRST_LIVE_PILOT_PROTOCOL.md](FIRST_LIVE_PILOT_PROTOCOL.md)
 - [PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md)
+- [PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md)
 - [OPERATOR_HANDOFF_CONTRACT.md](OPERATOR_HANDOFF_CONTRACT.md)
 - [PRODUCTION_DB_POLICY.md](PRODUCTION_DB_POLICY.md)
 
@@ -110,3 +111,8 @@ fail-closed scaffolding only. It must not authorize, activate, schedule, or run
 a live pilot. It must not activate live rails, touch protected paths, load
 credentials, activate production DB, activate schedulers, call OpenClaw,
 contact external services, or perform external writes.
+
+Pre-Phase-14-C candidate-selection preparation defines an inert
+candidate-selection process, blank template, and fail-closed validator only. It
+does not select or approve a Todoist candidate, authorize Phase 14-C, or
+activate any live rail.

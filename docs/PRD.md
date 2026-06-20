@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #35:
-    `2ef66ac2f91b73aa4e71d488e22f250a75dbb4e3`
-  - latest merged PR: PR #35, Phase 14-A/B first live pilot preparation
+  - last validated main baseline after PR #36:
+    `28332f1836db1637af36816e5ef791cdb3b858ae`
+  - latest merged PR: PR #36, post-merge STATUS refresh after PR #35
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -40,6 +40,9 @@ Key changes from v0.1:
 - Records Phase 14-A/B preparation as proposed-only first-live pilot design
   plus inert fail-closed scaffolding. It does not authorize or run a live
   pilot.
+- Records pre-Phase-14-C candidate-selection preparation as inert
+  process/template/validator scaffolding. It does not select a candidate or
+  authorize live activation.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -265,17 +268,18 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this Phase 14-A/B preparation update:
+As of this pre-Phase-14-C candidate-selection preparation update:
 
-- Last validated main baseline after PR #35:
-  `2ef66ac2f91b73aa4e71d488e22f250a75dbb4e3`
-- Latest merged PR: PR #35, Phase 14-A/B first live pilot preparation
-- Completed through: Phase 14-A/B preparation on `main`
-- Current/next phase: Phase 14-A/B post-merge validation complete; Phase 14-C
-  live pilot remains blocked pending explicit approval
+- Last validated main baseline after PR #36:
+  `28332f1836db1637af36816e5ef791cdb3b858ae`
+- Latest merged PR: PR #36, post-merge STATUS refresh after PR #35
+- Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
+  candidate-selection preparation is implemented in the current packet
+- Current/next phase: candidate-selection process prepared; Phase 14-C live
+  pilot remains blocked pending explicit candidate selection and approval
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 469 tests OK
-- ResourceWarning-sensitive suite: 469 tests OK
+- Full test suite: 481 tests OK
+- ResourceWarning-sensitive suite: 481 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -294,6 +298,9 @@ As of this Phase 14-A/B preparation update:
 - Phase 14-A/B preparation found no exact concrete validated Phase 13G Todoist
   candidate to select automatically; human selection is required before any
   future live authorization packet
+- Pre-Phase-14-C candidate-selection preparation adds an inert
+  process/template/validator path; no real Todoist candidate is selected,
+  approved, authorized, or run
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -334,10 +341,14 @@ Completed major phases:
   v1 via PR #33.
 - Phase 14-A/B: first live pilot preparation, proposed-only design, and
   fail-closed scaffolding. No live pilot authorized or run.
+- Pre-Phase-14-C candidate-selection preparation: inert candidate-selection
+  process, fail-closed blank template, and validator scaffolding. No Todoist
+  candidate selected and no live pilot authorized or run.
 
-The next human decision is whether to select exactly one validated Phase 13G
-Todoist routine-task candidate for a later authorization packet. This PRD
-update does not authorize that move.
+The next human decision is review of the candidate-selection preparation
+changes. Later, Chris must select exactly one Todoist routine-task candidate
+for a separate authorization packet, or decide that no candidate is suitable.
+This PRD update does not authorize that move.
 
 ## 8. Current Capability
 
@@ -1053,19 +1064,22 @@ Do not start Phase 14-C live activation until these are designed and approved:
 
 Phases 1 through 14-A/B preparation are complete on the last validated main
 baseline listed in Section 6. Phase 14-A/B preparation is implemented on
-`main` as proposed-only design and fail-closed scaffolding.
+`main` as proposed-only design and fail-closed scaffolding. Pre-Phase-14-C
+candidate-selection preparation adds an inert process, blank template, and
+validator scaffolding for a later human decision.
 
 ### Current Recommended Phase
 
-Phase 14-A/B - First Live Pilot Preparation.
+Pre-Phase-14-C candidate-selection preparation.
 
 Purpose:
 
-- define the proposed first-live pilot envelope without authorizing it
-- accept only exactly one already validated Phase 13G Todoist routine-task
-  candidate
-- fail closed when no candidate is selected or candidate evidence is ambiguous
-- prove no live rails, credentials, production DB, scheduler activation,
+- define the human candidate-selection process without selecting a candidate
+- provide a blank fail-closed candidate template
+- validate candidate records as `decision_needed`, `blocked`, or
+  `proposed_only`
+- keep candidate selection separate from live pilot authorization
+- preserve no live rails, credentials, production DB, scheduler activation,
   external writes, or OpenClaw calls
 
 ### Not Yet Started
@@ -1100,12 +1114,12 @@ V1 is acceptable only when:
 
 ## 29. Immediate Next Step
 
-The immediate human decision is whether to select exactly one validated Phase
-13G Todoist routine-task candidate for a later authorization packet.
+The immediate human decision is review of the pre-Phase-14-C
+candidate-selection preparation changes.
 
-If no such candidate exists, Phase 14-C remains blocked and the next repo step
-is to create or validate an inert candidate-selection artifact without live
-writes.
+Later, Chris must select exactly one Todoist routine-task candidate for a
+future authorization packet, or decide that no candidate is suitable. If no
+candidate is selected, Phase 14-C remains blocked.
 
 Codex/Fable must not turn Phase 14-A/B preparation into live activation.
 
@@ -1141,14 +1155,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline before Phase 14-A/B preparation:
+Last validated main baseline after PR #36:
 
-`6b974c363dca1989a8a14159ac70bb06735f9b0c`
+`28332f1836db1637af36816e5ef791cdb3b858ae`
 
 Current validated state:
 
-- Full suite: 469 tests OK
-- ResourceWarning-sensitive suite: 469 tests OK
+- Full suite: 481 tests OK
+- ResourceWarning-sensitive suite: 481 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1165,12 +1179,14 @@ Current validated state:
 - Dashboard has no activation controls
 - Dashboard has no credential/OAuth UI
 - Phase 14-A/B preparation is proposed-only and inert
+- Pre-Phase-14-C candidate-selection preparation is proposed-only and inert
 - No concrete validated Phase 13G candidate is selected
 
 Next human decision:
 
-Select exactly one validated Phase 13G Todoist routine-task candidate for a
-later authorization packet, or decide that Phase 14-C remains blocked until a
-candidate is created or validated.
+Review the pre-Phase-14-C candidate-selection preparation changes. Later,
+select exactly one Todoist routine-task candidate for a separate authorization
+packet, or decide that Phase 14-C remains blocked until a candidate is created
+or validated.
 
 Do not authorize, activate, schedule, or run a live pilot from this packet.

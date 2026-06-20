@@ -6,22 +6,24 @@ Last updated: 2026-06-20
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #35:
-  `2ef66ac2f91b73aa4e71d488e22f250a75dbb4e3`
-- Latest merged PR at that baseline: PR #35, Phase 14-A/B first live pilot
-  preparation
-- Current repo state: Phase 14-A/B first live pilot preparation implemented on
-  `main`; proposed-only design plus inert/fail-closed scaffolding
-- Completed through: Phase 14-A/B first live pilot preparation
-- Current / next phase: Phase 14-A/B post-merge validation complete; Phase
-  14-C live pilot remains blocked pending explicit approval
+- Last validated main baseline after PR #36:
+  `28332f1836db1637af36816e5ef791cdb3b858ae`
+- Latest merged PR at that baseline: PR #36, post-merge STATUS refresh after
+  PR #35
+- Current repo state: pre-Phase-14-C candidate-selection preparation is
+  implemented as inert process/template/validator scaffolding
+- Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
+  pre-Phase-14-C candidate-selection preparation in this packet
+- Current / next phase: candidate-selection process prepared; Phase 14-C live
+  pilot remains blocked pending explicit candidate selection and approval
 - Phase 14 live pilot: not started; no pilot authorized or run
 
 ## Validated State
 
-- Full suite: 469 tests OK
-- ResourceWarning-sensitive suite: 469 tests OK
+- Full suite: 481 tests OK
+- ResourceWarning-sensitive suite: 481 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
+- Targeted pre-Phase-14-C candidate-selection prep suite: 12 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -34,6 +36,8 @@ Last updated: 2026-06-20
   artifacts; no concrete Phase 13G candidate selected
 - Phase 14-A/B candidate handling: human selection required before any future
   live authorization packet
+- Pre-Phase-14-C candidate-selection preparation: process/template/validator
+  added; no real Todoist candidate selected
 - `readiness.status=not_ready`
 - `inert_report_only=true`
 - `live_rails_activated=false`
@@ -100,6 +104,7 @@ production runtime state.
   Protocol v1.
 - PR #34: post-merge STATUS refresh after PR #33.
 - PR #35: Phase 14-A/B first live pilot preparation.
+- PR #36: post-merge STATUS refresh after PR #35.
 
 ## Known Gaps
 
@@ -108,8 +113,12 @@ production runtime state.
 - Long-Run Agent Work Packet Protocol v1 is implemented on `main`.
 - Phase 14-A/B preparation is implemented on `main` as a proposed design and
   fail-closed scaffolding packet, and passed post-merge validation.
+- Pre-Phase-14-C candidate-selection preparation is implemented as inert
+  process/template/validator scaffolding.
 - No clear concrete validated Phase 13G candidate exists in repo artifacts for
   automatic selection; human candidate selection is required before Phase 14-C.
+- No real Todoist candidate is selected by the candidate-selection preparation
+  packet.
 - Phase 14 live pilot activation has not started.
 - Live rails remain intentionally disabled.
 - `STATUS.md` must continue to be updated at each substantive phase/PR boundary
@@ -132,3 +141,4 @@ production runtime state.
 - [docs/PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](docs/PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md)
 - [docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md)
 - [docs/PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](docs/PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md)
+- [docs/PHASE_14_CANDIDATE_SELECTION_PREP.md](docs/PHASE_14_CANDIDATE_SELECTION_PREP.md)

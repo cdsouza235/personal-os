@@ -11,7 +11,9 @@ only source for current validated state.
 Phase 13E-D is implemented and post-merge validated. Phase 13G is implemented
 and post-merge validated. Phase 14-A/B preparation is implemented and
 post-merge validated as an inert control-plane packet: first live pilot design
-plus fail-closed scaffolding, no activation.
+plus fail-closed scaffolding, no activation. Pre-Phase-14-C
+candidate-selection preparation is implemented as inert process/template/
+validator scaffolding, with no candidate selected.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -19,6 +21,8 @@ The Phase 13G decision packet is
 [PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](PHASE_13G_PRE_LIVE_READINESS_MATRIX.md).
 The Phase 14-A/B preparation artifact is
 [PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md).
+The pre-Phase-14-C candidate-selection preparation artifact is
+[PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 
@@ -26,7 +30,8 @@ activate, schedule, or run a live pilot.
 
 Phase 14-C live pilot work is future work and is blocked until Chris
 explicitly approves design, scope, readiness evidence, and the narrow live rail
-or pilot being considered.
+or pilot being considered. A candidate-selection decision remains separate
+from live activation.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -103,6 +108,9 @@ Future Phase 14 should be structured as:
 - Phase 14-A/B: first live pilot preparation, proposed-only design, and
   fail-closed scaffolding, complete via PR #35. No live pilot authorized or
   run.
+- Pre-Phase-14-C candidate-selection preparation: inert candidate-selection
+  process, blank fail-closed template, and validator scaffolding. No Todoist
+  candidate selected, approved, authorized, or run.
 
 ## Historical Boundary Reference
 

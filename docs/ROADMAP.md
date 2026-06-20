@@ -8,23 +8,29 @@ only source for current validated state.
 
 ## Current / Next
 
-Phase 13E-D is implemented and post-merge validated. Phase 13G is the current
-planning/control-plane candidate: pre-live activation decision packet and
-rail-by-rail readiness matrix.
+Phase 13E-D is implemented and post-merge validated. Phase 13G is implemented
+and post-merge validated. Phase 14-A/B preparation is the current inert
+control-plane packet: first live pilot design plus fail-closed scaffolding, no
+activation.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
 The Phase 13G decision packet is
 [PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](PHASE_13G_PRE_LIVE_READINESS_MATRIX.md).
-Phase 13G must remain planning-only and must not activate live rails.
+The Phase 14-A/B preparation artifact is
+[PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md).
+Phase 14-A/B preparation must remain proposed-only and must not authorize,
+activate, schedule, or run a live pilot.
 
 ## Future Blocked Work
 
-Phase 14 is future work and is blocked until Chris explicitly approves design,
-scope, readiness evidence, and the narrow live rail or pilot being considered.
+Phase 14-C live pilot work is future work and is blocked until Chris
+explicitly approves design, scope, readiness evidence, and the narrow live rail
+or pilot being considered.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
-readiness reports, or activation checklists.
+readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
+preparation.
 
 ## Phase And Work Packet Semantics
 
@@ -92,6 +98,10 @@ Future Phase 14 should be structured as:
 - Phase 13F-B: inert readiness evaluator.
 - Phase 13F-C: read-only readiness status surfaces.
 - Phase 13F-D: activation checklist and first-live pilot protocol docs.
+- Phase 13G: pre-live readiness matrix and Long-Run Agent Work Packet Protocol
+  v1, complete via PR #33 with post-merge STATUS refresh via PR #34.
+- Phase 14-A/B: first live pilot preparation, proposed-only design, and
+  fail-closed scaffolding. No live pilot authorized or run.
 
 ## Historical Boundary Reference
 

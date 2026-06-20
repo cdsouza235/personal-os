@@ -2,7 +2,7 @@
 
 Status: Updated working draft for review
 Owner: Chris
-Updated: 2026-06-18
+Updated: 2026-06-20
 Development model: ChatGPT + Codex/Fable + OpenClaw
 Product: Personal OS
 Runtime host: Mac Mini
@@ -20,12 +20,13 @@ matches the current repo state instead of the older Phase 0-era roadmap wording.
 Key changes from v0.1:
 
 - Clarifies that the project is not starting from scratch.
-- Records the current validated repo baseline:
-  - last validated main baseline before Phase 13E-D-0 control-plane docs:
-    `66a7652bec4d26a86787729f47493bb194ad5f42`
-  - latest merged PR: PR #28, Phase 13E-C dashboard safe-action/status polish
-  - full suite: 453 tests OK
-  - ResourceWarning-sensitive suite: 453 tests OK
+- Records the current repo baseline by pointing to `../STATUS.md` as the
+  canonical snapshot:
+  - last validated main baseline before Phase 14-A/B preparation:
+    `6b974c363dca1989a8a14159ac70bb06735f9b0c`
+  - latest merged PR before this branch: PR #34, post-merge STATUS refresh
+    after PR #33
+  - current branch validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
   - `live_rails_activated=false`
@@ -37,8 +38,9 @@ Key changes from v0.1:
 - Reframes future V1 live rails as product targets, not current permission to
   activate Gmail, Todoist, Calendar, PersonalOS Markdown writes, OpenClaw
   runtime integration, production DB, scheduler, or model/API calls.
-- Defines Phase 13E-D as the current/next recommended phase: a synthetic
-  end-to-end no-send demo using fixture data and a temporary SQLite DB only.
+- Records Phase 14-A/B preparation as proposed-only first-live pilot design
+  plus inert fail-closed scaffolding. It does not authorize or run a live
+  pilot.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -264,16 +266,19 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline but should not invent a future merge commit or claim that a
 pre-merge HEAD will remain current after this branch lands.
 
-As of this v0.2 update:
+As of this Phase 14-A/B preparation update:
 
-- Last validated main baseline before Phase 13E-D-0 control-plane docs:
-  `66a7652bec4d26a86787729f47493bb194ad5f42`
-- Latest merged PR: PR #28, Phase 13E-C dashboard safe-action/status polish
-- Completed through: Phase 13E-C plus Phase 13F-D policy/readiness docs
-- Current/next phase: Phase 13E-D synthetic end-to-end no-send demo
-- Phase 14: not started
-- Full test suite: 453 tests OK
-- ResourceWarning-sensitive suite: 453 tests OK
+- Last validated main baseline before this branch:
+  `6b974c363dca1989a8a14159ac70bb06735f9b0c`
+- Latest merged PR before this branch: PR #34, post-merge STATUS refresh after
+  PR #33
+- Completed through: Phase 13G on `main`; Phase 14-A/B preparation on this
+  branch
+- Current/next phase: Phase 14-A/B preparation ready for review; Phase 14-C
+  live pilot remains blocked pending explicit approval
+- Phase 14 live pilot: not started; no pilot authorized or run
+- Full test suite: 469 tests OK
+- ResourceWarning-sensitive suite: 469 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -289,10 +294,13 @@ As of this v0.2 update:
 - No OpenClaw call
 - Dashboard has no activation controls
 - Dashboard has no credential/OAuth UI
+- Phase 14-A/B preparation found no exact concrete validated Phase 13G Todoist
+  candidate to select automatically; human selection is required before any
+  future live authorization packet
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
-## 7. Completed Implementation Through Phase 13E-C
+## 7. Completed Implementation Through Phase 14-A/B Preparation
 
 Completed major phases:
 
@@ -324,8 +332,15 @@ Completed major phases:
 - Phase 13E-A: operator status vocabulary and report shape.
 - Phase 13E-B: CLI no-send workflow polish.
 - Phase 13E-C: dashboard safe-action/status polish via PR #28.
+- Phase 13E-D: synthetic end-to-end no-send demo via PR #31.
+- Phase 13G: pre-live readiness matrix and Long-Run Agent Work Packet Protocol
+  v1 via PR #33.
+- Phase 14-A/B: first live pilot preparation, proposed-only design, and
+  fail-closed scaffolding. No live pilot authorized or run.
 
-The next recommended phase is Phase 13E-D. Phase 14 has not started.
+The next human decision is whether to select exactly one validated Phase 13G
+Todoist routine-task candidate for a later authorization packet. This PRD
+update does not authorize that move.
 
 ## 8. Current Capability
 
@@ -1016,7 +1031,7 @@ forensic bundle.
 
 ## 26. Phase 14 Dependency Inventory
 
-Do not start Phase 14 until these are designed and approved:
+Do not start Phase 14-C live activation until these are designed and approved:
 
 - Production DB path/config, backup, restore test, integrity checks, migration
   policy.
@@ -1037,29 +1052,31 @@ Do not start Phase 14 until these are designed and approved:
 
 ## 27. Current Roadmap
 
-### Completed Through Current Main Baseline
+### Completed Through Current Baseline
 
-Phases 1 through 13E-C are complete on the last validated main baseline listed
-in Section 6.
+Phases 1 through 13G are complete on the last validated main baseline listed
+in Section 6. Phase 14-A/B preparation is implemented on this branch as
+proposed-only design and fail-closed scaffolding.
 
 ### Current Recommended Phase
 
-Phase 13E-D - Synthetic End-to-End No-Send Demo.
+Phase 14-A/B - First Live Pilot Preparation.
 
 Purpose:
 
-- prove the existing inert workflow end to end
-- use fixture data only
-- use temp SQLite only
-- emit JSON-first evidence
+- define the proposed first-live pilot envelope without authorizing it
+- accept only exactly one already validated Phase 13G Todoist routine-task
+  candidate
+- fail closed when no candidate is selected or candidate evidence is ambiguous
 - prove no live rails, credentials, production DB, scheduler activation,
   external writes, or OpenClaw calls
 
 ### Not Yet Started
 
-Phase 14 - live rail design and pilot activation.
+Phase 14-C - first live pilot activation.
 
-Phase 14 requires separate design and explicit Chris approval.
+Phase 14-C requires a separate selected-candidate authorization packet and
+explicit Chris approval.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1086,17 +1103,14 @@ V1 is acceptable only when:
 
 ## 29. Immediate Next Step
 
-The immediate repo-level next step is Phase 13E-D, but only after explicit
-implementation approval.
+The immediate human decision is whether to select exactly one validated Phase
+13G Todoist routine-task candidate for a later authorization packet.
 
-Phase 13E-D should add a deterministic, local-only, fixture-driven no-send demo
-workflow that uses a temporary SQLite DB, existing fake/simulated modules, no
-credentials, no production DB, no scheduler activation, no external writes, no
-live model/API calls, and no OpenClaw call.
+If no such candidate exists, Phase 14-C remains blocked and the next repo step
+is to create or validate an inert candidate-selection artifact without live
+writes.
 
-Codex/Fable should update repo docs so Phase 13E-C remains marked complete and
-Phase 13E-D remains defined as current/next. Phase 14 must not begin from this
-docs/control-plane update.
+Codex/Fable must not turn Phase 14-A/B preparation into live activation.
 
 ## Appendix A - Fresh Chat Carryover Prompt
 
@@ -1130,14 +1144,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline before Phase 13E-D-0 control-plane docs:
+Last validated main baseline before Phase 14-A/B preparation:
 
-`66a7652bec4d26a86787729f47493bb194ad5f42`
+`6b974c363dca1989a8a14159ac70bb06735f9b0c`
 
 Current validated state:
 
-- Full suite: 453 tests OK
-- ResourceWarning-sensitive suite: 453 tests OK
+- Full suite: 469 tests OK
+- ResourceWarning-sensitive suite: 469 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1153,9 +1167,13 @@ Current validated state:
 - No OpenClaw call
 - Dashboard has no activation controls
 - Dashboard has no credential/OAuth UI
+- Phase 14-A/B preparation is proposed-only and inert
+- No concrete validated Phase 13G candidate is selected
 
-Recommended next phase:
+Next human decision:
 
-Phase 13E-D - synthetic end-to-end no-send demo.
+Select exactly one validated Phase 13G Todoist routine-task candidate for a
+later authorization packet, or decide that Phase 14-C remains blocked until a
+candidate is created or validated.
 
-Do not start Phase 14 yet.
+Do not authorize, activate, schedule, or run a live pilot from this packet.

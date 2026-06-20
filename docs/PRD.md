@@ -22,11 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline before Phase 14-A/B preparation:
-    `6b974c363dca1989a8a14159ac70bb06735f9b0c`
-  - latest merged PR before this branch: PR #34, post-merge STATUS refresh
-    after PR #33
-  - current branch validation is recorded in `../STATUS.md`
+  - last validated main baseline after PR #35:
+    `2ef66ac2f91b73aa4e71d488e22f250a75dbb4e3`
+  - latest merged PR: PR #35, Phase 14-A/B first live pilot preparation
+  - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
   - `live_rails_activated=false`
@@ -263,18 +262,16 @@ stop conditions. It should not become the full PRD.
 ## 6. Current Repo State Reconciliation
 
 The canonical current snapshot is `../STATUS.md`. This PRD records the current
-product baseline but should not invent a future merge commit or claim that a
-pre-merge HEAD will remain current after this branch lands.
+product baseline, but `../STATUS.md` remains the source of truth for the latest
+post-merge validation.
 
 As of this Phase 14-A/B preparation update:
 
-- Last validated main baseline before this branch:
-  `6b974c363dca1989a8a14159ac70bb06735f9b0c`
-- Latest merged PR before this branch: PR #34, post-merge STATUS refresh after
-  PR #33
-- Completed through: Phase 13G on `main`; Phase 14-A/B preparation on this
-  branch
-- Current/next phase: Phase 14-A/B preparation ready for review; Phase 14-C
+- Last validated main baseline after PR #35:
+  `2ef66ac2f91b73aa4e71d488e22f250a75dbb4e3`
+- Latest merged PR: PR #35, Phase 14-A/B first live pilot preparation
+- Completed through: Phase 14-A/B preparation on `main`
+- Current/next phase: Phase 14-A/B post-merge validation complete; Phase 14-C
   live pilot remains blocked pending explicit approval
 - Phase 14 live pilot: not started; no pilot authorized or run
 - Full test suite: 469 tests OK
@@ -1054,9 +1051,9 @@ Do not start Phase 14-C live activation until these are designed and approved:
 
 ### Completed Through Current Baseline
 
-Phases 1 through 13G are complete on the last validated main baseline listed
-in Section 6. Phase 14-A/B preparation is implemented on this branch as
-proposed-only design and fail-closed scaffolding.
+Phases 1 through 14-A/B preparation are complete on the last validated main
+baseline listed in Section 6. Phase 14-A/B preparation is implemented on
+`main` as proposed-only design and fail-closed scaffolding.
 
 ### Current Recommended Phase
 

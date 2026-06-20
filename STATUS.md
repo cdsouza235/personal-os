@@ -6,16 +6,15 @@ Last updated: 2026-06-20
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline before this branch after PR #34:
-  `6b974c363dca1989a8a14159ac70bb06735f9b0c`
-- Latest merged PR at that baseline: PR #34, post-merge STATUS refresh after
-  PR #33
+- Last validated main baseline after PR #35:
+  `2ef66ac2f91b73aa4e71d488e22f250a75dbb4e3`
+- Latest merged PR at that baseline: PR #35, Phase 14-A/B first live pilot
+  preparation
 - Current repo state: Phase 14-A/B first live pilot preparation implemented on
-  branch `phase-14-ab-pilot-prep`; proposed-only design plus inert/fail-closed
-  scaffolding
-- Completed through: Phase 14-A/B first live pilot preparation on this branch
-- Current / next phase: Phase 14-A/B preparation ready for review; Phase 14-C
-  live pilot remains blocked pending explicit approval
+  `main`; proposed-only design plus inert/fail-closed scaffolding
+- Completed through: Phase 14-A/B first live pilot preparation
+- Current / next phase: Phase 14-A/B post-merge validation complete; Phase
+  14-C live pilot remains blocked pending explicit approval
 - Phase 14 live pilot: not started; no pilot authorized or run
 
 ## Validated State
@@ -30,6 +29,7 @@ Last updated: 2026-06-20
 - Phase 13E-D demo command: completed on merged `main`
 - Phase 13E-D demo evidence bundle: generated under a safe temporary output
   directory during post-merge validation
+- PR #35 post-merge read-only CLI validation: passed
 - Phase 14-A/B pilot preparation: implemented as proposed-only/inert
   artifacts; no concrete Phase 13G candidate selected
 - Phase 14-A/B candidate handling: human selection required before any future
@@ -99,14 +99,15 @@ production runtime state.
 - PR #33: Phase 13G pre-live readiness matrix and Long-Run Agent Work Packet
   Protocol v1.
 - PR #34: post-merge STATUS refresh after PR #33.
+- PR #35: Phase 14-A/B first live pilot preparation.
 
 ## Known Gaps
 
 - Phase 13G pre-live readiness matrix is implemented on `main` and passed
   post-merge validation.
 - Long-Run Agent Work Packet Protocol v1 is implemented on `main`.
-- Phase 14-A/B preparation is implemented on this branch only as a proposed
-  design and fail-closed scaffolding packet.
+- Phase 14-A/B preparation is implemented on `main` as a proposed design and
+  fail-closed scaffolding packet, and passed post-merge validation.
 - No clear concrete validated Phase 13G candidate exists in repo artifacts for
   automatic selection; human candidate selection is required before Phase 14-C.
 - Phase 14 live pilot activation has not started.
@@ -116,7 +117,7 @@ production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 for
   repo-local inert/testable work inside approved envelopes.
 - No OpenClaw, credentials, production DB, scheduler/background loop, external
-  runtime writes, or protected paths were used during PR #33 merge validation.
+  runtime writes, or protected paths were used during PR #35 merge validation.
 
 ## Core Docs
 

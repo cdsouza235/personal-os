@@ -122,6 +122,8 @@ protected runtime/personal paths were touched.
 Phase 13E-D is implemented and post-merge validated. Phase 13G is implemented
 and post-merge validated as a planning/control-plane readiness matrix. Phase
 14-A/B preparation may define a proposed pilot envelope and fail-closed
-scaffolding only. Phase 14-C live pilot activation has not started. Docs,
-readiness reports, checklists, pilot protocols, readiness matrices, and
-preparation artifacts do not activate live rails by themselves.
+scaffolding only. Pre-Phase-14-C candidate-selection preparation may define an
+inert selection process, blank template, and fail-closed validator only. Phase
+14-C live pilot activation has not started. Docs, readiness reports,
+checklists, pilot protocols, readiness matrices, and preparation artifacts do
+not activate live rails by themselves.

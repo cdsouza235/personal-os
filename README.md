@@ -42,8 +42,8 @@ Markdown documentation. The current project snapshot lives in
 ## Safety Boundary
 
 Personal OS is currently inert, no-send, and report-only. Live rails are
-disabled. Phase 14-A/B preparation is proposed-only and inert; no Phase 14 live
-pilot has started.
+disabled. Phase 14-A/B preparation and pre-Phase-14-C candidate-selection
+preparation are proposed-only and inert; no Phase 14 live pilot has started.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,
@@ -65,6 +65,7 @@ activation policies:
 - [docs/FIRST_LIVE_PILOT_PROTOCOL.md](docs/FIRST_LIVE_PILOT_PROTOCOL.md)
 - [docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md)
 - [docs/PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](docs/PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md)
+- [docs/PHASE_14_CANDIDATE_SELECTION_PREP.md](docs/PHASE_14_CANDIDATE_SELECTION_PREP.md)
 - [docs/OPERATOR_HANDOFF_CONTRACT.md](docs/OPERATOR_HANDOFF_CONTRACT.md)
 - [docs/PRODUCTION_DB_POLICY.md](docs/PRODUCTION_DB_POLICY.md)
 

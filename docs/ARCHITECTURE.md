@@ -85,6 +85,7 @@ Activation policies live in:
 - [LIVE_RAIL_ACTIVATION_POLICY.md](LIVE_RAIL_ACTIVATION_POLICY.md)
 - [ACTIVATION_CHECKLIST.md](ACTIVATION_CHECKLIST.md)
 - [FIRST_LIVE_PILOT_PROTOCOL.md](FIRST_LIVE_PILOT_PROTOCOL.md)
+- [PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md)
 - [OPERATOR_HANDOFF_CONTRACT.md](OPERATOR_HANDOFF_CONTRACT.md)
 - [PRODUCTION_DB_POLICY.md](PRODUCTION_DB_POLICY.md)
 
@@ -98,10 +99,14 @@ OpenClaw runtime paths, LaunchAgents, crontab, and other production runtime
 state are outside Codex/Fable scope unless Chris explicitly approves a narrow
 operation.
 
-## Phase 13E-D Architecture Target
+## Phase 13E-D / Phase 14-A/B Architecture Boundary
 
-Phase 13E-D is planned as a synthetic end-to-end no-send demo over existing
-local surfaces. It should produce a stable evidence bundle from synthetic
-inputs and explicit safe output paths. It must not start Phase 14, activate
-live rails, touch protected paths, load credentials, activate production DB,
-activate schedulers, call OpenClaw, or perform external writes.
+Phase 13E-D is implemented as a synthetic end-to-end no-send demo over
+existing local surfaces. It produces a stable evidence bundle from synthetic
+inputs and explicit safe output paths.
+
+Phase 14-A/B preparation defines a proposed first-live pilot envelope and
+fail-closed scaffolding only. It must not authorize, activate, schedule, or run
+a live pilot. It must not activate live rails, touch protected paths, load
+credentials, activate production DB, activate schedulers, call OpenClaw,
+contact external services, or perform external writes.

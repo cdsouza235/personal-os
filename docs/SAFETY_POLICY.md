@@ -22,9 +22,17 @@ repo must report:
 - `credentials_read=false`
 - `production_db_path_active=false`
 - `scheduler_activated=false`
+- `launch_agent_installed=false`
+- `crontab_modified=false`
+- `daemon_started=false`
 - `openclaw_called=false`
 - `external_services_contacted=false`
 - `external_mutation=false`
+- `gmail_touched=false`
+- `todoist_touched=false`
+- `calendar_touched=false`
+- `personalos_markdown_written=false`
+- `protected_paths_touched=false`
 
 STATUS.md must be updated whenever the validated safety posture changes.
 
@@ -106,6 +114,19 @@ document is
 
 Phase 13G is a planning/control-plane readiness matrix. It must not start
 Phase 14, authorize a live pilot, or activate any live rail.
+
+## Phase 14-A/B Preparation Boundary
+
+Phase 14-A/B preparation may define a proposed first live pilot envelope and
+fail-closed repo-local scaffolding only. The planning/evidence document is
+[PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md).
+
+Phase 14-A/B preparation must not authorize, activate, execute, schedule, or
+run a live pilot. It must not create a live Todoist task, configure
+credentials, activate production SQLite, start schedulers or background
+processes, call OpenClaw, call live model/API providers, contact external
+services, perform external writes, or inspect protected paths. Phase 14-C or
+any live attempt requires a later explicit Chris approval packet.
 
 ## High-Stakes Domains
 

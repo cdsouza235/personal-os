@@ -238,8 +238,14 @@ selected pilot controls are already clear.
 
 ## Phase 14 Block
 
-Phase 14 remains blocked. This packet is ready for Chris/ChatGPT review as a
-decision aid, but it does not authorize:
+Phase 14-A/B preparation is tracked separately in
+[PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md).
+That preparation packet may design a proposed pilot envelope and fail-closed
+repo-local scaffolding, but it does not authorize, activate, schedule, or run a
+live pilot.
+
+Phase 14-C and any live attempt remain blocked. This packet is ready for
+Chris/ChatGPT review as a decision aid, but it does not authorize:
 
 - live Gmail
 - live Todoist

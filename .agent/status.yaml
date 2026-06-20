@@ -1,0 +1,30 @@
+project_id: personal_os
+project_name: Personal OS
+puck_with: me
+next_action: "Approve or reject committing and opening a PR for the prepared Watch Tower scaffold plus post-PR-37 status-refresh branch."
+human_attention: approval_required
+last_update: "2026-06-20T15:08:47-07:00"
+blocked: false
+blocker: null
+
+branch: phase-14-candidate-selection-post-merge-status-refresh
+latest_local_commit: dbae967987c0aa4b30a7ecaef71eb55283ab6a22
+base_main_commit: 2382d454d9168701c5b5001d9f8ea1c595a4a51d
+
+current_packet:
+  name: watch_tower_commit_pr_preparation
+  scope: "Repo-local commit and PR preparation only for the Watch Tower scaffold and current post-PR-37 status-refresh branch."
+  audit_verdict: pass
+  prep_status: ready_for_human_approval
+  proposed_commit_message: "Add Watch Tower scaffold handoff artifacts"
+  proposed_pr_title: "Add Watch Tower scaffold and post-PR-37 status refresh"
+  phase_14_c_started: false
+  live_pilot_authorized: false
+  live_pilot_run: false
+
+safety:
+  live_external_writes: false
+  credentials_or_secrets_accessed: false
+  production_db_accessed: false
+  scheduler_or_daemon_activated: false
+  protected_paths_touched: false

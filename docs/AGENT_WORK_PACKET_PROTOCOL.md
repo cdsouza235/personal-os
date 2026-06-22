@@ -16,6 +16,11 @@ credentials/OAuth work, activate production SQLite, activate schedulers, call
 OpenClaw, call live model/API providers, inspect protected paths, or perform
 external runtime writes.
 
+This protocol is not Watch Tower adoption. It does not authorize `.agent/`,
+`CLAUDE.md`, runtime/operator scaffolding, OpenClaw invocation, live
+Todoist/Gmail/Calendar access, credential handling, scheduler/background
+activation, or Watch Tower file adoption or merge.
+
 ## Actor Roles
 
 ### Chris
@@ -103,6 +108,12 @@ Long-run mode is not permission to cross a safety boundary. It is permission
 to keep working through approved inert substeps without stopping after every
 small milestone.
 
+Examples of acceptable larger packets include repo instruction updates plus
+documentation invariant tests, fake/local adapter work with inert fixtures,
+read-only or report-only surface improvements, no-send preview behavior,
+validation cleanup, and preparing, validating, committing, pushing, and
+opening a PR for an approved repo-local docs/test packet.
+
 ## Mandatory Stop Boundaries
 
 Codex/Fable must stop and ask Chris before crossing any of these boundaries:
@@ -112,8 +123,9 @@ Codex/Fable must stop and ask Chris before crossing any of these boundaries:
 - production SQLite paths, production ledgers, or production runtime state
 - protected paths, including `/Users/coldstake/PersonalOS` and
   `/Users/coldstake/.openclaw`
-- scheduler, LaunchAgent, crontab, daemon, or background-loop activation
-- OpenClaw runtime operation or handoff execution
+- scheduler, background, LaunchAgent, crontab, daemon, watcher, or service
+  activation
+- OpenClaw runtime handoff or invocation
 - external runtime writes or live external runtime services
 - live model/API providers
 - high-stakes execution involving legal, tax, medical, health, investment,
@@ -127,6 +139,20 @@ Validation failures that require judgment are also stop boundaries. Examples
 include safety-regression test failures, unexpected runtime artifact creation,
 credential/protected-path ambiguity, live-service contact, or an unclear PR
 scope change.
+
+## Real Human Gates
+
+A real human gate is a decision that changes authorization, safety posture, or
+product direction. Real gates include live Gmail/Todoist/Calendar writes,
+credential/API/OAuth/secrets/token handling, production DB activation,
+protected path access, OpenClaw runtime handoff or invocation,
+scheduler/background/LaunchAgent/crontab/daemon/watcher/service activation,
+high-stakes execution, major product direction choices, merge approval, and
+test failures that require architectural or product judgment.
+
+Local branch creation, repo-local edits, inert tests, validation runs, commits,
+PR body drafting, and PR opening are not separate human gates when they are
+already inside an approved repo-local inert packet.
 
 ## Merge Rule
 
@@ -176,16 +202,30 @@ Final reports for work packets must include:
 - branch name
 - PR number or link, if opened
 - commit hash or hashes
-- work packet size and scope
+- work packet size
+- scope completed
 - subphases completed
 - files changed
 - summary of implementation or documentation changes
 - validation commands and results
+- test counts
 - Unicode, bidi, or artifact-scan results when requested
 - safety assertions covering live rails, credentials, production DB,
   scheduler/background work, OpenClaw, external writes, and protected paths
-- deviations or unresolved questions
+- deviations
+- open questions
 - next required human decision
+
+For PR-opening packets, final reports should include a short human-review
+excerpt so Chris does not need a separate read-only extraction packet just to
+understand the PR. The excerpt should include:
+
+- what changed
+- what files changed
+- what safety boundaries remain true
+- what approval or merge would mean
+- what approval or merge would not mean
+- anything Chris should double-check
 
 ## Conflict Rule
 

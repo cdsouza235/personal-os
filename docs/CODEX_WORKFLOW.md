@@ -1,6 +1,6 @@
 # Codex/Fable Workflow
 
-Last updated: 2026-06-18
+Last updated: 2026-06-22
 
 ## Required First Reads
 
@@ -34,11 +34,30 @@ Codex/Fable may:
 
 ## Long-Run Mode
 
-Long-run mode lets Codex/Fable continue through multiple approved inert
-subphases without stopping after every small milestone. It is appropriate for
-bounded repo-local docs, tests, fake/local behavior, inert evaluators,
-read-only/report-only surfaces, no-send workflows, previews, dry-runs, and
-safe dev/test work.
+Long-run mode is the preferred workflow for larger bounded Personal OS repo
+work when the work is:
+
+- repo-local
+- inert
+- testable
+- inside an approved scope
+- docs-only, test-only, fake/local, read-only, report-only, no-send, preview,
+  dry-run, or otherwise non-live
+- not touching credentials, secrets, OAuth files, API keys, tokens, or
+  credential stores
+- not activating production DB paths
+- not touching protected paths
+- not invoking OpenClaw
+- not activating schedulers, background loops, LaunchAgents, crontab, daemons,
+  watchers, or services
+- not making external runtime writes
+- not performing live Gmail, Todoist, or Calendar actions
+- not making live model/API calls
+
+When those conditions hold, Codex/Fable may complete multiple approved
+repo-local substeps before returning. Codex/Fable should not stop after every
+small milestone when the approved work envelope is clear and safety assertions
+remain clean.
 
 In long-run mode, Codex/Fable should continue until:
 
@@ -50,14 +69,73 @@ In long-run mode, Codex/Fable should continue until:
 - the approved envelope becomes ambiguous
 
 Codex/Fable should keep a running implementation log in status updates, PR
-notes, a packet document, or the final report. The final report must include
-subphases completed, files changed, validation, safety assertions, deviations,
-and the next human decision.
+notes, a packet document, or the final report.
+
+### Mandatory Stop Gates
+
+Codex/Fable must stop and request human review before:
+
+- live Gmail/Todoist/Calendar writes
+- credential/API/OAuth/secrets/token handling
+- production DB activation
+- protected path access
+- OpenClaw runtime handoff or invocation
+- scheduler/background activation
+- LaunchAgent, crontab, daemon, watcher, or service changes
+- high-stakes execution involving tax, legal/estate, portfolio/crypto,
+  health/medical, relationship, external-message, external-meeting, family, or
+  large-financial-commitment decisions
+- major product direction choices
+- merge approval
+- any test failure requiring architectural or product judgment
+
+### Real Human Gates
+
+A real human gate is a decision Chris must make, not a small repo milestone.
+Real gates include live rail authorization, credential or production state
+handling, protected path access, OpenClaw runtime handoff, scheduler or
+background activation, high-stakes execution, major product direction changes,
+merge approval, and judgment-heavy failures.
+
+Local branch creation, repo-local edits, test additions, validation runs,
+commits, PR body drafting, and PR opening are not separate human gates when
+they are already inside the approved inert packet.
+
+### Acceptable Larger Packets
+
+Acceptable larger packets include:
+
+- updating repo instructions plus docs plus matching documentation invariant
+  tests
+- adding fake/local adapters with tests and safety docs
+- completing a read-only or report-only surface with validation
+- adding no-send preview behavior with fake adapters and inert fixtures
+- preparing, validating, committing, pushing, and opening a PR for an approved
+  repo-local docs/test packet
+
+### Stop Condition Examples
+
+Stop instead of continuing when a task would require:
+
+- live Todoist, Gmail, or Calendar access or mutation
+- credential setup, token inspection, OAuth troubleshooting, or secret
+  handling
+- production SQLite activation or production runtime state mutation
+- access to `/Users/coldstake/PersonalOS` or `/Users/coldstake/.openclaw`
+- OpenClaw invocation or runtime/operator handoff execution
+- scheduler, LaunchAgent, crontab, daemon, watcher, service, or background
+  loop activation
+- a merge, even when tests pass and the PR is open
 
 Long-run mode never authorizes live rails, credentials, production DB paths,
 protected path access, scheduler/background activation, OpenClaw runtime,
 external runtime writes, high-stakes execution, major product decisions, or
 merges.
+
+This workflow is not Watch Tower adoption. It does not authorize `.agent/`,
+`CLAUDE.md`, runtime/operator scaffolding, OpenClaw invocation, live
+Todoist/Gmail/Calendar access, credential handling, scheduler/background
+activation, or any Watch Tower file adoption or merge.
 
 The canonical packet rules live in
 [AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md).
@@ -106,16 +184,34 @@ Chris says to skip it.
 Completion reports must include:
 
 - branch name
+- commit hash or hashes
+- PR number or URL if opened
+- scope completed
+- subphases completed
 - files changed
 - summary of changes
-- tests run and results
-- hygiene results
-- safety confirmation
-- PR number or URL if opened
+- validation commands and results
+- test counts
+- hygiene and artifact-scan results
+- safety assertions
+- deviations
+- open questions
+- next human decision required
 
 Safety confirmation must state whether live rails, credentials, production DB,
 scheduler/LaunchAgents/crontab/daemons, external writes, OpenClaw calls, and
 protected runtime/personal paths were touched.
+
+For PR-opening packets, the final report should also include a short
+human-review excerpt so Chris does not need a separate read-only extraction
+packet just to understand the PR. The excerpt should include:
+
+- what changed
+- what files changed
+- what safety boundaries remain true
+- what approval or merge would mean
+- what approval or merge would not mean
+- anything Chris should double-check
 
 ## Phase Boundaries
 

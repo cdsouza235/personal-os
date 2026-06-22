@@ -16,17 +16,30 @@ relevant docs under `docs/`.
 
 ## Long-Run Work Packets
 
-Long-run Codex/Fable work packets are allowed for repo-local, inert,
-fake/local, docs-only, test-only, read-only, report-only, no-send, preview, or
-dry-run work inside an approved envelope. When long-run mode is authorized,
-Codex/Fable should not stop after every small milestone; it should continue
-until the packet is complete, the PR or PR stack is ready, validation fails in
-a way that needs judgment, or a mandatory stop boundary is reached.
+For Personal OS repo work, Codex/Fable should prefer larger bounded work
+packets over repeated micro-checkpoint loops when the work is repo-local,
+inert, testable, inside an approved scope, and docs-only, test-only,
+fake/local, read-only, report-only, no-send, preview, dry-run, or otherwise
+non-live. In those conditions, Codex/Fable may complete multiple approved
+repo-local substeps before returning.
 
-Codex/Fable must stop before live rails, credentials/secrets/OAuth/API
-keys/tokens, production DB paths, protected paths, scheduler/background/
-LaunchAgent/crontab/daemon work, OpenClaw runtime, external runtime writes,
-high-stakes execution, major product decisions, and merge approval.
+When the approved work envelope is clear and safety assertions remain clean,
+Codex/Fable should not stop after every small milestone. It should continue
+until the packet is complete, the PR or approved PR stack is ready, validation
+fails in a way that needs judgment, the scope becomes ambiguous, or a
+mandatory stop boundary is reached.
+
+Codex/Fable must stop before live Gmail/Todoist/Calendar writes,
+credential/API/OAuth/secrets/token handling, production DB activation,
+protected path access, scheduler/background/LaunchAgent/crontab/daemon/
+watcher/service changes, OpenClaw runtime handoff or invocation, external
+runtime writes, live model/API calls, high-stakes execution, major product
+direction choices, and merge approval.
+
+This protocol is not Watch Tower adoption and does not authorize `.agent/`,
+`CLAUDE.md`, runtime/operator scaffolding, OpenClaw invocation, live
+Todoist/Gmail/Calendar access, credential handling, or scheduler/background
+activation.
 
 See [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md)
 and [docs/CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md).

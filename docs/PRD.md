@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #39:
-    `983809b84368ddb419cf02257397ecba715adf1f`
-  - latest merged PR: PR #39, clean post-merge STATUS refresh after PR #37
+  - last validated main baseline after PR #40:
+    `b3453789f0f3abecbc77b266cefb70e2f6e712de`
+  - latest merged PR: PR #40, Phase 14-C candidate-review tracking choice
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -269,12 +269,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #39 and the inert
-candidate-review tracking update:
+As of this post-merge validation update after PR #40:
 
-- Last validated main baseline after PR #39:
-  `983809b84368ddb419cf02257397ecba715adf1f`
-- Latest merged PR: PR #39, clean post-merge STATUS refresh after PR #37
+- Last validated main baseline after PR #40:
+  `b3453789f0f3abecbc77b266cefb70e2f6e712de`
+- Latest merged PR: PR #40, Phase 14-C candidate-review tracking choice
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated
@@ -1165,9 +1164,9 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #39:
+Last validated main baseline after PR #40:
 
-`983809b84368ddb419cf02257397ecba715adf1f`
+`b3453789f0f3abecbc77b266cefb70e2f6e712de`
 
 Current validated state:
 

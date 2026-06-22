@@ -51,10 +51,10 @@ requires human judgment.
 
 ### Claude Code
 
-Claude Code may be used as an external auditor for larger work packets,
-especially when a packet changes shared contracts, safety policy, migrations,
-operator-facing surfaces, or a broad PR stack. Claude Code does not replace
-Chris approval and does not operate live systems.
+Claude Code may be used as an external auditor for PRs that need an
+independent repo review before merge. Claude Code fits between Codex/Fable PR
+opening and Chris merge approval. Claude Code does not replace Chris approval
+and does not operate live systems.
 
 ### OpenClaw
 
@@ -160,18 +160,112 @@ Codex/Fable may prepare branches, commits, PRs, PR stacks, validation evidence,
 and final reports when approved. Codex/Fable must not merge without explicit
 Chris approval for that merge.
 
-External audit does not approve a merge. A green suite does not approve a
-merge. A completed checklist, readiness matrix, or work packet report does not
-approve a merge.
+Claude Code audit does not approve a merge. ChatGPT audit does not approve a
+merge. A green suite does not approve a merge. A completed checklist,
+readiness matrix, or work packet report does not approve a merge.
 
-## External Audit Rule
+## Claude Code Audit Triage
 
-Large packets require an explicit audit decision before merge. The decision may
-be:
+Every PR-opening Codex/Fable final report must include:
 
-- Claude Code audit required
-- ChatGPT audit sufficient
-- Chris waives external audit for this packet
+```text
+Claude Code audit recommendation:
+Required / Recommended / Not needed
+Reason:
+...
+```
+
+If Codex/Fable says audit is not needed, it must explain why. If Codex/Fable
+says audit is required or recommended, it must stop after opening the PR and
+must not merge.
+
+The report must include the reason. If the recommendation is `Not needed`, the
+report must explain why the PR is narrow enough to skip Claude Code audit.
+
+ChatGPT triages the Claude Code audit need after Codex/Fable opens the PR. The
+triage categories are:
+
+- `Required`
+- `Recommended`
+- `Not needed`
+
+If Claude Code audit is required or recommended, the PR must not be merged
+until Claude Code audit is complete and Chris has reviewed the audit result.
+
+### Claude Code Audit Required Before Merge
+
+Claude Code audit should be required before merge for PRs that affect:
+
+- safety policy
+- readiness posture
+- live rails
+- Phase 14 or future live-pilot preparation
+- candidate selection or candidate tracking
+- Todoist/Gmail/Calendar boundaries
+- OpenClaw boundaries
+- credential, secret, OAuth, API-key, or token boundaries
+- production DB paths
+- protected paths
+- scheduler, background, LaunchAgent, crontab, daemon, watcher, or service
+  boundaries
+- live model/API-call boundaries
+- agent workflow, Codex workflow, ChatGPT workflow, or repo governance
+- broad architecture or runtime boundaries
+- high-stakes execution boundaries involving tax, legal/estate,
+  portfolio/crypto, health/medical, relationship, or external-message
+  workflows
+- test failures requiring architectural or product judgment
+- authorization wording that could be misread as approval, activation, or live
+  execution
+
+### Claude Code Audit Recommended
+
+Claude Code audit should be recommended, but not automatically required, for:
+
+- medium-sized docs/test PRs with safety-adjacent wording
+- new tests that enforce safety or workflow invariants
+- broad documentation reorganizations
+- non-runtime refactors that touch multiple policy docs
+- PRs where Chris wants an independent check before merge
+
+### Claude Code Audit Usually Not Needed
+
+Claude Code audit may be skipped for:
+
+- typo fixes
+- formatting-only changes
+- narrow checkpoint/status refreshes after already-audited work
+- small docs-only updates that do not affect safety, authorization, runtime
+  behavior, or agent workflow
+- mechanical line, hash, or status updates with clean Codex/Fable validation
+  and a clear human-review excerpt
+
+### Read-Only Audit Boundary
+
+Claude Code audits are read-only by default:
+
+- no file modifications
+- no commits
+- no pushes
+- no PR approval, close, or merge
+- no live services
+- no credentials, secrets, OAuth files, API keys, or token handling
+- no OpenClaw invocation
+- no protected path access
+
+### Examples
+
+Required: a docs/test PR that changes agent workflow, Codex workflow, ChatGPT
+workflow, safety policy, live-rail boundaries, readiness posture, candidate
+tracking, or pre-merge audit routing.
+
+Recommended: a medium-sized docs/test PR that adds safety-adjacent invariant
+tests or reorganizes multiple control-plane docs without changing
+authorization.
+
+Not needed: a typo-only PR, formatting-only PR, narrow post-merge status
+refresh after already-audited work, or mechanical hash/status update that does
+not affect safety, authorization, runtime behavior, or agent workflow.
 
 Claude Code audits are repo/PR audits only unless Chris explicitly approves a
 different narrow scope. Claude Code must not inspect protected paths, load
@@ -214,6 +308,9 @@ Final reports for work packets must include:
   scheduler/background work, OpenClaw, external writes, and protected paths
 - deviations
 - open questions
+- Claude Code audit recommendation: `Required`, `Recommended`, or
+  `Not needed`
+- reason for the Claude Code audit recommendation
 - next required human decision
 
 For PR-opening packets, final reports should include a short human-review

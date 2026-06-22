@@ -1,8 +1,10 @@
 import unittest
 
 from personalos.phase14_candidate_selection_prep import (
+    CANDIDATE_REVIEW_TRACKING_STATUS,
     blank_phase14_candidate_selection_template,
     build_phase14_candidate_selection_report,
+    phase14_cleaning_candidate_review_tracking_record,
     validate_phase14_candidate_selection_candidate,
 )
 from personalos.phase14_pilot_prep import SAFETY_POSTURE, PilotPrepStatus
@@ -29,6 +31,9 @@ class Phase14CandidateSelectionPrepTest(unittest.TestCase):
         report = build_phase14_candidate_selection_report()
 
         self.assertEqual(report["status"], PilotPrepStatus.DECISION_NEEDED.value)
+        self.assertEqual(report["candidate_record_count"], 0)
+        self.assertEqual(report["candidate_review_tracking"]["candidate_count"], 0)
+        self.assertFalse(report["candidate_review_tracking"]["exactly_one_candidate_recorded"])
         self.assertIn("No candidate records were supplied.", report["reasons"])
         self.assertFalse(report["candidate_selected"])
         self.assertTrue(report["phase13e_d_synthetic_todoist_fixture_rejected"])
@@ -184,6 +189,7 @@ class Phase14CandidateSelectionPrepTest(unittest.TestCase):
         proposed = report["candidate_proposed_for_human_review"]
 
         self.assertEqual(report["status"], PilotPrepStatus.PROPOSED_ONLY.value)
+        self.assertEqual(report["candidate_record_count"], 1)
         self.assertFalse(report["candidate_selected"])
         self.assertIsNone(report["selected_candidate"])
         self.assertIsNotNone(proposed)
@@ -199,10 +205,69 @@ class Phase14CandidateSelectionPrepTest(unittest.TestCase):
         self.assertFalse(report["live_pilot_run"])
         self.assertEqual(report["readiness"]["status"], "not_ready")
 
-    def test_live_external_and_service_flags_remain_false(self) -> None:
-        report = build_phase14_candidate_selection_report([_valid_candidate()])
+    def test_recorded_cleaning_candidate_is_review_tracking_only(self) -> None:
+        report = build_phase14_candidate_selection_report(
+            [phase14_cleaning_candidate_review_tracking_record()]
+        )
+        tracking = report["candidate_review_tracking"]
+        candidate = tracking["candidate"]
 
+        self.assertEqual(report["status"], PilotPrepStatus.PROPOSED_ONLY.value)
+        self.assertEqual(report["candidate_record_count"], 1)
+        self.assertEqual(tracking["candidate_count"], 1)
+        self.assertTrue(tracking["exactly_one_candidate_recorded"])
+        self.assertEqual(tracking["status"], CANDIDATE_REVIEW_TRACKING_STATUS)
+        self.assertEqual(candidate["candidate_name"], "Clean Kitchen Countertops and Stovetop")
+        self.assertEqual(candidate["task_title"], "Clean Kitchen Countertops and Stovetop")
+        self.assertEqual(candidate["weekday"], "Monday")
+        self.assertEqual(candidate["home_area"], "Kitchen")
+        self.assertEqual(candidate["candidate_type"], "household_cleaning_routine_task")
+        self.assertEqual(
+            candidate["candidate_scope"],
+            "one recurring self-only Todoist routine-task candidate",
+        )
+        self.assertEqual(
+            candidate["candidate_review_tracking_status"],
+            CANDIDATE_REVIEW_TRACKING_STATUS,
+        )
+        self.assertTrue(candidate["review_tracking_only"])
+        self.assertFalse(candidate["selected"])
+        self.assertFalse(candidate["approved"])
+        self.assertFalse(candidate["authorized"])
+        self.assertFalse(candidate["live_pilot_run"])
+        self.assertFalse(report["candidate_selected"])
+        self.assertFalse(report["candidate_approved"])
+        self.assertFalse(report["candidate_authorized"])
+        self.assertFalse(report["candidate_approved_for_execution"])
+        self.assertFalse(report["candidate_activated"])
+        self.assertFalse(report["live_pilot_authorized"])
+        self.assertFalse(report["live_pilot_run"])
+        self.assertTrue(report["phase14_c_blocked"])
+        self.assertEqual(report["readiness"]["status"], "not_ready")
+        self.assertTrue(report["readiness"]["inert_report_only"])
+        self.assertFalse(report["readiness"]["live_rails_activated"])
+
+    def test_live_external_and_service_flags_remain_false(self) -> None:
+        report = build_phase14_candidate_selection_report(
+            [phase14_cleaning_candidate_review_tracking_record()]
+        )
+
+        self.assertFalse(report["gmail_touched"])
         self.assertFalse(report["todoist_touched"])
+        self.assertFalse(report["calendar_touched"])
+        self.assertFalse(report["openclaw_called"])
+        self.assertFalse(report["scheduler_activated"])
+        self.assertFalse(report["background_loop_activated"])
+        self.assertFalse(report["launch_agent_installed"])
+        self.assertFalse(report["crontab_modified"])
+        self.assertFalse(report["daemon_started"])
+        self.assertFalse(report["credentials_loaded"])
+        self.assertFalse(report["credentials_read"])
+        self.assertFalse(report["production_db_path_active"])
+        self.assertFalse(report["personalos_markdown_written"])
+        self.assertFalse(report["protected_paths_touched"])
+        self.assertFalse(report["live_model_api_called"])
+        self.assertFalse(report["watch_tower_adopted_or_merged"])
         self.assertFalse(report["external_services_contacted"])
         self.assertFalse(report["external_mutation"])
         self.assertFalse(report["readiness"]["live_rails_activated"])
@@ -215,14 +280,63 @@ class Phase14CandidateSelectionPrepTest(unittest.TestCase):
         self.assertFalse(report["safety_posture"]["todoist_touched"])
         self.assertFalse(report["safety_posture"]["calendar_touched"])
 
+    def test_dynamic_cleaning_context_is_not_implemented(self) -> None:
+        report = build_phase14_candidate_selection_report(
+            [phase14_cleaning_candidate_review_tracking_record()]
+        )
+        context = report["future_dynamic_cleaning_system_context"]
+        exclusions = report["candidate_exclusions"]
+
+        self.assertTrue(context["context_only"])
+        self.assertFalse(context["implemented"])
+        self.assertEqual(context["rough_total_cleaning_task_count"], "roughly_15")
+        self.assertFalse(context["fifteen_task_imported"])
+        self.assertFalse(context["dynamic_rotation_implemented"])
+        self.assertFalse(context["automatic_skip_push_bump_implemented"])
+        self.assertFalse(context["automatic_rescheduling_implemented"])
+        self.assertFalse(context["scheduler_logic_created"])
+        self.assertFalse(context["openclaw_source_imported"])
+        self.assertIn("No 15-task import.", exclusions)
+        self.assertIn("No dynamic cleaning rotation implementation.", exclusions)
+        self.assertIn("No automatic skip/push/bump behavior.", exclusions)
+        self.assertIn("No automatic rescheduling.", exclusions)
+        self.assertIn("No OpenClaw access.", exclusions)
+        self.assertIn("No Todoist writes.", exclusions)
+        self.assertIn("No Gmail access.", exclusions)
+        self.assertIn("No Calendar access.", exclusions)
+        self.assertIn("No production DB activation.", exclusions)
+        self.assertIn("No scheduler/background activation.", exclusions)
+        self.assertIn("No live model/API calls.", exclusions)
+        self.assertIn("No Watch Tower adoption or merge.", exclusions)
+
+    def test_required_boundary_language_remains_true(self) -> None:
+        report = build_phase14_candidate_selection_report(
+            [phase14_cleaning_candidate_review_tracking_record()]
+        )
+        boundaries = report["boundary_assertions"]
+
+        self.assertTrue(boundaries["this_is_not_phase_14_c"])
+        self.assertTrue(boundaries["this_is_not_live_activation"])
+        self.assertTrue(boundaries["this_is_not_todoist_access"])
+        self.assertTrue(boundaries["this_is_not_todoist_write_authorization"])
+        self.assertTrue(boundaries["this_is_not_credential_oauth_api_token_handling"])
+        self.assertTrue(boundaries["this_is_not_candidate_approval_for_execution"])
+        self.assertFalse(boundaries["readiness_status_changed_to_ready"])
+        self.assertTrue(boundaries["phase14_c_remains_blocked"])
+        self.assertTrue(boundaries["candidate_selection_and_live_activation_remain_separate"])
+
     def test_checklist_preserves_phase_boundary(self) -> None:
         report = build_phase14_candidate_selection_report()
         checklist = "\n".join(report["preflight_checklist"])
 
-        self.assertIn("No candidate is currently selected.", checklist)
+        self.assertIn("No candidate is selected for live execution.", checklist)
         self.assertIn("Phase 13E-D synthetic Todoist fixture remains rejected.", checklist)
         self.assertIn("Phase 14-C remains blocked.", checklist)
         self.assertIn("Candidate selection does not equal live authorization.", checklist)
+        self.assertIn(
+            "A recorded candidate-review tracking candidate is not approved for execution.",
+            checklist,
+        )
         self.assertIn("Live activation requires a later explicit packet.", checklist)
 
 

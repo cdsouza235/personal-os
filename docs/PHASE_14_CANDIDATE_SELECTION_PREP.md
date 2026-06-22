@@ -1,37 +1,98 @@
 # Pre-Phase-14-C Candidate-Selection Preparation
 
-Last updated: 2026-06-20
+Last updated: 2026-06-22
 
 ## Purpose
 
 This document records an inert pre-Phase-14-C candidate-selection preparation
-packet. It prepares the repo for a later human decision where Chris can select
-exactly one future, foreground-only, self-only, low-risk Todoist routine-task
-candidate, or decide that no candidate is suitable yet.
+packet. It prepares the repo for human candidate-review tracking and later
+authorization review of exactly one future, foreground-only, self-only,
+low-risk Todoist routine-task candidate, or a later decision that no candidate
+is suitable yet.
 
-This packet does not select, approve, authorize, schedule, activate, execute,
-or run a live pilot. It does not configure credentials, read OAuth material,
-create Todoist tasks, touch Gmail, touch Calendar, write PersonalOS Markdown,
-activate production SQLite, start a scheduler or background process, call
-OpenClaw, call live model/API providers, contact external services, or perform
-external writes.
+The 2026-06-22 human review outcome records one candidate for
+candidate-review tracking only. This packet does not approve, authorize,
+schedule, activate, execute, or run a live pilot. It does not configure
+credentials, read OAuth material, create Todoist tasks, touch Gmail, touch
+Calendar, write PersonalOS Markdown, activate production SQLite, start a
+scheduler or background process, call OpenClaw, call live model/API providers,
+contact external services, or perform external writes.
 
 ## Current Decision State
 
-- Candidate selected: none.
+- Candidate review-tracking record: exactly one.
+- Candidate: Clean Kitchen Countertops and Stovetop.
+- Task title: Clean Kitchen Countertops and Stovetop.
+- Weekday: Monday.
+- Area of home: Kitchen.
+- Candidate type: household cleaning routine task.
+- Scope: one recurring self-only Todoist routine-task candidate.
+- Candidate review-tracking status: selected for candidate-review tracking
+  only.
+- Candidate selected for live execution: no.
 - Candidate approved: no.
+- Candidate activated: no.
 - Live pilot authorized: no.
 - Live pilot run: no.
 - Phase 14-C: blocked.
 - Phase 13E-D synthetic Todoist fixture: rejected as a live-pilot candidate.
-- Required human decision: Chris must later select exactly one candidate or
-  decide that no candidate is suitable.
+- Required future human decision: Chris must later approve or reject this
+  candidate for a separate authorization packet, or decide that no candidate is
+  suitable.
 
-Candidate selection and live activation are separate decisions. Selecting a
-candidate in a later packet would not authorize a live Todoist write. Live
-activation requires a later explicit packet with readiness, approval,
-credential-label, idempotency, ledger, completion-report, stop-condition, and
-rollback evidence.
+Candidate selection and live activation are separate decisions. Recording this
+candidate for candidate-review tracking does not authorize a live Todoist
+write. Live activation requires a later explicit packet with readiness,
+approval, credential-label, idempotency, ledger, completion-report,
+stop-condition, and rollback evidence.
+
+## Boundary Assertions
+
+- This is not Phase 14-C.
+- This is not live activation.
+- This is not Todoist access.
+- This is not Todoist write authorization.
+- This is not credential, OAuth, API-key, or token handling.
+- This is not candidate approval for execution.
+- This does not change `readiness.status` to `ready`.
+- Phase 14-C remains blocked.
+- Candidate selection and live activation remain separate future decisions.
+
+## Future Dynamic Cleaning Context
+
+The recorded candidate represents one task from a possible future dynamic
+cleaning system. That concept remains future design context only:
+
+- A weekday household cleaning rotation.
+- Roughly 15 total cleaning tasks.
+- Tasks organized by area of the home.
+- One specific task per day, Monday through Friday.
+- Missed-task options may eventually include skip, push to the following day
+  and allow two tasks in one day, or push to the following day and bump future
+  tasks by one day.
+
+No dynamic cleaning system is implemented here.
+
+## Explicit Exclusions
+
+- No 15-task import.
+- No dynamic cleaning rotation implementation.
+- No automatic skip/push/bump behavior.
+- No automatic rescheduling.
+- No OpenClaw access.
+- No OpenClaw invocation.
+- No Todoist access.
+- No Todoist writes.
+- No Gmail access.
+- No Calendar access.
+- No credentials, secrets, OAuth, API keys, or tokens.
+- No production DB activation.
+- No scheduler/background activation.
+- No LaunchAgent, crontab, daemon, watcher, or service changes.
+- No protected path access.
+- No external PersonalOS runtime writes.
+- No live model/API calls.
+- No Watch Tower adoption or merge.
 
 ## Minimum Candidate Criteria
 
@@ -94,6 +155,9 @@ reports and templates:
 
 - `blank_phase14_candidate_selection_template` returns the fail-closed blank
   template.
+- `phase14_cleaning_candidate_review_tracking_record` returns the inert
+  human-selected candidate-review tracking record for Clean Kitchen
+  Countertops and Stovetop.
 - `validate_phase14_candidate_selection_candidate` validates one human-review
   candidate without selecting or authorizing it.
 - `build_phase14_candidate_selection_report` evaluates zero, one, or multiple
@@ -112,7 +176,8 @@ The validator fails closed:
 - Scheduler, background, OpenClaw, protected-path, Gmail, Calendar, or external
   dependency: `blocked`.
 - High-stakes or sensitive domain: `blocked`.
-- Exactly one well-formed inert candidate: `proposed_only`, not selected, not
+- Exactly one well-formed inert candidate: `proposed_only`, recorded for
+  candidate-review tracking only, not selected for live execution, not
   approved, not authorized, and not live.
 
 The validator has no Todoist client, no credential plumbing, no API call path,

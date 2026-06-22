@@ -131,16 +131,18 @@ any live attempt requires a later explicit Chris approval packet.
 ## Pre-Phase-14-C Candidate-Selection Boundary
 
 Pre-Phase-14-C candidate-selection preparation may define an inert
-candidate-selection process, blank candidate template, and fail-closed
-validator only. The planning/evidence document is
+candidate-selection process, blank candidate template, fail-closed validator,
+and candidate-review tracking record only. The planning/evidence document is
 [PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md).
 
-Candidate-selection preparation must not select, approve, authorize, schedule,
-activate, execute, or run a live pilot. It must not create a live Todoist task,
-configure credentials, activate production SQLite, start schedulers or
-background processes, call OpenClaw, call live model/API providers, contact
-external services, perform external writes, or inspect protected paths.
-Selecting a candidate and approving live activation remain separate later
+Candidate-selection preparation may record a human-selected candidate for
+candidate-review tracking only. It must not select a candidate for live
+execution, approve, authorize, schedule, activate, execute, or run a live
+pilot. It must not create a live Todoist task, configure credentials, activate
+production SQLite, start schedulers or background processes, call OpenClaw,
+call live model/API providers, contact external services, perform external
+writes, or inspect protected paths. Candidate-review tracking, candidate
+approval for execution, and approving live activation remain separate later
 Chris decisions.
 
 ## High-Stakes Domains

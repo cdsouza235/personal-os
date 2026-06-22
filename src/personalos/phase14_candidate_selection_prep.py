@@ -12,6 +12,7 @@ from personalos.phase14_pilot_prep import SAFETY_POSTURE, PilotPrepStatus
 PHASE14_CANDIDATE_SELECTION_SCHEMA_VERSION = "phase14_candidate_selection_prep.v1"
 PACKET_NAME = "pre-Phase-14-C candidate-selection preparation"
 PHASE_LABEL = "pre-Phase-14-C candidate-selection preparation"
+CANDIDATE_REVIEW_TRACKING_STATUS = "selected_for_candidate_review_tracking_only"
 
 REQUIRED_TEXT_FIELDS: tuple[str, ...] = (
     "candidate_label",
@@ -33,6 +34,18 @@ REQUIRED_CONFIRMATION_FIELDS: tuple[str, ...] = (
     "no_protected_path_interaction_confirmation",
     "no_scheduler_background_or_openclaw_confirmation",
     "safe_to_dry_run_inertly_confirmation",
+)
+
+OPTIONAL_REVIEW_TRACKING_FIELDS: tuple[str, ...] = (
+    "candidate_name",
+    "task_title",
+    "weekday",
+    "home_area",
+    "area_of_home",
+    "candidate_type",
+    "candidate_scope",
+    "candidate_review_tracking_status",
+    "review_tracking_only",
 )
 
 PROHIBITED_LIVE_FIELDS: tuple[str, ...] = (
@@ -175,6 +188,67 @@ def blank_phase14_candidate_selection_template() -> dict[str, Any]:
     }
 
 
+def phase14_cleaning_candidate_review_tracking_record() -> dict[str, Any]:
+    """Return the inert human-selected candidate-review tracking record."""
+    return {
+        "schema_version": PHASE14_CANDIDATE_SELECTION_SCHEMA_VERSION,
+        "packet_name": PACKET_NAME,
+        "candidate_label": "clean-kitchen-countertops-and-stovetop",
+        "candidate_name": "Clean Kitchen Countertops and Stovetop",
+        "task_title": "Clean Kitchen Countertops and Stovetop",
+        "weekday": "Monday",
+        "home_area": "Kitchen",
+        "area_of_home": "Kitchen",
+        "candidate_type": "household_cleaning_routine_task",
+        "candidate_scope": "one recurring self-only Todoist routine-task candidate",
+        "candidate_review_tracking_status": CANDIDATE_REVIEW_TRACKING_STATUS,
+        "review_tracking_only": True,
+        "routine_task_description": (
+            "Clean Kitchen Countertops and Stovetop as one future self-only "
+            "household cleaning routine task."
+        ),
+        "intended_future_window": (
+            "A future Monday only after a separate explicit authorization packet."
+        ),
+        "self_only_reason": (
+            "The candidate is a self-only household cleaning routine for Chris."
+        ),
+        "low_risk_reason": (
+            "Cleaning kitchen surfaces is low-risk, local to the home, and reversible."
+        ),
+        "foreground_only_reason": (
+            "Any later Todoist write would require a separate explicit foreground "
+            "authorization packet."
+        ),
+        "future_only_reason": (
+            "The candidate is for a future recurring Monday routine task, not a "
+            "past or immediate action."
+        ),
+        "no_sensitive_domain_confirmation": True,
+        "no_external_dependency_confirmation": True,
+        "no_gmail_or_calendar_dependency_confirmation": True,
+        "no_credentials_or_live_ids_confirmation": True,
+        "no_protected_path_interaction_confirmation": True,
+        "no_scheduler_background_or_openclaw_confirmation": True,
+        "safe_to_dry_run_inertly_confirmation": True,
+        "abort_criteria": (
+            "Abort if live Todoist access, credentials, scheduler/background work, "
+            "OpenClaw, protected paths, external writes, or dynamic rotation logic "
+            "would be required."
+        ),
+        "evidence_required_before_live_authorization": (
+            "A later explicit Phase 14-C authorization packet with readiness, "
+            "approval, credential-label, idempotency, ledger, completion-report, "
+            "stop-condition, and rollback evidence."
+        ),
+        "selected": False,
+        "approved": False,
+        "authorized": False,
+        "live_pilot_run": False,
+        "readiness.status": "not_ready",
+    }
+
+
 def build_phase14_candidate_selection_report(
     candidate_records: Sequence[Mapping[str, Any]] | None = None,
     *,
@@ -196,6 +270,8 @@ def build_phase14_candidate_selection_report(
         "packet_name": PACKET_NAME,
         "phase_label": PHASE_LABEL,
         "status": status.value,
+        "candidate_record_count": len(candidates),
+        "candidate_review_tracking": _candidate_review_tracking(accepted),
         "candidate_selected": False,
         "selected_candidate": None,
         "candidate_proposed_for_human_review": proposed_candidate,
@@ -203,11 +279,31 @@ def build_phase14_candidate_selection_report(
         "candidate_authorized": False,
         "live_pilot_authorized": False,
         "live_pilot_run": False,
+        "candidate_approved_for_execution": False,
+        "candidate_activated": False,
         "phase14_c_blocked": True,
         "selection_is_not_live_authorization": True,
         "activation_requires_later_packet": True,
+        "boundary_assertions": _boundary_assertions(),
+        "future_dynamic_cleaning_system_context": _future_dynamic_cleaning_system_context(),
+        "candidate_exclusions": _candidate_exclusions(),
         "phase13e_d_synthetic_todoist_fixture_rejected": True,
+        "gmail_touched": False,
         "todoist_touched": False,
+        "calendar_touched": False,
+        "openclaw_called": False,
+        "scheduler_activated": False,
+        "background_loop_activated": False,
+        "launch_agent_installed": False,
+        "crontab_modified": False,
+        "daemon_started": False,
+        "credentials_loaded": False,
+        "credentials_read": False,
+        "production_db_path_active": False,
+        "personalos_markdown_written": False,
+        "protected_paths_touched": False,
+        "live_model_api_called": False,
+        "watch_tower_adopted_or_merged": False,
         "external_services_contacted": False,
         "external_mutation": False,
         "readiness": {
@@ -231,7 +327,7 @@ def build_phase14_candidate_selection_report(
 def validate_phase14_candidate_selection_candidate(
     candidate: Mapping[str, Any] | None,
 ) -> CandidateSelectionValidation:
-    """Validate a human-review candidate without selecting or authorizing it."""
+    """Validate a human-review candidate without selecting it for live execution."""
     if candidate is None:
         return CandidateSelectionValidation(
             status=PilotPrepStatus.DECISION_NEEDED,
@@ -278,6 +374,11 @@ def validate_phase14_candidate_selection_candidate(
         "live_pilot_run": False,
         "readiness.status": "not_ready",
     }
+    for field in OPTIONAL_REVIEW_TRACKING_FIELDS:
+        value = candidate.get(field)
+        if not _present(value):
+            continue
+        normalized_candidate[field] = value if isinstance(value, bool) else str(value).strip()
     return CandidateSelectionValidation(
         status=PilotPrepStatus.PROPOSED_ONLY,
         accepted_for_human_review=True,
@@ -286,7 +387,8 @@ def validate_phase14_candidate_selection_candidate(
             "Candidate has the required inert selection fields.",
             "Candidate is Todoist routine-task oriented, self-only, low-risk, "
             "future-only, and foreground-only by explicit rationale.",
-            "Candidate is proposed only; it is not selected, approved, authorized, or live.",
+            "Candidate is proposed only; it is not selected for live execution, "
+            "approved, authorized, or live.",
         ),
         normalized_candidate=normalized_candidate,
     )
@@ -299,10 +401,11 @@ def render_phase14_candidate_selection_checklist(
 ) -> list[str]:
     return [
         f"Phase label: {PHASE_LABEL}",
-        "No candidate is currently selected.",
+        "No candidate is selected for live execution.",
         "Phase 13E-D synthetic Todoist fixture remains rejected.",
         "Phase 14-C remains blocked.",
         "Candidate selection does not equal live authorization.",
+        "A recorded candidate-review tracking candidate is not approved for execution.",
         "Candidate approval and live activation approval are separate decisions.",
         "Live activation requires a later explicit packet.",
         f"Selection preparation status: {status.value}",
@@ -312,6 +415,32 @@ def render_phase14_candidate_selection_checklist(
         "production DB, external writes, and live model/API rails remain blocked.",
         "Decision reasons: " + "; ".join(reasons),
     ]
+
+
+def _candidate_review_tracking(
+    accepted: Sequence[CandidateSelectionValidation],
+) -> dict[str, Any]:
+    candidates = [
+        dict(validation.normalized_candidate or {})
+        for validation in accepted
+        if validation.normalized_candidate is not None
+    ]
+    exactly_one = len(candidates) == 1
+    return {
+        "status": (
+            CANDIDATE_REVIEW_TRACKING_STATUS
+            if exactly_one
+            else "decision_needed"
+        ),
+        "candidate_count": len(candidates),
+        "exactly_one_candidate_recorded": exactly_one,
+        "candidate": candidates[0] if exactly_one else None,
+        "candidates": candidates,
+        "candidate_selection_for_execution": False,
+        "candidate_approval_for_execution": False,
+        "candidate_activation": False,
+        "live_todoist_write_authorized": False,
+    }
 
 
 def _selection_report_result(
@@ -364,6 +493,65 @@ def _selection_report_result(
         None,
         _dedupe(reason for validation in validations for reason in validation.reasons),
     )
+
+
+def _boundary_assertions() -> dict[str, bool]:
+    return {
+        "this_is_not_phase_14_c": True,
+        "this_is_not_live_activation": True,
+        "this_is_not_todoist_access": True,
+        "this_is_not_todoist_write_authorization": True,
+        "this_is_not_credential_oauth_api_token_handling": True,
+        "this_is_not_candidate_approval_for_execution": True,
+        "readiness_status_changed_to_ready": False,
+        "phase14_c_remains_blocked": True,
+        "candidate_selection_and_live_activation_remain_separate": True,
+    }
+
+
+def _future_dynamic_cleaning_system_context() -> dict[str, Any]:
+    return {
+        "context_only": True,
+        "implemented": False,
+        "weekday_household_cleaning_rotation": "future_design_context_only",
+        "rough_total_cleaning_task_count": "roughly_15",
+        "tasks_organized_by_home_area": "future_design_context_only",
+        "one_task_per_day_monday_through_friday": "future_design_context_only",
+        "missed_task_options_under_consideration": [
+            "skip",
+            "push_to_following_day_and_allow_two_tasks_in_one_day",
+            "push_to_following_day_and_bump_future_tasks_by_one_day",
+        ],
+        "fifteen_task_imported": False,
+        "dynamic_rotation_implemented": False,
+        "automatic_skip_push_bump_implemented": False,
+        "automatic_rescheduling_implemented": False,
+        "scheduler_logic_created": False,
+        "openclaw_source_imported": False,
+    }
+
+
+def _candidate_exclusions() -> list[str]:
+    return [
+        "No 15-task import.",
+        "No dynamic cleaning rotation implementation.",
+        "No automatic skip/push/bump behavior.",
+        "No automatic rescheduling.",
+        "No OpenClaw access.",
+        "No OpenClaw invocation.",
+        "No Todoist access.",
+        "No Todoist writes.",
+        "No Gmail access.",
+        "No Calendar access.",
+        "No credentials, secrets, OAuth, API keys, or tokens.",
+        "No production DB activation.",
+        "No scheduler/background activation.",
+        "No LaunchAgent, crontab, daemon, watcher, or service changes.",
+        "No protected path access.",
+        "No external PersonalOS runtime writes.",
+        "No live model/API calls.",
+        "No Watch Tower adoption or merge.",
+    ]
 
 
 def _blocked_candidate_reasons(candidate: Mapping[str, Any]) -> list[str]:
@@ -443,8 +631,9 @@ def _human_decision_needed(
 ) -> str:
     if proposed_candidate is not None:
         return (
-            "Chris may later select this one proposed-only candidate or decide no "
-            "candidate is ready; either choice requires a separate packet."
+            "Chris may later approve or reject this one proposed-only candidate, "
+            "or decide no candidate is ready; either choice requires a separate "
+            "packet."
         )
     if status is PilotPrepStatus.BLOCKED:
         return (

@@ -1,29 +1,32 @@
 # Personal OS Status
 
-Last updated: 2026-06-20
+Last updated: 2026-06-22
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #37:
-  `2382d454d9168701c5b5001d9f8ea1c595a4a51d`
-- Latest merged PR at that baseline: PR #37, pre-Phase-14-C
-  candidate-selection preparation
+- Last validated main baseline after PR #39:
+  `983809b84368ddb419cf02257397ecba715adf1f`
+- Latest merged PR at that baseline: PR #39, clean post-merge STATUS refresh
+  after PR #37
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
-  implemented on `main` as inert process/template/validator scaffolding
+  implemented on `main` as inert process/template/validator scaffolding; this
+  repo-local update records the human candidate-review tracking outcome
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
-  pre-Phase-14-C candidate-selection preparation on `main`
-- Current / next phase: candidate-selection process prepared; Phase 14-C live
-  pilot remains blocked pending explicit candidate selection and approval
+  pre-Phase-14-C candidate-selection preparation on `main`, plus one future
+  Todoist candidate recorded for candidate-review tracking only
+- Current / next phase: candidate-review tracking outcome recorded; Phase 14-C
+  live pilot remains blocked pending separate candidate approval and live
+  authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
 
 ## Validated State
 
-- Full suite: 481 tests OK
-- ResourceWarning-sensitive suite: 481 tests OK
+- Full suite: 484 tests OK
+- ResourceWarning-sensitive suite: 484 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
-- Targeted pre-Phase-14-C candidate-selection prep suite: 12 tests OK
+- Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -37,7 +40,13 @@ Last updated: 2026-06-20
 - Phase 14-A/B candidate handling: human selection required before any future
   live authorization packet
 - Pre-Phase-14-C candidate-selection preparation: process/template/validator
-  added and post-merge validated; no real Todoist candidate selected
+  added and post-merge validated
+- Phase 14-C candidate-review tracking outcome: exactly one future Todoist
+  candidate recorded, `Clean Kitchen Countertops and Stovetop`, Monday,
+  Kitchen, household cleaning routine task, selected for candidate-review
+  tracking only
+- Phase 14-C candidate approval: no candidate approved, authorized, activated,
+  or run
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -61,10 +70,12 @@ Last updated: 2026-06-20
 ## Current Posture
 
 Personal OS remains inert, no-send, and report-only. Phase 14-A/B preparation
-does not authorize or run a live pilot. Local repo work may read and edit repo
-code, tests, migrations, and Markdown docs inside the approved phase scope.
-Dev/test SQLite work must use explicit safe paths and must not activate
-production runtime state.
+does not authorize or run a live pilot. The recorded Phase 14-C candidate is
+for candidate-review tracking only and does not authorize Todoist access,
+Todoist writes, live activation, credential handling, or execution. Local repo
+work may read and edit repo code, tests, migrations, and Markdown docs inside
+the approved phase scope. Dev/test SQLite work must use explicit safe paths
+and must not activate production runtime state.
 
 ## Live Rails Disabled
 
@@ -107,6 +118,8 @@ production runtime state.
 - PR #35: Phase 14-A/B first live pilot preparation.
 - PR #36: post-merge STATUS refresh after PR #35.
 - PR #37: pre-Phase-14-C candidate-selection preparation.
+- PR #38: closed/superseded post-merge refresh branch; not merged.
+- PR #39: clean post-merge STATUS refresh after PR #37.
 
 ## Known Gaps
 
@@ -119,9 +132,12 @@ production runtime state.
   inert process/template/validator scaffolding and passed post-merge
   validation.
 - No clear concrete validated Phase 13G candidate exists in repo artifacts for
-  automatic selection; human candidate selection is required before Phase 14-C.
-- No real Todoist candidate is selected by the candidate-selection preparation
-  packet.
+  automatic selection.
+- One future Todoist candidate is recorded for candidate-review tracking only:
+  `Clean Kitchen Countertops and Stovetop`, Monday, Kitchen, household
+  cleaning routine task.
+- Candidate review tracking is not candidate approval for execution, Todoist
+  access, Todoist write authorization, or live activation.
 - Phase 14 live pilot activation has not started.
 - Live rails remain intentionally disabled.
 - `STATUS.md` must continue to be updated at each substantive phase/PR boundary

@@ -6,13 +6,13 @@ Last updated: 2026-06-22
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #39:
-  `983809b84368ddb419cf02257397ecba715adf1f`
-- Latest merged PR at that baseline: PR #39, clean post-merge STATUS refresh
-  after PR #37
+- Last validated main baseline after PR #40:
+  `b3453789f0f3abecbc77b266cefb70e2f6e712de`
+- Latest merged PR at that baseline: PR #40, Phase 14-C candidate-review
+  tracking choice
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
-  implemented on `main` as inert process/template/validator scaffolding; this
-  repo-local update records the human candidate-review tracking outcome
+  implemented on `main` as inert process/template/validator scaffolding; the
+  human candidate-review tracking outcome is merged on `main`
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only
@@ -47,6 +47,7 @@ Last updated: 2026-06-22
   tracking only
 - Phase 14-C candidate approval: no candidate approved, authorized, activated,
   or run
+- PR #40 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -120,6 +121,7 @@ and must not activate production runtime state.
 - PR #37: pre-Phase-14-C candidate-selection preparation.
 - PR #38: closed/superseded post-merge refresh branch; not merged.
 - PR #39: clean post-merge STATUS refresh after PR #37.
+- PR #40: Phase 14-C candidate-review tracking choice.
 
 ## Known Gaps
 
@@ -145,7 +147,7 @@ and must not activate production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 for
   repo-local inert/testable work inside approved envelopes.
 - No OpenClaw, credentials, production DB, scheduler/background loop, external
-  runtime writes, or protected paths were used during PR #37 merge validation.
+  runtime writes, or protected paths were used during PR #40 merge validation.
 
 ## Core Docs
 

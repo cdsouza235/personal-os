@@ -15,7 +15,7 @@ plus fail-closed scaffolding, no activation. Pre-Phase-14-C
 candidate-selection preparation is implemented and post-merge validated as
 inert process/template/validator scaffolding. One future Todoist candidate,
 Clean Kitchen Countertops and Stovetop, is recorded for candidate-review
-tracking only, not approved, not authorized, and not activated.
+tracking only via PR #40, not approved, not authorized, and not activated.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -113,7 +113,7 @@ Future Phase 14 should be structured as:
 - Pre-Phase-14-C candidate-selection preparation: inert candidate-selection
   process, blank fail-closed template, and validator scaffolding, complete via
   PR #37. Clean Kitchen Countertops and Stovetop is recorded for
-  candidate-review tracking only. No Todoist candidate is approved,
+  candidate-review tracking only via PR #40. No Todoist candidate is approved,
   authorized, activated, or run.
 
 ## Historical Boundary Reference

@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #36:
-    `28332f1836db1637af36816e5ef791cdb3b858ae`
-  - latest merged PR: PR #36, post-merge STATUS refresh after PR #35
+  - last validated main baseline after PR #37:
+    `2382d454d9168701c5b5001d9f8ea1c595a4a51d`
+  - latest merged PR: PR #37, pre-Phase-14-C candidate-selection preparation
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -268,13 +268,14 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this pre-Phase-14-C candidate-selection preparation update:
+As of this post-merge validation update after PR #37:
 
-- Last validated main baseline after PR #36:
-  `28332f1836db1637af36816e5ef791cdb3b858ae`
-- Latest merged PR: PR #36, post-merge STATUS refresh after PR #35
+- Last validated main baseline after PR #37:
+  `2382d454d9168701c5b5001d9f8ea1c595a4a51d`
+- Latest merged PR: PR #37, pre-Phase-14-C candidate-selection preparation
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
-  candidate-selection preparation is implemented in the current packet
+  candidate-selection preparation is implemented on `main` and post-merge
+  validated
 - Current/next phase: candidate-selection process prepared; Phase 14-C live
   pilot remains blocked pending explicit candidate selection and approval
 - Phase 14 live pilot: not started; no pilot authorized or run
@@ -299,8 +300,8 @@ As of this pre-Phase-14-C candidate-selection preparation update:
   candidate to select automatically; human selection is required before any
   future live authorization packet
 - Pre-Phase-14-C candidate-selection preparation adds an inert
-  process/template/validator path; no real Todoist candidate is selected,
-  approved, authorized, or run
+  process/template/validator path on `main`; no real Todoist candidate is
+  selected, approved, authorized, or run
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -342,8 +343,9 @@ Completed major phases:
 - Phase 14-A/B: first live pilot preparation, proposed-only design, and
   fail-closed scaffolding. No live pilot authorized or run.
 - Pre-Phase-14-C candidate-selection preparation: inert candidate-selection
-  process, fail-closed blank template, and validator scaffolding. No Todoist
-  candidate selected and no live pilot authorized or run.
+  process, fail-closed blank template, and validator scaffolding, implemented
+  and post-merge validated via PR #37. No Todoist candidate selected and no
+  live pilot authorized or run.
 
 The next human decision is review of the candidate-selection preparation
 changes. Later, Chris must select exactly one Todoist routine-task candidate
@@ -1155,9 +1157,9 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #36:
+Last validated main baseline after PR #37:
 
-`28332f1836db1637af36816e5ef791cdb3b858ae`
+`2382d454d9168701c5b5001d9f8ea1c595a4a51d`
 
 Current validated state:
 

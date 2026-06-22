@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-06-20
+Last updated: 2026-06-22
 
 [../STATUS.md](../STATUS.md) is the canonical current phase snapshot. This
 roadmap records phase history and near-term sequencing; it should not be the
@@ -13,7 +13,9 @@ and post-merge validated. Phase 14-A/B preparation is implemented and
 post-merge validated as an inert control-plane packet: first live pilot design
 plus fail-closed scaffolding, no activation. Pre-Phase-14-C
 candidate-selection preparation is implemented and post-merge validated as
-inert process/template/validator scaffolding, with no candidate selected.
+inert process/template/validator scaffolding. One future Todoist candidate,
+Clean Kitchen Countertops and Stovetop, is recorded for candidate-review
+tracking only, not approved, not authorized, and not activated.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -30,8 +32,8 @@ activate, schedule, or run a live pilot.
 
 Phase 14-C live pilot work is future work and is blocked until Chris
 explicitly approves design, scope, readiness evidence, and the narrow live rail
-or pilot being considered. A candidate-selection decision remains separate
-from live activation.
+or pilot being considered. The recorded candidate-review tracking decision
+remains separate from candidate approval for execution and live activation.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -110,7 +112,9 @@ Future Phase 14 should be structured as:
   run.
 - Pre-Phase-14-C candidate-selection preparation: inert candidate-selection
   process, blank fail-closed template, and validator scaffolding, complete via
-  PR #37. No Todoist candidate selected, approved, authorized, or run.
+  PR #37. Clean Kitchen Countertops and Stovetop is recorded for
+  candidate-review tracking only. No Todoist candidate is approved,
+  authorized, activated, or run.
 
 ## Historical Boundary Reference
 

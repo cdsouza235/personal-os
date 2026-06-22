@@ -2,7 +2,7 @@
 
 Status: Updated working draft for review
 Owner: Chris
-Updated: 2026-06-20
+Updated: 2026-06-22
 Development model: ChatGPT + Codex/Fable + OpenClaw
 Product: Personal OS
 Runtime host: Mac Mini
@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #37:
-    `2382d454d9168701c5b5001d9f8ea1c595a4a51d`
-  - latest merged PR: PR #37, pre-Phase-14-C candidate-selection preparation
+  - last validated main baseline after PR #39:
+    `983809b84368ddb419cf02257397ecba715adf1f`
+  - latest merged PR: PR #39, clean post-merge STATUS refresh after PR #37
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -41,8 +41,9 @@ Key changes from v0.1:
   plus inert fail-closed scaffolding. It does not authorize or run a live
   pilot.
 - Records pre-Phase-14-C candidate-selection preparation as inert
-  process/template/validator scaffolding. It does not select a candidate or
-  authorize live activation.
+  process/template/validator scaffolding. It records Clean Kitchen Countertops
+  and Stovetop for candidate-review tracking only and does not approve,
+  authorize, or activate live execution.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -268,19 +269,22 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #37:
+As of this post-merge validation update after PR #39 and the inert
+candidate-review tracking update:
 
-- Last validated main baseline after PR #37:
-  `2382d454d9168701c5b5001d9f8ea1c595a4a51d`
-- Latest merged PR: PR #37, pre-Phase-14-C candidate-selection preparation
+- Last validated main baseline after PR #39:
+  `983809b84368ddb419cf02257397ecba715adf1f`
+- Latest merged PR: PR #39, clean post-merge STATUS refresh after PR #37
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated
-- Current/next phase: candidate-selection process prepared; Phase 14-C live
-  pilot remains blocked pending explicit candidate selection and approval
+- Current/next phase: candidate-selection process prepared; one future
+  Todoist candidate is recorded for candidate-review tracking only; Phase 14-C
+  live pilot remains blocked pending explicit candidate approval and live
+  authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 481 tests OK
-- ResourceWarning-sensitive suite: 481 tests OK
+- Full test suite: 484 tests OK
+- ResourceWarning-sensitive suite: 484 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -300,8 +304,11 @@ As of this post-merge validation update after PR #37:
   candidate to select automatically; human selection is required before any
   future live authorization packet
 - Pre-Phase-14-C candidate-selection preparation adds an inert
-  process/template/validator path on `main`; no real Todoist candidate is
-  selected, approved, authorized, or run
+  process/template/validator path on `main`
+- Human review result recorded for future authorization review: Clean Kitchen
+  Countertops and Stovetop, Monday, Kitchen, household cleaning routine task,
+  selected for candidate-review tracking only
+- No Todoist candidate is approved, authorized, activated, or run
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -344,13 +351,13 @@ Completed major phases:
   fail-closed scaffolding. No live pilot authorized or run.
 - Pre-Phase-14-C candidate-selection preparation: inert candidate-selection
   process, fail-closed blank template, and validator scaffolding, implemented
-  and post-merge validated via PR #37. No Todoist candidate selected and no
-  live pilot authorized or run.
+  and post-merge validated via PR #37. Clean Kitchen Countertops and Stovetop
+  is recorded for candidate-review tracking only; no Todoist candidate is
+  approved, authorized, activated, or run.
 
-The next human decision is review of the candidate-selection preparation
-changes. Later, Chris must select exactly one Todoist routine-task candidate
-for a separate authorization packet, or decide that no candidate is suitable.
-This PRD update does not authorize that move.
+The next human decision is separate authorization review of the recorded
+candidate, or a decision that no candidate is suitable. This PRD update does
+not authorize that move.
 
 ## 8. Current Capability
 
@@ -1076,11 +1083,12 @@ Pre-Phase-14-C candidate-selection preparation.
 
 Purpose:
 
-- define the human candidate-selection process without selecting a candidate
+- record one future Todoist candidate for candidate-review tracking only
 - provide a blank fail-closed candidate template
 - validate candidate records as `decision_needed`, `blocked`, or
   `proposed_only`
-- keep candidate selection separate from live pilot authorization
+- keep candidate selection and candidate approval separate from live pilot
+  authorization
 - preserve no live rails, credentials, production DB, scheduler activation,
   external writes, or OpenClaw calls
 
@@ -1116,12 +1124,12 @@ V1 is acceptable only when:
 
 ## 29. Immediate Next Step
 
-The immediate human decision is review of the pre-Phase-14-C
-candidate-selection preparation changes.
+The immediate human decision after this repo-local update is separate
+authorization review of the recorded Clean Kitchen Countertops and Stovetop
+candidate, or a decision that no candidate is suitable.
 
-Later, Chris must select exactly one Todoist routine-task candidate for a
-future authorization packet, or decide that no candidate is suitable. If no
-candidate is selected, Phase 14-C remains blocked.
+Phase 14-C remains blocked unless Chris later approves a separate
+selected-candidate authorization packet.
 
 Codex/Fable must not turn Phase 14-A/B preparation into live activation.
 
@@ -1157,14 +1165,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #37:
+Last validated main baseline after PR #39:
 
-`2382d454d9168701c5b5001d9f8ea1c595a4a51d`
+`983809b84368ddb419cf02257397ecba715adf1f`
 
 Current validated state:
 
-- Full suite: 481 tests OK
-- ResourceWarning-sensitive suite: 481 tests OK
+- Full suite: 484 tests OK
+- ResourceWarning-sensitive suite: 484 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1182,13 +1190,14 @@ Current validated state:
 - Dashboard has no credential/OAuth UI
 - Phase 14-A/B preparation is proposed-only and inert
 - Pre-Phase-14-C candidate-selection preparation is proposed-only and inert
-- No concrete validated Phase 13G candidate is selected
+- Clean Kitchen Countertops and Stovetop is recorded for candidate-review
+  tracking only
+- No Todoist candidate is approved, authorized, activated, or run
 
 Next human decision:
 
-Review the pre-Phase-14-C candidate-selection preparation changes. Later,
-select exactly one Todoist routine-task candidate for a separate authorization
-packet, or decide that Phase 14-C remains blocked until a candidate is created
-or validated.
+Review whether to approve or reject the recorded candidate in a separate
+authorization packet, or decide that Phase 14-C remains blocked until a
+different candidate is created or validated.
 
 Do not authorize, activate, schedule, or run a live pilot from this packet.

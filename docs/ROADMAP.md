@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 [../STATUS.md](../STATUS.md) is the canonical current phase snapshot. This
 roadmap records phase history and near-term sequencing; it should not be the
@@ -16,6 +16,11 @@ candidate-selection preparation is implemented and post-merge validated as
 inert process/template/validator scaffolding. One future Todoist candidate,
 Clean Kitchen Countertops and Stovetop, is recorded for candidate-review
 tracking only via PR #40, not approved, not authorized, and not activated.
+The Phase 14-C candidate decision gate is documented as an inert future
+approval boundary; it does not authorize Phase 14-C, candidate execution, live
+Todoist/Gmail/Calendar access, OpenClaw, credentials, production DB,
+scheduler/background behavior, dynamic cleaning, Watch Tower adoption,
+`.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -25,6 +30,8 @@ The Phase 14-A/B preparation artifact is
 [PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md).
 The pre-Phase-14-C candidate-selection preparation artifact is
 [PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md).
+The Phase 14-C candidate decision-gate artifact is
+[PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 
@@ -34,6 +41,8 @@ Phase 14-C live pilot work is future work and is blocked until Chris
 explicitly approves design, scope, readiness evidence, and the narrow live rail
 or pilot being considered. The recorded candidate-review tracking decision
 remains separate from candidate approval for execution and live activation.
+The decision gate records evidence and wording that Chris should review before
+any future movement beyond candidate-review tracking only.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -115,6 +124,11 @@ Future Phase 14 should be structured as:
   PR #37. Clean Kitchen Countertops and Stovetop is recorded for
   candidate-review tracking only via PR #40. No Todoist candidate is approved,
   authorized, activated, or run.
+- Phase 14-C candidate decision gate: inert docs/test decision boundary for
+  future human review of the recorded candidate. No Phase 14-C approval,
+  candidate approval, execution authorization, live service access, dynamic
+  cleaning implementation, Watch Tower adoption, `.agent/`, `CLAUDE.md`, or
+  runtime/operator scaffolding.
 
 ## Historical Boundary Reference
 

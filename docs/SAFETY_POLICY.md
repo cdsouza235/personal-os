@@ -1,6 +1,6 @@
 # Safety Policy
 
-Last updated: 2026-06-18
+Last updated: 2026-06-23
 
 ## Purpose
 
@@ -134,6 +134,8 @@ Pre-Phase-14-C candidate-selection preparation may define an inert
 candidate-selection process, blank candidate template, fail-closed validator,
 and candidate-review tracking record only. The planning/evidence document is
 [PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md).
+The future human decision-gate document is
+[PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md).
 
 Candidate-selection preparation may record a human-selected candidate for
 candidate-review tracking only. It must not select a candidate for live
@@ -144,6 +146,16 @@ call live model/API providers, contact external services, perform external
 writes, or inspect protected paths. Candidate-review tracking, candidate
 approval for execution, and approving live activation remain separate later
 Chris decisions.
+
+The Phase 14-C candidate decision gate may document required future approval
+wording, pre-approval evidence, and inert decision-record templates. It must
+not approve Phase 14-C, approve or authorize the candidate, authorize
+execution, authorize Todoist/Gmail/Calendar access, invoke OpenClaw, handle
+credentials/auth, activate production DB paths, activate scheduler/background
+behavior, implement dynamic cleaning, import a 15-task cleaning list,
+implement skip/push/bump behavior, implement automatic rescheduling, adopt
+Watch Tower, add `.agent/`, add `CLAUDE.md`, or add runtime/operator
+scaffolding.
 
 ## High-Stakes Domains
 

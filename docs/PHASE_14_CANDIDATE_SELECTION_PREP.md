@@ -1,6 +1,6 @@
 # Pre-Phase-14-C Candidate-Selection Preparation
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## Purpose
 
@@ -45,6 +45,15 @@ candidate for candidate-review tracking does not authorize a live Todoist
 write. Live activation requires a later explicit packet with readiness,
 approval, credential-label, idempotency, ledger, completion-report,
 stop-condition, and rollback evidence.
+
+The follow-on decision-gate document is
+[PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md). It records future
+human approval requirements, pre-approval evidence, and inert decision-record
+templates. It does not approve Phase 14-C, approve this candidate, authorize
+execution, authorize live service access, implement dynamic cleaning, import a
+15-task cleaning list, implement skip/push/bump behavior, implement automatic
+rescheduling, adopt Watch Tower, add `.agent/`, add `CLAUDE.md`, or add
+runtime/operator scaffolding.
 
 ## Boundary Assertions
 

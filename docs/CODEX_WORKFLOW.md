@@ -101,6 +101,42 @@ Local branch creation, repo-local edits, test additions, validation runs,
 commits, PR body drafting, and PR opening are not separate human gates when
 they are already inside the approved inert packet.
 
+## Default PR Flow
+
+The normal long-run repo workflow is:
+
+1. Codex/Fable completes one larger bounded repo-local packet.
+2. Codex/Fable validates, commits, opens a PR, and includes a human-review
+   excerpt.
+3. Codex/Fable stops.
+4. ChatGPT triages Claude Code audit need as `Required`, `Recommended`, or
+   `Not needed`.
+5. If audit is required or recommended, Claude Code audits the PR before human
+   merge approval.
+6. Chris reviews the PR and any audit report.
+7. Chris approves, requests changes, or closes.
+8. Codex/Fable merges and verifies only after explicit Chris approval.
+
+If Claude Code audit is required or recommended, the PR must not be merged
+until the Claude Code audit is complete and Chris has reviewed the audit
+result. Claude Code audit does not approve a merge by itself.
+
+Codex/Fable PR-opening final reports must include:
+
+```text
+Claude Code audit recommendation:
+Required / Recommended / Not needed
+Reason:
+...
+```
+
+If Codex/Fable says audit is not needed, it must explain why. If Codex/Fable
+says audit is required or recommended, it must stop after opening the PR and
+must not merge.
+
+The report must include the reason. If the recommendation is `Not needed`, the
+report must explain why the PR is narrow enough to skip Claude Code audit.
+
 ### Acceptable Larger Packets
 
 Acceptable larger packets include:
@@ -201,6 +237,11 @@ Completion reports must include:
 Safety confirmation must state whether live rails, credentials, production DB,
 scheduler/LaunchAgents/crontab/daemons, external writes, OpenClaw calls, and
 protected runtime/personal paths were touched.
+
+Every PR-opening final report must also include a Claude Code audit
+recommendation of `Required`, `Recommended`, or `Not needed`, plus a reason.
+For a `Not needed` recommendation, Codex/Fable must explain why the PR is
+narrow enough to skip Claude Code audit.
 
 For PR-opening packets, the final report should also include a short
 human-review excerpt so Chris does not need a separate read-only extraction

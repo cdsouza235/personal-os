@@ -41,6 +41,19 @@ This protocol is not Watch Tower adoption and does not authorize `.agent/`,
 Todoist/Gmail/Calendar access, credential handling, or scheduler/background
 activation.
 
+For every PR-opening packet, Codex/Fable final reports must include a Claude
+Code audit recommendation:
+
+- `Required`
+- `Recommended`
+- `Not needed`
+
+The report must include the reason. If the recommendation is `Not needed`, the
+report must explain why the PR is narrow enough to skip Claude Code audit. If
+the recommendation is `Required` or `Recommended`, Codex/Fable must stop after
+opening the PR and must not merge. ChatGPT and Chris route the PR through any
+needed Claude Code audit before human merge approval.
+
 See [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md)
 and [docs/CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md).
 

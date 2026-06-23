@@ -6,13 +6,14 @@ Last updated: 2026-06-22
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #40:
-  `b3453789f0f3abecbc77b266cefb70e2f6e712de`
-- Latest merged PR at that baseline: PR #40, Phase 14-C candidate-review
-  tracking choice
+- Last validated main baseline after PR #43:
+  `de180e3ce34685c97b5cda403ae61e9213ffe10a`
+- Latest merged PR at that baseline: PR #43, Claude Code audit triage
+  protocol documentation
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
-  human candidate-review tracking outcome is merged on `main`
+  human candidate-review tracking outcome, long-run repo workflow protocol,
+  and Claude Code audit triage protocol are merged on `main`
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only
@@ -23,8 +24,8 @@ Last updated: 2026-06-22
 
 ## Validated State
 
-- Full suite: 484 tests OK
-- ResourceWarning-sensitive suite: 484 tests OK
+- Full suite: 491 tests OK
+- ResourceWarning-sensitive suite: 491 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Hygiene: clean
@@ -48,6 +49,9 @@ Last updated: 2026-06-22
 - Phase 14-C candidate approval: no candidate approved, authorized, activated,
   or run
 - PR #40 post-merge validation: passed
+- PR #41 post-merge STATUS refresh: merged
+- PR #42 long-run repo workflow protocol update: merged
+- PR #43 Claude Code audit triage protocol update: merged
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -122,6 +126,9 @@ and must not activate production runtime state.
 - PR #38: closed/superseded post-merge refresh branch; not merged.
 - PR #39: clean post-merge STATUS refresh after PR #37.
 - PR #40: Phase 14-C candidate-review tracking choice.
+- PR #41: post-merge STATUS refresh after PR #40.
+- PR #42: codify long-run repo workflow protocol.
+- PR #43: codify Claude Code audit triage protocol.
 
 ## Known Gaps
 
@@ -144,10 +151,12 @@ and must not activate production runtime state.
 - Live rails remain intentionally disabled.
 - `STATUS.md` must continue to be updated at each substantive phase/PR boundary
   after merge validation.
-- Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 for
-  repo-local inert/testable work inside approved envelopes.
-- No OpenClaw, credentials, production DB, scheduler/background loop, external
-  runtime writes, or protected paths were used during PR #40 merge validation.
+- Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 and
+  Claude Code audit triage guidance for repo-local inert/testable work inside
+  approved envelopes.
+- PR #41, PR #42, and PR #43 do not authorize OpenClaw, credentials,
+  production DB, scheduler/background loop, external runtime writes, protected
+  path access, Phase 14-C activation, or candidate execution.
 
 ## Core Docs
 

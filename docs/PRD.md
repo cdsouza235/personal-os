@@ -22,9 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #40:
-    `b3453789f0f3abecbc77b266cefb70e2f6e712de`
-  - latest merged PR: PR #40, Phase 14-C candidate-review tracking choice
+  - last validated main baseline after PR #43:
+    `de180e3ce34685c97b5cda403ae61e9213ffe10a`
+  - latest merged PR: PR #43, Claude Code audit triage protocol
+    documentation
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -269,21 +270,23 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #40:
+As of this post-merge validation update after PR #43:
 
-- Last validated main baseline after PR #40:
-  `b3453789f0f3abecbc77b266cefb70e2f6e712de`
-- Latest merged PR: PR #40, Phase 14-C candidate-review tracking choice
+- Last validated main baseline after PR #43:
+  `de180e3ce34685c97b5cda403ae61e9213ffe10a`
+- Latest merged PR: PR #43, Claude Code audit triage protocol
+  documentation
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
-  validated
+  validated; long-run repo workflow and Claude Code audit triage protocols are
+  codified in repo docs
 - Current/next phase: candidate-selection process prepared; one future
   Todoist candidate is recorded for candidate-review tracking only; Phase 14-C
   live pilot remains blocked pending explicit candidate approval and live
   authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 484 tests OK
-- ResourceWarning-sensitive suite: 484 tests OK
+- Full test suite: 491 tests OK
+- ResourceWarning-sensitive suite: 491 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -1164,14 +1167,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #40:
+Last validated main baseline after PR #43:
 
-`b3453789f0f3abecbc77b266cefb70e2f6e712de`
+`de180e3ce34685c97b5cda403ae61e9213ffe10a`
 
 Current validated state:
 
-- Full suite: 484 tests OK
-- ResourceWarning-sensitive suite: 484 tests OK
+- Full suite: 491 tests OK
+- ResourceWarning-sensitive suite: 491 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git

@@ -2,7 +2,7 @@
 
 Status: Updated working draft for review
 Owner: Chris
-Updated: 2026-06-22
+Updated: 2026-06-23
 Development model: ChatGPT + Codex/Fable + OpenClaw
 Product: Personal OS
 Runtime host: Mac Mini
@@ -22,10 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #43:
-    `de180e3ce34685c97b5cda403ae61e9213ffe10a`
-  - latest merged PR: PR #43, Claude Code audit triage protocol
-    documentation
+  - last validated main baseline after PR #44:
+    `27e05f977542c5f00409c7811e480139a08cabe0`
+  - latest merged PR: PR #44, post-PR-43 checkpoint refresh
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -45,6 +44,11 @@ Key changes from v0.1:
   process/template/validator scaffolding. It records Clean Kitchen Countertops
   and Stovetop for candidate-review tracking only and does not approve,
   authorize, or activate live execution.
+- Records the Phase 14-C candidate decision gate as inert docs/test-only
+  future approval criteria. It does not approve Phase 14-C, approve the
+  candidate, authorize execution, authorize live service access, implement
+  dynamic cleaning, adopt Watch Tower, add `.agent/`, add `CLAUDE.md`, or add
+  runtime/operator scaffolding.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -270,23 +274,23 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #43:
+As of this repo-local update after PR #44:
 
-- Last validated main baseline after PR #43:
-  `de180e3ce34685c97b5cda403ae61e9213ffe10a`
-- Latest merged PR: PR #43, Claude Code audit triage protocol
-  documentation
+- Last validated main baseline after PR #44:
+  `27e05f977542c5f00409c7811e480139a08cabe0`
+- Latest merged PR: PR #44, post-PR-43 checkpoint refresh
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
   codified in repo docs
 - Current/next phase: candidate-selection process prepared; one future
-  Todoist candidate is recorded for candidate-review tracking only; Phase 14-C
-  live pilot remains blocked pending explicit candidate approval and live
-  authorization
+  Todoist candidate is recorded for candidate-review tracking only; the
+  Phase 14-C candidate decision gate records future approval requirements;
+  Phase 14-C live pilot remains blocked pending explicit candidate approval
+  and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 491 tests OK
-- ResourceWarning-sensitive suite: 491 tests OK
+- Full test suite: 495 tests OK
+- ResourceWarning-sensitive suite: 495 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -311,6 +315,9 @@ As of this post-merge validation update after PR #43:
   Countertops and Stovetop, Monday, Kitchen, household cleaning routine task,
   selected for candidate-review tracking only
 - No Todoist candidate is approved, authorized, activated, or run
+- Phase 14-C candidate decision-gate documentation is
+  [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md). It is an inert
+  approval boundary and evidence checklist only.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -356,6 +363,14 @@ Completed major phases:
   and post-merge validated via PR #37. Clean Kitchen Countertops and Stovetop
   is recorded for candidate-review tracking only; no Todoist candidate is
   approved, authorized, activated, or run.
+- Phase 14-C candidate decision gate: inert docs/test-only future decision
+  boundary for reviewing the recorded candidate. It does not approve Phase
+  14-C, approve the candidate, authorize execution, authorize live
+  Todoist/Gmail/Calendar access, invoke OpenClaw, handle credentials/auth,
+  activate production DB, activate scheduler/background behavior, implement
+  dynamic cleaning, import a 15-task cleaning list, implement skip/push/bump
+  behavior, implement automatic rescheduling, adopt Watch Tower, add
+  `.agent/`, add `CLAUDE.md`, or add runtime/operator scaffolding.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1081,7 +1096,7 @@ validator scaffolding for a later human decision.
 
 ### Current Recommended Phase
 
-Pre-Phase-14-C candidate-selection preparation.
+Pre-Phase-14-C candidate decision-gate review.
 
 Purpose:
 
@@ -1089,6 +1104,8 @@ Purpose:
 - provide a blank fail-closed candidate template
 - validate candidate records as `decision_needed`, `blocked`, or
   `proposed_only`
+- preserve an explicit Phase 14-C candidate decision gate in
+  [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md)
 - keep candidate selection and candidate approval separate from live pilot
   authorization
 - preserve no live rails, credentials, production DB, scheduler activation,
@@ -1099,7 +1116,8 @@ Purpose:
 Phase 14-C - first live pilot activation.
 
 Phase 14-C requires a separate selected-candidate authorization packet and
-explicit Chris approval.
+explicit Chris approval. The decision gate documents the required evidence and
+wording for that future decision; it does not itself authorize the decision.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1126,9 +1144,10 @@ V1 is acceptable only when:
 
 ## 29. Immediate Next Step
 
-The immediate human decision after this repo-local update is separate
-authorization review of the recorded Clean Kitchen Countertops and Stovetop
-candidate, or a decision that no candidate is suitable.
+The immediate human decision after this repo-local update is whether to use
+[PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md) for a later explicit
+review of the recorded Clean Kitchen Countertops and Stovetop candidate, or
+to reject/defer the candidate and keep Phase 14-C blocked.
 
 Phase 14-C remains blocked unless Chris later approves a separate
 selected-candidate authorization packet.
@@ -1167,14 +1186,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #43:
+Last validated main baseline after PR #44:
 
-`de180e3ce34685c97b5cda403ae61e9213ffe10a`
+`27e05f977542c5f00409c7811e480139a08cabe0`
 
 Current validated state:
 
-- Full suite: 491 tests OK
-- ResourceWarning-sensitive suite: 491 tests OK
+- Full suite: 495 tests OK
+- ResourceWarning-sensitive suite: 495 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1195,6 +1214,8 @@ Current validated state:
 - Clean Kitchen Countertops and Stovetop is recorded for candidate-review
   tracking only
 - No Todoist candidate is approved, authorized, activated, or run
+- Phase 14-C candidate decision-gate documentation is inert and
+  non-authorizing
 
 Next human decision:
 

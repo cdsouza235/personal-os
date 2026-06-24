@@ -1,33 +1,34 @@
 # Personal OS Status
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #43:
-  `de180e3ce34685c97b5cda403ae61e9213ffe10a`
-- Latest merged PR at that baseline: PR #43, Claude Code audit triage
-  protocol documentation
+- Last validated main baseline after PR #44:
+  `27e05f977542c5f00409c7811e480139a08cabe0`
+- Latest merged PR at that baseline: PR #44, post-PR-43 checkpoint refresh
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
-  and Claude Code audit triage protocol are merged on `main`
+  and Claude Code audit triage protocol are merged on `main`; the Phase 14-C
+  candidate decision gate is documented as an inert future approval boundary
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only
-- Current / next phase: candidate-review tracking outcome recorded; Phase 14-C
-  live pilot remains blocked pending separate candidate approval and live
-  authorization
+- Current / next phase: candidate-review tracking outcome recorded and
+  decision-gate criteria documented; Phase 14-C live pilot remains blocked
+  pending separate candidate approval and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
 
 ## Validated State
 
-- Full suite: 491 tests OK
-- ResourceWarning-sensitive suite: 491 tests OK
+- Full suite: 495 tests OK
+- ResourceWarning-sensitive suite: 495 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
+- Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -52,6 +53,7 @@ Last updated: 2026-06-22
 - PR #41 post-merge STATUS refresh: merged
 - PR #42 long-run repo workflow protocol update: merged
 - PR #43 Claude Code audit triage protocol update: merged
+- PR #44 post-PR-43 checkpoint refresh: merged
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -77,10 +79,13 @@ Last updated: 2026-06-22
 Personal OS remains inert, no-send, and report-only. Phase 14-A/B preparation
 does not authorize or run a live pilot. The recorded Phase 14-C candidate is
 for candidate-review tracking only and does not authorize Todoist access,
-Todoist writes, live activation, credential handling, or execution. Local repo
-work may read and edit repo code, tests, migrations, and Markdown docs inside
-the approved phase scope. Dev/test SQLite work must use explicit safe paths
-and must not activate production runtime state.
+Todoist writes, live activation, credential handling, or execution. The
+Phase 14-C candidate decision gate documents future approval criteria only;
+it does not approve Phase 14-C, approve the candidate, authorize execution, or
+authorize live service access. Local repo work may read and edit repo code,
+tests, migrations, and Markdown docs inside the approved phase scope.
+Dev/test SQLite work must use explicit safe paths and must not activate
+production runtime state.
 
 ## Live Rails Disabled
 
@@ -129,6 +134,7 @@ and must not activate production runtime state.
 - PR #41: post-merge STATUS refresh after PR #40.
 - PR #42: codify long-run repo workflow protocol.
 - PR #43: codify Claude Code audit triage protocol.
+- PR #44: post-PR-43 checkpoint refresh.
 
 ## Known Gaps
 
@@ -147,6 +153,12 @@ and must not activate production runtime state.
   cleaning routine task.
 - Candidate review tracking is not candidate approval for execution, Todoist
   access, Todoist write authorization, or live activation.
+- Phase 14-C candidate decision-gate documentation records future human
+  approval requirements and review evidence only. It is not Phase 14-C
+  approval, candidate approval, candidate authorization, Todoist access,
+  dynamic cleaning implementation, OpenClaw handoff, scheduler/background
+  activation, Watch Tower adoption, `.agent/`, `CLAUDE.md`, or
+  runtime/operator scaffolding.
 - Phase 14 live pilot activation has not started.
 - Live rails remain intentionally disabled.
 - `STATUS.md` must continue to be updated at each substantive phase/PR boundary
@@ -154,7 +166,7 @@ and must not activate production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 and
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
-- PR #41, PR #42, and PR #43 do not authorize OpenClaw, credentials,
+- PR #41, PR #42, PR #43, and PR #44 do not authorize OpenClaw, credentials,
   production DB, scheduler/background loop, external runtime writes, protected
   path access, Phase 14-C activation, or candidate execution.
 
@@ -172,3 +184,4 @@ and must not activate production runtime state.
 - [docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md](docs/PHASE_13G_PRE_LIVE_READINESS_MATRIX.md)
 - [docs/PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](docs/PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md)
 - [docs/PHASE_14_CANDIDATE_SELECTION_PREP.md](docs/PHASE_14_CANDIDATE_SELECTION_PREP.md)
+- [docs/PHASE_14C_DECISION_GATE.md](docs/PHASE_14C_DECISION_GATE.md)

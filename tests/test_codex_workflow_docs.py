@@ -140,13 +140,79 @@ class CodexWorkflowDocsTest(unittest.TestCase):
             "claude code audit usually not needed",
             "typo fixes",
             "formatting-only changes",
-            "narrow checkpoint/status refreshes after already-audited work",
+            "narrow checkpoint/status refreshes that satisfy the checkpoint refresh rule after already-audited work",
             "small docs-only updates that do not affect safety, authorization, runtime behavior, or agent workflow",
             "mechanical line, hash, or status updates",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
+
+    def test_checkpoint_refresh_micro_loop_is_not_default(self) -> None:
+        agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
+        workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")
+        protocol_text = _normalized_doc_text(
+            REPO_ROOT / "docs" / "AGENT_WORK_PACKET_PROTOCOL.md"
+        )
+        status_text = _normalized_doc_text(REPO_ROOT / "STATUS.md")
+
+        shared_phrases = (
+            "post-merge verification is normally sufficient",
+            "standalone checkpoint/status refresh pr after every merge by default",
+            "fold checkpoint/status refreshes into the next substantive safe repo-local packet",
+            "prefer larger bounded packets",
+            "checkpoint refresh",
+            "docs discoverability updates",
+            "invariant test hardening",
+            "small consistency fixes",
+            "audit follow-up nits",
+            "validation/reporting updates",
+            "do not stop after every small milestone unless a real gate is reached",
+        )
+        for text in (agents_text, workflow_text, protocol_text):
+            for phrase in shared_phrases:
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, text)
+
+        status_phrases = (
+            "standalone checkpoint/status refresh prs should not be created after every merge by default",
+            "folded into the next substantive safe repo-local packet",
+            "safety/audit/governance checkpoint before further work",
+        )
+        for phrase in status_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, status_text)
+
+    def test_real_gates_include_workflow_and_phase14c_boundaries(self) -> None:
+        agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
+        workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")
+        protocol_text = _normalized_doc_text(
+            REPO_ROOT / "docs" / "AGENT_WORK_PACKET_PROTOCOL.md"
+        )
+
+        required_phrases = (
+            "human merge approval",
+            "required claude code audit",
+            "live activation",
+            "phase 14-c authorization",
+            "candidate approval",
+            "candidate authorization",
+            "candidate activation or execution",
+            "external-service access or writes",
+            "credentials/auth handling",
+            "production db activation",
+            "scheduler/background activation",
+            "openclaw invocation",
+            "protected path access",
+            "live model/api calls",
+            "dynamic cleaning implementation",
+            "high-stakes execution boundaries",
+            "test failures requiring architectural, product, safety, or workflow judgment",
+        )
+        for text in (agents_text, workflow_text, protocol_text):
+            for phrase in required_phrases:
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, text)
 
     def test_claude_code_audits_are_read_only_and_watch_tower_is_not_adopted(
         self,

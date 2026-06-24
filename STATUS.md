@@ -1,22 +1,24 @@
 # Personal OS Status
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #44:
-  `27e05f977542c5f00409c7811e480139a08cabe0`
-- Latest merged PR at that baseline: PR #44, post-PR-43 checkpoint refresh
+- Last validated main baseline after PR #45:
+  `831fde0b8950ec60577079fdb3c239d9938c893e`
+- Latest merged PR at that baseline: PR #45, Phase 14-C candidate decision
+  gate
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
-  and Claude Code audit triage protocol are merged on `main`; the Phase 14-C
-  candidate decision gate is documented as an inert future approval boundary
+  Claude Code audit triage protocol, and Phase 14-C candidate decision gate
+  are merged on `main`
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
-  Todoist candidate recorded for candidate-review tracking only
+  Todoist candidate recorded for candidate-review tracking only, plus the
+  Phase 14-C candidate decision gate on `main`
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -54,6 +56,9 @@ Last updated: 2026-06-23
 - PR #42 long-run repo workflow protocol update: merged
 - PR #43 Claude Code audit triage protocol update: merged
 - PR #44 post-PR-43 checkpoint refresh: merged
+- PR #45 Phase 14-C candidate decision gate: merged
+- PR #45 Claude Code audit: Pass
+- PR #45 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -135,6 +140,7 @@ production runtime state.
 - PR #42: codify long-run repo workflow protocol.
 - PR #43: codify Claude Code audit triage protocol.
 - PR #44: post-PR-43 checkpoint refresh.
+- PR #45: Codify Phase 14-C candidate decision gate.
 
 ## Known Gaps
 
@@ -161,14 +167,20 @@ production runtime state.
   runtime/operator scaffolding.
 - Phase 14 live pilot activation has not started.
 - Live rails remain intentionally disabled.
-- `STATUS.md` must continue to be updated at each substantive phase/PR boundary
-  after merge validation.
+- Post-merge verification is normally sufficient. Standalone checkpoint/status
+  refresh PRs should not be created after every merge by default; checkpoint
+  refreshes should usually be folded into the next substantive safe repo-local
+  packet unless stale status docs would materially mislead the next work packet,
+  block safe validation or handoff, leave a long-term stopping point unclear,
+  satisfy an explicit Chris request, or support a safety/audit/governance
+  checkpoint before further work.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 and
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
-- PR #41, PR #42, PR #43, and PR #44 do not authorize OpenClaw, credentials,
-  production DB, scheduler/background loop, external runtime writes, protected
-  path access, Phase 14-C activation, or candidate execution.
+- PR #41, PR #42, PR #43, PR #44, and PR #45 do not authorize OpenClaw,
+  credentials, production DB, scheduler/background loop, external runtime
+  writes, protected path access, Phase 14-C activation, or candidate
+  execution.
 
 ## Core Docs
 

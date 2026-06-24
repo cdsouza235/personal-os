@@ -1,6 +1,6 @@
 # Codex/Fable Workflow
 
-Last updated: 2026-06-22
+Last updated: 2026-06-24
 
 ## Required First Reads
 
@@ -59,6 +59,22 @@ repo-local substeps before returning. Codex/Fable should not stop after every
 small milestone when the approved work envelope is clear and safety assertions
 remain clean.
 
+Post-merge verification is normally sufficient. Codex/Fable must not create a
+standalone checkpoint/status refresh PR after every merge by default. A
+separate checkpoint/status refresh PR is allowed only when stale status docs
+would materially mislead the next work packet, stale checkpoint docs would block
+safe validation or handoff, the repo is being left at a longer-term stopping
+point, Chris explicitly asks for a checkpoint refresh, or a safety, audit, or
+governance change requires a canonical checkpoint before further work.
+Otherwise, fold checkpoint/status refreshes into the next substantive safe
+repo-local packet.
+
+Codex/Fable should prefer larger bounded packets that combine adjacent safe
+work, such as checkpoint refresh, docs discoverability updates, invariant test
+hardening, small consistency fixes, audit follow-up nits, and
+validation/reporting updates. Do not stop after every small milestone unless a
+real gate is reached.
+
 In long-run mode, Codex/Fable should continue until:
 
 - the packet is complete
@@ -96,6 +112,15 @@ Real gates include live rail authorization, credential or production state
 handling, protected path access, OpenClaw runtime handoff, scheduler or
 background activation, high-stakes execution, major product direction changes,
 merge approval, and judgment-heavy failures.
+
+Real gates also include human merge approval, required Claude Code audit, live
+activation, Phase 14-C authorization, candidate approval, candidate
+authorization, candidate activation or execution, external-service access or
+writes, credentials/auth handling, production DB activation,
+scheduler/background activation, OpenClaw invocation, protected path access,
+live model/API calls, dynamic cleaning implementation, high-stakes execution
+boundaries, and test failures requiring architectural, product, safety, or
+workflow judgment.
 
 Local branch creation, repo-local edits, test additions, validation runs,
 commits, PR body drafting, and PR opening are not separate human gates when
@@ -143,6 +168,7 @@ Acceptable larger packets include:
 
 - updating repo instructions plus docs plus matching documentation invariant
   tests
+- folding checkpoint/status refreshes into the next substantive safe packet
 - adding fake/local adapters with tests and safety docs
 - completing a read-only or report-only surface with validation
 - adding no-send preview behavior with fake adapters and inert fixtures

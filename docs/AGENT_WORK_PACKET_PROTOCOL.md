@@ -111,8 +111,31 @@ small milestone.
 Examples of acceptable larger packets include repo instruction updates plus
 documentation invariant tests, fake/local adapter work with inert fixtures,
 read-only or report-only surface improvements, no-send preview behavior,
-validation cleanup, and preparing, validating, committing, pushing, and
+validation cleanup, folding checkpoint/status refreshes into the next
+substantive safe packet, and preparing, validating, committing, pushing, and
 opening a PR for an approved repo-local docs/test packet.
+
+## Checkpoint Refresh Rule
+
+Post-merge verification is normally sufficient. Codex/Fable must not create a
+standalone checkpoint/status refresh PR after every merge by default. A separate
+checkpoint/status refresh PR is allowed only when:
+
+- stale status docs would materially mislead the next work packet
+- stale checkpoint docs would block safe validation or handoff
+- the repo is being left at a longer-term stopping point
+- Chris explicitly asks for a checkpoint refresh
+- a safety, audit, or governance change requires a canonical checkpoint before
+  further work
+
+Otherwise, fold checkpoint/status refreshes into the next substantive safe
+repo-local packet.
+
+Codex/Fable should prefer larger bounded packets that combine adjacent safe
+work, such as checkpoint refresh, docs discoverability updates, invariant test
+hardening, small consistency fixes, audit follow-up nits, and
+validation/reporting updates. Do not stop after every small milestone unless a
+real gate is reached.
 
 ## Mandatory Stop Boundaries
 
@@ -149,6 +172,15 @@ protected path access, OpenClaw runtime handoff or invocation,
 scheduler/background/LaunchAgent/crontab/daemon/watcher/service activation,
 high-stakes execution, major product direction choices, merge approval, and
 test failures that require architectural or product judgment.
+
+Real gates also include human merge approval, required Claude Code audit, live
+activation, Phase 14-C authorization, candidate approval, candidate
+authorization, candidate activation or execution, external-service access or
+writes, credentials/auth handling, production DB activation,
+scheduler/background activation, OpenClaw invocation, protected path access,
+live model/API calls, dynamic cleaning implementation, high-stakes execution
+boundaries, and test failures requiring architectural, product, safety, or
+workflow judgment.
 
 Local branch creation, repo-local edits, inert tests, validation runs, commits,
 PR body drafting, and PR opening are not separate human gates when they are
@@ -234,7 +266,8 @@ Claude Code audit may be skipped for:
 
 - typo fixes
 - formatting-only changes
-- narrow checkpoint/status refreshes after already-audited work
+- narrow checkpoint/status refreshes that satisfy the checkpoint refresh rule
+  after already-audited work
 - small docs-only updates that do not affect safety, authorization, runtime
   behavior, or agent workflow
 - mechanical line, hash, or status updates with clean Codex/Fable validation
@@ -263,9 +296,10 @@ Recommended: a medium-sized docs/test PR that adds safety-adjacent invariant
 tests or reorganizes multiple control-plane docs without changing
 authorization.
 
-Not needed: a typo-only PR, formatting-only PR, narrow post-merge status
-refresh after already-audited work, or mechanical hash/status update that does
-not affect safety, authorization, runtime behavior, or agent workflow.
+Not needed: a typo-only PR, formatting-only PR, narrow post-merge status refresh
+that satisfies the checkpoint refresh rule after already-audited work, or
+mechanical hash/status update that does not affect safety, authorization,
+runtime behavior, or agent workflow.
 
 Claude Code audits are repo/PR audits only unless Chris explicitly approves a
 different narrow scope. Claude Code must not inspect protected paths, load

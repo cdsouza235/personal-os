@@ -2,7 +2,7 @@
 
 Status: Updated working draft for review
 Owner: Chris
-Updated: 2026-06-23
+Updated: 2026-06-24
 Development model: ChatGPT + Codex/Fable + OpenClaw
 Product: Personal OS
 Runtime host: Mac Mini
@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #44:
-    `27e05f977542c5f00409c7811e480139a08cabe0`
-  - latest merged PR: PR #44, post-PR-43 checkpoint refresh
+  - last validated main baseline after PR #45:
+    `831fde0b8950ec60577079fdb3c239d9938c893e`
+  - latest merged PR: PR #45, Phase 14-C candidate decision gate
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -274,11 +274,12 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this repo-local update after PR #44:
+As of this post-merge validation update after PR #45:
 
-- Last validated main baseline after PR #44:
-  `27e05f977542c5f00409c7811e480139a08cabe0`
-- Latest merged PR: PR #44, post-PR-43 checkpoint refresh
+- Last validated main baseline after PR #45:
+  `831fde0b8950ec60577079fdb3c239d9938c893e`
+- Latest merged PR: PR #45, Phase 14-C candidate decision gate
+- PR #45 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -1186,9 +1187,9 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #44:
+Last validated main baseline after PR #45:
 
-`27e05f977542c5f00409c7811e480139a08cabe0`
+`831fde0b8950ec60577079fdb3c239d9938c893e`
 
 Current validated state:
 
@@ -1216,6 +1217,7 @@ Current validated state:
 - No Todoist candidate is approved, authorized, activated, or run
 - Phase 14-C candidate decision-gate documentation is inert and
   non-authorizing
+- PR #45 Claude Code audit passed with no required fixes
 
 Next human decision:
 

@@ -29,12 +29,37 @@ until the packet is complete, the PR or approved PR stack is ready, validation
 fails in a way that needs judgment, the scope becomes ambiguous, or a
 mandatory stop boundary is reached.
 
+Post-merge verification is normally sufficient. Codex/Fable must not create a
+standalone checkpoint/status refresh PR after every merge by default. A
+separate checkpoint/status refresh PR is allowed only when stale status docs
+would materially mislead the next work packet, stale checkpoint docs would block
+safe validation or handoff, the repo is being left at a longer-term stopping
+point, Chris explicitly asks for a checkpoint refresh, or a safety, audit, or
+governance change requires a canonical checkpoint before further work.
+Otherwise, fold checkpoint/status refreshes into the next substantive safe
+repo-local packet.
+
+Codex/Fable should prefer larger bounded packets that combine adjacent safe
+work, such as checkpoint refresh, docs discoverability updates, invariant test
+hardening, small consistency fixes, audit follow-up nits, and
+validation/reporting updates. Do not stop after every small milestone unless a
+real gate is reached.
+
 Codex/Fable must stop before live Gmail/Todoist/Calendar writes,
 credential/API/OAuth/secrets/token handling, production DB activation,
 protected path access, scheduler/background/LaunchAgent/crontab/daemon/
 watcher/service changes, OpenClaw runtime handoff or invocation, external
 runtime writes, live model/API calls, high-stakes execution, major product
 direction choices, and merge approval.
+
+Real gates include human merge approval, required Claude Code audit, live
+activation, Phase 14-C authorization, candidate approval, candidate
+authorization, candidate activation or execution, external-service access or
+writes, credentials/auth handling, production DB activation,
+scheduler/background activation, OpenClaw invocation, protected path access,
+live model/API calls, dynamic cleaning implementation, high-stakes execution
+boundaries, and test failures requiring architectural, product, safety, or
+workflow judgment.
 
 This protocol is not Watch Tower adoption and does not authorize `.agent/`,
 `CLAUDE.md`, runtime/operator scaffolding, OpenClaw invocation, live

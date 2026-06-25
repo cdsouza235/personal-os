@@ -69,6 +69,11 @@ live rail, credential, scheduler, protected-path, model/API, Watch Tower,
 `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flags.
 Report inert true-field matrix tests cover blocked, tracking-only,
 merge-is-not-live-authorization, and inert readiness flags.
+Contract manifest tests expose and synchronize the false-default
+decision-record schema, allowed `decision_needed` / `blocked` status set,
+prohibited field groups, report top-level shape, inert false fields, inert
+true field paths, raw decision-record echo exclusions, and non-authorization
+assertions as structured inert audit metadata.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -137,6 +142,9 @@ Report inert false-field matrix tests preserve the same boundary by checking
 top-level report flags remain false.
 Report inert true-field matrix tests preserve the same boundary by checking
 safe blocked/tracking/inert report flags remain true.
+Contract manifest tests preserve the same boundary by checking that structured
+audit metadata stays synchronized with the template, report, status, and
+blocked-field contracts without recording a decision.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -264,6 +272,8 @@ Future Phase 14 should be structured as:
   cover top-level false report flags.
   Report inert true-field matrix tests cover safe blocked/tracking/inert
   report flags.
+  Contract manifest tests cover structured schema/report/status
+  synchronization for inert audit metadata.
 
 ## Historical Boundary Reference
 

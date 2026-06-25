@@ -14,6 +14,9 @@ from personalos.phase14_pilot_prep import SAFETY_POSTURE, PilotPrepStatus
 
 
 PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION = "phase14c_candidate_decision_support.v1"
+PHASE14C_DECISION_SUPPORT_CONTRACT_SCHEMA_VERSION = (
+    "phase14c_candidate_decision_support_contract.v1"
+)
 PHASE_LABEL = "Phase 14-C candidate decision support validator"
 RECORDED_CANDIDATE = "Clean Kitchen Countertops and Stovetop"
 RECORDED_WEEKDAY = "Monday"
@@ -116,6 +119,107 @@ PROHIBITED_SECRET_FIELDS: tuple[str, ...] = (
     "todoist_api_token",
     "secret",
     "client_secret",
+)
+
+REPORT_TOP_LEVEL_FIELDS: tuple[str, ...] = (
+    "schema_version",
+    "generated_at_utc",
+    "phase_label",
+    "status",
+    "decision_record_validated_as_unfilled",
+    "human_decision_recorded",
+    "decision_option_selected",
+    "decision_option",
+    "candidate_review_tracking_only",
+    "candidate_review_tracking",
+    "phase14_c_blocked",
+    "candidate_approved",
+    "candidate_authorized",
+    "candidate_activated",
+    "candidate_run",
+    "candidate_execution_authorized",
+    "live_pilot_authorized",
+    "live_pilot_run",
+    "approval_to_merge_docs_is_not_live_authorization",
+    "gmail_touched",
+    "todoist_touched",
+    "calendar_touched",
+    "openclaw_called",
+    "scheduler_activated",
+    "background_loop_activated",
+    "launch_agent_installed",
+    "crontab_modified",
+    "daemon_started",
+    "credentials_loaded",
+    "credentials_read",
+    "production_db_path_active",
+    "personalos_markdown_written",
+    "protected_paths_touched",
+    "live_model_api_called",
+    "watch_tower_adopted_or_merged",
+    "agent_directory_created",
+    "claude_md_created",
+    "runtime_operator_scaffolding_created",
+    "external_services_contacted",
+    "external_mutation",
+    "readiness",
+    "decision_record_validation",
+    "decision_record_template",
+    "preflight_checklist",
+    "safety_posture",
+)
+
+REPORT_INERT_FALSE_FIELDS: tuple[str, ...] = (
+    "human_decision_recorded",
+    "decision_option_selected",
+    "candidate_approved",
+    "candidate_authorized",
+    "candidate_activated",
+    "candidate_run",
+    "candidate_execution_authorized",
+    "live_pilot_authorized",
+    "live_pilot_run",
+    "gmail_touched",
+    "todoist_touched",
+    "calendar_touched",
+    "openclaw_called",
+    "scheduler_activated",
+    "background_loop_activated",
+    "launch_agent_installed",
+    "crontab_modified",
+    "daemon_started",
+    "credentials_loaded",
+    "credentials_read",
+    "production_db_path_active",
+    "personalos_markdown_written",
+    "protected_paths_touched",
+    "live_model_api_called",
+    "watch_tower_adopted_or_merged",
+    "agent_directory_created",
+    "claude_md_created",
+    "runtime_operator_scaffolding_created",
+    "external_services_contacted",
+    "external_mutation",
+)
+
+REPORT_INERT_TRUE_FIELD_PATHS: tuple[str, ...] = (
+    "candidate_review_tracking_only",
+    "phase14_c_blocked",
+    "approval_to_merge_docs_is_not_live_authorization",
+    "candidate_review_tracking.exactly_one_candidate_recorded",
+    "candidate_review_tracking.candidate.review_tracking_only",
+    "readiness.inert_report_only",
+)
+
+REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT: tuple[str, ...] = (
+    "raw_decision_record",
+    "input_record",
+    "unsafe_input",
+)
+
+ALLOWED_VALIDATION_STATUS_VALUES: tuple[str, ...] = (
+    PilotPrepStatus.DECISION_NEEDED.value,
+    PilotPrepStatus.BLOCKED.value,
 )
 
 
@@ -285,6 +389,56 @@ def build_phase14c_candidate_decision_support_report(
             reasons=validation.reasons,
         ),
         "safety_posture": dict(SAFETY_POSTURE),
+    }
+
+
+def build_phase14c_candidate_decision_support_contract_manifest() -> dict[str, Any]:
+    """Return the inert schema/report contract used by audits and tests."""
+    return {
+        "schema_version": PHASE14C_DECISION_SUPPORT_CONTRACT_SCHEMA_VERSION,
+        "decision_support_schema_version": PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION,
+        "phase_label": PHASE_LABEL,
+        "allowed_validation_statuses": list(ALLOWED_VALIDATION_STATUS_VALUES),
+        "decision_record_schema": {
+            "known_fields": sorted(KNOWN_DECISION_RECORD_FIELDS),
+            "required_text_defaults": dict(REQUIRED_TEXT_DEFAULTS),
+            "required_false_fields": list(REQUIRED_FALSE_FIELDS),
+            "fillable_decision_fields": list(FILLABLE_DECISION_FIELDS),
+            "readiness_status_field": "readiness.status",
+            "readiness_status_required_value": "not_ready",
+            "raw_input_echo_fields_absent": list(REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT),
+        },
+        "blocked_field_groups": {
+            "required_false_fields": list(REQUIRED_FALSE_FIELDS),
+            "fillable_decision_fields": list(FILLABLE_DECISION_FIELDS),
+            "prohibited_live_fields": list(PROHIBITED_LIVE_FIELDS),
+            "prohibited_secret_fields": list(PROHIBITED_SECRET_FIELDS),
+        },
+        "report_contract": {
+            "top_level_fields": list(REPORT_TOP_LEVEL_FIELDS),
+            "inert_false_fields": list(REPORT_INERT_FALSE_FIELDS),
+            "inert_true_field_paths": list(REPORT_INERT_TRUE_FIELD_PATHS),
+            "raw_input_echo_fields_absent": list(REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT),
+        },
+        "non_authorization_contract": {
+            "candidate_review_tracking_only": True,
+            "phase14_c_blocked": True,
+            "readiness.status": "not_ready",
+            "inert_report_only": True,
+            "live_rails_activated": False,
+            "human_decision_recorded": False,
+            "decision_option_selected": False,
+            "candidate_approved": False,
+            "candidate_authorized": False,
+            "candidate_activated_or_run": False,
+            "live_service_access_authorized": False,
+            "credentials_auth_handling_authorized": False,
+            "production_db_activation_authorized": False,
+            "scheduler_background_activation_authorized": False,
+            "openclaw_invocation_authorized": False,
+            "protected_path_access_authorized": False,
+            "runtime_operator_scaffolding_authorized": False,
+        },
     }
 
 

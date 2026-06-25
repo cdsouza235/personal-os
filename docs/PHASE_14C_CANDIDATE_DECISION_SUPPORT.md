@@ -191,6 +191,11 @@ helper, not a runtime path.
   with `phase14_c_blocked=true`, `candidate_review_tracking_only=true`,
   `readiness.status=not_ready`, `inert_report_only=true`, and
   `live_rails_activated=false`.
+- `build_phase14c_candidate_decision_support_contract_manifest` returns an
+  inert contract manifest for audit and tests. It lists the decision-record
+  schema fields, allowed validation statuses, prohibited field groups, report
+  top-level fields, inert false fields, inert true field paths, absent raw
+  input echo fields, and non-authorization assertions.
 - `render_phase14c_candidate_decision_support_checklist` renders the same
   non-authorization boundary for review.
 
@@ -253,6 +258,16 @@ mutation flag remains false.
 Report inert true-field matrix coverage verifies that the blocked,
 tracking-only, merge-is-not-live-authorization, and inert readiness flags
 remain true.
+Contract manifest coverage verifies that the structured audit manifest stays
+synchronized with the false-default template, known schema fields, allowed
+`decision_needed` / `blocked` status set, prohibited live/API and
+credential/secret field groups, report top-level shape, inert false fields,
+inert true field paths, and raw decision-record echo exclusions. The manifest
+is audit metadata only; it does not approve, reject, defer, authorize,
+activate, execute, grant live-service access, handle credentials, touch
+production DB, activate scheduler/background behavior, invoke OpenClaw, touch
+protected paths, implement dynamic cleaning, adopt Watch Tower, add `.agent/`,
+add `CLAUDE.md`, or add runtime/operator scaffolding.
 
 ## Stop Conditions
 

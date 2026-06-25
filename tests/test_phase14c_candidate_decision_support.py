@@ -6,6 +6,8 @@ from personalos.phase14c_candidate_decision_support import (
     FILLABLE_DECISION_FIELDS,
     KNOWN_DECISION_RECORD_FIELDS,
     PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION,
+    PROHIBITED_LIVE_FIELDS,
+    PROHIBITED_SECRET_FIELDS,
     REQUIRED_FALSE_FIELDS,
     REQUIRED_TEXT_DEFAULTS,
     blank_phase14c_candidate_decision_support_record,
@@ -347,6 +349,30 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             "Decision record fills notes; recording a human decision is out of scope.",
             validation.reasons,
         )
+
+    def test_fillable_decision_field_values_do_not_echo_for_every_field(self) -> None:
+        for field in FILLABLE_DECISION_FIELDS:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-fillable-value"
+                report = build_phase14c_candidate_decision_support_report(
+                    {
+                        **blank_phase14c_candidate_decision_support_record(),
+                        field: unsafe_value,
+                    }
+                )
+
+                serialized_report = json.dumps(report, sort_keys=True)
+                validation = report["decision_record_validation"]
+
+                self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+                self.assertFalse(report["decision_record_validated_as_unfilled"])
+                self.assertTrue(validation["human_decision_recorded"])
+                self.assertIsNone(validation["normalized_record"])
+                self.assertIn(
+                    f"Decision record fills {field}; recording a human decision is out of scope.",
+                    validation["reasons"],
+                )
+                self.assertNotIn(unsafe_value, serialized_report)
 
     def test_every_fillable_decision_field_blocks_and_marks_human_decision(self) -> None:
         for field in FILLABLE_DECISION_FIELDS:
@@ -937,6 +963,50 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
                     self.assertIn(reason, validation["reasons"])
                 for unsafe_token in unsafe_tokens:
                     self.assertNotIn(unsafe_token, serialized_report)
+
+    def test_prohibited_live_field_values_do_not_echo_for_every_field(self) -> None:
+        for field in PROHIBITED_LIVE_FIELDS:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-live-value"
+                report = build_phase14c_candidate_decision_support_report(
+                    {
+                        **blank_phase14c_candidate_decision_support_record(),
+                        "notes": {field: unsafe_value},
+                    }
+                )
+                serialized_report = json.dumps(report, sort_keys=True)
+                validation = report["decision_record_validation"]
+
+                self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+                self.assertFalse(report["decision_record_validated_as_unfilled"])
+                self.assertIsNone(validation["normalized_record"])
+                self.assertIn(
+                    f"Decision record contains prohibited live/API field: {field}.",
+                    validation["reasons"],
+                )
+                self.assertNotIn(unsafe_value, serialized_report)
+
+    def test_prohibited_secret_field_values_do_not_echo_for_every_field(self) -> None:
+        for field in PROHIBITED_SECRET_FIELDS:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-secret-value"
+                report = build_phase14c_candidate_decision_support_report(
+                    {
+                        **blank_phase14c_candidate_decision_support_record(),
+                        "notes": {field: unsafe_value},
+                    }
+                )
+                serialized_report = json.dumps(report, sort_keys=True)
+                validation = report["decision_record_validation"]
+
+                self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+                self.assertFalse(report["decision_record_validated_as_unfilled"])
+                self.assertIsNone(validation["normalized_record"])
+                self.assertIn(
+                    f"Decision record contains prohibited credential/secret field: {field}.",
+                    validation["reasons"],
+                )
+                self.assertNotIn(unsafe_value, serialized_report)
 
     def test_default_report_timestamp_is_deterministic(self) -> None:
         first_report = build_phase14c_candidate_decision_support_report()

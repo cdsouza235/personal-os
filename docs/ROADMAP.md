@@ -61,6 +61,9 @@ values instead of accepting them as the empty unfilled template.
 Required-field drift non-echo matrix tests cover every required text default
 and every required false field so caller-controlled drift values stay out of
 blocked report JSON.
+Fillable and prohibited-field non-echo matrix tests cover every fillable
+decision field, prohibited live/API field, and prohibited credential/secret
+field so caller-controlled values stay out of blocked report JSON.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -110,6 +113,9 @@ the template's fillable decision fields to remain exactly empty.
 Required-field drift non-echo matrix tests preserve the same boundary by
 checking every required text default drift value and every required
 false-field non-boolean value.
+Fillable and prohibited-field non-echo matrix tests preserve the same boundary
+by checking every fillable decision field value, every prohibited live/API
+field value, and every prohibited credential/secret field value.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -223,6 +229,8 @@ Future Phase 14 should be structured as:
   missing fillable fields fail closed. Strict unfilled decision-field tests
   block whitespace-only fillable field values. Required-field drift non-echo
   matrix tests cover every required text default and required false field.
+  Fillable and prohibited-field non-echo matrix tests cover every fillable
+  field and prohibited field group.
 
 ## Historical Boundary Reference
 

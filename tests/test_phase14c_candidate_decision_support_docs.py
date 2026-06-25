@@ -120,6 +120,10 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "required-field drift non-echo matrix coverage",
             "required text default drift value",
             "required false-field non-boolean value",
+            "fillable and prohibited-field non-echo matrix coverage",
+            "fillable decision field value",
+            "prohibited live/api field value",
+            "prohibited credential/secret field value",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

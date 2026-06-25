@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #64:
-  `2d9c66185fa6797daaec226aebbedf593fa9c239`
-- Latest merged PR at that baseline: PR #64, Phase 14-C decision-support
-  strict unfilled decision fields
+- Last validated main baseline after PR #65:
+  `f954b3b5da67bac3cad79ab6e7a1099312201041`
+- Latest merged PR at that baseline: PR #65, Phase 14-C drift non-echo matrix
+  tests
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -24,8 +24,9 @@ Last updated: 2026-06-25
   hardening, strict required-text-default literal hardening, and strict
   readiness status literal hardening, the required readiness status template
   field, required unfilled fillable decision-field coverage, and strict
-  unfilled decision-field empty-value hardening are merged on `main`; this
-  packet adds required-field drift non-echo matrix coverage
+  unfilled decision-field empty-value hardening and required-field drift
+  non-echo matrix coverage are merged on `main`; this packet adds fillable and
+  prohibited-field non-echo matrix coverage
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -43,7 +44,8 @@ Last updated: 2026-06-25
   strict readiness status literal hardening, plus required readiness status
   template coverage, plus required unfilled fillable decision-field coverage,
   plus strict unfilled decision-field empty-value hardening, plus
-  required-field drift non-echo matrix coverage
+  required-field drift non-echo matrix coverage, plus fillable and
+  prohibited-field non-echo matrix coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -51,13 +53,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 543 tests OK
-- ResourceWarning-sensitive suite: 543 tests OK
+- Full suite: 546 tests OK
+- ResourceWarning-sensitive suite: 546 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 41 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 44 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -144,6 +146,9 @@ Last updated: 2026-06-25
 - PR #64 Phase 14-C decision-support strict unfilled decision fields: merged
 - PR #64 Claude Code audit: Pass
 - PR #64 post-merge validation: passed
+- PR #65 Phase 14-C drift non-echo matrix tests: merged
+- PR #65 Claude Code audit: Pass
+- PR #65 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -217,6 +222,10 @@ values instead of accepting them as the empty unfilled template.
 Required-field drift non-echo matrix coverage verifies every required text
 default drift value and every required false-field non-boolean value stays out
 of blocked report JSON.
+Fillable and prohibited-field non-echo matrix coverage verifies every
+fillable decision field value, every prohibited live/API field value, and
+every prohibited credential/secret field value stays out of blocked report
+JSON.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -290,6 +299,7 @@ production runtime state.
 - PR #62: Require Phase 14-C readiness status template field.
 - PR #63: Require Phase 14-C unfilled decision fields.
 - PR #64: Harden Phase 14-C unfilled decision fields.
+- PR #65: Add Phase 14-C drift non-echo matrix tests.
 
 ## Known Gaps
 
@@ -352,6 +362,10 @@ production runtime state.
   Required-field drift non-echo matrix coverage verifies every required text
   default drift value and every required false-field non-boolean value stays
   out of blocked report JSON.
+  Fillable and prohibited-field non-echo matrix coverage verifies every
+  fillable decision field value, every prohibited live/API field value, and
+  every prohibited credential/secret field value stays out of blocked report
+  JSON.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -370,10 +384,10 @@ production runtime state.
   approved envelopes.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
-  PR #59, PR #60, PR #61, PR #62, PR #63, and PR #64 do not authorize
-  OpenClaw, credentials, production DB, scheduler/background loop, external
-  runtime writes, protected path access, Phase 14-C activation, or candidate
-  execution.
+  PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, and PR #65 do not
+  authorize OpenClaw, credentials, production DB, scheduler/background loop,
+  external runtime writes, protected path access, Phase 14-C activation, or
+  candidate execution.
 
 ## Core Docs
 

@@ -204,6 +204,10 @@ values instead of accepting them as the empty unfilled template.
 Required-field drift non-echo matrix tests must cover every required text
 default drift value and every required false-field non-boolean value so
 caller-controlled drift values stay out of blocked report JSON.
+Fillable and prohibited-field non-echo matrix tests must cover every fillable
+decision field value, every prohibited live/API field value, and every
+prohibited credential/secret field value so caller-controlled values stay out
+of blocked report JSON.
 
 ## High-Stakes Domains
 

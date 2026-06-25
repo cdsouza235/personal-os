@@ -201,7 +201,10 @@ runtime/operator path. The decision-record schema is strict: an extra
 top-level key or unknown container blocks the record instead of treating it as
 accepted. A nested payload under a known fillable field, such as `notes`, is
 also blocked because filling any decision-record field would record a human
-decision outside this packet.
+decision outside this packet. Table-driven invariant coverage verifies that
+every fillable decision field blocks when filled, every required false field
+blocks when truthy, the known schema fields match the false-default template,
+and validator statuses remain limited to `decision_needed` or `blocked`.
 
 ## Stop Conditions
 

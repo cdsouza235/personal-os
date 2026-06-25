@@ -56,6 +56,8 @@ false-default template and make missing readiness status fail closed as
 Required unfilled decision-field tests keep every fillable decision field in
 the false-default template and make missing fillable fields fail closed as
 `decision_needed`.
+Strict unfilled decision-field tests block whitespace-only fillable field
+values instead of accepting them as the empty unfilled template.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -100,6 +102,8 @@ Required readiness.status tests preserve the same boundary by requiring the
 template to carry that not-ready value.
 Required unfilled decision-field tests preserve the same boundary by requiring
 the template to carry every fillable decision field as unfilled.
+Strict unfilled decision-field tests preserve the same boundary by requiring
+the template's fillable decision fields to remain exactly empty.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -210,7 +214,8 @@ Future Phase 14 should be structured as:
   case/spacing variants. Strict readiness.status tests block non-exact
   `not_ready` variants. Required readiness.status tests make missing
   readiness status fail closed. Required unfilled decision-field tests make
-  missing fillable fields fail closed.
+  missing fillable fields fail closed. Strict unfilled decision-field tests
+  block whitespace-only fillable field values.
 
 ## Historical Boundary Reference
 

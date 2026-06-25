@@ -199,6 +199,8 @@ false-default template and make missing readiness status fail closed as
 Required unfilled decision-field tests must keep every fillable decision field
 present in the false-default template and make missing fillable fields fail
 closed as `decision_needed`.
+Strict unfilled decision-field tests must block whitespace-only fillable field
+values instead of accepting them as the empty unfilled template.
 
 ## High-Stakes Domains
 

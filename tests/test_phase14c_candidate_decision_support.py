@@ -660,6 +660,72 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
                 for unsafe_token in unsafe_tokens:
                     self.assertNotIn(unsafe_token, serialized_report)
 
+    def test_nested_prohibited_field_values_are_blocked_without_echo(self) -> None:
+        cases = (
+            (
+                "nested_live_api_fields",
+                {
+                    "matrix-secret-live-container": {
+                        "todoist_task_id": "matrix-secret-live-id-value",
+                        "live_object_id": "matrix-secret-live-object-value",
+                    },
+                },
+                (
+                    "matrix-secret-live-container",
+                    "matrix-secret-live-id-value",
+                    "matrix-secret-live-object-value",
+                ),
+                (
+                    "Decision record contains unknown schema fields; only the false-default template schema is accepted.",
+                    "Decision record contains prohibited live/API field: todoist_task_id.",
+                    "Decision record contains prohibited live/API field: live_object_id.",
+                ),
+            ),
+            (
+                "nested_credential_secret_fields",
+                {
+                    "matrix-secret-credential-container": {
+                        "api_key": "matrix-secret-api-key-value",
+                        "oauth_token": "matrix-secret-oauth-token-value",
+                        "client_secret": "matrix-secret-client-secret-value",
+                    },
+                },
+                (
+                    "matrix-secret-credential-container",
+                    "matrix-secret-api-key-value",
+                    "matrix-secret-oauth-token-value",
+                    "matrix-secret-client-secret-value",
+                ),
+                (
+                    "Decision record contains unknown schema fields; only the false-default template schema is accepted.",
+                    "Decision record contains prohibited credential/secret field: api_key.",
+                    "Decision record contains prohibited credential/secret field: oauth_token.",
+                    "Decision record contains prohibited credential/secret field: client_secret.",
+                ),
+            ),
+        )
+
+        for name, changes, unsafe_tokens, expected_reasons in cases:
+            with self.subTest(name=name):
+                report = build_phase14c_candidate_decision_support_report(
+                    {
+                        **blank_phase14c_candidate_decision_support_record(),
+                        **changes,
+                    }
+                )
+                serialized_report = json.dumps(report, sort_keys=True)
+                validation = report["decision_record_validation"]
+
+                self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+                self.assertFalse(report["decision_record_validated_as_unfilled"])
+                self.assertFalse(report["human_decision_recorded"])
+                self.assertFalse(validation["human_decision_recorded"])
+                self.assertIsNone(validation["normalized_record"])
+                for reason in expected_reasons:
+                    self.assertIn(reason, validation["reasons"])
+                for unsafe_token in unsafe_tokens:
+                    self.assertNotIn(unsafe_token, serialized_report)
+
     def test_default_report_timestamp_is_deterministic(self) -> None:
         first_report = build_phase14c_candidate_decision_support_report()
         second_report = build_phase14c_candidate_decision_support_report()

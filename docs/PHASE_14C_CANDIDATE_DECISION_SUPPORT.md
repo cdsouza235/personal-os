@@ -218,7 +218,9 @@ keeps caller-supplied unknown keys out of blocked report JSON while still
 failing closed on unknown schema fields. Blocked report sanitization matrix
 coverage verifies representative unknown-schema, decision-selection,
 candidate-drift, and nested-fillable payload inputs do not echo
-caller-controlled tokens.
+caller-controlled tokens. Nested prohibited-field coverage verifies that
+caller-controlled nested live/API and credential/secret values stay out of
+blocked report JSON.
 
 ## Stop Conditions
 

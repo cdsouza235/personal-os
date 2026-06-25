@@ -40,6 +40,8 @@ and drift values out of blocked report JSON. Unknown schema key-name
 sanitization keeps caller-supplied unknown keys out of blocked report JSON.
 Blocked report sanitization matrix tests cover representative unknown-schema,
 decision-selection, candidate-drift, and nested-fillable payload inputs.
+Nested prohibited-field tests keep caller-controlled nested live/API and
+credential/secret values out of blocked report JSON.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -74,7 +76,8 @@ blocked-reason sanitization tests do not grant live access or expose unsafe
 input values. Unknown schema key-name sanitization tests preserve the same
 non-echo boundary for caller-supplied unknown keys. Blocked report
 sanitization matrix tests preserve that boundary across representative blocked
-record shapes.
+record shapes. Nested prohibited-field tests preserve that boundary for
+nested live/API and credential/secret values.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -178,7 +181,9 @@ Future Phase 14 should be structured as:
   echoing caller-supplied decision or drift values into report JSON. Unknown
   schema reasons avoid echoing caller-supplied unknown key names into report
   JSON. The blocked report sanitization matrix locks representative non-echo
-  cases for caller-controlled tokens.
+  cases for caller-controlled tokens. Nested prohibited-field tests lock
+  non-echo coverage for caller-controlled nested live/API and
+  credential/secret values.
 
 ## Historical Boundary Reference
 

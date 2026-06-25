@@ -22,10 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #56:
-    `532b0e6dc18177cc1d18d908248d82723efd8aa7`
-  - latest merged PR: PR #56, Phase 14-C decision-support unknown schema
-    reason sanitization
+  - last validated main baseline after PR #57:
+    `a2ce2ae7892218f453e3c55b20fb6dd024322132`
+  - latest merged PR: PR #57, Phase 14-C decision-support sanitization
+    matrix tests
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -285,11 +285,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #56:
+As of this post-merge validation update after PR #57:
 
-- Last validated main baseline after PR #56:
-  `532b0e6dc18177cc1d18d908248d82723efd8aa7`
-- Latest merged PR: PR #56, Phase 14-C decision-support unknown schema reason sanitization
+- Last validated main baseline after PR #57:
+  `a2ce2ae7892218f453e3c55b20fb6dd024322132`
+- Latest merged PR: PR #57, Phase 14-C decision-support sanitization matrix tests
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -301,6 +301,7 @@ As of this post-merge validation update after PR #56:
 - PR #54 Claude Code audit: Pass
 - PR #55 Claude Code audit: Pass
 - PR #56 Claude Code audit: Pass
+- PR #57 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -312,8 +313,8 @@ As of this post-merge validation update after PR #56:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 531 tests OK
-- ResourceWarning-sensitive suite: 531 tests OK
+- Full test suite: 532 tests OK
+- ResourceWarning-sensitive suite: 532 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -356,7 +357,9 @@ As of this post-merge validation update after PR #56:
   `decision_needed`. It also keeps caller-supplied decision and drift values
   and caller-supplied unknown schema keys out of blocked report JSON. It does
   not approve, reject, defer, authorize, activate, or access any live rail.
-  The blocked report sanitization matrix locks representative non-echo cases.
+  The blocked report sanitization matrix locks representative non-echo cases,
+  and nested prohibited-field coverage keeps caller-controlled nested live/API
+  and credential/secret values out of blocked report JSON.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -424,9 +427,10 @@ Completed major phases:
   `decision_needed`, keeps caller-supplied decision and drift values out of
   blocked report JSON, keeps caller-supplied unknown schema keys out of
   blocked report JSON, adds blocked report sanitization matrix coverage for
-  representative caller-controlled tokens, and does not record a human
-  decision. Report and validation payload shape tests keep raw decision-record
-  echo fields out of the report contract.
+  representative caller-controlled tokens, keeps caller-controlled nested
+  prohibited live/API and credential/secret values out of blocked report JSON,
+  and does not record a human decision. Report and validation payload shape
+  tests keep raw decision-record echo fields out of the report contract.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1265,14 +1269,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #56:
+Last validated main baseline after PR #57:
 
-`532b0e6dc18177cc1d18d908248d82723efd8aa7`
+`a2ce2ae7892218f453e3c55b20fb6dd024322132`
 
 Current validated state:
 
-- Full suite: 531 tests OK
-- ResourceWarning-sensitive suite: 531 tests OK
+- Full suite: 532 tests OK
+- ResourceWarning-sensitive suite: 532 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1312,6 +1316,7 @@ Current validated state:
 - PR #55 Phase 14-C decision-support blocked-reason sanitization is merged
 - PR #56 Phase 14-C decision-support unknown schema reason sanitization is
   merged
+- PR #57 Phase 14-C decision-support sanitization matrix tests are merged
 
 Next human decision:
 

@@ -151,7 +151,8 @@ Future Phase 14 should be structured as:
 - Phase 14-C candidate decision-support validator: inert source/test report
   helper for the unfilled false-default decision record. It emits
   `decision_needed` or `blocked`; it does not record approve, reject, or defer.
-  Unknown schema fields fail closed.
+  Unknown schema fields and nested payloads under known fillable fields fail
+  closed.
 
 ## Historical Boundary Reference
 

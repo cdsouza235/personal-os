@@ -170,7 +170,9 @@ handle credentials/auth; activate production DB or scheduler/background
 behavior; touch protected paths; call OpenClaw; implement dynamic cleaning;
 adopt Watch Tower; add `.agent/`; add `CLAUDE.md`; or add runtime/operator
 scaffolding. Unknown decision-record schema fields must fail closed instead of
-being accepted as part of the unfilled template.
+being accepted as part of the unfilled template. Nested payloads under known
+fillable fields must also fail closed because filling any decision-record field
+would record a human decision outside the current blocked posture.
 
 ## High-Stakes Domains
 

@@ -452,6 +452,8 @@ def _missing_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
 
 def _human_decision_appears_recorded(record: Mapping[str, Any]) -> bool:
     flattened = tuple(_flatten_mapping(record))
+    if any(_field_present(flattened, field) for field in FILLABLE_DECISION_FIELDS):
+        return True
     if _field_present(flattened, "decision_date") or _field_present(flattened, "decision_maker"):
         return True
     decision_status = record.get("decision_status")

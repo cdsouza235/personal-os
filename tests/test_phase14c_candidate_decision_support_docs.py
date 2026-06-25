@@ -80,6 +80,7 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "render_phase14c_candidate_decision_support_checklist",
             "unknown schema field",
             "extra top-level key",
+            "nested payload under a known fillable field",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

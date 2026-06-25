@@ -220,7 +220,9 @@ coverage verifies representative unknown-schema, decision-selection,
 candidate-drift, and nested-fillable payload inputs do not echo
 caller-controlled tokens. Nested prohibited-field coverage verifies that
 caller-controlled nested live/API and credential/secret values stay out of
-blocked report JSON.
+blocked report JSON. Strict required-false-field coverage verifies that
+non-boolean false-like values are blocked instead of accepted as the unfilled
+false-default template.
 
 ## Stop Conditions
 

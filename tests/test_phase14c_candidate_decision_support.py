@@ -383,6 +383,45 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
                     validation.reasons,
                 )
 
+    def test_every_required_false_field_blocks_when_not_boolean_false(self) -> None:
+        for field in REQUIRED_FALSE_FIELDS:
+            with self.subTest(field=field):
+                record = {
+                    **blank_phase14c_candidate_decision_support_record(),
+                    field: "false",
+                }
+
+                validation = validate_phase14c_candidate_decision_record(record)
+
+                self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+                self.assertFalse(validation.record_accepted_as_unfilled_template)
+                self.assertFalse(validation.human_decision_recorded)
+                self.assertIn(
+                    f"Decision record changes {field}; expected boolean false.",
+                    validation.reasons,
+                )
+
+    def test_false_field_non_boolean_value_is_not_echoed_in_blocked_report(self) -> None:
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "candidate_approved": "matrix-secret-false-field-value",
+            }
+        )
+
+        serialized_report = json.dumps(report, sort_keys=True)
+        validation = report["decision_record_validation"]
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertFalse(report["decision_record_validated_as_unfilled"])
+        self.assertFalse(validation["human_decision_recorded"])
+        self.assertIsNone(validation["normalized_record"])
+        self.assertIn(
+            "Decision record changes candidate_approved; expected boolean false.",
+            validation["reasons"],
+        )
+        self.assertNotIn("matrix-secret-false-field-value", serialized_report)
+
     def test_known_schema_fields_match_false_default_template(self) -> None:
         record_fields = set(blank_phase14c_candidate_decision_support_record())
 

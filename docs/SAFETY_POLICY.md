@@ -186,7 +186,9 @@ echoing caller-supplied unknown key names into report JSON. Blocked report
 sanitization matrix tests must preserve the non-echo boundary for
 representative caller-controlled tokens. Nested prohibited-field tests must
 keep caller-controlled nested live/API and credential/secret values out of
-blocked report JSON.
+blocked report JSON. Strict required-false-field tests must block non-boolean
+false-like values instead of accepting them as the unfilled false-default
+template.
 
 ## High-Stakes Domains
 

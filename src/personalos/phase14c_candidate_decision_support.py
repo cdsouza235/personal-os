@@ -383,6 +383,10 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
                 f"Decision record is marked {field}; this packet cannot approve, "
                 "authorize, activate, execute, or grant live access."
             )
+        elif field in record and record[field] is not False:
+            reasons.append(
+                f"Decision record changes {field}; expected boolean false."
+            )
 
     for field in FILLABLE_DECISION_FIELDS:
         if _field_present(flattened, field):

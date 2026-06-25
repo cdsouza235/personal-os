@@ -77,6 +77,9 @@ assertions as structured inert audit metadata.
 Report-embedded contract manifest tests verify that the inert report carries
 that same static manifest and that blocked reports still do not echo
 caller-controlled unsafe input tokens through the manifest field.
+Report-contract validator tests verify default and blocked reports against
+the static inert contract and make tampered reports fail closed without
+echoing unsafe report keys or values in validator output.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -151,6 +154,9 @@ blocked-field contracts without recording a decision.
 Report-embedded contract manifest tests preserve the same boundary by keeping
 that manifest available in inert reports without exposing caller-controlled
 unsafe input tokens.
+Report-contract validator tests preserve the same boundary by checking report
+shape, manifest equality, allowed statuses, inert flags, readiness, raw-echo
+exclusions, and safety posture without exposing unsafe report keys or values.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -282,6 +288,8 @@ Future Phase 14 should be structured as:
   synchronization for inert audit metadata.
   Report-embedded contract manifest tests cover the static manifest inside
   default and blocked reports without echoing caller-controlled unsafe input.
+  Report-contract validator tests cover default, blocked, and tampered report
+  contract validation without echoing unsafe report keys or values.
 
 ## Historical Boundary Reference
 

@@ -198,6 +198,12 @@ helper, not a runtime path.
   schema fields, allowed validation statuses, prohibited field groups, report
   top-level fields, inert false fields, inert true field paths, absent raw
   input echo fields, and non-authorization assertions.
+- `validate_phase14c_candidate_decision_support_report_contract` validates an
+  in-memory report against the static inert report/manifest contract. It
+  checks report shape, embedded manifest equality, allowed statuses,
+  validation-payload coherence, inert false fields, inert true paths, raw-echo
+  exclusions, readiness posture, and safety posture without echoing unsafe
+  report keys or values.
 - `render_phase14c_candidate_decision_support_checklist` renders the same
   non-authorization boundary for review.
 
@@ -273,6 +279,11 @@ add `CLAUDE.md`, or add runtime/operator scaffolding.
 Report-embedded contract manifest coverage verifies that default and blocked
 reports carry the same static manifest and that blocked reports still do not
 echo caller-controlled unsafe input tokens through the manifest field.
+Report-contract validator coverage verifies that default and blocked reports
+match the inert contract, while tampered reports fail closed when shape,
+manifest, status, validation payload, inert flags, readiness, raw-echo
+exclusions, or safety posture drift. Validator output uses static/value-free
+reasons and does not echo unsafe report keys or values.
 
 ## Stop Conditions
 

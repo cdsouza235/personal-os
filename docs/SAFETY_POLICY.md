@@ -246,6 +246,9 @@ non-authorization assertions.
 Report-embedded contract manifest tests must keep the same static manifest in
 default and blocked reports while preserving the blocked-report non-echo
 boundary for caller-controlled unsafe input tokens.
+Report-contract validator tests must keep default and blocked reports matched
+to the static inert contract and must make tampered reports fail closed
+without echoing unsafe report keys or values in validator output.
 
 ## High-Stakes Domains
 

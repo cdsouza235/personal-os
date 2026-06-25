@@ -23,7 +23,9 @@ unfilled false-default template/report state; it does not record a decision.
 Its contract manifest is structured inert audit metadata only and does not
 approve, authorize, activate, execute, or grant live-service access. The
 inert report embeds that same static manifest for auditability without
-echoing unsafe caller-controlled input.
+echoing unsafe caller-controlled input. Its report-contract validator checks
+in-memory reports against that static contract and fails closed on tampering
+without echoing unsafe report keys or values.
 
 ## Current Recorded Candidate
 

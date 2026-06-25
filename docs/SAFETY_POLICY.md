@@ -253,6 +253,10 @@ Report-contract validator matrix tests must cover absent reports, top-level
 shape drift, inert false-field drift, inert true-path drift, raw-echo fields,
 and validation-payload mismatch without weakening the inert, not-ready
 posture.
+Report-contract posture matrix tests must cover metadata drift, readiness
+payload drift, safety posture field drift, and extra safety posture keys
+without echoing caller-controlled values or weakening the inert, not-ready
+posture.
 
 ## High-Stakes Domains
 

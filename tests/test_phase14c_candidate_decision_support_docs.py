@@ -146,6 +146,11 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "report-contract validator matrix coverage",
             "absent report payloads",
             "validation-payload mismatch",
+            "report-contract posture matrix coverage",
+            "report metadata drift",
+            "readiness payload drift",
+            "safety posture field drift",
+            "extra safety posture keys",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

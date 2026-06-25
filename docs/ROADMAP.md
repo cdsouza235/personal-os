@@ -83,6 +83,9 @@ echoing unsafe report keys or values in validator output.
 Report-contract validator matrix tests cover absent reports, top-level shape
 drift, inert false-field drift, inert true-path drift, raw-echo fields, and
 validation-payload mismatch.
+Report-contract posture matrix tests cover report metadata drift, readiness
+payload drift, safety posture field drift, and extra safety posture keys
+without echoing caller-controlled values.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -162,6 +165,9 @@ shape, manifest equality, allowed statuses, inert flags, readiness, raw-echo
 exclusions, and safety posture without exposing unsafe report keys or values.
 Report-contract validator matrix tests preserve the same boundary by checking
 each report-contract drift category without adding runtime behavior.
+Report-contract posture matrix tests preserve the same boundary by checking
+metadata, readiness, and safety-posture drift categories without exposing
+caller-controlled values.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -298,6 +304,8 @@ Future Phase 14 should be structured as:
   Report-contract validator matrix tests cover absent reports, top-level
   shape drift, inert false/true drift, raw-echo fields, and validation-payload
   mismatch.
+  Report-contract posture matrix tests cover metadata, readiness, and safety
+  posture drift without echoing caller-controlled values.
 
 ## Historical Boundary Reference
 

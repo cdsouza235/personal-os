@@ -196,6 +196,9 @@ values out of blocked report JSON.
 Required readiness.status tests must keep `readiness.status=not_ready` in the
 false-default template and make missing readiness status fail closed as
 `decision_needed`.
+Required unfilled decision-field tests must keep every fillable decision field
+present in the false-default template and make missing fillable fields fail
+closed as `decision_needed`.
 
 ## High-Stakes Domains
 

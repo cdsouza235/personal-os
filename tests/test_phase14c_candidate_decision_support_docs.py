@@ -89,6 +89,7 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "missing-field matrix coverage",
             "required text default",
             "required false field",
+            "unfilled fillable decision field",
             "fails closed as `decision_needed`",
             "blocked-reason sanitization",
             "caller-supplied decision and drift values",
@@ -111,6 +112,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "caller-controlled readiness drift values",
             "required readiness.status coverage",
             "missing readiness status",
+            "required unfilled decision-field coverage",
+            "missing fillable field",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

@@ -210,8 +210,9 @@ values and that default report timestamps remain deterministic unless
 explicitly overridden. Report shape contract coverage keeps top-level report
 fields and validation payload fields explicit, including checks that raw
 decision-record echo fields are absent. Missing-field matrix coverage verifies
-that every required text default and every required false field fails closed as
-`decision_needed` when absent. Blocked-reason sanitization keeps
+that every required text default, every required false field, and every
+unfilled fillable decision field fails closed as `decision_needed` when absent.
+Blocked-reason sanitization keeps
 caller-supplied decision and drift values out of blocked report JSON while
 still reporting the blocked field names. Unknown schema key-name sanitization
 keeps caller-supplied unknown keys out of blocked report JSON while still
@@ -231,6 +232,9 @@ caller-controlled readiness drift values stay out of blocked report JSON.
 Required readiness.status coverage verifies that the false-default template
 contains `readiness.status=not_ready` and that a missing readiness status
 fails closed as `decision_needed`.
+Required unfilled decision-field coverage verifies that every fillable
+decision field is present in the false-default template and that a missing
+fillable field fails closed as `decision_needed`.
 
 ## Stop Conditions
 

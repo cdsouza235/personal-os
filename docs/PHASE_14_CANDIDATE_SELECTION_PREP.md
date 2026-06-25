@@ -63,8 +63,8 @@ inspect. Its repo-local helper,
 `src/personalos/phase14c_candidate_decision_support.py`, validates only the
 unfilled false-default decision-support record and blocks any filled decision,
 approval, authorization, activation, live-service, credential/secret, live ID,
-dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`, or runtime/operator
-scaffolding flag.
+unknown schema field, dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`,
+or runtime/operator scaffolding flag.
 
 ## Boundary Assertions
 

@@ -184,9 +184,9 @@ helper, not a runtime path.
 - `validate_phase14c_candidate_decision_record` accepts only the unfilled
   template shape as `decision_needed`; it blocks any selected decision option,
   human decision marker, approval flag, authorization flag, activation flag,
-  live-service flag, credential/secret field, live object ID, candidate drift,
-  dynamic cleaning flag, Watch Tower flag, `.agent/` flag, `CLAUDE.md` flag, or
-  runtime/operator scaffolding flag.
+  live-service flag, credential/secret field, live object ID, unknown schema
+  field, candidate drift, dynamic cleaning flag, Watch Tower flag, `.agent/`
+  flag, `CLAUDE.md` flag, or runtime/operator scaffolding flag.
 - `build_phase14c_candidate_decision_support_report` returns an inert report
   with `phase14_c_blocked=true`, `candidate_review_tracking_only=true`,
   `readiness.status=not_ready`, `inert_report_only=true`, and
@@ -197,7 +197,9 @@ helper, not a runtime path.
 The validator has no Todoist, Gmail, Calendar, OpenClaw, credential,
 production DB, scheduler/background, protected-path, external-write, live
 model/API, Watch Tower, `.agent/`, `CLAUDE.md`, dynamic cleaning, or
-runtime/operator path.
+runtime/operator path. The decision-record schema is strict: an extra
+top-level key or unknown container blocks the record instead of treating it as
+accepted.
 
 ## Stop Conditions
 

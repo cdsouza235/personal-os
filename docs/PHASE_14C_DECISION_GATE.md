@@ -52,8 +52,8 @@ behavior that can reasonably be read as approval, authorization, activation,
 execution, live service access, or dynamic cleaning implementation. A
 decision-support validator may block filled decision records, approval flags,
 authorization flags, live-service fields, credentials/secrets, live IDs,
-candidate drift, dynamic cleaning flags, Watch Tower flags, `.agent/`,
-`CLAUDE.md`, and runtime/operator scaffolding flags.
+unknown schema fields, candidate drift, dynamic cleaning flags, Watch Tower
+flags, `.agent/`, `CLAUDE.md`, and runtime/operator scaffolding flags.
 
 ## What Candidate-Review Tracking Means
 

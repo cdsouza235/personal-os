@@ -26,9 +26,9 @@ checklist and unfilled false-default decision-record template for that same
 candidate-review tracking only posture. The Phase 14-C candidate
 decision-support validator adds an inert source/test report helper for the
 same unfilled template; it blocks filled decisions, approval/authorization
-flags, live-service fields, credentials/secrets, live IDs, dynamic cleaning
-flags, Watch Tower flags, `.agent/`, `CLAUDE.md`, and runtime/operator
-scaffolding flags.
+flags, live-service fields, credentials/secrets, live IDs, unknown schema
+fields, dynamic cleaning flags, Watch Tower flags, `.agent/`, `CLAUDE.md`, and
+runtime/operator scaffolding flags.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -151,6 +151,7 @@ Future Phase 14 should be structured as:
 - Phase 14-C candidate decision-support validator: inert source/test report
   helper for the unfilled false-default decision record. It emits
   `decision_needed` or `blocked`; it does not record approve, reject, or defer.
+  Unknown schema fields fail closed.
 
 ## Historical Boundary Reference
 

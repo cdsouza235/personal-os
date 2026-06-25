@@ -76,6 +76,15 @@ FILLABLE_DECISION_FIELDS: tuple[str, ...] = (
     "notes",
 )
 
+KNOWN_DECISION_RECORD_FIELDS: frozenset[str] = frozenset(
+    (
+        *REQUIRED_TEXT_DEFAULTS.keys(),
+        *REQUIRED_FALSE_FIELDS,
+        *FILLABLE_DECISION_FIELDS,
+        "readiness.status",
+    )
+)
+
 PROHIBITED_LIVE_FIELDS: tuple[str, ...] = (
     "todoist_task_id",
     "todoist_id",
@@ -362,6 +371,9 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
     reasons: list[str] = []
     flattened = tuple(_flatten_mapping(record))
 
+    for field in _unknown_schema_fields(record):
+        reasons.append(f"Decision record contains unknown schema field: {field}.")
+
     for field in REQUIRED_FALSE_FIELDS:
         if _field_truthy(flattened, field):
             reasons.append(
@@ -413,6 +425,14 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
         reasons.append("Decision record changes readiness.status; expected 'not_ready'.")
 
     return _dedupe(reasons)
+
+
+def _unknown_schema_fields(record: Mapping[str, Any]) -> list[str]:
+    return [
+        str(key)
+        for key in record
+        if str(key) not in KNOWN_DECISION_RECORD_FIELDS
+    ]
 
 
 def _missing_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:

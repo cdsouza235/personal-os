@@ -78,6 +78,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "validate_phase14c_candidate_decision_record",
             "build_phase14c_candidate_decision_support_report",
             "render_phase14c_candidate_decision_support_checklist",
+            "unknown schema field",
+            "extra top-level key",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

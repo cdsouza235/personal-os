@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #47:
-    `4f3454d8fa0f3c4875621449ebe323f58e2279ae`
-  - latest merged PR: PR #47, Phase 14-C candidate decision support bundle
+  - last validated main baseline after PR #48:
+    `46dce230aaaa5d3375cf514509e367b24c1786e2`
+  - latest merged PR: PR #48, Phase 14-C candidate decision-support validator
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -55,9 +55,10 @@ Key changes from v0.1:
 - Records the Phase 14-C candidate decision-support validator as an inert
   source/test report layer for that unfilled template. It blocks filled
   decision records, approval flags, authorization flags, activation flags, live
-  service fields, credential/secret fields, live IDs, dynamic cleaning flags,
-  Watch Tower flags, `.agent/`, `CLAUDE.md`, and runtime/operator scaffolding
-  flags. It does not record a decision or authorize live work.
+  service fields, credential/secret fields, live IDs, unknown schema fields,
+  dynamic cleaning flags, Watch Tower flags, `.agent/`, `CLAUDE.md`, and
+  runtime/operator scaffolding flags. It does not record a decision or
+  authorize live work.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -283,13 +284,14 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #47:
+As of this post-merge validation update after PR #48:
 
-- Last validated main baseline after PR #47:
-  `4f3454d8fa0f3c4875621449ebe323f58e2279ae`
-- Latest merged PR: PR #47, Phase 14-C candidate decision support bundle
+- Last validated main baseline after PR #48:
+  `46dce230aaaa5d3375cf514509e367b24c1786e2`
+- Latest merged PR: PR #48, Phase 14-C candidate decision-support validator
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
+- PR #48 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -301,8 +303,8 @@ As of this post-merge validation update after PR #47:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 515 tests OK
-- ResourceWarning-sensitive suite: 515 tests OK
+- Full test suite: 517 tests OK
+- ResourceWarning-sensitive suite: 517 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -336,8 +338,8 @@ As of this post-merge validation update after PR #47:
 - Phase 14-C candidate decision-support validation is
   `src/personalos/phase14c_candidate_decision_support.py`. It validates only
   the unfilled false-default decision-support record/report and blocks unsafe
-  filled records. It does not approve, reject, defer, authorize, activate, or
-  access any live rail.
+  filled records, including unknown schema fields. It does not approve,
+  reject, defer, authorize, activate, or access any live rail.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -397,7 +399,8 @@ Completed major phases:
   access.
 - Phase 14-C candidate decision-support validator: inert source/test report
   helper for the same unfilled template. It preserves `decision_needed` or
-  `blocked` outcomes only and does not record a human decision.
+  `blocked` outcomes only, blocks unknown schema fields, and does not record a
+  human decision.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1153,7 +1156,8 @@ The candidate decision-support artifact documents review questions, failure
 modes, stop conditions, required future approval wording, and an unfilled
 false-default decision-record template only. The decision-support validator
 checks that this record remains unfilled/false by default and blocks unsafe
-filled records; it does not select approve, reject, or defer.
+filled records, including unknown schema fields; it does not select approve,
+reject, or defer.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1224,14 +1228,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #47:
+Last validated main baseline after PR #48:
 
-`4f3454d8fa0f3c4875621449ebe323f58e2279ae`
+`46dce230aaaa5d3375cf514509e367b24c1786e2`
 
 Current validated state:
 
-- Full suite: 515 tests OK
-- ResourceWarning-sensitive suite: 515 tests OK
+- Full suite: 517 tests OK
+- ResourceWarning-sensitive suite: 517 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1261,6 +1265,7 @@ Current validated state:
 - PR #45 Claude Code audit passed with no required fixes
 - PR #46 anti-micro-loop workflow and checkpoint refresh is merged
 - PR #47 Phase 14-C candidate decision support bundle is merged
+- PR #48 Phase 14-C candidate decision-support validator is merged
 
 Next human decision:
 

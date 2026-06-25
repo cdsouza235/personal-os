@@ -201,6 +201,9 @@ present in the false-default template and make missing fillable fields fail
 closed as `decision_needed`.
 Strict unfilled decision-field tests must block whitespace-only fillable field
 values instead of accepting them as the empty unfilled template.
+Required-field drift non-echo matrix tests must cover every required text
+default drift value and every required false-field non-boolean value so
+caller-controlled drift values stay out of blocked report JSON.
 
 ## High-Stakes Domains
 

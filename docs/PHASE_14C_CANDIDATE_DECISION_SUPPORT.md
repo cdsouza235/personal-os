@@ -239,6 +239,9 @@ Strict unfilled decision-field coverage verifies that whitespace-only values
 in fillable decision fields are blocked instead of accepted as the empty
 unfilled template, with the value-free reason `expected an empty unfilled
 value`.
+Required-field drift non-echo matrix coverage verifies that every required
+text default drift value and every required false-field non-boolean value
+stays out of blocked report JSON.
 
 ## Stop Conditions
 

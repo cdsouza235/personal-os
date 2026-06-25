@@ -117,6 +117,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "strict unfilled decision-field coverage",
             "whitespace-only values",
             "expected an empty unfilled value",
+            "required-field drift non-echo matrix coverage",
+            "required text default drift value",
+            "required false-field non-boolean value",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

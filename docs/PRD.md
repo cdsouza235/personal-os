@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #67:
-    `9e720d344205d06605e0e624045e3972d5d033cb`
-  - latest merged PR: PR #67, Phase 14-C report false-field matrix test
+  - last validated main baseline after PR #68:
+    `385e73e2a2dc6082a819357228d1b105e0b168b3`
+  - latest merged PR: PR #68, Phase 14-C report true-field matrix test
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -59,6 +59,11 @@ Key changes from v0.1:
   nested payloads under known fillable fields, dynamic cleaning flags,
   Watch Tower flags, `.agent/`, `CLAUDE.md`, and runtime/operator scaffolding
   flags. It does not record a decision or authorize live work.
+- Records the long-run governance refinement that the completed bounded packet
+  is the default PR/audit unit for safe inert repo-local work, human judgment
+  conditions are explicit stop gates, and delegated repo-merge authority is
+  narrow repo merge authority only, not product approval or live
+  authorization.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -284,11 +289,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #67:
+As of this post-merge validation update after PR #68:
 
-- Last validated main baseline after PR #67:
-  `9e720d344205d06605e0e624045e3972d5d033cb`
-- Latest merged PR: PR #67, Phase 14-C report false-field matrix test
+- Last validated main baseline after PR #68:
+  `385e73e2a2dc6082a819357228d1b105e0b168b3`
+- Latest merged PR: PR #68, Phase 14-C report true-field matrix test
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -311,6 +316,7 @@ As of this post-merge validation update after PR #67:
 - PR #65 Claude Code audit: Pass
 - PR #66 Claude Code audit: Pass
 - PR #67 Claude Code audit: Pass
+- PR #68 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -322,8 +328,8 @@ As of this post-merge validation update after PR #67:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 548 tests OK
-- ResourceWarning-sensitive suite: 548 tests OK
+- Full test suite: 551 tests OK
+- ResourceWarning-sensitive suite: 551 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -396,6 +402,19 @@ As of this post-merge validation update after PR #67:
   flag remains false.
   Report inert true-field matrix coverage verifies blocked, tracking-only,
   merge-is-not-live-authorization, and inert readiness flags remain true.
+- Long-run governance records that the completed bounded packet is the default
+  PR/audit unit for safe inert repo-local work; Codex/Fable should bundle
+  adjacent safe substeps rather than stop after every micro-invariant; human
+  judgment conditions require stopping for product, safety, scope, design,
+  secrets, credentials, live-service testing, or validation failures needing
+  architectural, product, safety, or workflow judgment; and delegated
+  repo-merge authority, when granted for a current loop, is repo merge
+  authority only and not product approval, Phase 14-C authorization, candidate
+  approval, candidate authorization, candidate activation or execution,
+  live-service access, live activation, credential handling, production DB
+  activation, scheduler/background activation, OpenClaw invocation,
+  protected-path access, dynamic cleaning implementation, Watch Tower
+  adoption, `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -1328,14 +1347,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #67:
+Last validated main baseline after PR #68:
 
-`9e720d344205d06605e0e624045e3972d5d033cb`
+`385e73e2a2dc6082a819357228d1b105e0b168b3`
 
 Current validated state:
 
-- Full suite: 548 tests OK
-- ResourceWarning-sensitive suite: 548 tests OK
+- Full suite: 551 tests OK
+- ResourceWarning-sensitive suite: 551 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1391,6 +1410,10 @@ Current validated state:
 - PR #65 Phase 14-C drift non-echo matrix tests are merged
 - PR #66 Phase 14-C prohibited non-echo matrix tests are merged
 - PR #67 Phase 14-C report false-field matrix test is merged
+- PR #68 Phase 14-C report true-field matrix test is merged
+- The current governance packet memorializes the longer completed-packet audit
+  unit, human-judgment stop conditions, and narrow delegated repo-merge
+  guardrails requested after PR #68.
 
 Next human decision:
 

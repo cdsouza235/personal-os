@@ -80,6 +80,12 @@ Long-run Codex/Fable work packets never weaken these safety gates. Long-run
 mode only changes how long Codex/Fable may continue inside an approved
 repo-local inert envelope before stopping.
 
+After Chris approves a safe long-run envelope, Codex/Fable should prefer a
+larger completed bounded packet as the unit of repo work and audit. That
+larger packet default may bundle adjacent safe repo-local substeps, but it
+does not allow Codex/Fable to skip human judgment conditions or continue past a
+real safety gate.
+
 Prompts may narrow safety rules, add stricter stop conditions, or require
 extra validation. Prompts may not weaken this policy, `../AGENTS.md`,
 [AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md), or
@@ -89,6 +95,25 @@ Live rails, credentials, production DB paths, protected paths,
 scheduler/background work, LaunchAgents, crontab, daemons, OpenClaw runtime,
 external runtime writes, live model/API calls, and high-stakes execution still
 require explicit Chris approval for the exact scope.
+
+Human judgment conditions include any product, safety, scope, or design choice
+that cannot be resolved from repo-local evidence; secrets, credentials, OAuth,
+API keys, tokens, or credential stores; actual live-service testing; and failed
+validation that requires architectural, product, safety, or workflow judgment.
+Codex/Fable must stop and ask Chris when those conditions appear.
+
+Delegated repo-merge authority, when Chris grants it for a current long-run
+loop, is limited to repo-local, inert, deterministic, testable work with a
+clean audited head commit, mergeable/clean state, passing validation, clean
+worktree, and no unresolved deviations or open questions. Claude Code audit
+must be absent by policy or return `Pass` or `Pass with notes` with no
+required fixes. It is repo merge authority only and does not mean product
+approval, Phase 14-C authorization, candidate approval, candidate
+authorization, candidate activation or execution, live-service access, live
+activation, credential handling, production DB activation,
+scheduler/background activation, OpenClaw invocation, protected-path access,
+dynamic cleaning implementation, Watch Tower adoption, `.agent/`,
+`CLAUDE.md`, or runtime/operator scaffolding.
 
 ## Readiness And Activation Gates
 

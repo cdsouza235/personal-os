@@ -115,6 +115,26 @@ validation cleanup, folding checkpoint/status refreshes into the next
 substantive safe packet, and preparing, validating, committing, pushing, and
 opening a PR for an approved repo-local docs/test packet.
 
+## Default Packet And Audit Unit
+
+After Chris approves a safe long-run envelope, the default unit of work is the
+completed bounded packet. Codex/Fable should bundle adjacent safe repo-local
+substeps and produce one PR/audit packet for the completed bounded packet, not
+one PR or Claude Code audit after every micro-invariant, tiny doc edit, or
+narrow test assertion.
+
+The larger packet default applies only while the work remains repo-local,
+inert, deterministic, testable, non-live, and inside the approved envelope.
+Codex/Fable must stop early if a substep would cross a mandatory stop
+boundary, require a product/safety/scope/design decision, create ambiguous
+authorization wording, or make validation fail in a way that requires human
+judgment.
+
+Claude Code audit should happen after the bundled packet is ready, not after
+every small substep, unless the scope becomes ambiguous, a real human gate
+appears, Chris narrows the scope, or the packet reaches an audit boundary that
+should be reviewed before further repo work continues.
+
 ## Checkpoint Refresh Rule
 
 Post-merge verification is normally sufficient. Codex/Fable must not create a
@@ -155,7 +175,11 @@ Codex/Fable must stop and ask Chris before crossing any of these boundaries:
   portfolio, crypto, relationship, external-message, external-meeting, family,
   or large-financial-commitment decisions
 - major product direction decisions that change phase goals or safety posture
-- merge approval
+- any product, safety, scope, or design choice that cannot be resolved from
+  repo-local evidence
+- actual live-service testing, live-service access, or live-service writes
+- merge approval unless a current explicit delegated repo-merge instruction
+  applies and all delegated merge conditions pass
 - any scope ambiguity that could weaken safety rules
 
 Validation failures that require judgment are also stop boundaries. Examples
@@ -186,15 +210,40 @@ Local branch creation, repo-local edits, inert tests, validation runs, commits,
 PR body drafting, and PR opening are not separate human gates when they are
 already inside an approved repo-local inert packet.
 
+Human judgment conditions include any product, safety, scope, or design choice
+that cannot be resolved from repo-local evidence; secrets, credentials, OAuth,
+API keys, tokens, or credential stores; actual live-service testing; and failed
+validation that requires architectural, product, safety, or workflow judgment.
+Codex/Fable must stop and ask Chris when those conditions appear.
+
 ## Merge Rule
 
 Codex/Fable may prepare branches, commits, PRs, PR stacks, validation evidence,
-and final reports when approved. Codex/Fable must not merge without explicit
-Chris approval for that merge.
+and final reports when approved. By default, Codex/Fable must not merge
+without explicit Chris approval for that merge.
+
+Chris may grant delegated repo-merge authority for a current long-run loop.
+Delegated repo-merge authority is limited to repo-local, inert,
+deterministic, testable work inside the approved envelope. Before using it,
+Codex/Fable must re-check that the PR is still at the audited head commit, is
+mergeable/clean, has no unexpected changed-file drift, has passing validation,
+has a clean worktree, and has no unresolved deviations or open questions.
+Claude Code audit must be absent by policy or must return `Pass` or
+`Pass with notes` with no required fixes. Codex/Fable must stop instead of
+merging if any check fails, wording could be read as product approval or live
+authorization, or a real human gate appears.
 
 Claude Code audit does not approve a merge. ChatGPT audit does not approve a
 merge. A green suite does not approve a merge. A completed checklist,
 readiness matrix, or work packet report does not approve a merge.
+
+Delegated repo-merge authority is repo merge authority only. It must not be
+read as product approval, Phase 14-C authorization, candidate approval,
+candidate authorization, candidate activation or execution, live-service
+access, live activation, credential handling, production DB activation,
+scheduler/background activation, OpenClaw invocation, protected-path access,
+dynamic cleaning implementation, Watch Tower adoption, `.agent/`,
+`CLAUDE.md`, or runtime/operator scaffolding.
 
 ## Claude Code Audit Triage
 
@@ -222,7 +271,9 @@ triage categories are:
 - `Not needed`
 
 If Claude Code audit is required or recommended, the PR must not be merged
-until Claude Code audit is complete and Chris has reviewed the audit result.
+until Claude Code audit is complete and Chris has reviewed the audit result,
+unless Chris has granted a current explicit delegated repo-merge instruction
+for the audited PR loop and all delegated merge conditions pass.
 
 ### Claude Code Audit Required Before Merge
 

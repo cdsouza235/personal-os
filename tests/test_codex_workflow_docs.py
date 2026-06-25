@@ -183,6 +183,27 @@ class CodexWorkflowDocsTest(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, status_text)
 
+    def test_completed_packet_is_default_audit_unit(self) -> None:
+        agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
+        workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")
+        protocol_text = _normalized_doc_text(
+            REPO_ROOT / "docs" / "AGENT_WORK_PACKET_PROTOCOL.md"
+        )
+
+        required_phrases = (
+            "default unit of work is the completed bounded packet",
+            "bundle adjacent safe repo-local substeps",
+            "one pr/audit packet for the completed bounded packet",
+            "claude code audit after every micro-invariant",
+            "claude code audit should happen after the bundled packet",
+            "unless the scope becomes ambiguous",
+            "real human gate appears",
+        )
+        for text in (agents_text, workflow_text, protocol_text):
+            for phrase in required_phrases:
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, text)
+
     def test_real_gates_include_workflow_and_phase14c_boundaries(self) -> None:
         agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
         workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")
@@ -210,6 +231,67 @@ class CodexWorkflowDocsTest(unittest.TestCase):
             "test failures requiring architectural, product, safety, or workflow judgment",
         )
         for text in (agents_text, workflow_text, protocol_text):
+            for phrase in required_phrases:
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, text)
+
+    def test_human_judgment_conditions_are_explicit_stop_gates(self) -> None:
+        agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
+        workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")
+        protocol_text = _normalized_doc_text(
+            REPO_ROOT / "docs" / "AGENT_WORK_PACKET_PROTOCOL.md"
+        )
+        safety_text = _normalized_doc_text(REPO_ROOT / "docs" / "SAFETY_POLICY.md")
+
+        required_phrases = (
+            "human judgment conditions include",
+            "product, safety, scope, or design choice",
+            "cannot be resolved from repo-local evidence",
+            "secrets, credentials, oauth",
+            "api keys, tokens",
+            "actual live-service testing",
+            "failed validation that requires architectural, product, safety, or workflow judgment",
+            "stop and ask chris",
+        )
+        for text in (agents_text, workflow_text, protocol_text, safety_text):
+            for phrase in required_phrases:
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, text)
+
+    def test_delegated_repo_merge_is_narrow_and_non_authorizing(self) -> None:
+        agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
+        workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")
+        protocol_text = _normalized_doc_text(
+            REPO_ROOT / "docs" / "AGENT_WORK_PACKET_PROTOCOL.md"
+        )
+        safety_text = _normalized_doc_text(REPO_ROOT / "docs" / "SAFETY_POLICY.md")
+
+        required_phrases = (
+            "delegated repo-merge authority",
+            "repo-local, inert, deterministic, testable",
+            "audited head commit",
+            "mergeable/clean",
+            "validation",
+            "clean worktree",
+            "`pass` or `pass with notes`",
+            "repo merge authority only",
+            "product approval",
+            "phase 14-c authorization",
+            "candidate approval",
+            "candidate authorization",
+            "candidate activation or execution",
+            "live-service access",
+            "live activation",
+            "credential handling",
+            "production db activation",
+            "scheduler/background activation",
+            "openclaw invocation",
+            "protected-path access",
+            "dynamic cleaning implementation",
+            "watch tower adoption",
+            "runtime/operator scaffolding",
+        )
+        for text in (agents_text, workflow_text, protocol_text, safety_text):
             for phrase in required_phrases:
                 with self.subTest(phrase=phrase):
                     self.assertIn(phrase, text)

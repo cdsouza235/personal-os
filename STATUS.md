@@ -6,9 +6,9 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #67:
-  `9e720d344205d06605e0e624045e3972d5d033cb`
-- Latest merged PR at that baseline: PR #67, Phase 14-C report false-field
+- Last validated main baseline after PR #68:
+  `385e73e2a2dc6082a819357228d1b105e0b168b3`
+- Latest merged PR at that baseline: PR #68, Phase 14-C report true-field
   matrix test
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
@@ -26,8 +26,10 @@ Last updated: 2026-06-25
   field, required unfilled fillable decision-field coverage, and strict
   unfilled decision-field empty-value hardening and required-field drift
   non-echo matrix coverage and fillable/prohibited-field non-echo matrix
-  coverage and report inert false-field matrix coverage are merged on `main`;
-  this packet adds report inert true-field matrix coverage
+  coverage and report inert false-field matrix coverage and report inert
+  true-field matrix coverage are merged on `main`; this packet codifies the
+  larger bounded-packet audit unit, explicit human-judgment stop conditions,
+  and delegated repo-merge guardrails for safe inert repo-local loops
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -47,7 +49,8 @@ Last updated: 2026-06-25
   plus strict unfilled decision-field empty-value hardening, plus
   required-field drift non-echo matrix coverage, plus fillable and
   prohibited-field non-echo matrix coverage, plus report inert false-field
-  matrix coverage, plus report inert true-field matrix coverage
+  matrix coverage, plus report inert true-field matrix coverage, plus
+  long-run packet-unit and delegated repo-merge governance hardening
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -55,8 +58,9 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 548 tests OK
-- ResourceWarning-sensitive suite: 548 tests OK
+- Full suite: 551 tests OK
+- ResourceWarning-sensitive suite: 551 tests OK
+- Targeted Codex workflow docs suite: 12 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
@@ -157,6 +161,9 @@ Last updated: 2026-06-25
 - PR #67 Phase 14-C report false-field matrix test: merged
 - PR #67 Claude Code audit: Pass
 - PR #67 post-merge validation: passed
+- PR #68 Phase 14-C report true-field matrix test: merged
+- PR #68 Claude Code audit: Pass
+- PR #68 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -240,6 +247,21 @@ Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flag
 remains false.
 Report inert true-field matrix coverage verifies the blocked, tracking-only,
 merge-is-not-live-authorization, and inert readiness flags remain true.
+Long-run governance now records that the completed bounded packet is the
+default PR/audit unit for safe inert repo-local work, that Codex/Fable should
+bundle adjacent safe substeps rather than stop after every micro-invariant,
+and that human judgment conditions require stopping for product, safety,
+scope, design, secrets, credentials, live-service testing, or validation
+failures needing architectural, product, safety, or workflow judgment.
+Delegated repo-merge authority, when Chris grants it for a current loop, is
+limited to clean repo-local, inert, deterministic, testable PRs with audited
+heads, passing validation, clean worktrees, no drift, and no unresolved gates.
+It is repo merge authority only and does not approve Phase 14-C, approve or
+authorize a candidate, authorize activation or execution, authorize
+live-service access, handle credentials, activate production DB or
+scheduler/background behavior, invoke OpenClaw, touch protected paths,
+implement dynamic cleaning, adopt Watch Tower, add `.agent/`, add
+`CLAUDE.md`, or add runtime/operator scaffolding.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -316,6 +338,7 @@ production runtime state.
 - PR #65: Add Phase 14-C drift non-echo matrix tests.
 - PR #66: Add Phase 14-C prohibited non-echo matrix tests.
 - PR #67: Add Phase 14-C report false-field matrix test.
+- PR #68: Add Phase 14-C report true-field matrix test.
 
 ## Known Gaps
 
@@ -404,12 +427,15 @@ production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 and
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
+  The current governance packet memorializes the longer completed-packet audit
+  unit, human-judgment stop conditions, and narrow delegated repo-merge
+  guardrails requested after PR #68.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
-  PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, PR #65, PR #66, and PR #67
-  do not authorize OpenClaw, credentials, production DB, scheduler/background
-  loop, external runtime writes, protected path access, Phase 14-C activation,
-  or candidate execution.
+  PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, PR #65, PR #66, PR #67,
+  and PR #68 do not authorize OpenClaw, credentials, production DB,
+  scheduler/background loop, external runtime writes, protected path access,
+  Phase 14-C activation, or candidate execution.
 
 ## Core Docs
 

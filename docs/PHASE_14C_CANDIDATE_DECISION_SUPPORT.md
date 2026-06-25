@@ -225,6 +225,9 @@ non-boolean false-like values are blocked instead of accepted as the unfilled
 false-default template. Strict required-text-default coverage verifies that
 case/spacing variants are blocked instead of accepted as the unfilled
 template.
+Strict readiness.status coverage verifies that case/spacing variants are
+blocked instead of accepted as `readiness.status=not_ready`, and that
+caller-controlled readiness drift values stay out of blocked report JSON.
 
 ## Stop Conditions
 

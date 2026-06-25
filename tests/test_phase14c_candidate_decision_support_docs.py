@@ -106,6 +106,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "unfilled false-default template",
             "strict required-text-default coverage",
             "case/spacing variants",
+            "strict readiness.status coverage",
+            "`readiness.status=not_ready`",
+            "caller-controlled readiness drift values",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

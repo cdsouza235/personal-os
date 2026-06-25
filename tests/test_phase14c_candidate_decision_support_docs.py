@@ -137,6 +137,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "inert false fields",
             "inert true field paths",
             "raw decision-record echo exclusions",
+            "report embeds the static contract manifest",
+            "blocked reports still do not echo caller-controlled unsafe input tokens",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

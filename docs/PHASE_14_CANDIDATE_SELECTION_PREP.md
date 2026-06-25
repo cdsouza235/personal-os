@@ -66,7 +66,9 @@ approval, authorization, activation, live-service, credential/secret, live ID,
 unknown schema field, dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`,
 or runtime/operator scaffolding flag. It also exposes an inert contract
 manifest for audit/tests that records schema, status, report, prohibited-field,
-and non-authorization contracts without approving or authorizing anything.
+and non-authorization contracts without approving or authorizing anything. The
+inert report embeds that static manifest and keeps unsafe caller-controlled
+input out of blocked report JSON.
 
 ## Boundary Assertions
 

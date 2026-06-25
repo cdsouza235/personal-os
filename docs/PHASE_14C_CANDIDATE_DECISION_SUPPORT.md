@@ -190,7 +190,9 @@ helper, not a runtime path.
 - `build_phase14c_candidate_decision_support_report` returns an inert report
   with `phase14_c_blocked=true`, `candidate_review_tracking_only=true`,
   `readiness.status=not_ready`, `inert_report_only=true`, and
-  `live_rails_activated=false`.
+  `live_rails_activated=false`. The report embeds the static contract manifest
+  as inert audit metadata so report consumers can inspect the schema/report
+  contract without reading unsafe caller input.
 - `build_phase14c_candidate_decision_support_contract_manifest` returns an
   inert contract manifest for audit and tests. It lists the decision-record
   schema fields, allowed validation statuses, prohibited field groups, report
@@ -268,6 +270,9 @@ activate, execute, grant live-service access, handle credentials, touch
 production DB, activate scheduler/background behavior, invoke OpenClaw, touch
 protected paths, implement dynamic cleaning, adopt Watch Tower, add `.agent/`,
 add `CLAUDE.md`, or add runtime/operator scaffolding.
+Report-embedded contract manifest coverage verifies that default and blocked
+reports carry the same static manifest and that blocked reports still do not
+echo caller-controlled unsafe input tokens through the manifest field.
 
 ## Stop Conditions
 

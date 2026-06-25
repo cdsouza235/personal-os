@@ -150,6 +150,53 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertNotIn(field, report)
 
+    def test_report_embeds_contract_manifest_as_inert_audit_metadata(self) -> None:
+        report = build_phase14c_candidate_decision_support_report()
+        manifest = build_phase14c_candidate_decision_support_contract_manifest()
+        non_authorization = report["contract_manifest"]["non_authorization_contract"]
+
+        self.assertEqual(report["contract_manifest"], manifest)
+        self.assertIn("contract_manifest", REPORT_TOP_LEVEL_FIELDS)
+        self.assertTrue(non_authorization["candidate_review_tracking_only"])
+        self.assertTrue(non_authorization["phase14_c_blocked"])
+        self.assertTrue(non_authorization["inert_report_only"])
+        self.assertEqual(non_authorization["readiness.status"], "not_ready")
+        self.assertFalse(non_authorization["candidate_approved"])
+        self.assertFalse(non_authorization["live_service_access_authorized"])
+        self.assertFalse(non_authorization["credentials_auth_handling_authorized"])
+        self.assertFalse(non_authorization["runtime_operator_scaffolding_authorized"])
+
+    def test_blocked_report_embeds_manifest_without_echoing_unsafe_input(self) -> None:
+        unsafe_key = "secret-report-manifest-key-must-not-leak"
+        unsafe_values = (
+            "secret-report-manifest-decision-value",
+            "secret-report-manifest-note-value",
+            "secret-report-manifest-key-value",
+        )
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "decision_option": unsafe_values[0],
+                "notes": {"api_key": unsafe_values[1]},
+                unsafe_key: unsafe_values[2],
+            }
+        )
+
+        serialized_report = json.dumps(report, sort_keys=True)
+        validation = report["decision_record_validation"]
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertFalse(report["decision_record_validated_as_unfilled"])
+        self.assertIsNone(validation["normalized_record"])
+        self.assertEqual(
+            report["contract_manifest"],
+            build_phase14c_candidate_decision_support_contract_manifest(),
+        )
+        self.assertNotIn(unsafe_key, serialized_report)
+        for unsafe_value in unsafe_values:
+            with self.subTest(unsafe_value=unsafe_value):
+                self.assertNotIn(unsafe_value, serialized_report)
+
     def test_contract_manifest_allowed_statuses_cover_validation_outputs(self) -> None:
         manifest = build_phase14c_candidate_decision_support_contract_manifest()
         allowed_statuses = set(manifest["allowed_validation_statuses"])

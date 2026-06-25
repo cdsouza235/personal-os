@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #54:
-  `14933d5b6ca9407114b42b77f213e2444b730fa9`
-- Latest merged PR at that baseline: PR #54, Phase 14-C decision-support
-  missing-field matrix
+- Last validated main baseline after PR #55:
+  `059cb28c6ab752c870a9b5b9dd5f8f439f25a5dd`
+- Latest merged PR at that baseline: PR #55, Phase 14-C decision-support
+  blocked-reason sanitization
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -18,8 +18,9 @@ Last updated: 2026-06-25
   candidate decision-support bundle is docs/test-only and inert; the inert
   Phase 14-C candidate decision-support validator/report layer, strict
   known-schema hardening, nested-fillable-field coverage, and missing-field
-  matrix coverage are merged on `main`; this packet adds blocked-reason
-  sanitization for caller-supplied decision and drift values
+  matrix coverage and blocked-reason sanitization are merged on `main`; this
+  packet adds unknown schema key-name sanitization for caller-supplied unknown
+  keys
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -30,7 +31,7 @@ Last updated: 2026-06-25
   coverage, plus table-driven invariant coverage, plus blocked-report
   sanitization and deterministic timestamp coverage, plus explicit report shape
   contract coverage, plus missing-field matrix coverage, plus blocked-reason
-  sanitization coverage
+  sanitization coverage, plus unknown schema key-name sanitization coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -38,13 +39,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 529 tests OK
-- ResourceWarning-sensitive suite: 529 tests OK
+- Full suite: 530 tests OK
+- ResourceWarning-sensitive suite: 530 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 27 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 28 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -98,6 +99,9 @@ Last updated: 2026-06-25
 - PR #54 Phase 14-C decision-support missing-field matrix: merged
 - PR #54 Claude Code audit: Pass
 - PR #54 post-merge validation: passed
+- PR #55 Phase 14-C decision-support blocked-reason sanitization: merged
+- PR #55 Claude Code audit: Pass
+- PR #55 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -148,7 +152,9 @@ and validation payload shape tests keep the inert report contract explicit and
 exclude raw decision-record echo fields. Missing-field matrix tests keep every
 required text default and every required false field fail-closed as
 `decision_needed` when absent. Blocked-reason sanitization keeps
-caller-supplied decision and drift values out of blocked report JSON.
+caller-supplied decision and drift values out of blocked report JSON. Unknown
+schema key-name sanitization keeps caller-supplied unknown keys out of blocked
+report JSON.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -212,6 +218,7 @@ production runtime state.
 - PR #52: Add Phase 14-C decision support report sanitization tests.
 - PR #53: Add Phase 14-C decision support report shape tests.
 - PR #54: Add Phase 14-C decision support missing-field matrix tests.
+- PR #55: Sanitize Phase 14-C blocked decision reasons.
 
 ## Known Gaps
 
@@ -252,7 +259,8 @@ production runtime state.
   tested explicitly so raw decision-record echo fields stay out of the report.
   Missing required text defaults and required false fields fail closed as
   `decision_needed`. Blocked reasons avoid echoing caller-supplied decision or
-  drift values into report JSON.
+  drift values into report JSON. Unknown schema reasons avoid echoing
+  caller-supplied unknown key names into report JSON.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -270,7 +278,7 @@ production runtime state.
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
-  PR #50, PR #51, PR #52, PR #53, and PR #54 do not authorize OpenClaw, credentials,
+  PR #50, PR #51, PR #52, PR #53, PR #54, and PR #55 do not authorize OpenClaw, credentials,
   production DB, scheduler/background loop, external runtime writes, protected
   path access, Phase 14-C activation, or candidate execution.
 

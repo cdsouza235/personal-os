@@ -36,7 +36,8 @@ sanitization, deterministic default timestamps, and explicit report shape
 contracts. Missing-field matrix tests cover every required text default and
 every required false field so absent required fields fail closed as
 `decision_needed`. Blocked-reason sanitization keeps caller-supplied decision
-and drift values out of blocked report JSON.
+and drift values out of blocked report JSON. Unknown schema key-name
+sanitization keeps caller-supplied unknown keys out of blocked report JSON.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -68,7 +69,8 @@ preserves the unfilled/blocked repo-local report boundary. Its invariant tests
 remain repo-local and do not select approve, reject, or defer. Blocked-report
 sanitization, report shape tests, missing-field matrix tests, and
 blocked-reason sanitization tests do not grant live access or expose unsafe
-input values.
+input values. Unknown schema key-name sanitization tests preserve the same
+non-echo boundary for caller-supplied unknown keys.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -169,7 +171,9 @@ Future Phase 14 should be structured as:
   fail closed as `decision_needed`. Blocked reports do not echo unsafe input
   values, and default report timestamps remain deterministic. Report and
   validation payload shape contracts remain explicit. Blocked reasons avoid
-  echoing caller-supplied decision or drift values into report JSON.
+  echoing caller-supplied decision or drift values into report JSON. Unknown
+  schema reasons avoid echoing caller-supplied unknown key names into report
+  JSON.
 
 ## Historical Boundary Reference
 

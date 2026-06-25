@@ -290,7 +290,7 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
         self.assertFalse(validation.record_accepted_as_unfilled_template)
         self.assertIn(
-            "Decision record contains unknown schema field: session_token.",
+            "Decision record contains unknown schema fields; only the false-default template schema is accepted.",
             validation.reasons,
         )
 
@@ -305,9 +305,31 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
         self.assertFalse(validation.record_accepted_as_unfilled_template)
         self.assertIn(
-            "Decision record contains unknown schema field: metadata.",
+            "Decision record contains unknown schema fields; only the false-default template schema is accepted.",
             validation.reasons,
         )
+
+    def test_blocked_report_does_not_echo_unknown_schema_key_names(self) -> None:
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "secret-unknown-key-must-not-leak": (
+                    "secret-unknown-value-must-not-leak"
+                ),
+            }
+        )
+
+        serialized_report = json.dumps(report, sort_keys=True)
+        validation = report["decision_record_validation"]
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertFalse(report["decision_record_validated_as_unfilled"])
+        self.assertIn(
+            "Decision record contains unknown schema fields; only the false-default template schema is accepted.",
+            validation["reasons"],
+        )
+        self.assertNotIn("secret-unknown-key-must-not-leak", serialized_report)
+        self.assertNotIn("secret-unknown-value-must-not-leak", serialized_report)
 
     def test_nested_payload_under_known_fillable_field_is_blocked(self) -> None:
         record = {

@@ -93,6 +93,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "blocked-reason sanitization",
             "caller-supplied decision and drift values",
             "blocked report json",
+            "unknown schema key-name sanitization",
+            "caller-supplied unknown keys",
+            "failing closed on unknown schema fields",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

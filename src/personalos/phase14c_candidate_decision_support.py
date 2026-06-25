@@ -456,6 +456,11 @@ def _missing_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
             reasons.append(
                 f"Decision-support record required false field is missing: {field}."
             )
+    for field in FILLABLE_DECISION_FIELDS:
+        if field not in record:
+            reasons.append(
+                f"Decision-support record required unfilled field is missing: {field}."
+            )
     if not _present(record.get("readiness.status")):
         reasons.append(
             "Decision-support record required field is missing: "

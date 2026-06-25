@@ -22,10 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #61:
-    `16a71bc6c8f500d5c21c9329586698f3156b9f92`
-  - latest merged PR: PR #61, Phase 14-C decision-support strict readiness
-    status validation
+  - last validated main baseline after PR #62:
+    `134c6be80c19f73d12cd7a0af5029e6cb90b89d2`
+  - latest merged PR: PR #62, Phase 14-C decision-support required readiness
+    status template field
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -285,11 +285,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #61:
+As of this post-merge validation update after PR #62:
 
-- Last validated main baseline after PR #61:
-  `16a71bc6c8f500d5c21c9329586698f3156b9f92`
-- Latest merged PR: PR #61, Phase 14-C decision-support strict readiness status validation
+- Last validated main baseline after PR #62:
+  `134c6be80c19f73d12cd7a0af5029e6cb90b89d2`
+- Latest merged PR: PR #62, Phase 14-C decision-support required readiness status template field
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -306,6 +306,7 @@ As of this post-merge validation update after PR #61:
 - PR #59 Claude Code audit: Pass
 - PR #60 Claude Code audit: Pass
 - PR #61 Claude Code audit: Pass
+- PR #62 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -317,8 +318,8 @@ As of this post-merge validation update after PR #61:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 539 tests OK
-- ResourceWarning-sensitive suite: 539 tests OK
+- Full test suite: 540 tests OK
+- ResourceWarning-sensitive suite: 540 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -373,6 +374,9 @@ As of this post-merge validation update after PR #61:
   values out of blocked report JSON.
   Required readiness status coverage keeps `readiness.status=not_ready` in the
   false-default template and fails closed as `decision_needed` when missing.
+  Required unfilled decision-field coverage keeps every fillable decision field
+  in the false-default template and fails closed as `decision_needed` when any
+  one is missing.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -444,7 +448,8 @@ Completed major phases:
   prohibited live/API and credential/secret values out of blocked report JSON,
   blocks non-boolean false-like required-false-field values, blocks
   non-exact required text defaults, blocks non-exact readiness status values,
-  requires the not-ready readiness status field, and does not record a human
+  requires the not-ready readiness status field, requires every fillable
+  decision field to remain present as unfilled, and does not record a human
   decision.
   Report and validation payload shape tests keep raw decision-record echo
   fields out of the report contract.
@@ -1220,6 +1225,8 @@ Strict readiness status coverage checks that non-exact `not_ready` variants
 block and do not echo caller-controlled readiness drift values.
 Required readiness status coverage checks that missing readiness status fails
 closed as `decision_needed`.
+Required unfilled decision-field coverage checks that missing fillable fields
+fail closed as `decision_needed`.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1290,14 +1297,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #61:
+Last validated main baseline after PR #62:
 
-`16a71bc6c8f500d5c21c9329586698f3156b9f92`
+`134c6be80c19f73d12cd7a0af5029e6cb90b89d2`
 
 Current validated state:
 
-- Full suite: 539 tests OK
-- ResourceWarning-sensitive suite: 539 tests OK
+- Full suite: 540 tests OK
+- ResourceWarning-sensitive suite: 540 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1344,6 +1351,8 @@ Current validated state:
 - PR #60 Phase 14-C decision-support strict text-default validation is merged
 - PR #61 Phase 14-C decision-support strict readiness status validation is
   merged
+- PR #62 Phase 14-C decision-support required readiness status template field
+  is merged
 
 Next human decision:
 

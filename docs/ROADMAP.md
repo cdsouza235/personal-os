@@ -35,7 +35,9 @@ decision-needed status set. Report-level tests cover blocked-report
 sanitization, deterministic default timestamps, and explicit report shape
 contracts. Missing-field matrix tests cover every required text default and
 every required false field so absent required fields fail closed as
-`decision_needed`. Blocked-reason sanitization keeps caller-supplied decision
+`decision_needed`. Required unfilled decision-field tests cover every fillable
+decision field so absent unfilled fields also fail closed as `decision_needed`.
+Blocked-reason sanitization keeps caller-supplied decision
 and drift values out of blocked report JSON. Unknown schema key-name
 sanitization keeps caller-supplied unknown keys out of blocked report JSON.
 Blocked report sanitization matrix tests cover representative unknown-schema,
@@ -50,6 +52,9 @@ case/spacing variants instead of accepting them as `not_ready` and keep
 caller-controlled readiness drift values out of blocked report JSON.
 Required readiness.status tests keep `readiness.status=not_ready` in the
 false-default template and make missing readiness status fail closed as
+`decision_needed`.
+Required unfilled decision-field tests keep every fillable decision field in
+the false-default template and make missing fillable fields fail closed as
 `decision_needed`.
 
 The Phase 13E-D planning/evidence doc is
@@ -93,6 +98,8 @@ literal text defaults only. Strict readiness.status tests preserve the same
 boundary for the exact `not_ready` readiness value only.
 Required readiness.status tests preserve the same boundary by requiring the
 template to carry that not-ready value.
+Required unfilled decision-field tests preserve the same boundary by requiring
+the template to carry every fillable decision field as unfilled.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -202,7 +209,8 @@ Future Phase 14 should be structured as:
   non-boolean false-like values. Strict required-text-default tests block
   case/spacing variants. Strict readiness.status tests block non-exact
   `not_ready` variants. Required readiness.status tests make missing
-  readiness status fail closed.
+  readiness status fail closed. Required unfilled decision-field tests make
+  missing fillable fields fail closed.
 
 ## Historical Boundary Reference
 

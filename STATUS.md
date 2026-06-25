@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #62:
-  `134c6be80c19f73d12cd7a0af5029e6cb90b89d2`
-- Latest merged PR at that baseline: PR #62, Phase 14-C decision-support
-  required readiness status template field
+- Last validated main baseline after PR #63:
+  `293c887b0d39b6635781ceeff7e7618065c1e3fa`
+- Latest merged PR at that baseline: PR #63, Phase 14-C decision-support
+  required unfilled decision fields
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -22,9 +22,10 @@ Last updated: 2026-06-25
   sanitization, blocked report sanitization matrix coverage, nested
   prohibited-field non-echo coverage, strict required-false-field boolean
   hardening, strict required-text-default literal hardening, and strict
-  readiness status literal hardening and the required readiness status
-  template field are merged on `main`; this packet adds required unfilled
-  fillable decision-field coverage in the false-default template
+  readiness status literal hardening, the required readiness status template
+  field, and required unfilled fillable decision-field coverage are merged on
+  `main`; this packet adds strict unfilled decision-field empty-value
+  hardening for the false-default template
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -40,7 +41,8 @@ Last updated: 2026-06-25
   prohibited-field value non-echo coverage, plus strict required-false-field
   boolean hardening, plus strict required-text-default literal hardening, plus
   strict readiness status literal hardening, plus required readiness status
-  template coverage, plus required unfilled fillable decision-field coverage
+  template coverage, plus required unfilled fillable decision-field coverage,
+  plus strict unfilled decision-field empty-value hardening
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -48,13 +50,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 540 tests OK
-- ResourceWarning-sensitive suite: 540 tests OK
+- Full suite: 541 tests OK
+- ResourceWarning-sensitive suite: 541 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 38 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 39 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -135,6 +137,9 @@ Last updated: 2026-06-25
   merged
 - PR #62 Claude Code audit: Pass
 - PR #62 post-merge validation: passed
+- PR #63 Phase 14-C decision-support required unfilled decision fields: merged
+- PR #63 Claude Code audit: Pass
+- PR #63 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -203,6 +208,8 @@ missing.
 Required unfilled decision-field coverage keeps every fillable decision field
 present in the false-default template and fails closed as `decision_needed`
 when any one is missing.
+Strict unfilled decision-field hardening blocks whitespace-only fillable field
+values instead of accepting them as the empty unfilled template.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -274,6 +281,7 @@ production runtime state.
 - PR #60: Harden Phase 14-C text default validation.
 - PR #61: Harden Phase 14-C readiness status validation.
 - PR #62: Require Phase 14-C readiness status template field.
+- PR #63: Require Phase 14-C unfilled decision fields.
 
 ## Known Gaps
 
@@ -331,6 +339,8 @@ production runtime state.
   Required unfilled decision-field coverage keeps every fillable decision field
   present in the false-default template and fails closed as `decision_needed`
   when any one is missing.
+  Strict unfilled decision-field hardening blocks whitespace-only fillable
+  field values instead of accepting them as the empty unfilled template.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -349,9 +359,10 @@ production runtime state.
   approved envelopes.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
-  PR #59, PR #60, PR #61, and PR #62 do not authorize OpenClaw, credentials,
-  production DB, scheduler/background loop, external runtime writes, protected
-  path access, Phase 14-C activation, or candidate execution.
+  PR #59, PR #60, PR #61, PR #62, and PR #63 do not authorize OpenClaw,
+  credentials, production DB, scheduler/background loop, external runtime
+  writes, protected path access, Phase 14-C activation, or candidate
+  execution.
 
 ## Core Docs
 

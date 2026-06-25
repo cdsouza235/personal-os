@@ -114,6 +114,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "missing readiness status",
             "required unfilled decision-field coverage",
             "missing fillable field",
+            "strict unfilled decision-field coverage",
+            "whitespace-only values",
+            "expected an empty unfilled value",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

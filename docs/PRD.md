@@ -22,10 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #62:
-    `134c6be80c19f73d12cd7a0af5029e6cb90b89d2`
-  - latest merged PR: PR #62, Phase 14-C decision-support required readiness
-    status template field
+  - last validated main baseline after PR #63:
+    `293c887b0d39b6635781ceeff7e7618065c1e3fa`
+  - latest merged PR: PR #63, Phase 14-C decision-support required unfilled
+    decision fields
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -285,11 +285,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #62:
+As of this post-merge validation update after PR #63:
 
-- Last validated main baseline after PR #62:
-  `134c6be80c19f73d12cd7a0af5029e6cb90b89d2`
-- Latest merged PR: PR #62, Phase 14-C decision-support required readiness status template field
+- Last validated main baseline after PR #63:
+  `293c887b0d39b6635781ceeff7e7618065c1e3fa`
+- Latest merged PR: PR #63, Phase 14-C decision-support required unfilled decision fields
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -307,6 +307,7 @@ As of this post-merge validation update after PR #62:
 - PR #60 Claude Code audit: Pass
 - PR #61 Claude Code audit: Pass
 - PR #62 Claude Code audit: Pass
+- PR #63 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -318,8 +319,8 @@ As of this post-merge validation update after PR #62:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 540 tests OK
-- ResourceWarning-sensitive suite: 540 tests OK
+- Full test suite: 541 tests OK
+- ResourceWarning-sensitive suite: 541 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -377,6 +378,8 @@ As of this post-merge validation update after PR #62:
   Required unfilled decision-field coverage keeps every fillable decision field
   in the false-default template and fails closed as `decision_needed` when any
   one is missing.
+  Strict unfilled decision-field hardening blocks whitespace-only fillable
+  field values instead of accepting them as the empty unfilled template.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -449,8 +452,8 @@ Completed major phases:
   blocks non-boolean false-like required-false-field values, blocks
   non-exact required text defaults, blocks non-exact readiness status values,
   requires the not-ready readiness status field, requires every fillable
-  decision field to remain present as unfilled, and does not record a human
-  decision.
+  decision field to remain present as unfilled, blocks whitespace-only
+  fillable decision-field values, and does not record a human decision.
   Report and validation payload shape tests keep raw decision-record echo
   fields out of the report contract.
 
@@ -1297,14 +1300,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #62:
+Last validated main baseline after PR #63:
 
-`134c6be80c19f73d12cd7a0af5029e6cb90b89d2`
+`293c887b0d39b6635781ceeff7e7618065c1e3fa`
 
 Current validated state:
 
-- Full suite: 540 tests OK
-- ResourceWarning-sensitive suite: 540 tests OK
+- Full suite: 541 tests OK
+- ResourceWarning-sensitive suite: 541 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1353,6 +1356,8 @@ Current validated state:
   merged
 - PR #62 Phase 14-C decision-support required readiness status template field
   is merged
+- PR #63 Phase 14-C decision-support required unfilled decision fields is
+  merged
 
 Next human decision:
 

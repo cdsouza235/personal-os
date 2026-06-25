@@ -235,6 +235,10 @@ fails closed as `decision_needed`.
 Required unfilled decision-field coverage verifies that every fillable
 decision field is present in the false-default template and that a missing
 fillable field fails closed as `decision_needed`.
+Strict unfilled decision-field coverage verifies that whitespace-only values
+in fillable decision fields are blocked instead of accepted as the empty
+unfilled template, with the value-free reason `expected an empty unfilled
+value`.
 
 ## Stop Conditions
 

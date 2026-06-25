@@ -366,6 +366,24 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
                     validation.reasons,
                 )
 
+    def test_every_fillable_decision_field_blocks_when_not_exact_empty(self) -> None:
+        for field in FILLABLE_DECISION_FIELDS:
+            with self.subTest(field=field):
+                record = {
+                    **blank_phase14c_candidate_decision_support_record(),
+                    field: " ",
+                }
+
+                validation = validate_phase14c_candidate_decision_record(record)
+
+                self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+                self.assertFalse(validation.record_accepted_as_unfilled_template)
+                self.assertFalse(validation.human_decision_recorded)
+                self.assertIn(
+                    f"Decision record changes {field}; expected an empty unfilled value.",
+                    validation.reasons,
+                )
+
     def test_every_required_false_field_blocks_when_truthy(self) -> None:
         for field in REQUIRED_FALSE_FIELDS:
             with self.subTest(field=field):

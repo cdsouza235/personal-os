@@ -390,6 +390,14 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
             )
 
     for field in FILLABLE_DECISION_FIELDS:
+        if (
+            field in record
+            and record[field] != ""
+            and not _field_present(flattened, field)
+        ):
+            reasons.append(
+                f"Decision record changes {field}; expected an empty unfilled value."
+            )
         if _field_present(flattened, field):
             reasons.append(
                 f"Decision record fills {field}; recording a human decision is out of scope."

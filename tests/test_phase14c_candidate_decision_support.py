@@ -802,6 +802,29 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
+    def test_report_inert_true_fields_remain_true(self) -> None:
+        report = build_phase14c_candidate_decision_support_report()
+        tracking = report["candidate_review_tracking"]
+        candidate = tracking["candidate"]
+        true_paths = (
+            ("candidate_review_tracking_only", report["candidate_review_tracking_only"]),
+            ("phase14_c_blocked", report["phase14_c_blocked"]),
+            (
+                "approval_to_merge_docs_is_not_live_authorization",
+                report["approval_to_merge_docs_is_not_live_authorization"],
+            ),
+            (
+                "candidate_review_tracking.exactly_one_candidate_recorded",
+                tracking["exactly_one_candidate_recorded"],
+            ),
+            ("candidate.review_tracking_only", candidate["review_tracking_only"]),
+            ("readiness.inert_report_only", report["readiness"]["inert_report_only"]),
+        )
+
+        for field, value in true_paths:
+            with self.subTest(field=field):
+                self.assertTrue(value)
+
     def test_blocked_report_does_not_echo_unsafe_input_values(self) -> None:
         report = build_phase14c_candidate_decision_support_report(
             {

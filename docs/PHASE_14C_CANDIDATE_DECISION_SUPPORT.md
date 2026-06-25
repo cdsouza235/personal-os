@@ -250,6 +250,9 @@ Report inert false-field matrix coverage verifies that every top-level
 approval, execution, live rail, credential, scheduler, protected-path,
 model/API, Watch Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external
 mutation flag remains false.
+Report inert true-field matrix coverage verifies that the blocked,
+tracking-only, merge-is-not-live-authorization, and inert readiness flags
+remain true.
 
 ## Stop Conditions
 

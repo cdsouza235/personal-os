@@ -127,6 +127,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "report inert false-field matrix coverage",
             "top-level approval, execution, live rail",
             "external mutation flag remains false",
+            "report inert true-field matrix coverage",
+            "merge-is-not-live-authorization",
+            "inert readiness flags remain true",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

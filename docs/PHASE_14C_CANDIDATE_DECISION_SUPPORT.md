@@ -284,6 +284,10 @@ match the inert contract, while tampered reports fail closed when shape,
 manifest, status, validation payload, inert flags, readiness, raw-echo
 exclusions, or safety posture drift. Validator output uses static/value-free
 reasons and does not echo unsafe report keys or values.
+Report-contract validator matrix coverage verifies absent report payloads,
+missing and extra top-level fields, every inert false field, every inert true
+path, every raw-echo field, and validation-payload mismatch while keeping
+unsafe caller-controlled report keys and values out of validator output.
 
 ## Stop Conditions
 

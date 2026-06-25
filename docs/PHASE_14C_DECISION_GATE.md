@@ -25,7 +25,9 @@ approve, authorize, activate, execute, or grant live-service access. The
 inert report embeds that same static manifest for auditability without
 echoing unsafe caller-controlled input. Its report-contract validator checks
 in-memory reports against that static contract and fails closed on tampering
-without echoing unsafe report keys or values.
+without echoing unsafe report keys or values. Matrix coverage keeps absent
+reports, shape drift, inert flag drift, raw-echo fields, and validation
+payload mismatch fail-closed.
 
 ## Current Recorded Candidate
 

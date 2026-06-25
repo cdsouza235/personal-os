@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #71:
-    `3fd3233209edc4491e487f6681d33795f7f6c5a8`
-  - latest merged PR: PR #71, Phase 14-C report-embedded contract manifest
+  - last validated main baseline after PR #72:
+    `3c6a5d594eabdf37526cdd43f688ce470e8f18cb`
+  - latest merged PR: PR #72, Phase 14-C report contract validator
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -74,6 +74,9 @@ Key changes from v0.1:
 - Records report-contract validator coverage as inert source/test/docs work
   that validates default, blocked, and tampered reports against the static
   report contract without echoing unsafe report keys or values.
+- Records report-contract validator matrix coverage as inert test/docs work
+  that covers absent reports, top-level shape drift, inert false-field drift,
+  inert true-path drift, raw-echo fields, and validation-payload mismatch.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -299,11 +302,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #71:
+As of this post-merge validation update after PR #72:
 
-- Last validated main baseline after PR #71:
-  `3fd3233209edc4491e487f6681d33795f7f6c5a8`
-- Latest merged PR: PR #71, Phase 14-C report-embedded contract manifest
+- Last validated main baseline after PR #72:
+  `3c6a5d594eabdf37526cdd43f688ce470e8f18cb`
+- Latest merged PR: PR #72, Phase 14-C report contract validator
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -330,6 +333,7 @@ As of this post-merge validation update after PR #71:
 - PR #69 Claude Code audit: Pass
 - PR #70 Claude Code audit: Pass
 - PR #71 Claude Code audit: Pass
+- PR #72 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -341,8 +345,8 @@ As of this post-merge validation update after PR #71:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 561 tests OK
-- ResourceWarning-sensitive suite: 561 tests OK
+- Full test suite: 568 tests OK
+- ResourceWarning-sensitive suite: 568 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -428,6 +432,9 @@ As of this post-merge validation update after PR #71:
   equality, allowed statuses, validation payload coherence, inert fields,
   readiness, raw-echo exclusions, and safety posture without echoing unsafe
   report keys or values.
+- Report-contract validator matrix coverage checks absent reports, top-level
+  shape drift, inert false/true drift, raw-echo fields, and validation-payload
+  mismatch.
 - Long-run governance records that the completed bounded packet is the default
   PR/audit unit for safe inert repo-local work; Codex/Fable should bundle
   adjacent safe substeps rather than stop after every micro-invariant; human
@@ -522,7 +529,9 @@ Completed major phases:
   embeds that static manifest in default and blocked reports without echoing
   caller-controlled unsafe input tokens, validates report contracts for
   default, blocked, and tampered reports without echoing unsafe report keys or
-  values, and does not record a human decision.
+  values, adds report-contract validator matrix coverage for absent reports,
+  shape drift, inert flag drift, raw-echo fields, and validation-payload
+  mismatch, and does not record a human decision.
   Report and validation payload shape tests keep raw decision-record echo
   fields out of the report contract.
 
@@ -1377,14 +1386,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #71:
+Last validated main baseline after PR #72:
 
-`3fd3233209edc4491e487f6681d33795f7f6c5a8`
+`3c6a5d594eabdf37526cdd43f688ce470e8f18cb`
 
 Current validated state:
 
-- Full suite: 561 tests OK
-- ResourceWarning-sensitive suite: 561 tests OK
+- Full suite: 568 tests OK
+- ResourceWarning-sensitive suite: 568 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1444,8 +1453,9 @@ Current validated state:
 - PR #69 longer work packet governance is merged
 - PR #70 Phase 14-C decision support contract manifest is merged
 - PR #71 Phase 14-C report-embedded contract manifest is merged
-- The current report-contract validator packet adds only inert source/test/docs
-  report contract coverage and keeps Phase 14-C blocked.
+- PR #72 Phase 14-C report contract validator is merged
+- The current report-contract validator matrix packet adds only inert
+  test/docs/status coverage and keeps Phase 14-C blocked.
 
 Next human decision:
 

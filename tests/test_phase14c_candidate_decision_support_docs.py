@@ -143,6 +143,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "report-contract validator coverage",
             "tampered reports fail closed",
             "does not echo unsafe report keys or values",
+            "report-contract validator matrix coverage",
+            "absent report payloads",
+            "validation-payload mismatch",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

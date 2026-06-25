@@ -73,6 +73,11 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "separately gated even after approval",
             "failure-mode / risk checklist",
             "required future approval wording",
+            "src/personalos/phase14c_candidate_decision_support.py",
+            "blank_phase14c_candidate_decision_support_record",
+            "validate_phase14c_candidate_decision_record",
+            "build_phase14c_candidate_decision_support_report",
+            "render_phase14c_candidate_decision_support_checklist",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

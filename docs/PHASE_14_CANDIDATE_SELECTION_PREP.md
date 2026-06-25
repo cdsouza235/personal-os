@@ -1,6 +1,6 @@
 # Pre-Phase-14-C Candidate-Selection Preparation
 
-Last updated: 2026-06-23
+Last updated: 2026-06-25
 
 ## Purpose
 
@@ -59,7 +59,12 @@ The companion decision-support document is
 [PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
 It keeps the candidate-review tracking only posture unfilled and false by
 default while making a future human approve/reject/defer review easier to
-inspect.
+inspect. Its repo-local helper,
+`src/personalos/phase14c_candidate_decision_support.py`, validates only the
+unfilled false-default decision-support record and blocks any filled decision,
+approval, authorization, activation, live-service, credential/secret, live ID,
+dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`, or runtime/operator
+scaffolding flag.
 
 ## Boundary Assertions
 

@@ -1,26 +1,29 @@
 # Personal OS Status
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #46:
-  `888a1de794b721b186afbcaf3e0363b2f8e67f91`
-- Latest merged PR at that baseline: PR #46, anti-micro-loop workflow and
-  post-PR-45 checkpoint refresh
+- Last validated main baseline after PR #47:
+  `4f3454d8fa0f3c4875621449ebe323f58e2279ae`
+- Latest merged PR at that baseline: PR #47, Phase 14-C candidate decision
+  support bundle
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
   Claude Code audit triage protocol, anti-micro-loop checkpoint workflow, and
   Phase 14-C candidate decision gate are merged on `main`; the Phase 14-C
-  candidate decision-support bundle is docs/test-only and inert
+  candidate decision-support bundle is docs/test-only and inert; this packet
+  adds an inert Phase 14-C candidate decision-support validator/report layer
+  for the unfilled false-default decision record
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
   Phase 14-C candidate decision gate on `main`, plus a docs/test-only
-  candidate decision-support bundle
+  candidate decision-support bundle, plus an inert decision-support
+  validator/report packet
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -28,12 +31,13 @@ Last updated: 2026-06-24
 
 ## Validated State
 
-- Full suite: 502 tests OK
-- ResourceWarning-sensitive suite: 502 tests OK
+- Full suite: 515 tests OK
+- ResourceWarning-sensitive suite: 515 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 13 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -63,6 +67,9 @@ Last updated: 2026-06-24
 - PR #45 Claude Code audit: Pass
 - PR #45 post-merge validation: passed
 - PR #46 anti-micro-loop workflow and post-PR-45 checkpoint refresh: merged
+- PR #47 Phase 14-C candidate decision-support bundle: merged
+- PR #47 Claude Code audit: Pass
+- PR #47 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -96,6 +103,13 @@ tests, migrations, and Markdown docs inside the approved phase scope.
 The Phase 14-C candidate decision-support bundle is an inert review aid with
 an unfilled false-default decision-record template; it does not select
 approve, reject, or defer.
+The Phase 14-C candidate decision-support validator/report layer is inert and
+repo-local. It validates only the unfilled false-default decision-support
+record and blocks filled decisions, approval flags, authorization flags,
+activation flags, live-service fields, credential/secret fields, live IDs,
+dynamic cleaning flags, Watch Tower flags, `.agent/`, `CLAUDE.md`, and
+runtime/operator scaffolding flags. It does not record approve, reject, or
+defer.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -113,7 +127,9 @@ production runtime state.
 ## Allowed Work Now
 
 - Local tests and hygiene checks.
-- Future phase work only after explicit Chris approval.
+- Repo-local inert validators/reports and safety invariant hardening inside an
+  explicit approved long-run work envelope.
+- Future live phase work only after explicit Chris approval.
 
 ## Blocked Work
 
@@ -149,6 +165,7 @@ production runtime state.
 - PR #44: post-PR-43 checkpoint refresh.
 - PR #45: Codify Phase 14-C candidate decision gate.
 - PR #46: Codify anti-micro-loop workflow and refresh PR #45 checkpoint.
+- PR #47: Add Phase 14-C candidate decision support bundle.
 
 ## Known Gaps
 
@@ -179,6 +196,13 @@ production runtime state.
   only. It does not approve Phase 14-C, approve the candidate, authorize the
   candidate, activate or run the candidate, authorize live service access, or
   select approve, reject, or defer.
+- Phase 14-C candidate decision-support validator/reporting is inert and
+  source/test-only. It emits `decision_needed` or `blocked` reports for the
+  unfilled decision-support record and unsafe filled records. It does not
+  select approve, reject, or defer and does not authorize Phase 14-C,
+  candidate execution, live service access, credentials, production DB,
+  scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
+  Watch Tower, `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
 - Phase 14 live pilot activation has not started.
 - Live rails remain intentionally disabled.
 - Post-merge verification is normally sufficient. Standalone checkpoint/status
@@ -191,9 +215,9 @@ production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 and
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
-- PR #41, PR #42, PR #43, PR #44, PR #45, and PR #46 do not authorize OpenClaw,
-  credentials, production DB, scheduler/background loop, external runtime
-  writes, protected path access, Phase 14-C activation, or candidate
+- PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, and PR #47 do not authorize
+  OpenClaw, credentials, production DB, scheduler/background loop, external
+  runtime writes, protected path access, Phase 14-C activation, or candidate
   execution.
 
 ## Core Docs

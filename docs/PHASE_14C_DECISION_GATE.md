@@ -1,6 +1,6 @@
 # Phase 14-C Candidate Decision Gate
 
-Last updated: 2026-06-23
+Last updated: 2026-06-25
 
 ## Purpose
 
@@ -17,7 +17,9 @@ activate any runtime behavior.
 The companion decision-support artifact is
 [PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
 It adds an inert review checklist and unfilled decision-record template for
-the same blocked candidate posture.
+the same blocked candidate posture. The companion inert validator lives in
+`src/personalos/phase14c_candidate_decision_support.py` and validates only the
+unfilled false-default template/report state; it does not record a decision.
 
 ## Current Recorded Candidate
 
@@ -47,7 +49,11 @@ blocked. Candidate-review tracking only is the current state.
 The repo may contain documentation, tests, inert templates, and fail-closed
 validators that preserve the review boundary. It must not contain wording or
 behavior that can reasonably be read as approval, authorization, activation,
-execution, live service access, or dynamic cleaning implementation.
+execution, live service access, or dynamic cleaning implementation. A
+decision-support validator may block filled decision records, approval flags,
+authorization flags, live-service fields, credentials/secrets, live IDs,
+candidate drift, dynamic cleaning flags, Watch Tower flags, `.agent/`,
+`CLAUDE.md`, and runtime/operator scaffolding flags.
 
 ## What Candidate-Review Tracking Means
 

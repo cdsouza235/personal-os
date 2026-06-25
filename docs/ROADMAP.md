@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-06-23
+Last updated: 2026-06-25
 
 [../STATUS.md](../STATUS.md) is the canonical current phase snapshot. This
 roadmap records phase history and near-term sequencing; it should not be the
@@ -23,7 +23,12 @@ scheduler/background behavior, dynamic cleaning, Watch Tower adoption,
 `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
 The Phase 14-C candidate decision-support bundle adds an inert review
 checklist and unfilled false-default decision-record template for that same
-candidate-review tracking only posture.
+candidate-review tracking only posture. The Phase 14-C candidate
+decision-support validator adds an inert source/test report helper for the
+same unfilled template; it blocks filled decisions, approval/authorization
+flags, live-service fields, credentials/secrets, live IDs, dynamic cleaning
+flags, Watch Tower flags, `.agent/`, `CLAUDE.md`, and runtime/operator
+scaffolding flags.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -50,6 +55,8 @@ The decision gate records evidence and wording that Chris should review before
 any future movement beyond candidate-review tracking only.
 The candidate decision-support artifact records review questions and an
 unfilled template only; it does not select approve, reject, or defer.
+The candidate decision-support validator records no human decision and only
+preserves the unfilled/blocked repo-local report boundary.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -141,6 +148,9 @@ Future Phase 14 should be structured as:
   No approve/reject/defer decision selected, no Phase 14-C approval, no
   candidate approval, no candidate authorization, no activation or execution,
   and no live service access.
+- Phase 14-C candidate decision-support validator: inert source/test report
+  helper for the unfilled false-default decision record. It emits
+  `decision_needed` or `blocked`; it does not record approve, reject, or defer.
 
 ## Historical Boundary Reference
 

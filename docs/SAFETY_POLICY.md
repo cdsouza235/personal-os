@@ -175,7 +175,9 @@ fillable fields must also fail closed because filling any decision-record field
 would record a human decision outside the current blocked posture. The
 validator tests must also keep table-driven coverage for every fillable
 decision field, every required false field, the known schema field set, and
-the allowed `decision_needed` / `blocked` status set.
+the allowed `decision_needed` / `blocked` status set. Blocked-report tests
+must not echo unsafe input values, and default report timestamps must remain
+deterministic unless explicitly overridden.
 
 ## High-Stakes Domains
 

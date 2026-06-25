@@ -205,6 +205,9 @@ decision outside this packet. Table-driven invariant coverage verifies that
 every fillable decision field blocks when filled, every required false field
 blocks when truthy, the known schema fields match the false-default template,
 and validator statuses remain limited to `decision_needed` or `blocked`.
+Report-level coverage verifies that blocked reports do not echo unsafe input
+values and that default report timestamps remain deterministic unless
+explicitly overridden.
 
 ## Stop Conditions
 

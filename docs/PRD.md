@@ -22,10 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #50:
-    `d91a2927b8b9a26801825e02b752cff05640af26`
-  - latest merged PR: PR #50, Phase 14-C decision-support nested-field
-    hardening
+  - last validated main baseline after PR #51:
+    `e959c55697eef9877add09777e364b0358be888c`
+  - latest merged PR: PR #51, Phase 14-C decision-support invariant matrix
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -285,17 +284,17 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #50:
+As of this post-merge validation update after PR #51:
 
-- Last validated main baseline after PR #50:
-  `d91a2927b8b9a26801825e02b752cff05640af26`
-- Latest merged PR: PR #50, Phase 14-C decision-support nested-field
-  hardening
+- Last validated main baseline after PR #51:
+  `e959c55697eef9877add09777e364b0358be888c`
+- Latest merged PR: PR #51, Phase 14-C decision-support invariant matrix
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
 - PR #49 Claude Code audit: Pass
 - PR #50 Claude Code audit: Pass
+- PR #51 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -307,8 +306,8 @@ As of this post-merge validation update after PR #50:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 522 tests OK
-- ResourceWarning-sensitive suite: 522 tests OK
+- Full test suite: 524 tests OK
+- ResourceWarning-sensitive suite: 524 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -344,8 +343,10 @@ As of this post-merge validation update after PR #50:
   the unfilled false-default decision-support record/report and blocks unsafe
   filled records, including unknown schema fields, nested payloads under known
   fillable fields, every fillable decision field, every required false field,
-  and unsupported validation statuses. It does not approve, reject, defer,
-  authorize, activate, or access any live rail.
+  and unsupported validation statuses. Its tests also verify that blocked
+  reports do not echo unsafe input values and default timestamps remain
+  deterministic. It does not approve, reject, defer, authorize, activate, or
+  access any live rail.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -407,8 +408,9 @@ Completed major phases:
   helper for the same unfilled template. It preserves `decision_needed` or
   `blocked` outcomes only, blocks unknown schema fields and nested payloads
   under known fillable fields, covers every fillable decision field and every
-  required false field with table-driven tests, and does not record a human
-  decision.
+  required false field with table-driven tests, verifies blocked reports do not
+  echo unsafe input values, keeps default timestamps deterministic, and does
+  not record a human decision.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1167,7 +1169,9 @@ checks that this record remains unfilled/false by default and blocks unsafe
 filled records, including unknown schema fields and nested payloads under
 known fillable fields. Table-driven invariant coverage checks every fillable
 decision field, every required false field, and the allowed validation status
-set; it does not select approve, reject, or defer.
+set. Blocked report coverage checks that unsafe input values are not echoed,
+and deterministic timestamp coverage keeps default reports stable; it does not
+select approve, reject, or defer.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1238,14 +1242,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #50:
+Last validated main baseline after PR #51:
 
-`d91a2927b8b9a26801825e02b752cff05640af26`
+`e959c55697eef9877add09777e364b0358be888c`
 
 Current validated state:
 
-- Full suite: 522 tests OK
-- ResourceWarning-sensitive suite: 522 tests OK
+- Full suite: 524 tests OK
+- ResourceWarning-sensitive suite: 524 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1278,6 +1282,7 @@ Current validated state:
 - PR #48 Phase 14-C candidate decision-support validator is merged
 - PR #49 Phase 14-C decision-support strict-schema hardening is merged
 - PR #50 Phase 14-C decision-support nested-field hardening is merged
+- PR #51 Phase 14-C decision-support invariant matrix is merged
 
 Next human decision:
 

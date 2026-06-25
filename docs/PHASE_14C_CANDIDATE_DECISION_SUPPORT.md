@@ -1,6 +1,6 @@
 # Phase 14-C Candidate Decision Support
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Purpose
 
@@ -172,6 +172,32 @@ candidate execution, authorize Todoist/Gmail/Calendar access, invoke OpenClaw,
 handle credentials/auth, activate production DB, activate
 schedulers/background loops, implement dynamic cleaning, adopt Watch Tower,
 add `.agent/`, add `CLAUDE.md`, or add runtime/operator scaffolding.
+
+## Inert Validator Behavior
+
+`src/personalos/phase14c_candidate_decision_support.py` validates only the
+unfilled false-default decision-support record. It is a repo-local report
+helper, not a runtime path.
+
+- `blank_phase14c_candidate_decision_support_record` returns the unfilled
+  false-default decision-record template.
+- `validate_phase14c_candidate_decision_record` accepts only the unfilled
+  template shape as `decision_needed`; it blocks any selected decision option,
+  human decision marker, approval flag, authorization flag, activation flag,
+  live-service flag, credential/secret field, live object ID, candidate drift,
+  dynamic cleaning flag, Watch Tower flag, `.agent/` flag, `CLAUDE.md` flag, or
+  runtime/operator scaffolding flag.
+- `build_phase14c_candidate_decision_support_report` returns an inert report
+  with `phase14_c_blocked=true`, `candidate_review_tracking_only=true`,
+  `readiness.status=not_ready`, `inert_report_only=true`, and
+  `live_rails_activated=false`.
+- `render_phase14c_candidate_decision_support_checklist` renders the same
+  non-authorization boundary for review.
+
+The validator has no Todoist, Gmail, Calendar, OpenClaw, credential,
+production DB, scheduler/background, protected-path, external-write, live
+model/API, Watch Tower, `.agent/`, `CLAUDE.md`, dynamic cleaning, or
+runtime/operator path.
 
 ## Stop Conditions
 

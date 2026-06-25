@@ -1,6 +1,6 @@
 # Safety Policy
 
-Last updated: 2026-06-23
+Last updated: 2026-06-25
 
 ## Purpose
 
@@ -162,7 +162,14 @@ scaffolding.
 The Phase 14-C candidate decision-support artifact may document review
 questions, failure modes, stop conditions, future approval wording, and an
 unfilled false-default decision-record template. It must preserve
-candidate-review tracking only and Phase 14-C remains blocked.
+candidate-review tracking only and Phase 14-C remains blocked. Its repo-local
+validator may produce inert `decision_needed` or `blocked` reports for the
+unfilled template and unsafe filled records, but it must not record approve,
+reject, or defer; approve or authorize a candidate; grant live-service access;
+handle credentials/auth; activate production DB or scheduler/background
+behavior; touch protected paths; call OpenClaw; implement dynamic cleaning;
+adopt Watch Tower; add `.agent/`; add `CLAUDE.md`; or add runtime/operator
+scaffolding.
 
 ## High-Stakes Domains
 

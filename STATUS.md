@@ -6,26 +6,27 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #48:
-  `46dce230aaaa5d3375cf514509e367b24c1786e2`
-- Latest merged PR at that baseline: PR #48, Phase 14-C candidate
-  decision-support validator
+- Last validated main baseline after PR #49:
+  `d7b2eb48f3cf76b845a8841f56a907b2498321b7`
+- Latest merged PR at that baseline: PR #49, Phase 14-C decision-support
+  strict-schema hardening
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
   Claude Code audit triage protocol, anti-micro-loop checkpoint workflow, and
   Phase 14-C candidate decision gate are merged on `main`; the Phase 14-C
   candidate decision-support bundle is docs/test-only and inert; the inert
-  Phase 14-C candidate decision-support validator/report layer is merged on
-  `main`; this packet adds strict known-schema hardening for the unfilled
-  false-default decision record
+  Phase 14-C candidate decision-support validator/report layer and strict
+  known-schema hardening are merged on `main`; this packet adds
+  defense-in-depth coverage for nested payloads under known fillable fields
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
   Phase 14-C candidate decision gate on `main`, plus a docs/test-only
   candidate decision-support bundle, plus an inert decision-support
   validator/report packet, plus strict known-schema hardening for the
-  decision-support record
+  decision-support record, plus defense-in-depth nested-fillable-field
+  coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -33,13 +34,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 517 tests OK
-- ResourceWarning-sensitive suite: 517 tests OK
+- Full suite: 518 tests OK
+- ResourceWarning-sensitive suite: 518 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 15 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 16 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -75,6 +76,9 @@ Last updated: 2026-06-25
 - PR #48 Phase 14-C candidate decision-support validator: merged
 - PR #48 Claude Code audit: Pass
 - PR #48 post-merge validation: passed
+- PR #49 Phase 14-C decision-support strict-schema hardening: merged
+- PR #49 Claude Code audit: Pass
+- PR #49 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -114,7 +118,9 @@ record and blocks filled decisions, approval flags, authorization flags,
 activation flags, live-service fields, credential/secret fields, live IDs,
 unknown schema fields, dynamic cleaning flags, Watch Tower flags, `.agent/`,
 `CLAUDE.md`, and runtime/operator scaffolding flags. It does not record
-approve, reject, or defer.
+approve, reject, or defer. Nested payloads under known fillable fields such as
+`notes` remain blocked because filling any decision-record field would record a
+human decision outside this packet.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -172,6 +178,7 @@ production runtime state.
 - PR #46: Codify anti-micro-loop workflow and refresh PR #45 checkpoint.
 - PR #47: Add Phase 14-C candidate decision support bundle.
 - PR #48: Add Phase 14-C decision support validator.
+- PR #49: Harden Phase 14-C decision support schema.
 
 ## Known Gaps
 
@@ -205,11 +212,11 @@ production runtime state.
 - Phase 14-C candidate decision-support validator/reporting is inert and
   source/test-only. It emits `decision_needed` or `blocked` reports for the
   unfilled decision-support record and unsafe filled records. Unknown schema
-  fields fail closed. It does not select approve, reject, or defer and does
-  not authorize Phase 14-C, candidate execution, live service access,
-  credentials, production DB, scheduler/background behavior, OpenClaw,
-  protected paths, dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`, or
-  runtime/operator scaffolding.
+  fields and nested payloads under known fillable fields fail closed. It does
+  not select approve, reject, or defer and does not authorize Phase 14-C,
+  candidate execution, live service access, credentials, production DB,
+  scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
+  Watch Tower, `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
 - Phase 14 live pilot activation has not started.
 - Live rails remain intentionally disabled.
 - Post-merge verification is normally sufficient. Standalone checkpoint/status
@@ -222,10 +229,10 @@ production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 and
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
-- PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, and PR #48 do not
-  authorize OpenClaw, credentials, production DB, scheduler/background loop,
-  external runtime writes, protected path access, Phase 14-C activation, or
-  candidate execution.
+- PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, and PR #49
+  do not authorize OpenClaw, credentials, production DB, scheduler/background
+  loop, external runtime writes, protected path access, Phase 14-C activation,
+  or candidate execution.
 
 ## Core Docs
 

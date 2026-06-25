@@ -22,9 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #48:
-    `46dce230aaaa5d3375cf514509e367b24c1786e2`
-  - latest merged PR: PR #48, Phase 14-C candidate decision-support validator
+  - last validated main baseline after PR #49:
+    `d7b2eb48f3cf76b845a8841f56a907b2498321b7`
+  - latest merged PR: PR #49, Phase 14-C decision-support strict-schema
+    hardening
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -284,14 +285,16 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #48:
+As of this post-merge validation update after PR #49:
 
-- Last validated main baseline after PR #48:
-  `46dce230aaaa5d3375cf514509e367b24c1786e2`
-- Latest merged PR: PR #48, Phase 14-C candidate decision-support validator
+- Last validated main baseline after PR #49:
+  `d7b2eb48f3cf76b845a8841f56a907b2498321b7`
+- Latest merged PR: PR #49, Phase 14-C decision-support strict-schema
+  hardening
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
+- PR #49 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -303,8 +306,8 @@ As of this post-merge validation update after PR #48:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 517 tests OK
-- ResourceWarning-sensitive suite: 517 tests OK
+- Full test suite: 518 tests OK
+- ResourceWarning-sensitive suite: 518 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -338,8 +341,9 @@ As of this post-merge validation update after PR #48:
 - Phase 14-C candidate decision-support validation is
   `src/personalos/phase14c_candidate_decision_support.py`. It validates only
   the unfilled false-default decision-support record/report and blocks unsafe
-  filled records, including unknown schema fields. It does not approve,
-  reject, defer, authorize, activate, or access any live rail.
+  filled records, including unknown schema fields and nested payloads under
+  known fillable fields. It does not approve, reject, defer, authorize,
+  activate, or access any live rail.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -399,8 +403,8 @@ Completed major phases:
   access.
 - Phase 14-C candidate decision-support validator: inert source/test report
   helper for the same unfilled template. It preserves `decision_needed` or
-  `blocked` outcomes only, blocks unknown schema fields, and does not record a
-  human decision.
+  `blocked` outcomes only, blocks unknown schema fields and nested payloads
+  under known fillable fields, and does not record a human decision.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1156,8 +1160,8 @@ The candidate decision-support artifact documents review questions, failure
 modes, stop conditions, required future approval wording, and an unfilled
 false-default decision-record template only. The decision-support validator
 checks that this record remains unfilled/false by default and blocks unsafe
-filled records, including unknown schema fields; it does not select approve,
-reject, or defer.
+filled records, including unknown schema fields and nested payloads under
+known fillable fields; it does not select approve, reject, or defer.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1228,14 +1232,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #48:
+Last validated main baseline after PR #49:
 
-`46dce230aaaa5d3375cf514509e367b24c1786e2`
+`d7b2eb48f3cf76b845a8841f56a907b2498321b7`
 
 Current validated state:
 
-- Full suite: 517 tests OK
-- ResourceWarning-sensitive suite: 517 tests OK
+- Full suite: 518 tests OK
+- ResourceWarning-sensitive suite: 518 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1266,6 +1270,7 @@ Current validated state:
 - PR #46 anti-micro-loop workflow and checkpoint refresh is merged
 - PR #47 Phase 14-C candidate decision support bundle is merged
 - PR #48 Phase 14-C candidate decision-support validator is merged
+- PR #49 Phase 14-C decision-support strict-schema hardening is merged
 
 Next human decision:
 

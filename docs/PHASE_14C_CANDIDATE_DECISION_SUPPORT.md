@@ -199,7 +199,9 @@ production DB, scheduler/background, protected-path, external-write, live
 model/API, Watch Tower, `.agent/`, `CLAUDE.md`, dynamic cleaning, or
 runtime/operator path. The decision-record schema is strict: an extra
 top-level key or unknown container blocks the record instead of treating it as
-accepted.
+accepted. A nested payload under a known fillable field, such as `notes`, is
+also blocked because filling any decision-record field would record a human
+decision outside this packet.
 
 ## Stop Conditions
 

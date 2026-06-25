@@ -218,6 +218,22 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             validation.reasons,
         )
 
+    def test_nested_payload_under_known_fillable_field_is_blocked(self) -> None:
+        record = {
+            **blank_phase14c_candidate_decision_support_record(),
+            "notes": {"session_token": "must-not-pass"},
+        }
+
+        validation = validate_phase14c_candidate_decision_record(record)
+
+        self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+        self.assertFalse(validation.record_accepted_as_unfilled_template)
+        self.assertTrue(validation.human_decision_recorded)
+        self.assertIn(
+            "Decision record fills notes; recording a human decision is out of scope.",
+            validation.reasons,
+        )
+
     def test_candidate_context_drift_is_blocked(self) -> None:
         record = {
             **blank_phase14c_candidate_decision_support_record(),

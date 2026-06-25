@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #60:
-  `0a14703d32b47917c01ba7a38825317a81e8b0b4`
-- Latest merged PR at that baseline: PR #60, Phase 14-C decision-support
-  strict text-default validation
+- Last validated main baseline after PR #61:
+  `16a71bc6c8f500d5c21c9329586698f3156b9f92`
+- Latest merged PR at that baseline: PR #61, Phase 14-C decision-support
+  strict readiness status validation
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -21,8 +21,9 @@ Last updated: 2026-06-25
   matrix coverage, blocked-reason sanitization, unknown schema key-name
   sanitization, blocked report sanitization matrix coverage, nested
   prohibited-field non-echo coverage, strict required-false-field boolean
-  hardening, and strict required-text-default literal hardening are merged on
-  `main`; this packet adds strict readiness status literal hardening
+  hardening, strict required-text-default literal hardening, and strict
+  readiness status literal hardening are merged on `main`; this packet adds a
+  required readiness status field in the false-default template
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -37,7 +38,8 @@ Last updated: 2026-06-25
   plus blocked report sanitization matrix coverage, plus nested
   prohibited-field value non-echo coverage, plus strict required-false-field
   boolean hardening, plus strict required-text-default literal hardening, plus
-  strict readiness status literal hardening
+  strict readiness status literal hardening, plus required readiness status
+  template coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -45,13 +47,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 538 tests OK
-- ResourceWarning-sensitive suite: 538 tests OK
+- Full suite: 539 tests OK
+- ResourceWarning-sensitive suite: 539 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 36 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 37 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -125,6 +127,9 @@ Last updated: 2026-06-25
 - PR #60 Phase 14-C decision-support strict text-default validation: merged
 - PR #60 Claude Code audit: Pass
 - PR #60 post-merge validation: passed
+- PR #61 Phase 14-C decision-support strict readiness status validation: merged
+- PR #61 Claude Code audit: Pass
+- PR #61 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -187,6 +192,9 @@ case/spacing variants instead of accepting them as the unfilled template.
 Strict readiness status hardening blocks case/spacing variants instead of
 accepting them as `readiness.status=not_ready` and keeps caller-controlled
 readiness drift values out of blocked report JSON.
+Required readiness status coverage keeps `readiness.status=not_ready` in the
+false-default template and fails closed as `decision_needed` when it is
+missing.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -256,6 +264,7 @@ production runtime state.
 - PR #58: Add Phase 14-C nested prohibited sanitization tests.
 - PR #59: Harden Phase 14-C false field validation.
 - PR #60: Harden Phase 14-C text default validation.
+- PR #61: Harden Phase 14-C readiness status validation.
 
 ## Known Gaps
 
@@ -308,6 +317,8 @@ production runtime state.
   caller-controlled text-default drift values out of blocked report JSON.
   Strict readiness status hardening blocks case/spacing variants and keeps
   caller-controlled readiness drift values out of blocked report JSON.
+  Required readiness status coverage keeps `readiness.status=not_ready` in the
+  false-default template and fails closed as `decision_needed` when missing.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -326,7 +337,7 @@ production runtime state.
   approved envelopes.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
-  PR #59, and PR #60 do not authorize OpenClaw, credentials,
+  PR #59, PR #60, and PR #61 do not authorize OpenClaw, credentials,
   production DB, scheduler/background loop, external runtime writes, protected
   path access, Phase 14-C activation, or candidate execution.
 

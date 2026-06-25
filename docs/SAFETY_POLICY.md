@@ -193,6 +193,9 @@ instead of accepting them as the unfilled template.
 Strict readiness.status tests must block case/spacing variants instead of
 accepting them as `not_ready` and must keep caller-controlled readiness drift
 values out of blocked report JSON.
+Required readiness.status tests must keep `readiness.status=not_ready` in the
+false-default template and make missing readiness status fail closed as
+`decision_needed`.
 
 ## High-Stakes Domains
 

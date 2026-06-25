@@ -211,6 +211,8 @@ of blocked report JSON.
 Report inert false-field matrix tests must cover top-level approval,
 execution, live rail, credential, scheduler, protected-path, model/API, Watch
 Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flags.
+Report inert true-field matrix tests must cover blocked, tracking-only,
+merge-is-not-live-authorization, and inert readiness flags.
 
 ## High-Stakes Domains
 

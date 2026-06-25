@@ -78,6 +78,7 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "validate_phase14c_candidate_decision_record",
             "build_phase14c_candidate_decision_support_report",
             "build_phase14c_candidate_decision_support_contract_manifest",
+            "validate_phase14c_candidate_decision_support_report_contract",
             "render_phase14c_candidate_decision_support_checklist",
             "unknown schema field",
             "extra top-level key",
@@ -139,6 +140,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "raw decision-record echo exclusions",
             "report embeds the static contract manifest",
             "blocked reports still do not echo caller-controlled unsafe input tokens",
+            "report-contract validator coverage",
+            "tampered reports fail closed",
+            "does not echo unsafe report keys or values",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

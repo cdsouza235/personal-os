@@ -68,7 +68,9 @@ or runtime/operator scaffolding flag. It also exposes an inert contract
 manifest for audit/tests that records schema, status, report, prohibited-field,
 and non-authorization contracts without approving or authorizing anything. The
 inert report embeds that static manifest and keeps unsafe caller-controlled
-input out of blocked report JSON.
+input out of blocked report JSON. Its report-contract validator checks
+default, blocked, and tampered in-memory reports without echoing unsafe report
+keys or values.
 
 ## Boundary Assertions
 

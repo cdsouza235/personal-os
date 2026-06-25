@@ -20,6 +20,7 @@ from personalos.phase14c_candidate_decision_support import (
     build_phase14c_candidate_decision_support_contract_manifest,
     build_phase14c_candidate_decision_support_report,
     validate_phase14c_candidate_decision_record,
+    validate_phase14c_candidate_decision_support_report_contract,
 )
 
 
@@ -196,6 +197,107 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         for unsafe_value in unsafe_values:
             with self.subTest(unsafe_value=unsafe_value):
                 self.assertNotIn(unsafe_value, serialized_report)
+
+    def test_report_contract_validator_accepts_default_report(self) -> None:
+        report = build_phase14c_candidate_decision_support_report()
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+
+        self.assertTrue(validation.report_matches_inert_contract)
+        self.assertEqual(
+            validation.to_dict(),
+            {
+                "report_matches_inert_contract": True,
+                "reasons": ["Decision-support report matches the inert contract."],
+            },
+        )
+
+    def test_report_contract_validator_accepts_blocked_report(self) -> None:
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "candidate_approved": True,
+            }
+        )
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertTrue(validation.report_matches_inert_contract)
+        self.assertEqual(
+            validation.reasons,
+            ("Decision-support report matches the inert contract.",),
+        )
+
+    def test_report_contract_validator_blocks_tampered_report_contract(self) -> None:
+        report = build_phase14c_candidate_decision_support_report()
+        report["status"] = "ready"
+        report["candidate_approved"] = True
+        report["contract_manifest"] = {"schema_version": "tampered"}
+        report["readiness"] = {
+            "status": "ready",
+            "inert_report_only": False,
+            "live_rails_activated": True,
+        }
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report status is outside allowed decision-support statuses.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report status does not match validation status.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report contract_manifest does not match the static manifest.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report field candidate_approved must remain false.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report readiness.status must remain not_ready.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report readiness.live_rails_activated must remain false.",
+            validation.reasons,
+        )
+
+    def test_report_contract_validator_does_not_echo_unsafe_report_tokens(self) -> None:
+        unsafe_key = "secret-report-contract-key-must-not-leak"
+        unsafe_value = "secret-report-contract-value-must-not-leak"
+        unsafe_manifest_value = "secret-report-contract-manifest-value-must-not-leak"
+        report = {
+            **build_phase14c_candidate_decision_support_report(),
+            unsafe_key: unsafe_value,
+            "contract_manifest": {"unsafe": unsafe_manifest_value},
+            "raw_decision_record": {"unsafe": unsafe_value},
+        }
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report top-level fields do not match the contract.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report contract_manifest does not match the static manifest.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report contains raw decision-record echo fields.",
+            validation.reasons,
+        )
+        self.assertNotIn(unsafe_key, serialized_validation)
+        self.assertNotIn(unsafe_value, serialized_validation)
+        self.assertNotIn(unsafe_manifest_value, serialized_validation)
 
     def test_contract_manifest_allowed_statuses_cover_validation_outputs(self) -> None:
         manifest = build_phase14c_candidate_decision_support_contract_manifest()

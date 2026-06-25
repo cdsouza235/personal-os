@@ -244,6 +244,18 @@ class CandidateDecisionSupportValidation:
         }
 
 
+@dataclass(frozen=True)
+class CandidateDecisionSupportReportContractValidation:
+    report_matches_inert_contract: bool
+    reasons: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "report_matches_inert_contract": self.report_matches_inert_contract,
+            "reasons": list(self.reasons),
+        }
+
+
 def blank_phase14c_candidate_decision_support_record() -> dict[str, Any]:
     """Return the inert false-default decision-record template."""
     return {
@@ -444,6 +456,32 @@ def build_phase14c_candidate_decision_support_contract_manifest() -> dict[str, A
     }
 
 
+def validate_phase14c_candidate_decision_support_report_contract(
+    report: Mapping[str, Any] | None,
+) -> CandidateDecisionSupportReportContractValidation:
+    """Validate an inert report against the static report/manifest contract."""
+    if report is None:
+        return CandidateDecisionSupportReportContractValidation(
+            report_matches_inert_contract=False,
+            reasons=(
+                "No decision-support report was supplied; the inert report "
+                "contract remains required.",
+            ),
+        )
+
+    blocked_reasons = _blocked_report_contract_reasons(report)
+    if blocked_reasons:
+        return CandidateDecisionSupportReportContractValidation(
+            report_matches_inert_contract=False,
+            reasons=tuple(blocked_reasons),
+        )
+
+    return CandidateDecisionSupportReportContractValidation(
+        report_matches_inert_contract=True,
+        reasons=("Decision-support report matches the inert contract.",),
+    )
+
+
 def validate_phase14c_candidate_decision_record(
     decision_record: Mapping[str, Any] | None,
 ) -> CandidateDecisionSupportValidation:
@@ -600,6 +638,99 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
     return _dedupe(reasons)
 
 
+def _blocked_report_contract_reasons(report: Mapping[str, Any]) -> list[str]:
+    reasons: list[str] = []
+
+    if tuple(report) != REPORT_TOP_LEVEL_FIELDS:
+        reasons.append(
+            "Decision-support report top-level fields do not match the contract."
+        )
+
+    if report.get("schema_version") != PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION:
+        reasons.append(
+            "Decision-support report schema_version does not match the contract."
+        )
+
+    if report.get("phase_label") != PHASE_LABEL:
+        reasons.append("Decision-support report phase_label does not match the contract.")
+
+    if report.get("status") not in ALLOWED_VALIDATION_STATUS_VALUES:
+        reasons.append(
+            "Decision-support report status is outside allowed decision-support statuses."
+        )
+
+    validation_payload = report.get("decision_record_validation")
+    if not isinstance(validation_payload, Mapping):
+        reasons.append(
+            "Decision-support report decision_record_validation payload is missing."
+        )
+    else:
+        if validation_payload.get("status") != report.get("status"):
+            reasons.append(
+                "Decision-support report status does not match validation status."
+            )
+        if (
+            validation_payload.get("record_accepted_as_unfilled_template")
+            != report.get("decision_record_validated_as_unfilled")
+        ):
+            reasons.append(
+                "Decision-support report unfilled-template flag does not match "
+                "validation payload."
+            )
+
+    if report.get("contract_manifest") != (
+        build_phase14c_candidate_decision_support_contract_manifest()
+    ):
+        reasons.append(
+            "Decision-support report contract_manifest does not match the static "
+            "manifest."
+        )
+
+    for field in REPORT_INERT_FALSE_FIELDS:
+        if report.get(field) is not False:
+            reasons.append(
+                f"Decision-support report field {field} must remain false."
+            )
+
+    for path in REPORT_INERT_TRUE_FIELD_PATHS:
+        found, value = _mapping_path_value(report, path)
+        if not found or value is not True:
+            reasons.append(
+                f"Decision-support report path {path} must remain true."
+            )
+
+    for field in REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT:
+        if field in report:
+            reasons.append(
+                "Decision-support report contains raw decision-record echo fields."
+            )
+
+    readiness = report.get("readiness")
+    if not isinstance(readiness, Mapping):
+        reasons.append("Decision-support report readiness payload is missing.")
+    else:
+        if readiness.get("status") != "not_ready":
+            reasons.append(
+                "Decision-support report readiness.status must remain not_ready."
+            )
+        if readiness.get("inert_report_only") is not True:
+            reasons.append(
+                "Decision-support report readiness.inert_report_only must remain true."
+            )
+        if readiness.get("live_rails_activated") is not False:
+            reasons.append(
+                "Decision-support report readiness.live_rails_activated must remain false."
+            )
+
+    if report.get("safety_posture") != dict(SAFETY_POSTURE):
+        reasons.append(
+            "Decision-support report safety_posture does not match the inert "
+            "safety posture."
+        )
+
+    return _dedupe(reasons)
+
+
 def _unknown_schema_fields(record: Mapping[str, Any]) -> list[str]:
     return [
         str(key)
@@ -677,6 +808,15 @@ def _field_truthy(flattened: Sequence[tuple[str, Any]], field: str) -> bool:
 
 def _leaf_key(path: str) -> str:
     return path.rsplit(".", 1)[-1]
+
+
+def _mapping_path_value(mapping: Mapping[str, Any], dotted_path: str) -> tuple[bool, Any]:
+    value: Any = mapping
+    for part in dotted_path.split("."):
+        if not isinstance(value, Mapping) or part not in value:
+            return False, None
+        value = value[part]
+    return True, value
 
 
 def _normalize(value: Any) -> str:

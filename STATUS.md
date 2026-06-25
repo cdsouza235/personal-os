@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #50:
-  `d91a2927b8b9a26801825e02b752cff05640af26`
-- Latest merged PR at that baseline: PR #50, Phase 14-C decision-support
-  nested-field hardening
+- Last validated main baseline after PR #51:
+  `e959c55697eef9877add09777e364b0358be888c`
+- Latest merged PR at that baseline: PR #51, Phase 14-C decision-support
+  invariant matrix
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -18,9 +18,8 @@ Last updated: 2026-06-25
   candidate decision-support bundle is docs/test-only and inert; the inert
   Phase 14-C candidate decision-support validator/report layer, strict
   known-schema hardening, and nested-fillable-field coverage are merged on
-  `main`; this packet adds table-driven invariant coverage for the false-default
-  schema, fillable decision fields, required false fields, and allowed status
-  set
+  `main`; this packet adds report-sanitization and deterministic timestamp
+  coverage for blocked decision-support reports
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -28,7 +27,8 @@ Last updated: 2026-06-25
   candidate decision-support bundle, plus an inert decision-support
   validator/report packet, plus strict known-schema hardening for the
   decision-support record, plus defense-in-depth nested-fillable-field
-  coverage, plus table-driven invariant coverage
+  coverage, plus table-driven invariant coverage, plus blocked-report
+  sanitization and deterministic timestamp coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -36,13 +36,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 522 tests OK
-- ResourceWarning-sensitive suite: 522 tests OK
+- Full suite: 524 tests OK
+- ResourceWarning-sensitive suite: 524 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 20 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 22 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -84,6 +84,9 @@ Last updated: 2026-06-25
 - PR #50 Phase 14-C decision-support nested-field hardening: merged
 - PR #50 Claude Code audit: Pass
 - PR #50 post-merge validation: passed
+- PR #51 Phase 14-C decision-support invariant matrix: merged
+- PR #51 Claude Code audit: Pass
+- PR #51 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -127,7 +130,9 @@ approve, reject, or defer. Nested payloads under known fillable fields such as
 `notes` remain blocked because filling any decision-record field would record a
 human decision outside this packet. Table-driven invariants cover every
 fillable decision field, every required false field, the known schema field
-set, and the allowed `decision_needed` / `blocked` status set.
+set, and the allowed `decision_needed` / `blocked` status set. Blocked
+decision-support reports do not echo unsafe input values, and the default
+report timestamp remains deterministic unless explicitly overridden.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -187,6 +192,7 @@ production runtime state.
 - PR #48: Add Phase 14-C decision support validator.
 - PR #49: Harden Phase 14-C decision support schema.
 - PR #50: Add nested fillable field decision support test.
+- PR #51: Add Phase 14-C decision support invariant tests.
 
 ## Known Gaps
 
@@ -222,11 +228,12 @@ production runtime state.
   unfilled decision-support record and unsafe filled records. Unknown schema
   fields, nested payloads under known fillable fields, every fillable decision
   field, every required false field, and any unsupported validation status fail
-  closed. It does not select approve, reject, or defer and does not authorize
-  Phase 14-C, candidate execution, live service access, credentials,
-  production DB, scheduler/background behavior, OpenClaw, protected paths,
-  dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`, or runtime/operator
-  scaffolding.
+  closed. Blocked reports do not echo unsafe input values and default report
+  timestamps remain deterministic. It does not select approve, reject, or defer
+  and does not authorize Phase 14-C, candidate execution, live service access,
+  credentials, production DB, scheduler/background behavior, OpenClaw,
+  protected paths, dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`, or
+  runtime/operator scaffolding.
 - Phase 14 live pilot activation has not started.
 - Live rails remain intentionally disabled.
 - Post-merge verification is normally sufficient. Standalone checkpoint/status
@@ -239,8 +246,8 @@ production runtime state.
 - Future Codex/Fable work may use Long-Run Agent Work Packet Protocol v1 and
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
-- PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49, and
-  PR #50 do not authorize OpenClaw, credentials, production DB,
+- PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
+  PR #50, and PR #51 do not authorize OpenClaw, credentials, production DB,
   scheduler/background loop, external runtime writes, protected path access,
   Phase 14-C activation, or candidate execution.
 

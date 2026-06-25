@@ -82,6 +82,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "extra top-level key",
             "nested payload under a known fillable field",
             "table-driven invariant coverage",
+            "do not echo unsafe input values",
+            "default report timestamps remain deterministic",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

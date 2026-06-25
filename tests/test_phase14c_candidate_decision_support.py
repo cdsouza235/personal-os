@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from personalos.phase14_pilot_prep import SAFETY_POSTURE, PilotPrepStatus
@@ -382,6 +383,46 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertFalse(report["live_model_api_called"])
         self.assertFalse(report["external_services_contacted"])
         self.assertFalse(report["external_mutation"])
+
+    def test_blocked_report_does_not_echo_unsafe_input_values(self) -> None:
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "candidate_approved": True,
+                "notes": {
+                    "api_key": "secret-value-must-not-leak",
+                    "todoist_task_id": "live-id-must-not-leak",
+                },
+                "unknown_future_field": "unknown-value-must-not-leak",
+            }
+        )
+
+        serialized_report = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertFalse(report["decision_record_validated_as_unfilled"])
+        self.assertFalse(report["human_decision_recorded"])
+        self.assertIsNone(report["decision_record_validation"]["normalized_record"])
+        self.assertFalse(report["candidate_approved"])
+        self.assertFalse(report["candidate_authorized"])
+        self.assertFalse(report["candidate_activated"])
+        self.assertFalse(report["candidate_run"])
+        self.assertFalse(report["todoist_touched"])
+        self.assertFalse(report["credentials_loaded"])
+        self.assertNotIn("secret-value-must-not-leak", serialized_report)
+        self.assertNotIn("live-id-must-not-leak", serialized_report)
+        self.assertNotIn("unknown-value-must-not-leak", serialized_report)
+
+    def test_default_report_timestamp_is_deterministic(self) -> None:
+        first_report = build_phase14c_candidate_decision_support_report()
+        second_report = build_phase14c_candidate_decision_support_report()
+        custom_report = build_phase14c_candidate_decision_support_report(
+            generated_at_utc="2026-06-25T05:00:00+00:00"
+        )
+
+        self.assertEqual(first_report["generated_at_utc"], "2026-06-25T00:00:00+00:00")
+        self.assertEqual(first_report["generated_at_utc"], second_report["generated_at_utc"])
+        self.assertEqual(custom_report["generated_at_utc"], "2026-06-25T05:00:00+00:00")
 
     def test_checklist_preserves_non_authorization_boundary(self) -> None:
         report = build_phase14c_candidate_decision_support_report()

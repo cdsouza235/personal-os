@@ -207,7 +207,9 @@ blocks when truthy, the known schema fields match the false-default template,
 and validator statuses remain limited to `decision_needed` or `blocked`.
 Report-level coverage verifies that blocked reports do not echo unsafe input
 values and that default report timestamps remain deterministic unless
-explicitly overridden.
+explicitly overridden. Report shape contract coverage keeps top-level report
+fields and validation payload fields explicit, including checks that raw
+decision-record echo fields are absent.
 
 ## Stop Conditions
 

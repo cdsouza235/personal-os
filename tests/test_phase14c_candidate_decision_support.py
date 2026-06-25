@@ -441,6 +441,30 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         )
         self.assertNotIn("matrix-secret-false-field-value", serialized_report)
 
+    def test_required_false_field_non_boolean_values_do_not_echo_for_every_field(self) -> None:
+        for field in REQUIRED_FALSE_FIELDS:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-false-value"
+                report = build_phase14c_candidate_decision_support_report(
+                    {
+                        **blank_phase14c_candidate_decision_support_record(),
+                        field: unsafe_value,
+                    }
+                )
+
+                serialized_report = json.dumps(report, sort_keys=True)
+                validation = report["decision_record_validation"]
+
+                self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+                self.assertFalse(report["decision_record_validated_as_unfilled"])
+                self.assertFalse(validation["human_decision_recorded"])
+                self.assertIsNone(validation["normalized_record"])
+                self.assertIn(
+                    f"Decision record changes {field}; expected boolean false.",
+                    validation["reasons"],
+                )
+                self.assertNotIn(unsafe_value, serialized_report)
+
     def test_known_schema_fields_match_false_default_template(self) -> None:
         record_fields = set(blank_phase14c_candidate_decision_support_record())
 
@@ -535,6 +559,30 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             validation["reasons"],
         )
         self.assertNotIn("matrix-secret-text-default-value", serialized_report)
+
+    def test_required_text_default_drift_values_do_not_echo_for_every_field(self) -> None:
+        for field in REQUIRED_TEXT_DEFAULTS:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-text-value"
+                report = build_phase14c_candidate_decision_support_report(
+                    {
+                        **blank_phase14c_candidate_decision_support_record(),
+                        field: unsafe_value,
+                    }
+                )
+
+                serialized_report = json.dumps(report, sort_keys=True)
+                validation = report["decision_record_validation"]
+
+                self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+                self.assertFalse(report["decision_record_validated_as_unfilled"])
+                self.assertIsNone(validation["normalized_record"])
+                self.assertIn(
+                    f"Decision record changes {field}; expected the unfilled false-default "
+                    "template value.",
+                    validation["reasons"],
+                )
+                self.assertNotIn(unsafe_value, serialized_report)
 
     def test_readiness_status_blocks_when_not_exact_literal(self) -> None:
         record = {

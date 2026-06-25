@@ -299,6 +299,121 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertNotIn(unsafe_value, serialized_validation)
         self.assertNotIn(unsafe_manifest_value, serialized_validation)
 
+    def test_report_contract_validator_requires_report_payload(self) -> None:
+        validation = validate_phase14c_candidate_decision_support_report_contract(None)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertEqual(
+            validation.to_dict(),
+            {
+                "report_matches_inert_contract": False,
+                "reasons": [
+                    "No decision-support report was supplied; the inert report contract remains required.",
+                ],
+            },
+        )
+
+    def test_report_contract_validator_blocks_each_missing_top_level_field(self) -> None:
+        for field in REPORT_TOP_LEVEL_FIELDS:
+            with self.subTest(field=field):
+                report = build_phase14c_candidate_decision_support_report()
+                del report[field]
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(report)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(
+                    "Decision-support report top-level fields do not match the contract.",
+                    validation.reasons,
+                )
+
+    def test_report_contract_validator_blocks_extra_top_level_field_without_echo(self) -> None:
+        unsafe_key = "secret-report-extra-key-must-not-leak"
+        unsafe_value = "secret-report-extra-value-must-not-leak"
+        report = {
+            **build_phase14c_candidate_decision_support_report(),
+            unsafe_key: unsafe_value,
+        }
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report top-level fields do not match the contract.",
+            validation.reasons,
+        )
+        self.assertNotIn(unsafe_key, serialized_validation)
+        self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_every_inert_false_field_drift(self) -> None:
+        for field in REPORT_INERT_FALSE_FIELDS:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-report-false-drift"
+                report = build_phase14c_candidate_decision_support_report()
+                report[field] = unsafe_value
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(
+                    f"Decision-support report field {field} must remain false.",
+                    validation.reasons,
+                )
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_every_inert_true_path_drift(self) -> None:
+        for path in REPORT_INERT_TRUE_FIELD_PATHS:
+            with self.subTest(path=path):
+                report = build_phase14c_candidate_decision_support_report()
+                _set_path_value(report, path, False)
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(report)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(
+                    f"Decision-support report path {path} must remain true.",
+                    validation.reasons,
+                )
+
+    def test_report_contract_validator_blocks_raw_echo_fields_without_echoing_values(self) -> None:
+        for field in REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-raw-echo-value"
+                report = build_phase14c_candidate_decision_support_report()
+                report[field] = {"unsafe": unsafe_value}
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(
+                    "Decision-support report contains raw decision-record echo fields.",
+                    validation.reasons,
+                )
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_validation_payload_mismatch(self) -> None:
+        report = build_phase14c_candidate_decision_support_report()
+        report["decision_record_validation"] = {
+            **report["decision_record_validation"],
+            "status": PilotPrepStatus.BLOCKED.value,
+            "record_accepted_as_unfilled_template": False,
+        }
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report status does not match validation status.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "Decision-support report unfilled-template flag does not match validation payload.",
+            validation.reasons,
+        )
+
     def test_contract_manifest_allowed_statuses_cover_validation_outputs(self) -> None:
         manifest = build_phase14c_candidate_decision_support_contract_manifest()
         allowed_statuses = set(manifest["allowed_validation_statuses"])
@@ -1281,3 +1396,15 @@ def _path_value(mapping: dict[str, object], dotted_path: str) -> object:
             raise AssertionError(f"path segment {part!r} is not in a mapping")
         value = value[part]
     return value
+
+
+def _set_path_value(mapping: dict[str, object], dotted_path: str, new_value: object) -> None:
+    value: object = mapping
+    parts = dotted_path.split(".")
+    for part in parts[:-1]:
+        if not isinstance(value, dict):
+            raise AssertionError(f"path segment {part!r} is not in a mapping")
+        value = value[part]
+    if not isinstance(value, dict):
+        raise AssertionError(f"path segment {parts[-1]!r} is not in a mapping")
+    value[parts[-1]] = new_value

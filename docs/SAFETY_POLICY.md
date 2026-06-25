@@ -249,6 +249,10 @@ boundary for caller-controlled unsafe input tokens.
 Report-contract validator tests must keep default and blocked reports matched
 to the static inert contract and must make tampered reports fail closed
 without echoing unsafe report keys or values in validator output.
+Report-contract validator matrix tests must cover absent reports, top-level
+shape drift, inert false-field drift, inert true-path drift, raw-echo fields,
+and validation-payload mismatch without weakening the inert, not-ready
+posture.
 
 ## High-Stakes Domains
 

@@ -188,6 +188,36 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             validation.reasons,
         )
 
+    def test_unknown_top_level_schema_field_is_blocked(self) -> None:
+        record = {
+            **blank_phase14c_candidate_decision_support_record(),
+            "session_token": "novel-field-name-must-not-pass",
+        }
+
+        validation = validate_phase14c_candidate_decision_record(record)
+
+        self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+        self.assertFalse(validation.record_accepted_as_unfilled_template)
+        self.assertIn(
+            "Decision record contains unknown schema field: session_token.",
+            validation.reasons,
+        )
+
+    def test_nested_unknown_container_is_blocked_before_acceptance(self) -> None:
+        record = {
+            **blank_phase14c_candidate_decision_support_record(),
+            "metadata": {"session_token": "must-not-pass"},
+        }
+
+        validation = validate_phase14c_candidate_decision_record(record)
+
+        self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+        self.assertFalse(validation.record_accepted_as_unfilled_template)
+        self.assertIn(
+            "Decision record contains unknown schema field: metadata.",
+            validation.reasons,
+        )
+
     def test_candidate_context_drift_is_blocked(self) -> None:
         record = {
             **blank_phase14c_candidate_decision_support_record(),

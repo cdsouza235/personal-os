@@ -169,7 +169,8 @@ reject, or defer; approve or authorize a candidate; grant live-service access;
 handle credentials/auth; activate production DB or scheduler/background
 behavior; touch protected paths; call OpenClaw; implement dynamic cleaning;
 adopt Watch Tower; add `.agent/`; add `CLAUDE.md`; or add runtime/operator
-scaffolding.
+scaffolding. Unknown decision-record schema fields must fail closed instead of
+being accepted as part of the unfilled template.
 
 ## High-Stakes Domains
 

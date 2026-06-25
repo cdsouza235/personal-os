@@ -27,8 +27,11 @@ candidate-review tracking only posture. The Phase 14-C candidate
 decision-support validator adds an inert source/test report helper for the
 same unfilled template; it blocks filled decisions, approval/authorization
 flags, live-service fields, credentials/secrets, live IDs, unknown schema
-fields, dynamic cleaning flags, Watch Tower flags, `.agent/`, `CLAUDE.md`, and
-runtime/operator scaffolding flags.
+fields, nested payloads under known fillable fields, dynamic cleaning flags,
+Watch Tower flags, `.agent/`, `CLAUDE.md`, and runtime/operator scaffolding
+flags. Table-driven invariant tests cover the false-default schema, every
+fillable decision field, every required false field, and the allowed blocked /
+decision-needed status set.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -56,7 +59,8 @@ any future movement beyond candidate-review tracking only.
 The candidate decision-support artifact records review questions and an
 unfilled template only; it does not select approve, reject, or defer.
 The candidate decision-support validator records no human decision and only
-preserves the unfilled/blocked repo-local report boundary.
+preserves the unfilled/blocked repo-local report boundary. Its invariant tests
+remain repo-local and do not select approve, reject, or defer.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -151,8 +155,9 @@ Future Phase 14 should be structured as:
 - Phase 14-C candidate decision-support validator: inert source/test report
   helper for the unfilled false-default decision record. It emits
   `decision_needed` or `blocked`; it does not record approve, reject, or defer.
-  Unknown schema fields and nested payloads under known fillable fields fail
-  closed.
+  Unknown schema fields, nested payloads under known fillable fields, every
+  fillable decision field, every required false field, and unsupported status
+  values fail closed.
 
 ## Historical Boundary Reference
 

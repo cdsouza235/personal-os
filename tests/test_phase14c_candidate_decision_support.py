@@ -2,7 +2,10 @@ import unittest
 
 from personalos.phase14_pilot_prep import SAFETY_POSTURE, PilotPrepStatus
 from personalos.phase14c_candidate_decision_support import (
+    FILLABLE_DECISION_FIELDS,
+    KNOWN_DECISION_RECORD_FIELDS,
     PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION,
+    REQUIRED_FALSE_FIELDS,
     blank_phase14c_candidate_decision_support_record,
     build_phase14c_candidate_decision_support_report,
     validate_phase14c_candidate_decision_record,
@@ -232,6 +235,78 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertIn(
             "Decision record fills notes; recording a human decision is out of scope.",
             validation.reasons,
+        )
+
+    def test_every_fillable_decision_field_blocks_and_marks_human_decision(self) -> None:
+        for field in FILLABLE_DECISION_FIELDS:
+            with self.subTest(field=field):
+                record = {
+                    **blank_phase14c_candidate_decision_support_record(),
+                    field: "filled outside this packet",
+                }
+
+                validation = validate_phase14c_candidate_decision_record(record)
+
+                self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+                self.assertFalse(validation.record_accepted_as_unfilled_template)
+                self.assertTrue(validation.human_decision_recorded)
+                self.assertIn(
+                    f"Decision record fills {field}; recording a human decision is out of scope.",
+                    validation.reasons,
+                )
+
+    def test_every_required_false_field_blocks_when_truthy(self) -> None:
+        for field in REQUIRED_FALSE_FIELDS:
+            with self.subTest(field=field):
+                record = {
+                    **blank_phase14c_candidate_decision_support_record(),
+                    field: True,
+                }
+
+                validation = validate_phase14c_candidate_decision_record(record)
+
+                self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+                self.assertFalse(validation.record_accepted_as_unfilled_template)
+                self.assertIn(
+                    f"Decision record is marked {field}; this packet cannot approve, "
+                    "authorize, activate, execute, or grant live access.",
+                    validation.reasons,
+                )
+
+    def test_known_schema_fields_match_false_default_template(self) -> None:
+        record_fields = set(blank_phase14c_candidate_decision_support_record())
+
+        self.assertEqual(
+            record_fields | {"readiness.status"},
+            set(KNOWN_DECISION_RECORD_FIELDS),
+        )
+
+    def test_validation_statuses_remain_decision_needed_or_blocked_only(self) -> None:
+        records = (
+            None,
+            blank_phase14c_candidate_decision_support_record(),
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "candidate_approved": True,
+            },
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "decision_option": "reject candidate",
+            },
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "unknown_future_field": "must-not-pass",
+            },
+        )
+
+        statuses = {
+            validate_phase14c_candidate_decision_record(record).status
+            for record in records
+        }
+
+        self.assertLessEqual(
+            statuses,
+            {PilotPrepStatus.DECISION_NEEDED, PilotPrepStatus.BLOCKED},
         )
 
     def test_candidate_context_drift_is_blocked(self) -> None:

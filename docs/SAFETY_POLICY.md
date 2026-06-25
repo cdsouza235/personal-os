@@ -172,7 +172,10 @@ adopt Watch Tower; add `.agent/`; add `CLAUDE.md`; or add runtime/operator
 scaffolding. Unknown decision-record schema fields must fail closed instead of
 being accepted as part of the unfilled template. Nested payloads under known
 fillable fields must also fail closed because filling any decision-record field
-would record a human decision outside the current blocked posture.
+would record a human decision outside the current blocked posture. The
+validator tests must also keep table-driven coverage for every fillable
+decision field, every required false field, the known schema field set, and
+the allowed `decision_needed` / `blocked` status set.
 
 ## High-Stakes Domains
 

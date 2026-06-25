@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #49:
-    `d7b2eb48f3cf76b845a8841f56a907b2498321b7`
-  - latest merged PR: PR #49, Phase 14-C decision-support strict-schema
+  - last validated main baseline after PR #50:
+    `d91a2927b8b9a26801825e02b752cff05640af26`
+  - latest merged PR: PR #50, Phase 14-C decision-support nested-field
     hardening
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
@@ -57,9 +57,9 @@ Key changes from v0.1:
   source/test report layer for that unfilled template. It blocks filled
   decision records, approval flags, authorization flags, activation flags, live
   service fields, credential/secret fields, live IDs, unknown schema fields,
-  dynamic cleaning flags, Watch Tower flags, `.agent/`, `CLAUDE.md`, and
-  runtime/operator scaffolding flags. It does not record a decision or
-  authorize live work.
+  nested payloads under known fillable fields, dynamic cleaning flags,
+  Watch Tower flags, `.agent/`, `CLAUDE.md`, and runtime/operator scaffolding
+  flags. It does not record a decision or authorize live work.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -285,16 +285,17 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #49:
+As of this post-merge validation update after PR #50:
 
-- Last validated main baseline after PR #49:
-  `d7b2eb48f3cf76b845a8841f56a907b2498321b7`
-- Latest merged PR: PR #49, Phase 14-C decision-support strict-schema
+- Last validated main baseline after PR #50:
+  `d91a2927b8b9a26801825e02b752cff05640af26`
+- Latest merged PR: PR #50, Phase 14-C decision-support nested-field
   hardening
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
 - PR #49 Claude Code audit: Pass
+- PR #50 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -306,8 +307,8 @@ As of this post-merge validation update after PR #49:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 518 tests OK
-- ResourceWarning-sensitive suite: 518 tests OK
+- Full test suite: 522 tests OK
+- ResourceWarning-sensitive suite: 522 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -341,9 +342,10 @@ As of this post-merge validation update after PR #49:
 - Phase 14-C candidate decision-support validation is
   `src/personalos/phase14c_candidate_decision_support.py`. It validates only
   the unfilled false-default decision-support record/report and blocks unsafe
-  filled records, including unknown schema fields and nested payloads under
-  known fillable fields. It does not approve, reject, defer, authorize,
-  activate, or access any live rail.
+  filled records, including unknown schema fields, nested payloads under known
+  fillable fields, every fillable decision field, every required false field,
+  and unsupported validation statuses. It does not approve, reject, defer,
+  authorize, activate, or access any live rail.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -404,7 +406,9 @@ Completed major phases:
 - Phase 14-C candidate decision-support validator: inert source/test report
   helper for the same unfilled template. It preserves `decision_needed` or
   `blocked` outcomes only, blocks unknown schema fields and nested payloads
-  under known fillable fields, and does not record a human decision.
+  under known fillable fields, covers every fillable decision field and every
+  required false field with table-driven tests, and does not record a human
+  decision.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1161,7 +1165,9 @@ modes, stop conditions, required future approval wording, and an unfilled
 false-default decision-record template only. The decision-support validator
 checks that this record remains unfilled/false by default and blocks unsafe
 filled records, including unknown schema fields and nested payloads under
-known fillable fields; it does not select approve, reject, or defer.
+known fillable fields. Table-driven invariant coverage checks every fillable
+decision field, every required false field, and the allowed validation status
+set; it does not select approve, reject, or defer.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1232,14 +1238,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #49:
+Last validated main baseline after PR #50:
 
-`d7b2eb48f3cf76b845a8841f56a907b2498321b7`
+`d91a2927b8b9a26801825e02b752cff05640af26`
 
 Current validated state:
 
-- Full suite: 518 tests OK
-- ResourceWarning-sensitive suite: 518 tests OK
+- Full suite: 522 tests OK
+- ResourceWarning-sensitive suite: 522 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1271,6 +1277,7 @@ Current validated state:
 - PR #47 Phase 14-C candidate decision support bundle is merged
 - PR #48 Phase 14-C candidate decision-support validator is merged
 - PR #49 Phase 14-C decision-support strict-schema hardening is merged
+- PR #50 Phase 14-C decision-support nested-field hardening is merged
 
 Next human decision:
 

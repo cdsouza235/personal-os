@@ -81,6 +81,7 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "unknown schema field",
             "extra top-level key",
             "nested payload under a known fillable field",
+            "table-driven invariant coverage",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

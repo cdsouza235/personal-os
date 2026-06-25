@@ -213,7 +213,9 @@ decision-record echo fields are absent. Missing-field matrix coverage verifies
 that every required text default and every required false field fails closed as
 `decision_needed` when absent. Blocked-reason sanitization keeps
 caller-supplied decision and drift values out of blocked report JSON while
-still reporting the blocked field names.
+still reporting the blocked field names. Unknown schema key-name sanitization
+keeps caller-supplied unknown keys out of blocked report JSON while still
+failing closed on unknown schema fields.
 
 ## Stop Conditions
 

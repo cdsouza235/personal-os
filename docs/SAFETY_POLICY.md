@@ -181,7 +181,8 @@ deterministic unless explicitly overridden. Report and validation payload shape
 tests must keep raw decision-record echo fields out of the inert report
 contract. Missing required text defaults and required false fields must fail
 closed as `decision_needed`. Blocked reasons must avoid echoing caller-supplied
-decision or drift values into report JSON.
+decision or drift values into report JSON. Unknown schema reasons must avoid
+echoing caller-supplied unknown key names into report JSON.
 
 ## High-Stakes Domains
 

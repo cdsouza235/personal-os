@@ -371,8 +371,11 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
     reasons: list[str] = []
     flattened = tuple(_flatten_mapping(record))
 
-    for field in _unknown_schema_fields(record):
-        reasons.append(f"Decision record contains unknown schema field: {field}.")
+    if _unknown_schema_fields(record):
+        reasons.append(
+            "Decision record contains unknown schema fields; only the "
+            "false-default template schema is accepted."
+        )
 
     for field in REQUIRED_FALSE_FIELDS:
         if _field_truthy(flattened, field):

@@ -101,6 +101,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "caller-controlled tokens",
             "nested prohibited-field coverage",
             "nested live/api and credential/secret values",
+            "strict required-false-field coverage",
+            "non-boolean false-like values",
+            "unfilled false-default template",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

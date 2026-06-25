@@ -414,6 +414,116 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             validation.reasons,
         )
 
+    def test_report_contract_validator_blocks_metadata_drift_without_echo(self) -> None:
+        cases = (
+            (
+                "schema_version",
+                "matrix-secret-report-schema-version",
+                "Decision-support report schema_version does not match the contract.",
+            ),
+            (
+                "phase_label",
+                "matrix-secret-report-phase-label",
+                "Decision-support report phase_label does not match the contract.",
+            ),
+            (
+                "status",
+                "matrix-secret-report-status",
+                "Decision-support report status is outside allowed decision-support statuses.",
+            ),
+        )
+        for field, unsafe_value, expected_reason in cases:
+            with self.subTest(field=field):
+                report = build_phase14c_candidate_decision_support_report()
+                report[field] = unsafe_value
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_readiness_payload_drift_without_echo(self) -> None:
+        cases = (
+            (
+                "payload",
+                None,
+                "matrix-secret-readiness-payload",
+                "Decision-support report readiness payload is missing.",
+            ),
+            (
+                "status",
+                "status",
+                "matrix-secret-readiness-status",
+                "Decision-support report readiness.status must remain not_ready.",
+            ),
+            (
+                "inert_report_only",
+                "inert_report_only",
+                "matrix-secret-readiness-inert-report-only",
+                "Decision-support report readiness.inert_report_only must remain true.",
+            ),
+            (
+                "live_rails_activated",
+                "live_rails_activated",
+                "matrix-secret-readiness-live-rails",
+                "Decision-support report readiness.live_rails_activated must remain false.",
+            ),
+        )
+        for label, readiness_field, unsafe_value, expected_reason in cases:
+            with self.subTest(label=label):
+                report = build_phase14c_candidate_decision_support_report()
+                if readiness_field is None:
+                    report["readiness"] = unsafe_value
+                else:
+                    report["readiness"][readiness_field] = unsafe_value
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_every_safety_posture_field_drift_without_echo(
+        self,
+    ) -> None:
+        for field in SAFETY_POSTURE:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-{field}-safety-posture-drift"
+                report = build_phase14c_candidate_decision_support_report()
+                report["safety_posture"][field] = unsafe_value
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(
+                    "Decision-support report safety_posture does not match the inert safety posture.",
+                    validation.reasons,
+                )
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_extra_safety_posture_key_without_echo(
+        self,
+    ) -> None:
+        unsafe_key = "matrix-secret-safety-posture-key"
+        unsafe_value = "matrix-secret-safety-posture-value"
+        report = build_phase14c_candidate_decision_support_report()
+        report["safety_posture"][unsafe_key] = unsafe_value
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report safety_posture does not match the inert safety posture.",
+            validation.reasons,
+        )
+        self.assertNotIn(unsafe_key, serialized_validation)
+        self.assertNotIn(unsafe_value, serialized_validation)
+
     def test_contract_manifest_allowed_statuses_cover_validation_outputs(self) -> None:
         manifest = build_phase14c_candidate_decision_support_contract_manifest()
         allowed_statuses = set(manifest["allowed_validation_statuses"])

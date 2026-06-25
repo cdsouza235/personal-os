@@ -288,6 +288,9 @@ Report-contract validator matrix coverage verifies absent report payloads,
 missing and extra top-level fields, every inert false field, every inert true
 path, every raw-echo field, and validation-payload mismatch while keeping
 unsafe caller-controlled report keys and values out of validator output.
+Report-contract posture matrix coverage verifies report metadata drift,
+readiness payload drift, every safety posture field drift, and extra safety
+posture keys while keeping caller-controlled values out of validator output.
 
 ## Stop Conditions
 

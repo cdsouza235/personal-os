@@ -151,11 +151,11 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
         self.assertTrue(validation.human_decision_recorded)
         self.assertIn(
-            "Decision record selects decision_status=recorded; this packet cannot record a human decision.",
+            "Decision record selects decision_status; this packet cannot record a human decision.",
             validation.reasons,
         )
         self.assertIn(
-            "Decision record selects decision_option=approve for later bounded repo-local prep packet; this packet cannot select approve, reject, or defer.",
+            "Decision record selects decision_option; this packet cannot select approve, reject, or defer.",
             validation.reasons,
         )
 
@@ -410,11 +410,11 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
 
         self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
         self.assertIn(
-            "Decision record changes candidate; expected 'Clean Kitchen Countertops and Stovetop', got 'Different Candidate'.",
+            "Decision record changes candidate; expected the unfilled false-default template value.",
             validation.reasons,
         )
         self.assertIn(
-            "Decision record changes current_status; expected 'candidate-review tracking only', got 'approved'.",
+            "Decision record changes current_status; expected the unfilled false-default template value.",
             validation.reasons,
         )
 
@@ -531,6 +531,46 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertNotIn("secret-value-must-not-leak", serialized_report)
         self.assertNotIn("live-id-must-not-leak", serialized_report)
         self.assertNotIn("unknown-value-must-not-leak", serialized_report)
+
+    def test_blocked_report_does_not_echo_unsafe_decision_or_drift_values(self) -> None:
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "decision_status": "secret-status-value-must-not-leak",
+                "decision_option": "secret-option-value-must-not-leak",
+                "candidate": "secret-candidate-value-must-not-leak",
+                "weekday": "secret-weekday-value-must-not-leak",
+                "area": "secret-area-value-must-not-leak",
+                "current_status": "secret-current-status-value-must-not-leak",
+            }
+        )
+
+        serialized_report = json.dumps(report, sort_keys=True)
+        validation = report["decision_record_validation"]
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertFalse(report["decision_record_validated_as_unfilled"])
+        self.assertFalse(report["human_decision_recorded"])
+        self.assertTrue(validation["human_decision_recorded"])
+        self.assertIsNone(validation["normalized_record"])
+        self.assertIn(
+            "Decision record selects decision_status; this packet cannot record a human decision.",
+            validation["reasons"],
+        )
+        self.assertIn(
+            "Decision record selects decision_option; this packet cannot select approve, reject, or defer.",
+            validation["reasons"],
+        )
+        for unsafe_value in (
+            "secret-status-value-must-not-leak",
+            "secret-option-value-must-not-leak",
+            "secret-candidate-value-must-not-leak",
+            "secret-weekday-value-must-not-leak",
+            "secret-area-value-must-not-leak",
+            "secret-current-status-value-must-not-leak",
+        ):
+            with self.subTest(unsafe_value=unsafe_value):
+                self.assertNotIn(unsafe_value, serialized_report)
 
     def test_default_report_timestamp_is_deterministic(self) -> None:
         first_report = build_phase14c_candidate_decision_support_report()

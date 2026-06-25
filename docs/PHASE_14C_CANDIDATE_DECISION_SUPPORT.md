@@ -211,7 +211,9 @@ explicitly overridden. Report shape contract coverage keeps top-level report
 fields and validation payload fields explicit, including checks that raw
 decision-record echo fields are absent. Missing-field matrix coverage verifies
 that every required text default and every required false field fails closed as
-`decision_needed` when absent.
+`decision_needed` when absent. Blocked-reason sanitization keeps
+caller-supplied decision and drift values out of blocked report JSON while
+still reporting the blocked field names.
 
 ## Stop Conditions
 

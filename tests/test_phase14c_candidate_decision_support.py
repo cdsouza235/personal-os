@@ -594,6 +594,72 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             with self.subTest(unsafe_value=unsafe_value):
                 self.assertNotIn(unsafe_value, serialized_report)
 
+    def test_blocked_report_sanitization_matrix_rejects_caller_controlled_tokens(self) -> None:
+        cases = (
+            (
+                "unknown_schema",
+                {
+                    "matrix-secret-unknown-key": "matrix-secret-unknown-value",
+                },
+                ("matrix-secret-unknown-key", "matrix-secret-unknown-value"),
+            ),
+            (
+                "decision_selection",
+                {
+                    "decision_status": "matrix-secret-status-value",
+                    "decision_option": "matrix-secret-option-value",
+                    "decision_maker": "matrix-secret-maker-value",
+                },
+                (
+                    "matrix-secret-status-value",
+                    "matrix-secret-option-value",
+                    "matrix-secret-maker-value",
+                ),
+            ),
+            (
+                "candidate_drift",
+                {
+                    "candidate": "matrix-secret-candidate-value",
+                    "weekday": "matrix-secret-weekday-value",
+                    "area": "matrix-secret-area-value",
+                    "current_status": "matrix-secret-status-drift-value",
+                },
+                (
+                    "matrix-secret-candidate-value",
+                    "matrix-secret-weekday-value",
+                    "matrix-secret-area-value",
+                    "matrix-secret-status-drift-value",
+                ),
+            ),
+            (
+                "nested_fillable_payload",
+                {
+                    "notes": {
+                        "session_token": "matrix-secret-nested-token-value",
+                    },
+                },
+                ("matrix-secret-nested-token-value",),
+            ),
+        )
+
+        for name, changes, unsafe_tokens in cases:
+            with self.subTest(name=name):
+                report = build_phase14c_candidate_decision_support_report(
+                    {
+                        **blank_phase14c_candidate_decision_support_record(),
+                        **changes,
+                    }
+                )
+                serialized_report = json.dumps(report, sort_keys=True)
+
+                self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+                self.assertFalse(report["decision_record_validated_as_unfilled"])
+                self.assertIsNone(
+                    report["decision_record_validation"]["normalized_record"]
+                )
+                for unsafe_token in unsafe_tokens:
+                    self.assertNotIn(unsafe_token, serialized_report)
+
     def test_default_report_timestamp_is_deterministic(self) -> None:
         first_report = build_phase14c_candidate_decision_support_report()
         second_report = build_phase14c_candidate_decision_support_report()

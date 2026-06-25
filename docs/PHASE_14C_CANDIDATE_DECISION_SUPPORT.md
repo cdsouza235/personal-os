@@ -215,7 +215,10 @@ that every required text default and every required false field fails closed as
 caller-supplied decision and drift values out of blocked report JSON while
 still reporting the blocked field names. Unknown schema key-name sanitization
 keeps caller-supplied unknown keys out of blocked report JSON while still
-failing closed on unknown schema fields.
+failing closed on unknown schema fields. Blocked report sanitization matrix
+coverage verifies representative unknown-schema, decision-selection,
+candidate-drift, and nested-fillable payload inputs do not echo
+caller-controlled tokens.
 
 ## Stop Conditions
 

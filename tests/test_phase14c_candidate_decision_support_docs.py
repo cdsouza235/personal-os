@@ -96,6 +96,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "unknown schema key-name sanitization",
             "caller-supplied unknown keys",
             "failing closed on unknown schema fields",
+            "blocked report sanitization matrix coverage",
+            "nested-fillable payload inputs",
+            "caller-controlled tokens",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

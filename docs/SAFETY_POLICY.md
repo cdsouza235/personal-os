@@ -182,7 +182,9 @@ tests must keep raw decision-record echo fields out of the inert report
 contract. Missing required text defaults and required false fields must fail
 closed as `decision_needed`. Blocked reasons must avoid echoing caller-supplied
 decision or drift values into report JSON. Unknown schema reasons must avoid
-echoing caller-supplied unknown key names into report JSON.
+echoing caller-supplied unknown key names into report JSON. Blocked report
+sanitization matrix tests must preserve the non-echo boundary for
+representative caller-controlled tokens.
 
 ## High-Stakes Domains
 

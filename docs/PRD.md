@@ -22,10 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #64:
-    `2d9c66185fa6797daaec226aebbedf593fa9c239`
-  - latest merged PR: PR #64, Phase 14-C decision-support strict unfilled
-    decision fields
+  - last validated main baseline after PR #65:
+    `f954b3b5da67bac3cad79ab6e7a1099312201041`
+  - latest merged PR: PR #65, Phase 14-C drift non-echo matrix tests
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -285,11 +284,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #64:
+As of this post-merge validation update after PR #65:
 
-- Last validated main baseline after PR #64:
-  `2d9c66185fa6797daaec226aebbedf593fa9c239`
-- Latest merged PR: PR #64, Phase 14-C decision-support strict unfilled decision fields
+- Last validated main baseline after PR #65:
+  `f954b3b5da67bac3cad79ab6e7a1099312201041`
+- Latest merged PR: PR #65, Phase 14-C drift non-echo matrix tests
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -309,6 +308,7 @@ As of this post-merge validation update after PR #64:
 - PR #62 Claude Code audit: Pass
 - PR #63 Claude Code audit: Pass
 - PR #64 Claude Code audit: Pass
+- PR #65 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -320,8 +320,8 @@ As of this post-merge validation update after PR #64:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 543 tests OK
-- ResourceWarning-sensitive suite: 543 tests OK
+- Full test suite: 546 tests OK
+- ResourceWarning-sensitive suite: 546 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -384,6 +384,10 @@ As of this post-merge validation update after PR #64:
   Required-field drift non-echo matrix coverage verifies every required text
   default drift value and every required false-field non-boolean value stays
   out of blocked report JSON.
+  Fillable and prohibited-field non-echo matrix coverage verifies every
+  fillable decision field value, every prohibited live/API field value, and
+  every prohibited credential/secret field value stays out of blocked report
+  JSON.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -458,7 +462,8 @@ Completed major phases:
   requires the not-ready readiness status field, requires every fillable
   decision field to remain present as unfilled, blocks whitespace-only
   fillable decision-field values, verifies required-field drift values do not
-  echo into blocked reports, and does not record a human decision.
+  echo into blocked reports, verifies fillable and prohibited-field values do
+  not echo into blocked reports, and does not record a human decision.
   Report and validation payload shape tests keep raw decision-record echo
   fields out of the report contract.
 
@@ -1237,6 +1242,9 @@ Required unfilled decision-field coverage checks that missing fillable fields
 fail closed as `decision_needed`.
 Required-field drift non-echo matrix coverage checks every required text
 default drift value and every required false-field non-boolean value.
+Fillable and prohibited-field non-echo matrix coverage checks every fillable
+decision field value, every prohibited live/API field value, and every
+prohibited credential/secret field value.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1307,14 +1315,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #64:
+Last validated main baseline after PR #65:
 
-`2d9c66185fa6797daaec226aebbedf593fa9c239`
+`f954b3b5da67bac3cad79ab6e7a1099312201041`
 
 Current validated state:
 
-- Full suite: 543 tests OK
-- ResourceWarning-sensitive suite: 543 tests OK
+- Full suite: 546 tests OK
+- ResourceWarning-sensitive suite: 546 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1367,6 +1375,7 @@ Current validated state:
   merged
 - PR #64 Phase 14-C decision-support strict unfilled decision fields is
   merged
+- PR #65 Phase 14-C drift non-echo matrix tests are merged
 
 Next human decision:
 

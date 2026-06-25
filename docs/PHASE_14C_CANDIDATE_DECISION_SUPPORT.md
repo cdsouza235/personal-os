@@ -242,6 +242,10 @@ value`.
 Required-field drift non-echo matrix coverage verifies that every required
 text default drift value and every required false-field non-boolean value
 stays out of blocked report JSON.
+Fillable and prohibited-field non-echo matrix coverage verifies that every
+fillable decision field value, every prohibited live/API field value, and
+every prohibited credential/secret field value stays out of blocked report
+JSON.
 
 ## Stop Conditions
 

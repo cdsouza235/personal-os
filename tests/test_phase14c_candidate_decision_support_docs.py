@@ -109,6 +109,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "strict readiness.status coverage",
             "`readiness.status=not_ready`",
             "caller-controlled readiness drift values",
+            "required readiness.status coverage",
+            "missing readiness status",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )
@@ -126,6 +128,7 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "decision_status: unfilled",
             "decision_option: unselected",
             "current_status: candidate-review tracking only",
+            "readiness.status: not_ready",
             "approval_wording_provided: false",
             "evidence_review_complete: false",
             "manual_validation_complete: false",

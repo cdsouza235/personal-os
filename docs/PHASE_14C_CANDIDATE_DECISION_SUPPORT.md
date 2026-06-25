@@ -180,7 +180,7 @@ unfilled false-default decision-support record. It is a repo-local report
 helper, not a runtime path.
 
 - `blank_phase14c_candidate_decision_support_record` returns the unfilled
-  false-default decision-record template.
+  false-default decision-record template with `readiness.status=not_ready`.
 - `validate_phase14c_candidate_decision_record` accepts only the unfilled
   template shape as `decision_needed`; it blocks any selected decision option,
   human decision marker, approval flag, authorization flag, activation flag,
@@ -228,6 +228,9 @@ template.
 Strict readiness.status coverage verifies that case/spacing variants are
 blocked instead of accepted as `readiness.status=not_ready`, and that
 caller-controlled readiness drift values stay out of blocked report JSON.
+Required readiness.status coverage verifies that the false-default template
+contains `readiness.status=not_ready` and that a missing readiness status
+fails closed as `decision_needed`.
 
 ## Stop Conditions
 
@@ -272,6 +275,7 @@ candidate: Clean Kitchen Countertops and Stovetop
 weekday: Monday
 area: Kitchen
 current_status: candidate-review tracking only
+readiness.status: not_ready
 approval_wording_provided: false
 evidence_review_complete: false
 manual_validation_complete: false

@@ -151,6 +151,7 @@ def blank_phase14c_candidate_decision_support_record() -> dict[str, Any]:
         "weekday": RECORDED_WEEKDAY,
         "area": RECORDED_AREA,
         "current_status": CURRENT_STATUS,
+        "readiness.status": "not_ready",
         "approval_wording_provided": False,
         "evidence_review_complete": False,
         "manual_validation_complete": False,
@@ -455,6 +456,11 @@ def _missing_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
             reasons.append(
                 f"Decision-support record required false field is missing: {field}."
             )
+    if not _present(record.get("readiness.status")):
+        reasons.append(
+            "Decision-support record required field is missing: "
+            "readiness.status=not_ready."
+        )
     return reasons
 
 

@@ -48,6 +48,9 @@ required-text-default tests block case/spacing variants instead of accepting
 them as the unfilled template. Strict readiness.status tests block
 case/spacing variants instead of accepting them as `not_ready` and keep
 caller-controlled readiness drift values out of blocked report JSON.
+Required readiness.status tests keep `readiness.status=not_ready` in the
+false-default template and make missing readiness status fail closed as
+`decision_needed`.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -88,6 +91,8 @@ tests preserve the false-default boundary for boolean false values only.
 Strict required-text-default tests preserve the same boundary for exact
 literal text defaults only. Strict readiness.status tests preserve the same
 boundary for the exact `not_ready` readiness value only.
+Required readiness.status tests preserve the same boundary by requiring the
+template to carry that not-ready value.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -196,7 +201,8 @@ Future Phase 14 should be structured as:
   credential/secret values. Strict required-false-field tests block
   non-boolean false-like values. Strict required-text-default tests block
   case/spacing variants. Strict readiness.status tests block non-exact
-  `not_ready` variants.
+  `not_ready` variants. Required readiness.status tests make missing
+  readiness status fail closed.
 
 ## Historical Boundary Reference
 

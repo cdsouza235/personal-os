@@ -21,6 +21,7 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         report = build_phase14c_candidate_decision_support_report(record)
 
         self.assertEqual(record["schema_version"], PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION)
+        self.assertEqual(record["readiness.status"], "not_ready")
         self.assertEqual(validation.status, PilotPrepStatus.DECISION_NEEDED)
         self.assertTrue(validation.record_accepted_as_unfilled_template)
         self.assertFalse(validation.human_decision_recorded)
@@ -425,10 +426,7 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
     def test_known_schema_fields_match_false_default_template(self) -> None:
         record_fields = set(blank_phase14c_candidate_decision_support_record())
 
-        self.assertEqual(
-            record_fields | {"readiness.status"},
-            set(KNOWN_DECISION_RECORD_FIELDS),
-        )
+        self.assertEqual(record_fields, set(KNOWN_DECISION_RECORD_FIELDS))
 
     def test_validation_statuses_remain_decision_needed_or_blocked_only(self) -> None:
         records = (
@@ -588,6 +586,21 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
                     f"Decision-support record required false field is missing: {field}.",
                     validation.reasons,
                 )
+
+    def test_missing_readiness_status_fails_closed_as_decision_needed(self) -> None:
+        record = blank_phase14c_candidate_decision_support_record()
+        del record["readiness.status"]
+
+        validation = validate_phase14c_candidate_decision_record(record)
+
+        self.assertEqual(validation.status, PilotPrepStatus.DECISION_NEEDED)
+        self.assertFalse(validation.record_accepted_as_unfilled_template)
+        self.assertFalse(validation.human_decision_recorded)
+        self.assertIn(
+            "Decision-support record required field is missing: "
+            "readiness.status=not_ready.",
+            validation.reasons,
+        )
 
     def test_missing_required_false_field_fails_closed_as_decision_needed(self) -> None:
         record = blank_phase14c_candidate_decision_support_record()

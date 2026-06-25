@@ -90,6 +90,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "required text default",
             "required false field",
             "fails closed as `decision_needed`",
+            "blocked-reason sanitization",
+            "caller-supplied decision and drift values",
+            "blocked report json",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

@@ -400,15 +400,15 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
     decision_status = record.get("decision_status")
     if _present(decision_status) and _normalize(decision_status) != DECISION_STATUS_UNFILLED:
         reasons.append(
-            f"Decision record selects decision_status={decision_status}; this packet "
-            "cannot record a human decision."
+            "Decision record selects decision_status; this packet cannot record a "
+            "human decision."
         )
 
     decision_option = record.get("decision_option")
     if _present(decision_option) and _normalize(decision_option) != DECISION_OPTION_UNSELECTED:
         reasons.append(
-            f"Decision record selects decision_option={decision_option}; this packet "
-            "cannot select approve, reject, or defer."
+            "Decision record selects decision_option; this packet cannot select "
+            "approve, reject, or defer."
         )
 
     for field, expected in REQUIRED_TEXT_DEFAULTS.items():
@@ -417,7 +417,8 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
             continue
         if _normalize(value) != _normalize(expected):
             reasons.append(
-                f"Decision record changes {field}; expected {expected!r}, got {value!r}."
+                f"Decision record changes {field}; expected the unfilled false-default "
+                "template value."
             )
 
     readiness_status = record.get("readiness.status")

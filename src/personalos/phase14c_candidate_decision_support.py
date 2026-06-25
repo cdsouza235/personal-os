@@ -422,7 +422,7 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
         value = record.get(field)
         if not _present(value):
             continue
-        if _normalize(value) != _normalize(expected):
+        if value != expected:
             reasons.append(
                 f"Decision record changes {field}; expected the unfilled false-default "
                 "template value."

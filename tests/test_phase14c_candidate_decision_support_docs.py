@@ -104,6 +104,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "strict required-false-field coverage",
             "non-boolean false-like values",
             "unfilled false-default template",
+            "strict required-text-default coverage",
+            "case/spacing variants",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

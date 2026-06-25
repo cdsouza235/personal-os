@@ -151,6 +151,12 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "readiness payload drift",
             "safety posture field drift",
             "extra safety posture keys",
+            "report-payload contract hardening",
+            "decision option drift",
+            "candidate tracking payload drift",
+            "decision-record template drift",
+            "validation-payload field/reason/normalized-record drift",
+            "preflight-checklist drift",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

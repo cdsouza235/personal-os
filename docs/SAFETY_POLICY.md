@@ -257,6 +257,11 @@ Report-contract posture matrix tests must cover metadata drift, readiness
 payload drift, safety posture field drift, and extra safety posture keys
 without echoing caller-controlled values or weakening the inert, not-ready
 posture.
+Report-payload contract tests must keep report decision_option, candidate
+tracking payload, decision-record template, validation payload fields,
+validation reasons, normalized record, and preflight checklist fail-closed
+without echoing caller-controlled values or weakening the inert, not-ready
+posture.
 
 ## High-Stakes Domains
 

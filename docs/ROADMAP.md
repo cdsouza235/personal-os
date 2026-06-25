@@ -86,6 +86,10 @@ validation-payload mismatch.
 Report-contract posture matrix tests cover report metadata drift, readiness
 payload drift, safety posture field drift, and extra safety posture keys
 without echoing caller-controlled values.
+Report-payload contract hardening checks decision option, candidate tracking
+payload, decision-record template, validation payload fields/reasons,
+normalized record, and preflight checklist drift without echoing
+caller-controlled values.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -168,6 +172,9 @@ each report-contract drift category without adding runtime behavior.
 Report-contract posture matrix tests preserve the same boundary by checking
 metadata, readiness, and safety-posture drift categories without exposing
 caller-controlled values.
+Report-payload contract hardening preserves the same boundary by checking
+the remaining inert report payload surfaces without exposing caller-controlled
+values.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -306,6 +313,10 @@ Future Phase 14 should be structured as:
   mismatch.
   Report-contract posture matrix tests cover metadata, readiness, and safety
   posture drift without echoing caller-controlled values.
+  Report-payload contract hardening covers decision option, candidate
+  tracking payload, decision-record template, validation payload, normalized
+  record, and preflight checklist drift without echoing caller-controlled
+  values.
 
 ## Historical Boundary Reference
 

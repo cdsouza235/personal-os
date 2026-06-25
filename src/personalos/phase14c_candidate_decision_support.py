@@ -223,6 +223,22 @@ ALLOWED_VALIDATION_STATUS_VALUES: tuple[str, ...] = (
     PilotPrepStatus.BLOCKED.value,
 )
 
+VALIDATION_PAYLOAD_FIELDS: tuple[str, ...] = (
+    "status",
+    "record_accepted_as_unfilled_template",
+    "human_decision_recorded",
+    "reasons",
+    "normalized_record",
+)
+
+UNFILLED_DECISION_RECORD_REASONS: tuple[str, ...] = (
+    "Decision-support record remains unfilled.",
+    "Decision option remains unselected.",
+    "All approval, authorization, activation, execution, and live-service "
+    "fields remain false.",
+    "Phase 14-C remains blocked and readiness.status remains not_ready.",
+)
+
 
 @dataclass(frozen=True)
 class CandidateDecisionSupportValidation:
@@ -325,8 +341,6 @@ def build_phase14c_candidate_decision_support_report(
         else decision_record
     )
     validation = validate_phase14c_candidate_decision_record(record)
-    candidate_record = phase14_cleaning_candidate_review_tracking_record()
-
     return {
         "schema_version": PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION,
         "generated_at_utc": generated_at_utc,
@@ -339,27 +353,7 @@ def build_phase14c_candidate_decision_support_report(
         "decision_option_selected": False,
         "decision_option": DECISION_OPTION_UNSELECTED,
         "candidate_review_tracking_only": True,
-        "candidate_review_tracking": {
-            "status": CANDIDATE_REVIEW_TRACKING_STATUS,
-            "candidate_count": 1,
-            "exactly_one_candidate_recorded": True,
-            "candidate": {
-                "candidate_name": candidate_record["candidate_name"],
-                "task_title": candidate_record["task_title"],
-                "weekday": candidate_record["weekday"],
-                "home_area": candidate_record["home_area"],
-                "candidate_type": candidate_record["candidate_type"],
-                "candidate_scope": candidate_record["candidate_scope"],
-                "candidate_review_tracking_status": (
-                    candidate_record["candidate_review_tracking_status"]
-                ),
-                "review_tracking_only": True,
-                "selected": False,
-                "approved": False,
-                "authorized": False,
-                "live_pilot_run": False,
-            },
-        },
+        "candidate_review_tracking": _candidate_review_tracking_report_payload(),
         "phase14_c_blocked": True,
         "candidate_approved": False,
         "candidate_authorized": False,
@@ -430,6 +424,7 @@ def build_phase14c_candidate_decision_support_contract_manifest() -> dict[str, A
         },
         "report_contract": {
             "top_level_fields": list(REPORT_TOP_LEVEL_FIELDS),
+            "validation_payload_fields": list(VALIDATION_PAYLOAD_FIELDS),
             "inert_false_fields": list(REPORT_INERT_FALSE_FIELDS),
             "inert_true_field_paths": list(REPORT_INERT_TRUE_FIELD_PATHS),
             "raw_input_echo_fields_absent": list(REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT),
@@ -515,27 +510,12 @@ def validate_phase14c_candidate_decision_record(
             reasons=tuple(missing_reasons),
         )
 
-    normalized = {
-        **REQUIRED_TEXT_DEFAULTS,
-        **{field: False for field in REQUIRED_FALSE_FIELDS},
-        **{field: "" for field in FILLABLE_DECISION_FIELDS},
-        "phase14_c_blocked": True,
-        "candidate_review_tracking_only": True,
-        "human_decision_recorded": False,
-        "readiness.status": "not_ready",
-    }
     return CandidateDecisionSupportValidation(
         status=PilotPrepStatus.DECISION_NEEDED,
         record_accepted_as_unfilled_template=True,
         human_decision_recorded=False,
-        reasons=(
-            "Decision-support record remains unfilled.",
-            "Decision option remains unselected.",
-            "All approval, authorization, activation, execution, and live-service "
-            "fields remain false.",
-            "Phase 14-C remains blocked and readiness.status remains not_ready.",
-        ),
-        normalized_record=normalized,
+        reasons=UNFILLED_DECISION_RECORD_REASONS,
+        normalized_record=_expected_unfilled_normalized_decision_record(),
     )
 
 
@@ -659,15 +639,38 @@ def _blocked_report_contract_reasons(report: Mapping[str, Any]) -> list[str]:
             "Decision-support report status is outside allowed decision-support statuses."
         )
 
+    if report.get("decision_option") != DECISION_OPTION_UNSELECTED:
+        reasons.append(
+            "Decision-support report decision_option must remain unselected."
+        )
+
+    if report.get("candidate_review_tracking") != (
+        _candidate_review_tracking_report_payload()
+    ):
+        reasons.append(
+            "Decision-support report candidate_review_tracking payload does not "
+            "match the inert tracking contract."
+        )
+
     validation_payload = report.get("decision_record_validation")
     if not isinstance(validation_payload, Mapping):
         reasons.append(
             "Decision-support report decision_record_validation payload is missing."
         )
     else:
+        if tuple(validation_payload) != VALIDATION_PAYLOAD_FIELDS:
+            reasons.append(
+                "Decision-support report decision_record_validation payload fields "
+                "do not match the contract."
+            )
         if validation_payload.get("status") != report.get("status"):
             reasons.append(
                 "Decision-support report status does not match validation status."
+            )
+        if validation_payload.get("status") not in ALLOWED_VALIDATION_STATUS_VALUES:
+            reasons.append(
+                "Decision-support report decision_record_validation status is "
+                "outside allowed decision-support statuses."
             )
         if (
             validation_payload.get("record_accepted_as_unfilled_template")
@@ -676,6 +679,42 @@ def _blocked_report_contract_reasons(report: Mapping[str, Any]) -> list[str]:
             reasons.append(
                 "Decision-support report unfilled-template flag does not match "
                 "validation payload."
+            )
+        if validation_payload.get("record_accepted_as_unfilled_template") not in (
+            True,
+            False,
+        ):
+            reasons.append(
+                "Decision-support report unfilled-template flag must remain boolean."
+            )
+        if validation_payload.get("human_decision_recorded") not in (True, False):
+            reasons.append(
+                "Decision-support report human_decision_recorded validation flag "
+                "must remain boolean."
+            )
+        validation_reasons = validation_payload.get("reasons")
+        if not _string_sequence(validation_reasons):
+            reasons.append(
+                "Decision-support report decision_record_validation reasons payload "
+                "is missing."
+            )
+        else:
+            allowed_reasons = _allowed_decision_record_validation_reasons()
+            if any(reason not in allowed_reasons for reason in validation_reasons):
+                reasons.append(
+                    "Decision-support report decision_record_validation reasons are "
+                    "outside the allowed contract."
+                )
+        normalized_record = validation_payload.get("normalized_record")
+        if validation_payload.get("record_accepted_as_unfilled_template") is True:
+            if normalized_record != _expected_unfilled_normalized_decision_record():
+                reasons.append(
+                    "Decision-support report unfilled normalized_record does not "
+                    "match the false-default template."
+                )
+        elif normalized_record is not None:
+            reasons.append(
+                "Decision-support report non-unfilled normalized_record must remain absent."
             )
 
     if report.get("contract_manifest") != (
@@ -705,6 +744,32 @@ def _blocked_report_contract_reasons(report: Mapping[str, Any]) -> list[str]:
                 "Decision-support report contains raw decision-record echo fields."
             )
 
+    if report.get("decision_record_template") != (
+        blank_phase14c_candidate_decision_support_record()
+    ):
+        reasons.append(
+            "Decision-support report decision_record_template does not match the "
+            "false-default template."
+        )
+
+    preflight_checklist = report.get("preflight_checklist")
+    if not _string_sequence(preflight_checklist):
+        reasons.append(
+            "Decision-support report preflight_checklist payload is missing."
+        )
+    elif isinstance(validation_payload, Mapping) and _string_sequence(
+        validation_payload.get("reasons")
+    ) and validation_payload.get("status") in ALLOWED_VALIDATION_STATUS_VALUES:
+        expected_checklist = render_phase14c_candidate_decision_support_checklist(
+            status=PilotPrepStatus(str(validation_payload.get("status"))),
+            reasons=tuple(validation_payload.get("reasons", ())),
+        )
+        if list(preflight_checklist) != expected_checklist:
+            reasons.append(
+                "Decision-support report preflight_checklist does not match the "
+                "validation payload."
+            )
+
     readiness = report.get("readiness")
     if not isinstance(readiness, Mapping):
         reasons.append("Decision-support report readiness payload is missing.")
@@ -729,6 +794,101 @@ def _blocked_report_contract_reasons(report: Mapping[str, Any]) -> list[str]:
         )
 
     return _dedupe(reasons)
+
+
+def _candidate_review_tracking_report_payload() -> dict[str, Any]:
+    candidate_record = phase14_cleaning_candidate_review_tracking_record()
+    return {
+        "status": CANDIDATE_REVIEW_TRACKING_STATUS,
+        "candidate_count": 1,
+        "exactly_one_candidate_recorded": True,
+        "candidate": {
+            "candidate_name": candidate_record["candidate_name"],
+            "task_title": candidate_record["task_title"],
+            "weekday": candidate_record["weekday"],
+            "home_area": candidate_record["home_area"],
+            "candidate_type": candidate_record["candidate_type"],
+            "candidate_scope": candidate_record["candidate_scope"],
+            "candidate_review_tracking_status": (
+                candidate_record["candidate_review_tracking_status"]
+            ),
+            "review_tracking_only": True,
+            "selected": False,
+            "approved": False,
+            "authorized": False,
+            "live_pilot_run": False,
+        },
+    }
+
+
+def _expected_unfilled_normalized_decision_record() -> dict[str, Any]:
+    return {
+        **REQUIRED_TEXT_DEFAULTS,
+        **{field: False for field in REQUIRED_FALSE_FIELDS},
+        **{field: "" for field in FILLABLE_DECISION_FIELDS},
+        "phase14_c_blocked": True,
+        "candidate_review_tracking_only": True,
+        "human_decision_recorded": False,
+        "readiness.status": "not_ready",
+    }
+
+
+def _allowed_decision_record_validation_reasons() -> frozenset[str]:
+    reasons = set(UNFILLED_DECISION_RECORD_REASONS)
+    reasons.add(
+        "No decision-support record was supplied; the false-default template "
+        "remains required."
+    )
+    reasons.add(
+        "Decision record contains unknown schema fields; only the false-default "
+        "template schema is accepted."
+    )
+    reasons.add(
+        "Decision record selects decision_status; this packet cannot record a "
+        "human decision."
+    )
+    reasons.add(
+        "Decision record selects decision_option; this packet cannot select "
+        "approve, reject, or defer."
+    )
+    reasons.add("Decision record changes readiness.status; expected 'not_ready'.")
+    reasons.add(
+        "Decision-support record required field is missing: readiness.status=not_ready."
+    )
+    for field in REQUIRED_FALSE_FIELDS:
+        reasons.add(
+            f"Decision record is marked {field}; this packet cannot approve, "
+            "authorize, activate, execute, or grant live access."
+        )
+        reasons.add(f"Decision record changes {field}; expected boolean false.")
+        reasons.add(
+            f"Decision-support record required false field is missing: {field}."
+        )
+    for field in FILLABLE_DECISION_FIELDS:
+        reasons.add(
+            f"Decision record changes {field}; expected an empty unfilled value."
+        )
+        reasons.add(
+            f"Decision record fills {field}; recording a human decision is out of scope."
+        )
+        reasons.add(
+            f"Decision-support record required unfilled field is missing: {field}."
+        )
+    for field in PROHIBITED_LIVE_FIELDS:
+        reasons.add(f"Decision record contains prohibited live/API field: {field}.")
+    for field in PROHIBITED_SECRET_FIELDS:
+        reasons.add(
+            f"Decision record contains prohibited credential/secret field: {field}."
+        )
+    for field, expected in REQUIRED_TEXT_DEFAULTS.items():
+        reasons.add(
+            f"Decision-support record required field is missing: {field}={expected}."
+        )
+        reasons.add(
+            f"Decision record changes {field}; expected the unfilled false-default "
+            "template value."
+        )
+    return frozenset(reasons)
 
 
 def _unknown_schema_fields(record: Mapping[str, Any]) -> list[str]:
@@ -817,6 +977,14 @@ def _mapping_path_value(mapping: Mapping[str, Any], dotted_path: str) -> tuple[b
             return False, None
         value = value[part]
     return True, value
+
+
+def _string_sequence(value: Any) -> bool:
+    return (
+        isinstance(value, Sequence)
+        and not isinstance(value, (str, bytes, bytearray))
+        and all(isinstance(item, str) for item in value)
+    )
 
 
 def _normalize(value: Any) -> str:

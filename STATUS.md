@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #73:
-  `541c37ff8137681ab951735ae8c04523c64d763e`
-- Latest merged PR at that baseline: PR #73, Phase 14-C report-contract
-  validator matrix
+- Last validated main baseline after PR #74:
+  `5cc042fbc3f3a093466de60f2aef97ad89a07d9d`
+- Latest merged PR at that baseline: PR #74, Phase 14-C report-contract
+  posture matrix
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -32,9 +32,9 @@ Last updated: 2026-06-25
   inert repo-local loops, the inert decision-support contract manifest with
   schema/report/status synchronization tests, and report-embedded contract
   manifest coverage, the pure report-contract validator for the inert
-  decision-support report, and table-driven report-contract validator matrix
-  coverage are merged on `main`; this packet adds report-contract metadata,
-  readiness, and safety-posture matrix coverage
+  decision-support report, table-driven report-contract validator matrix
+  coverage, and report-contract posture matrix coverage are merged on `main`;
+  this packet adds report-payload contract hardening
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -59,7 +59,7 @@ Last updated: 2026-06-25
   decision-support contract manifest coverage, plus report-embedded contract
   manifest coverage, plus report-contract validator coverage, plus
   report-contract validator matrix coverage, plus report-contract posture
-  matrix coverage
+  matrix coverage, plus report-payload contract hardening
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -67,14 +67,14 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 572 tests OK
-- ResourceWarning-sensitive suite: 572 tests OK
+- Full suite: 577 tests OK
+- ResourceWarning-sensitive suite: 577 tests OK
 - Targeted Codex workflow docs suite: 12 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 67 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 72 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -188,6 +188,9 @@ Last updated: 2026-06-25
 - PR #73 Phase 14-C report-contract validator matrix: merged
 - PR #73 Claude Code audit: Pass
 - PR #73 post-merge validation: passed
+- PR #74 Phase 14-C report-contract posture matrix: merged
+- PR #74 Claude Code audit: Pass
+- PR #74 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -293,6 +296,10 @@ Report-contract posture matrix coverage checks schema/version/status metadata
 drift, readiness payload drift, every safety posture field drift, and extra
 safety posture keys while keeping caller-controlled values out of validator
 output.
+Report-payload contract hardening keeps report decision_option, candidate
+tracking payload, decision-record template, validation payload fields,
+validation reasons, normalized record, and preflight checklist fail-closed
+when tampered, without echoing caller-controlled values in validator output.
 Long-run governance now records that the completed bounded packet is the
 default PR/audit unit for safe inert repo-local work, that Codex/Fable should
 bundle adjacent safe substeps rather than stop after every micro-invariant,
@@ -390,6 +397,7 @@ production runtime state.
 - PR #71: Embed Phase 14-C contract manifest in report.
 - PR #72: Add Phase 14-C report contract validator.
 - PR #73: Add Phase 14-C report-contract validator matrix.
+- PR #74: Add Phase 14-C report-contract posture matrix.
 
 ## Known Gaps
 
@@ -478,6 +486,10 @@ production runtime state.
   Report-contract posture matrix coverage checks metadata drift, readiness
   payload drift, safety posture field drift, and extra safety posture keys
   without echoing caller-controlled values in validator output.
+  Report-payload contract hardening checks decision option drift, candidate
+  tracking payload drift, decision-record template drift, validation-payload
+  field/reason/normalized-record drift, and preflight-checklist drift without
+  echoing caller-controlled values in validator output.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -504,12 +516,15 @@ production runtime state.
   PR #72 adds only inert report-contract validator source/test/docs coverage.
   PR #73 adds only inert report-contract validator matrix test/docs/status
   coverage.
-  The current report-contract posture matrix packet keeps those governance
-  rules in place and adds only inert repo-local test/docs/status coverage.
+  PR #74 adds only inert report-contract posture matrix test/docs/status
+  coverage.
+  The current report-payload contract hardening packet keeps those governance
+  rules in place and adds only inert repo-local source/test/docs/status
+  coverage.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
   PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, PR #65, PR #66, PR #67,
-  PR #68, PR #69, PR #70, PR #71, PR #72, and PR #73 do not authorize
+  PR #68, PR #69, PR #70, PR #71, PR #72, PR #73, and PR #74 do not authorize
   OpenClaw, credentials, production DB, scheduler/background loop, external
   runtime writes, protected path access, Phase 14-C activation, or candidate
   execution.

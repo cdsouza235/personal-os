@@ -16,6 +16,7 @@ from personalos.phase14c_candidate_decision_support import (
     REPORT_TOP_LEVEL_FIELDS,
     REQUIRED_FALSE_FIELDS,
     REQUIRED_TEXT_DEFAULTS,
+    VALIDATION_PAYLOAD_FIELDS,
     blank_phase14c_candidate_decision_support_record,
     build_phase14c_candidate_decision_support_contract_manifest,
     build_phase14c_candidate_decision_support_report,
@@ -132,6 +133,10 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         report = build_phase14c_candidate_decision_support_report()
 
         self.assertEqual(report_contract["top_level_fields"], list(REPORT_TOP_LEVEL_FIELDS))
+        self.assertEqual(
+            report_contract["validation_payload_fields"],
+            list(VALIDATION_PAYLOAD_FIELDS),
+        )
         self.assertEqual(tuple(report), REPORT_TOP_LEVEL_FIELDS)
         self.assertEqual(
             report_contract["inert_false_fields"],
@@ -522,6 +527,138 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             validation.reasons,
         )
         self.assertNotIn(unsafe_key, serialized_validation)
+        self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_decision_option_drift_without_echo(
+        self,
+    ) -> None:
+        unsafe_value = "matrix-secret-report-decision-option"
+        report = build_phase14c_candidate_decision_support_report()
+        report["decision_option"] = unsafe_value
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report decision_option must remain unselected.",
+            validation.reasons,
+        )
+        self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_candidate_tracking_payload_drift_without_echo(
+        self,
+    ) -> None:
+        unsafe_value = "matrix-secret-candidate-tracking-value"
+        report = build_phase14c_candidate_decision_support_report()
+        report["candidate_review_tracking"]["candidate"]["candidate_name"] = unsafe_value
+        report["candidate_review_tracking"]["candidate"]["approved"] = True
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report candidate_review_tracking payload does not match the inert tracking contract.",
+            validation.reasons,
+        )
+        self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_decision_record_template_drift_without_echo(
+        self,
+    ) -> None:
+        unsafe_value = "matrix-secret-template-value"
+        report = build_phase14c_candidate_decision_support_report()
+        report["decision_record_template"]["notes"] = unsafe_value
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report decision_record_template does not match the false-default template.",
+            validation.reasons,
+        )
+        self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_validation_payload_drift_without_echo(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "extra-field",
+                lambda report, token: report["decision_record_validation"].update(
+                    {"matrix-secret-validation-key": token}
+                ),
+                "Decision-support report decision_record_validation payload fields do not match the contract.",
+                ("matrix-secret-validation-key",),
+            ),
+            (
+                "unsafe-reason",
+                lambda report, token: report["decision_record_validation"]["reasons"].append(
+                    token
+                ),
+                "Decision-support report decision_record_validation reasons are outside the allowed contract.",
+                (),
+            ),
+            (
+                "unfilled-normalized-record",
+                lambda report, token: report["decision_record_validation"][
+                    "normalized_record"
+                ].update({"candidate": token}),
+                "Decision-support report unfilled normalized_record does not match the false-default template.",
+                (),
+            ),
+            (
+                "non-unfilled-normalized-record",
+                lambda report, token: report["decision_record_validation"].update(
+                    {"normalized_record": {"unsafe": token}}
+                ),
+                "Decision-support report non-unfilled normalized_record must remain absent.",
+                (),
+            ),
+        )
+        for label, mutate, expected_reason, extra_tokens in cases:
+            with self.subTest(label=label):
+                unsafe_value = f"matrix-secret-validation-payload-{label}"
+                report = (
+                    build_phase14c_candidate_decision_support_report(
+                        {
+                            **blank_phase14c_candidate_decision_support_record(),
+                            "candidate_approved": True,
+                        }
+                    )
+                    if label == "non-unfilled-normalized-record"
+                    else build_phase14c_candidate_decision_support_report()
+                )
+                mutate(report, unsafe_value)
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(
+                    report
+                )
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_value, serialized_validation)
+                for extra_token in extra_tokens:
+                    self.assertNotIn(extra_token, serialized_validation)
+
+    def test_report_contract_validator_blocks_preflight_checklist_drift_without_echo(
+        self,
+    ) -> None:
+        unsafe_value = "matrix-secret-preflight-checklist-value"
+        report = build_phase14c_candidate_decision_support_report()
+        report["preflight_checklist"].append(unsafe_value)
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report preflight_checklist does not match the validation payload.",
+            validation.reasons,
+        )
         self.assertNotIn(unsafe_value, serialized_validation)
 
     def test_contract_manifest_allowed_statuses_cover_validation_outputs(self) -> None:

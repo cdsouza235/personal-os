@@ -22,10 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #58:
-    `b3a63199ca9b676b28335e530668fde02085e55c`
-  - latest merged PR: PR #58, Phase 14-C decision-support nested prohibited
-    sanitization tests
+  - last validated main baseline after PR #59:
+    `814d832caace4beb22868c0fb8646ec3baa53402`
+  - latest merged PR: PR #59, Phase 14-C decision-support strict false-field
+    validation
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -285,11 +285,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #58:
+As of this post-merge validation update after PR #59:
 
-- Last validated main baseline after PR #58:
-  `b3a63199ca9b676b28335e530668fde02085e55c`
-- Latest merged PR: PR #58, Phase 14-C decision-support nested prohibited sanitization tests
+- Last validated main baseline after PR #59:
+  `814d832caace4beb22868c0fb8646ec3baa53402`
+- Latest merged PR: PR #59, Phase 14-C decision-support strict false-field validation
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -303,6 +303,7 @@ As of this post-merge validation update after PR #58:
 - PR #56 Claude Code audit: Pass
 - PR #57 Claude Code audit: Pass
 - PR #58 Claude Code audit: Pass
+- PR #59 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -314,8 +315,8 @@ As of this post-merge validation update after PR #58:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 534 tests OK
-- ResourceWarning-sensitive suite: 534 tests OK
+- Full test suite: 536 tests OK
+- ResourceWarning-sensitive suite: 536 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -362,7 +363,9 @@ As of this post-merge validation update after PR #58:
   and nested prohibited-field coverage keeps caller-controlled nested live/API
   and credential/secret values out of blocked report JSON. Strict
   required-false-field hardening blocks non-boolean false-like values instead
-  of accepting them as the unfilled false-default template.
+  of accepting them as the unfilled false-default template. Strict
+  required-text-default hardening blocks case/spacing variants instead of
+  accepting them as the unfilled template.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -432,9 +435,10 @@ Completed major phases:
   blocked report JSON, adds blocked report sanitization matrix coverage for
   representative caller-controlled tokens, keeps caller-controlled nested
   prohibited live/API and credential/secret values out of blocked report JSON,
-  blocks non-boolean false-like required-false-field values, and does not
-  record a human decision. Report and validation payload shape tests keep raw
-  decision-record echo fields out of the report contract.
+  blocks non-boolean false-like required-false-field values, blocks
+  non-exact required text defaults, and does not record a human decision.
+  Report and validation payload shape tests keep raw decision-record echo
+  fields out of the report contract.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1273,14 +1277,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #58:
+Last validated main baseline after PR #59:
 
-`b3a63199ca9b676b28335e530668fde02085e55c`
+`814d832caace4beb22868c0fb8646ec3baa53402`
 
 Current validated state:
 
-- Full suite: 534 tests OK
-- ResourceWarning-sensitive suite: 534 tests OK
+- Full suite: 536 tests OK
+- ResourceWarning-sensitive suite: 536 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1323,6 +1327,7 @@ Current validated state:
 - PR #57 Phase 14-C decision-support sanitization matrix tests are merged
 - PR #58 Phase 14-C decision-support nested prohibited sanitization tests are
   merged
+- PR #59 Phase 14-C decision-support strict false-field validation is merged
 
 Next human decision:
 

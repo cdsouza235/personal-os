@@ -479,6 +479,47 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             validation.reasons,
         )
 
+    def test_every_required_text_default_blocks_when_not_exact_literal(self) -> None:
+        for field, expected in REQUIRED_TEXT_DEFAULTS.items():
+            with self.subTest(field=field):
+                record = {
+                    **blank_phase14c_candidate_decision_support_record(),
+                    field: f" {expected} ",
+                }
+
+                validation = validate_phase14c_candidate_decision_record(record)
+
+                self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+                self.assertFalse(validation.record_accepted_as_unfilled_template)
+                self.assertFalse(validation.human_decision_recorded)
+                self.assertIn(
+                    f"Decision record changes {field}; expected the unfilled false-default "
+                    "template value.",
+                    validation.reasons,
+                )
+
+    def test_required_text_default_drift_value_is_not_echoed_in_blocked_report(self) -> None:
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "weekday": "matrix-secret-text-default-value",
+            }
+        )
+
+        serialized_report = json.dumps(report, sort_keys=True)
+        validation = report["decision_record_validation"]
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertFalse(report["decision_record_validated_as_unfilled"])
+        self.assertFalse(validation["human_decision_recorded"])
+        self.assertIsNone(validation["normalized_record"])
+        self.assertIn(
+            "Decision record changes weekday; expected the unfilled false-default "
+            "template value.",
+            validation["reasons"],
+        )
+        self.assertNotIn("matrix-secret-text-default-value", serialized_report)
+
     def test_each_required_text_default_missing_fails_closed_as_decision_needed(self) -> None:
         for field, expected in REQUIRED_TEXT_DEFAULTS.items():
             with self.subTest(field=field):

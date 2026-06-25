@@ -188,7 +188,8 @@ representative caller-controlled tokens. Nested prohibited-field tests must
 keep caller-controlled nested live/API and credential/secret values out of
 blocked report JSON. Strict required-false-field tests must block non-boolean
 false-like values instead of accepting them as the unfilled false-default
-template.
+template. Strict required-text-default tests must block case/spacing variants
+instead of accepting them as the unfilled template.
 
 ## High-Stakes Domains
 

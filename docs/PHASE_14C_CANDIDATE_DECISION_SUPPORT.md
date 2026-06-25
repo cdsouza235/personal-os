@@ -222,7 +222,9 @@ caller-controlled tokens. Nested prohibited-field coverage verifies that
 caller-controlled nested live/API and credential/secret values stay out of
 blocked report JSON. Strict required-false-field coverage verifies that
 non-boolean false-like values are blocked instead of accepted as the unfilled
-false-default template.
+false-default template. Strict required-text-default coverage verifies that
+case/spacing variants are blocked instead of accepted as the unfilled
+template.
 
 ## Stop Conditions
 

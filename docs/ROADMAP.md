@@ -21,6 +21,9 @@ approval boundary; it does not authorize Phase 14-C, candidate execution, live
 Todoist/Gmail/Calendar access, OpenClaw, credentials, production DB,
 scheduler/background behavior, dynamic cleaning, Watch Tower adoption,
 `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
+The Phase 14-C candidate decision-support bundle adds an inert review
+checklist and unfilled false-default decision-record template for that same
+candidate-review tracking only posture.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -32,6 +35,8 @@ The pre-Phase-14-C candidate-selection preparation artifact is
 [PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md).
 The Phase 14-C candidate decision-gate artifact is
 [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md).
+The Phase 14-C candidate decision-support artifact is
+[PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 
@@ -43,6 +48,8 @@ or pilot being considered. The recorded candidate-review tracking decision
 remains separate from candidate approval for execution and live activation.
 The decision gate records evidence and wording that Chris should review before
 any future movement beyond candidate-review tracking only.
+The candidate decision-support artifact records review questions and an
+unfilled template only; it does not select approve, reject, or defer.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -129,6 +136,11 @@ Future Phase 14 should be structured as:
   candidate approval, execution authorization, live service access, dynamic
   cleaning implementation, Watch Tower adoption, `.agent/`, `CLAUDE.md`, or
   runtime/operator scaffolding.
+- Phase 14-C candidate decision support: inert docs/test review checklist and
+  unfilled false-default decision-record template for the recorded candidate.
+  No approve/reject/defer decision selected, no Phase 14-C approval, no
+  candidate approval, no candidate authorization, no activation or execution,
+  and no live service access.
 
 ## Historical Boundary Reference
 

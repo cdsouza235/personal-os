@@ -22,9 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #45:
-    `831fde0b8950ec60577079fdb3c239d9938c893e`
-  - latest merged PR: PR #45, Phase 14-C candidate decision gate
+  - last validated main baseline after PR #46:
+    `888a1de794b721b186afbcaf3e0363b2f8e67f91`
+  - latest merged PR: PR #46, anti-micro-loop workflow and post-PR-45
+    checkpoint refresh
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -49,6 +50,9 @@ Key changes from v0.1:
   candidate, authorize execution, authorize live service access, implement
   dynamic cleaning, adopt Watch Tower, add `.agent/`, add `CLAUDE.md`, or add
   runtime/operator scaffolding.
+- Records the Phase 14-C candidate decision-support bundle as an inert
+  docs/test-only review aid with an unfilled false-default template. It does
+  not select approve, reject, or defer.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -274,11 +278,12 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #45:
+As of this post-merge validation update after PR #46:
 
-- Last validated main baseline after PR #45:
-  `831fde0b8950ec60577079fdb3c239d9938c893e`
-- Latest merged PR: PR #45, Phase 14-C candidate decision gate
+- Last validated main baseline after PR #46:
+  `888a1de794b721b186afbcaf3e0363b2f8e67f91`
+- Latest merged PR: PR #46, anti-micro-loop workflow and post-PR-45
+  checkpoint refresh
 - PR #45 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
@@ -290,8 +295,8 @@ As of this post-merge validation update after PR #45:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 495 tests OK
-- ResourceWarning-sensitive suite: 495 tests OK
+- Full test suite: 502 tests OK
+- ResourceWarning-sensitive suite: 502 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -319,6 +324,9 @@ As of this post-merge validation update after PR #45:
 - Phase 14-C candidate decision-gate documentation is
   [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md). It is an inert
   approval boundary and evidence checklist only.
+- Phase 14-C candidate decision-support documentation is
+  [PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
+  It is an inert review checklist and unfilled false-default template only.
 
 This state is the baseline. Do not restart from earlier roadmap phases.
 
@@ -372,6 +380,10 @@ Completed major phases:
   dynamic cleaning, import a 15-task cleaning list, implement skip/push/bump
   behavior, implement automatic rescheduling, adopt Watch Tower, add
   `.agent/`, add `CLAUDE.md`, or add runtime/operator scaffolding.
+- Phase 14-C candidate decision support: inert docs/test-only review checklist
+  and unfilled false-default decision-record template. It does not select
+  approve, reject, or defer and does not authorize execution or live service
+  access.
 
 The next human decision is separate authorization review of the recorded
 candidate, or a decision that no candidate is suitable. This PRD update does
@@ -1107,6 +1119,8 @@ Purpose:
   `proposed_only`
 - preserve an explicit Phase 14-C candidate decision gate in
   [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md)
+- preserve an explicit Phase 14-C candidate decision-support artifact in
+  [PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md)
 - keep candidate selection and candidate approval separate from live pilot
   authorization
 - preserve no live rails, credentials, production DB, scheduler activation,
@@ -1119,6 +1133,9 @@ Phase 14-C - first live pilot activation.
 Phase 14-C requires a separate selected-candidate authorization packet and
 explicit Chris approval. The decision gate documents the required evidence and
 wording for that future decision; it does not itself authorize the decision.
+The candidate decision-support artifact documents review questions, failure
+modes, stop conditions, required future approval wording, and an unfilled
+false-default decision-record template only.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1149,6 +1166,8 @@ The immediate human decision after this repo-local update is whether to use
 [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md) for a later explicit
 review of the recorded Clean Kitchen Countertops and Stovetop candidate, or
 to reject/defer the candidate and keep Phase 14-C blocked.
+The related decision-support aid is
+[PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
 
 Phase 14-C remains blocked unless Chris later approves a separate
 selected-candidate authorization packet.
@@ -1187,14 +1206,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #45:
+Last validated main baseline after PR #46:
 
-`831fde0b8950ec60577079fdb3c239d9938c893e`
+`888a1de794b721b186afbcaf3e0363b2f8e67f91`
 
 Current validated state:
 
-- Full suite: 495 tests OK
-- ResourceWarning-sensitive suite: 495 tests OK
+- Full suite: 502 tests OK
+- ResourceWarning-sensitive suite: 502 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1217,7 +1236,10 @@ Current validated state:
 - No Todoist candidate is approved, authorized, activated, or run
 - Phase 14-C candidate decision-gate documentation is inert and
   non-authorizing
+- Phase 14-C candidate decision-support documentation is inert, unfilled, and
+  non-authorizing
 - PR #45 Claude Code audit passed with no required fixes
+- PR #46 anti-micro-loop workflow and checkpoint refresh is merged
 
 Next human decision:
 

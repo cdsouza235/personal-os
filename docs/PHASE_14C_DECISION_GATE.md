@@ -14,6 +14,11 @@ This gate does not approve Phase 14-C, does not approve the candidate, does
 not authorize execution, does not authorize live service access, and does not
 activate any runtime behavior.
 
+The companion decision-support artifact is
+[PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
+It adds an inert review checklist and unfilled decision-record template for
+the same blocked candidate posture.
+
 ## Current Recorded Candidate
 
 - Candidate: `Clean Kitchen Countertops and Stovetop`

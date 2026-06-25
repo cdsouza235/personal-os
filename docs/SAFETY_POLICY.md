@@ -136,6 +136,8 @@ and candidate-review tracking record only. The planning/evidence document is
 [PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md).
 The future human decision-gate document is
 [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md).
+The companion candidate decision-support document is
+[PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
 
 Candidate-selection preparation may record a human-selected candidate for
 candidate-review tracking only. It must not select a candidate for live
@@ -156,6 +158,11 @@ behavior, implement dynamic cleaning, import a 15-task cleaning list,
 implement skip/push/bump behavior, implement automatic rescheduling, adopt
 Watch Tower, add `.agent/`, add `CLAUDE.md`, or add runtime/operator
 scaffolding.
+
+The Phase 14-C candidate decision-support artifact may document review
+questions, failure modes, stop conditions, future approval wording, and an
+unfilled false-default decision-record template. It must preserve
+candidate-review tracking only and Phase 14-C remains blocked.
 
 ## High-Stakes Domains
 

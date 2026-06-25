@@ -55,6 +55,12 @@ execution, authorize live service access, implement dynamic cleaning, import a
 rescheduling, adopt Watch Tower, add `.agent/`, add `CLAUDE.md`, or add
 runtime/operator scaffolding.
 
+The companion decision-support document is
+[PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
+It keeps the candidate-review tracking only posture unfilled and false by
+default while making a future human approve/reject/defer review easier to
+inspect.
+
 ## Boundary Assertions
 
 - This is not Phase 14-C.

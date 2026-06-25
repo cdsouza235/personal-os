@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #65:
-  `f954b3b5da67bac3cad79ab6e7a1099312201041`
-- Latest merged PR at that baseline: PR #65, Phase 14-C drift non-echo matrix
-  tests
+- Last validated main baseline after PR #66:
+  `32d6a1d0385aff3ada8e5b446983ea14e863d955`
+- Latest merged PR at that baseline: PR #66, Phase 14-C prohibited non-echo
+  matrix tests
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -25,8 +25,9 @@ Last updated: 2026-06-25
   readiness status literal hardening, the required readiness status template
   field, required unfilled fillable decision-field coverage, and strict
   unfilled decision-field empty-value hardening and required-field drift
-  non-echo matrix coverage are merged on `main`; this packet adds fillable and
-  prohibited-field non-echo matrix coverage
+  non-echo matrix coverage and fillable/prohibited-field non-echo matrix
+  coverage are merged on `main`; this packet adds report inert false-field
+  matrix coverage
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -45,7 +46,8 @@ Last updated: 2026-06-25
   template coverage, plus required unfilled fillable decision-field coverage,
   plus strict unfilled decision-field empty-value hardening, plus
   required-field drift non-echo matrix coverage, plus fillable and
-  prohibited-field non-echo matrix coverage
+  prohibited-field non-echo matrix coverage, plus report inert false-field
+  matrix coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -53,13 +55,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 546 tests OK
-- ResourceWarning-sensitive suite: 546 tests OK
+- Full suite: 547 tests OK
+- ResourceWarning-sensitive suite: 547 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 44 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 45 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -149,6 +151,9 @@ Last updated: 2026-06-25
 - PR #65 Phase 14-C drift non-echo matrix tests: merged
 - PR #65 Claude Code audit: Pass
 - PR #65 post-merge validation: passed
+- PR #66 Phase 14-C prohibited non-echo matrix tests: merged
+- PR #66 Claude Code audit: Pass
+- PR #66 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -226,6 +231,10 @@ Fillable and prohibited-field non-echo matrix coverage verifies every
 fillable decision field value, every prohibited live/API field value, and
 every prohibited credential/secret field value stays out of blocked report
 JSON.
+Report inert false-field matrix coverage verifies every top-level approval,
+execution, live rail, credential, scheduler, protected-path, model/API, Watch
+Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flag
+remains false.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -300,6 +309,7 @@ production runtime state.
 - PR #63: Require Phase 14-C unfilled decision fields.
 - PR #64: Harden Phase 14-C unfilled decision fields.
 - PR #65: Add Phase 14-C drift non-echo matrix tests.
+- PR #66: Add Phase 14-C prohibited non-echo matrix tests.
 
 ## Known Gaps
 
@@ -366,6 +376,10 @@ production runtime state.
   fillable decision field value, every prohibited live/API field value, and
   every prohibited credential/secret field value stays out of blocked report
   JSON.
+  Report inert false-field matrix coverage verifies every top-level approval,
+  execution, live rail, credential, scheduler, protected-path, model/API,
+  Watch Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation
+  flag remains false.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -384,7 +398,7 @@ production runtime state.
   approved envelopes.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
-  PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, and PR #65 do not
+  PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, PR #65, and PR #66 do not
   authorize OpenClaw, credentials, production DB, scheduler/background loop,
   external runtime writes, protected path access, Phase 14-C activation, or
   candidate execution.

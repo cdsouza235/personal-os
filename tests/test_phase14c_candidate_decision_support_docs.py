@@ -124,6 +124,9 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "fillable decision field value",
             "prohibited live/api field value",
             "prohibited credential/secret field value",
+            "report inert false-field matrix coverage",
+            "top-level approval, execution, live rail",
+            "external mutation flag remains false",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

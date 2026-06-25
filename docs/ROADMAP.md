@@ -64,6 +64,9 @@ blocked report JSON.
 Fillable and prohibited-field non-echo matrix tests cover every fillable
 decision field, prohibited live/API field, and prohibited credential/secret
 field so caller-controlled values stay out of blocked report JSON.
+Report inert false-field matrix tests cover top-level approval, execution,
+live rail, credential, scheduler, protected-path, model/API, Watch Tower,
+`.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flags.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -116,6 +119,8 @@ false-field non-boolean value.
 Fillable and prohibited-field non-echo matrix tests preserve the same boundary
 by checking every fillable decision field value, every prohibited live/API
 field value, and every prohibited credential/secret field value.
+Report inert false-field matrix tests preserve the same boundary by checking
+top-level report flags remain false.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -230,7 +235,8 @@ Future Phase 14 should be structured as:
   block whitespace-only fillable field values. Required-field drift non-echo
   matrix tests cover every required text default and required false field.
   Fillable and prohibited-field non-echo matrix tests cover every fillable
-  field and prohibited field group.
+  field and prohibited field group. Report inert false-field matrix tests
+  cover top-level false report flags.
 
 ## Historical Boundary Reference
 

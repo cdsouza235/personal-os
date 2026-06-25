@@ -208,6 +208,9 @@ Fillable and prohibited-field non-echo matrix tests must cover every fillable
 decision field value, every prohibited live/API field value, and every
 prohibited credential/secret field value so caller-controlled values stay out
 of blocked report JSON.
+Report inert false-field matrix tests must cover top-level approval,
+execution, live rail, credential, scheduler, protected-path, model/API, Watch
+Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flags.
 
 ## High-Stakes Domains
 

@@ -763,6 +763,45 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertFalse(report["external_services_contacted"])
         self.assertFalse(report["external_mutation"])
 
+    def test_report_top_level_inert_false_fields_remain_false(self) -> None:
+        report = build_phase14c_candidate_decision_support_report()
+        false_fields = (
+            "human_decision_recorded",
+            "decision_option_selected",
+            "candidate_approved",
+            "candidate_authorized",
+            "candidate_activated",
+            "candidate_run",
+            "candidate_execution_authorized",
+            "live_pilot_authorized",
+            "live_pilot_run",
+            "gmail_touched",
+            "todoist_touched",
+            "calendar_touched",
+            "openclaw_called",
+            "scheduler_activated",
+            "background_loop_activated",
+            "launch_agent_installed",
+            "crontab_modified",
+            "daemon_started",
+            "credentials_loaded",
+            "credentials_read",
+            "production_db_path_active",
+            "personalos_markdown_written",
+            "protected_paths_touched",
+            "live_model_api_called",
+            "watch_tower_adopted_or_merged",
+            "agent_directory_created",
+            "claude_md_created",
+            "runtime_operator_scaffolding_created",
+            "external_services_contacted",
+            "external_mutation",
+        )
+
+        for field in false_fields:
+            with self.subTest(field=field):
+                self.assertFalse(report[field])
+
     def test_blocked_report_does_not_echo_unsafe_input_values(self) -> None:
         report = build_phase14c_candidate_decision_support_report(
             {

@@ -246,6 +246,10 @@ Fillable and prohibited-field non-echo matrix coverage verifies that every
 fillable decision field value, every prohibited live/API field value, and
 every prohibited credential/secret field value stays out of blocked report
 JSON.
+Report inert false-field matrix coverage verifies that every top-level
+approval, execution, live rail, credential, scheduler, protected-path,
+model/API, Watch Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external
+mutation flag remains false.
 
 ## Stop Conditions
 

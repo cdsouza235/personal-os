@@ -86,6 +86,10 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "default report timestamps remain deterministic",
             "report shape contract coverage",
             "raw decision-record echo fields are absent",
+            "missing-field matrix coverage",
+            "required text default",
+            "required false field",
+            "fails closed as `decision_needed`",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

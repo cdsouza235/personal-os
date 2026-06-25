@@ -418,6 +418,38 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
             validation.reasons,
         )
 
+    def test_each_required_text_default_missing_fails_closed_as_decision_needed(self) -> None:
+        for field, expected in REQUIRED_TEXT_DEFAULTS.items():
+            with self.subTest(field=field):
+                record = blank_phase14c_candidate_decision_support_record()
+                del record[field]
+
+                validation = validate_phase14c_candidate_decision_record(record)
+
+                self.assertEqual(validation.status, PilotPrepStatus.DECISION_NEEDED)
+                self.assertFalse(validation.record_accepted_as_unfilled_template)
+                self.assertFalse(validation.human_decision_recorded)
+                self.assertIn(
+                    f"Decision-support record required field is missing: {field}={expected}.",
+                    validation.reasons,
+                )
+
+    def test_each_required_false_field_missing_fails_closed_as_decision_needed(self) -> None:
+        for field in REQUIRED_FALSE_FIELDS:
+            with self.subTest(field=field):
+                record = blank_phase14c_candidate_decision_support_record()
+                del record[field]
+
+                validation = validate_phase14c_candidate_decision_record(record)
+
+                self.assertEqual(validation.status, PilotPrepStatus.DECISION_NEEDED)
+                self.assertFalse(validation.record_accepted_as_unfilled_template)
+                self.assertFalse(validation.human_decision_recorded)
+                self.assertIn(
+                    f"Decision-support record required false field is missing: {field}.",
+                    validation.reasons,
+                )
+
     def test_missing_required_false_field_fails_closed_as_decision_needed(self) -> None:
         record = blank_phase14c_candidate_decision_support_record()
         del record["candidate_approved"]

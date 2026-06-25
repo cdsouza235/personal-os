@@ -33,7 +33,9 @@ flags. Table-driven invariant tests cover the false-default schema, every
 fillable decision field, every required false field, and the allowed blocked /
 decision-needed status set. Report-level tests cover blocked-report
 sanitization, deterministic default timestamps, and explicit report shape
-contracts.
+contracts. Missing-field matrix tests cover every required text default and
+every required false field so absent required fields fail closed as
+`decision_needed`.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -63,8 +65,8 @@ unfilled template only; it does not select approve, reject, or defer.
 The candidate decision-support validator records no human decision and only
 preserves the unfilled/blocked repo-local report boundary. Its invariant tests
 remain repo-local and do not select approve, reject, or defer. Blocked-report
-sanitization and report shape tests do not grant live access or expose unsafe
-input values.
+sanitization, report shape tests, and missing-field matrix tests do not grant
+live access or expose unsafe input values.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -161,9 +163,10 @@ Future Phase 14 should be structured as:
   `decision_needed` or `blocked`; it does not record approve, reject, or defer.
   Unknown schema fields, nested payloads under known fillable fields, every
   fillable decision field, every required false field, and unsupported status
-  values fail closed. Blocked reports do not echo unsafe input values, and
-  default report timestamps remain deterministic. Report and validation payload
-  shape contracts remain explicit.
+  values fail closed. Missing required text defaults and required false fields
+  fail closed as `decision_needed`. Blocked reports do not echo unsafe input
+  values, and default report timestamps remain deterministic. Report and
+  validation payload shape contracts remain explicit.
 
 ## Historical Boundary Reference
 

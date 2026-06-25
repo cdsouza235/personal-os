@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #52:
-  `ab849a9bead1fe8832cbefbdfe2b35c4d6ab9421`
-- Latest merged PR at that baseline: PR #52, Phase 14-C decision-support
-  report sanitization
+- Last validated main baseline after PR #53:
+  `cf1ca0510aa681fa19d5d3fe0d92eba6858a5db5`
+- Latest merged PR at that baseline: PR #53, Phase 14-C decision-support
+  report shape contract
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -18,8 +18,8 @@ Last updated: 2026-06-25
   candidate decision-support bundle is docs/test-only and inert; the inert
   Phase 14-C candidate decision-support validator/report layer, strict
   known-schema hardening, and nested-fillable-field coverage are merged on
-  `main`; this packet adds an explicit report and validation payload shape
-  contract for the blocked decision-support report
+  `main`; this packet adds missing-field matrix coverage for every required
+  text default and every required false field
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -29,7 +29,7 @@ Last updated: 2026-06-25
   decision-support record, plus defense-in-depth nested-fillable-field
   coverage, plus table-driven invariant coverage, plus blocked-report
   sanitization and deterministic timestamp coverage, plus explicit report shape
-  contract coverage
+  contract coverage, plus missing-field matrix coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -37,13 +37,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 526 tests OK
-- ResourceWarning-sensitive suite: 526 tests OK
+- Full suite: 528 tests OK
+- ResourceWarning-sensitive suite: 528 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 24 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 26 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -91,6 +91,9 @@ Last updated: 2026-06-25
 - PR #52 Phase 14-C decision-support report sanitization: merged
 - PR #52 Claude Code audit: Pass
 - PR #52 post-merge validation: passed
+- PR #53 Phase 14-C decision-support report shape contract: merged
+- PR #53 Claude Code audit: Pass
+- PR #53 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -138,7 +141,9 @@ set, and the allowed `decision_needed` / `blocked` status set. Blocked
 decision-support reports do not echo unsafe input values, and the default
 report timestamp remains deterministic unless explicitly overridden. Report
 and validation payload shape tests keep the inert report contract explicit and
-exclude raw decision-record echo fields.
+exclude raw decision-record echo fields. Missing-field matrix tests keep every
+required text default and every required false field fail-closed as
+`decision_needed` when absent.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -200,6 +205,7 @@ production runtime state.
 - PR #50: Add nested fillable field decision support test.
 - PR #51: Add Phase 14-C decision support invariant tests.
 - PR #52: Add Phase 14-C decision support report sanitization tests.
+- PR #53: Add Phase 14-C decision support report shape tests.
 
 ## Known Gaps
 
@@ -238,6 +244,8 @@ production runtime state.
   closed. Blocked reports do not echo unsafe input values and default report
   timestamps remain deterministic. Report and validation payload shapes are
   tested explicitly so raw decision-record echo fields stay out of the report.
+  Missing required text defaults and required false fields fail closed as
+  `decision_needed`.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -255,7 +263,7 @@ production runtime state.
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
-  PR #50, PR #51, and PR #52 do not authorize OpenClaw, credentials,
+  PR #50, PR #51, PR #52, and PR #53 do not authorize OpenClaw, credentials,
   production DB, scheduler/background loop, external runtime writes, protected
   path access, Phase 14-C activation, or candidate execution.
 

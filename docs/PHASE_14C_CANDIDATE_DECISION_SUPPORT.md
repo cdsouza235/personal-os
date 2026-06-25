@@ -209,7 +209,9 @@ Report-level coverage verifies that blocked reports do not echo unsafe input
 values and that default report timestamps remain deterministic unless
 explicitly overridden. Report shape contract coverage keeps top-level report
 fields and validation payload fields explicit, including checks that raw
-decision-record echo fields are absent.
+decision-record echo fields are absent. Missing-field matrix coverage verifies
+that every required text default and every required false field fails closed as
+`decision_needed` when absent.
 
 ## Stop Conditions
 

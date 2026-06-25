@@ -179,7 +179,8 @@ the allowed `decision_needed` / `blocked` status set. Blocked-report tests
 must not echo unsafe input values, and default report timestamps must remain
 deterministic unless explicitly overridden. Report and validation payload shape
 tests must keep raw decision-record echo fields out of the inert report
-contract.
+contract. Missing required text defaults and required false fields must fail
+closed as `decision_needed`.
 
 ## High-Stakes Domains
 

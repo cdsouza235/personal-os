@@ -184,7 +184,9 @@ closed as `decision_needed`. Blocked reasons must avoid echoing caller-supplied
 decision or drift values into report JSON. Unknown schema reasons must avoid
 echoing caller-supplied unknown key names into report JSON. Blocked report
 sanitization matrix tests must preserve the non-echo boundary for
-representative caller-controlled tokens.
+representative caller-controlled tokens. Nested prohibited-field tests must
+keep caller-controlled nested live/API and credential/secret values out of
+blocked report JSON.
 
 ## High-Stakes Domains
 

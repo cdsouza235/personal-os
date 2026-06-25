@@ -6,10 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #56:
-  `532b0e6dc18177cc1d18d908248d82723efd8aa7`
-- Latest merged PR at that baseline: PR #56, Phase 14-C decision-support
-  unknown schema reason sanitization
+- Last validated main baseline after PR #57:
+  `a2ce2ae7892218f453e3c55b20fb6dd024322132`
+- Latest merged PR at that baseline: PR #57, Phase 14-C decision-support
+  sanitization matrix tests
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -18,9 +18,9 @@ Last updated: 2026-06-25
   candidate decision-support bundle is docs/test-only and inert; the inert
   Phase 14-C candidate decision-support validator/report layer, strict
   known-schema hardening, nested-fillable-field coverage, and missing-field
-  matrix coverage, blocked-reason sanitization, and unknown schema key-name
-  sanitization are merged on `main`; this packet adds table-driven blocked
-  report sanitization matrix coverage
+  matrix coverage, blocked-reason sanitization, unknown schema key-name
+  sanitization, and blocked report sanitization matrix coverage are merged on
+  `main`; this packet adds nested prohibited-field non-echo coverage
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -32,7 +32,8 @@ Last updated: 2026-06-25
   sanitization and deterministic timestamp coverage, plus explicit report shape
   contract coverage, plus missing-field matrix coverage, plus blocked-reason
   sanitization coverage, plus unknown schema key-name sanitization coverage,
-  plus blocked report sanitization matrix coverage
+  plus blocked report sanitization matrix coverage, plus nested
+  prohibited-field value non-echo coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -40,13 +41,13 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 531 tests OK
-- ResourceWarning-sensitive suite: 531 tests OK
+- Full suite: 532 tests OK
+- ResourceWarning-sensitive suite: 532 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 29 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 30 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -107,6 +108,9 @@ Last updated: 2026-06-25
   merged
 - PR #56 Claude Code audit: Pass
 - PR #56 post-merge validation: passed
+- PR #57 Phase 14-C decision-support sanitization matrix tests: merged
+- PR #57 Claude Code audit: Pass
+- PR #57 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -160,7 +164,9 @@ required text default and every required false field fail-closed as
 caller-supplied decision and drift values out of blocked report JSON. Unknown
 schema key-name sanitization keeps caller-supplied unknown keys out of blocked
 report JSON. The blocked report sanitization matrix verifies representative
-blocked inputs do not echo caller-controlled tokens.
+blocked inputs do not echo caller-controlled tokens. Nested prohibited-field
+coverage keeps caller-controlled nested live/API and credential/secret values
+out of blocked report JSON.
 Dev/test SQLite work must use explicit safe paths and must not activate
 production runtime state.
 
@@ -226,6 +232,7 @@ production runtime state.
 - PR #54: Add Phase 14-C decision support missing-field matrix tests.
 - PR #55: Sanitize Phase 14-C blocked decision reasons.
 - PR #56: Sanitize Phase 14-C unknown schema reasons.
+- PR #57: Add Phase 14-C sanitization matrix tests.
 
 ## Known Gaps
 
@@ -270,6 +277,8 @@ production runtime state.
   caller-supplied unknown key names into report JSON. The blocked report
   sanitization matrix locks representative non-echo cases for unknown schema,
   decision selection, candidate drift, and nested fillable payload inputs.
+  Nested prohibited-field coverage keeps caller-controlled nested live/API and
+  credential/secret values out of blocked report JSON.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -287,7 +296,7 @@ production runtime state.
   Claude Code audit triage guidance for repo-local inert/testable work inside
   approved envelopes.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
-  PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, and PR #56 do not authorize OpenClaw, credentials,
+  PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, and PR #57 do not authorize OpenClaw, credentials,
   production DB, scheduler/background loop, external runtime writes, protected
   path access, Phase 14-C activation, or candidate execution.
 

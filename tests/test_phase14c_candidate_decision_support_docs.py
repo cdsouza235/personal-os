@@ -99,6 +99,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "blocked report sanitization matrix coverage",
             "nested-fillable payload inputs",
             "caller-controlled tokens",
+            "nested prohibited-field coverage",
+            "nested live/api and credential/secret values",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

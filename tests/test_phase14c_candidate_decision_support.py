@@ -7,6 +7,7 @@ from personalos.phase14c_candidate_decision_support import (
     KNOWN_DECISION_RECORD_FIELDS,
     PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION,
     REQUIRED_FALSE_FIELDS,
+    REQUIRED_TEXT_DEFAULTS,
     blank_phase14c_candidate_decision_support_record,
     build_phase14c_candidate_decision_support_report,
     validate_phase14c_candidate_decision_record,
@@ -39,6 +40,92 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertEqual(report["decision_record_template"]["decision_status"], "unfilled")
         self.assertEqual(report["decision_record_template"]["decision_option"], "unselected")
         self.assertFalse(report["decision_record_template"]["candidate_approved"])
+
+    def test_report_top_level_shape_remains_explicit_and_inert(self) -> None:
+        report = build_phase14c_candidate_decision_support_report()
+
+        self.assertEqual(
+            set(report),
+            {
+                "schema_version",
+                "generated_at_utc",
+                "phase_label",
+                "status",
+                "decision_record_validated_as_unfilled",
+                "human_decision_recorded",
+                "decision_option_selected",
+                "decision_option",
+                "candidate_review_tracking_only",
+                "candidate_review_tracking",
+                "phase14_c_blocked",
+                "candidate_approved",
+                "candidate_authorized",
+                "candidate_activated",
+                "candidate_run",
+                "candidate_execution_authorized",
+                "live_pilot_authorized",
+                "live_pilot_run",
+                "approval_to_merge_docs_is_not_live_authorization",
+                "gmail_touched",
+                "todoist_touched",
+                "calendar_touched",
+                "openclaw_called",
+                "scheduler_activated",
+                "background_loop_activated",
+                "launch_agent_installed",
+                "crontab_modified",
+                "daemon_started",
+                "credentials_loaded",
+                "credentials_read",
+                "production_db_path_active",
+                "personalos_markdown_written",
+                "protected_paths_touched",
+                "live_model_api_called",
+                "watch_tower_adopted_or_merged",
+                "agent_directory_created",
+                "claude_md_created",
+                "runtime_operator_scaffolding_created",
+                "external_services_contacted",
+                "external_mutation",
+                "readiness",
+                "decision_record_validation",
+                "decision_record_template",
+                "preflight_checklist",
+                "safety_posture",
+            },
+        )
+        self.assertNotIn("raw_decision_record", report)
+        self.assertNotIn("input_record", report)
+        self.assertNotIn("unsafe_input", report)
+
+    def test_validation_payload_shape_remains_explicit(self) -> None:
+        validation = validate_phase14c_candidate_decision_record(
+            blank_phase14c_candidate_decision_support_record()
+        ).to_dict()
+
+        self.assertEqual(
+            set(validation),
+            {
+                "status",
+                "record_accepted_as_unfilled_template",
+                "human_decision_recorded",
+                "reasons",
+                "normalized_record",
+            },
+        )
+        self.assertEqual(validation["status"], PilotPrepStatus.DECISION_NEEDED.value)
+        self.assertEqual(
+            set(validation["normalized_record"]),
+            set(REQUIRED_TEXT_DEFAULTS)
+            | set(REQUIRED_FALSE_FIELDS)
+            | set(FILLABLE_DECISION_FIELDS)
+            | {
+                "phase14_c_blocked",
+                "candidate_review_tracking_only",
+                "human_decision_recorded",
+                "readiness.status",
+            },
+        )
 
     def test_missing_record_requires_false_default_template(self) -> None:
         validation = validate_phase14c_candidate_decision_record(None)

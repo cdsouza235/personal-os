@@ -84,6 +84,8 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "table-driven invariant coverage",
             "do not echo unsafe input values",
             "default report timestamps remain deterministic",
+            "report shape contract coverage",
+            "raw decision-record echo fields are absent",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

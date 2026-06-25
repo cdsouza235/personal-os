@@ -3,14 +3,21 @@ import unittest
 
 from personalos.phase14_pilot_prep import SAFETY_POSTURE, PilotPrepStatus
 from personalos.phase14c_candidate_decision_support import (
+    ALLOWED_VALIDATION_STATUS_VALUES,
     FILLABLE_DECISION_FIELDS,
     KNOWN_DECISION_RECORD_FIELDS,
+    PHASE14C_DECISION_SUPPORT_CONTRACT_SCHEMA_VERSION,
     PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION,
     PROHIBITED_LIVE_FIELDS,
     PROHIBITED_SECRET_FIELDS,
+    REPORT_INERT_FALSE_FIELDS,
+    REPORT_INERT_TRUE_FIELD_PATHS,
+    REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT,
+    REPORT_TOP_LEVEL_FIELDS,
     REQUIRED_FALSE_FIELDS,
     REQUIRED_TEXT_DEFAULTS,
     blank_phase14c_candidate_decision_support_record,
+    build_phase14c_candidate_decision_support_contract_manifest,
     build_phase14c_candidate_decision_support_report,
     validate_phase14c_candidate_decision_record,
 )
@@ -47,59 +54,132 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
     def test_report_top_level_shape_remains_explicit_and_inert(self) -> None:
         report = build_phase14c_candidate_decision_support_report()
 
+        self.assertEqual(tuple(report), REPORT_TOP_LEVEL_FIELDS)
+        for field in REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT:
+            with self.subTest(field=field):
+                self.assertNotIn(field, report)
+
+    def test_contract_manifest_is_inert_and_non_authorizing(self) -> None:
+        manifest = build_phase14c_candidate_decision_support_contract_manifest()
+        serialized_manifest = json.dumps(manifest, sort_keys=True)
+
         self.assertEqual(
-            set(report),
+            manifest["schema_version"],
+            PHASE14C_DECISION_SUPPORT_CONTRACT_SCHEMA_VERSION,
+        )
+        self.assertEqual(
+            manifest["decision_support_schema_version"],
+            PHASE14C_DECISION_SUPPORT_SCHEMA_VERSION,
+        )
+        self.assertEqual(
+            manifest["allowed_validation_statuses"],
+            list(ALLOWED_VALIDATION_STATUS_VALUES),
+        )
+        non_authorization = manifest["non_authorization_contract"]
+        self.assertTrue(non_authorization["candidate_review_tracking_only"])
+        self.assertTrue(non_authorization["phase14_c_blocked"])
+        self.assertTrue(non_authorization["inert_report_only"])
+        self.assertEqual(non_authorization["readiness.status"], "not_ready")
+        for field in (
+            "live_rails_activated",
+            "human_decision_recorded",
+            "decision_option_selected",
+            "candidate_approved",
+            "candidate_authorized",
+            "candidate_activated_or_run",
+            "live_service_access_authorized",
+            "credentials_auth_handling_authorized",
+            "production_db_activation_authorized",
+            "scheduler_background_activation_authorized",
+            "openclaw_invocation_authorized",
+            "protected_path_access_authorized",
+            "runtime_operator_scaffolding_authorized",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(non_authorization[field])
+
+        self.assertNotIn("approve for execution", serialized_manifest.lower())
+        self.assertNotIn("ready", manifest["allowed_validation_statuses"])
+
+    def test_contract_manifest_matches_template_schema_groups(self) -> None:
+        manifest = build_phase14c_candidate_decision_support_contract_manifest()
+        schema = manifest["decision_record_schema"]
+        blocked_groups = manifest["blocked_field_groups"]
+        record = blank_phase14c_candidate_decision_support_record()
+
+        self.assertEqual(set(schema["known_fields"]), set(record))
+        self.assertEqual(schema["required_text_defaults"], REQUIRED_TEXT_DEFAULTS)
+        self.assertEqual(schema["required_false_fields"], list(REQUIRED_FALSE_FIELDS))
+        self.assertEqual(schema["fillable_decision_fields"], list(FILLABLE_DECISION_FIELDS))
+        self.assertEqual(schema["readiness_status_field"], "readiness.status")
+        self.assertEqual(schema["readiness_status_required_value"], "not_ready")
+        self.assertEqual(
+            schema["raw_input_echo_fields_absent"],
+            list(REPORT_RAW_INPUT_ECHO_FIELDS_ABSENT),
+        )
+        self.assertEqual(blocked_groups["required_false_fields"], list(REQUIRED_FALSE_FIELDS))
+        self.assertEqual(blocked_groups["fillable_decision_fields"], list(FILLABLE_DECISION_FIELDS))
+        self.assertEqual(blocked_groups["prohibited_live_fields"], list(PROHIBITED_LIVE_FIELDS))
+        self.assertEqual(
+            blocked_groups["prohibited_secret_fields"],
+            list(PROHIBITED_SECRET_FIELDS),
+        )
+
+    def test_contract_manifest_matches_report_contract(self) -> None:
+        manifest = build_phase14c_candidate_decision_support_contract_manifest()
+        report_contract = manifest["report_contract"]
+        report = build_phase14c_candidate_decision_support_report()
+
+        self.assertEqual(report_contract["top_level_fields"], list(REPORT_TOP_LEVEL_FIELDS))
+        self.assertEqual(tuple(report), REPORT_TOP_LEVEL_FIELDS)
+        self.assertEqual(
+            report_contract["inert_false_fields"],
+            list(REPORT_INERT_FALSE_FIELDS),
+        )
+        self.assertEqual(
+            report_contract["inert_true_field_paths"],
+            list(REPORT_INERT_TRUE_FIELD_PATHS),
+        )
+        for field in report_contract["inert_false_fields"]:
+            with self.subTest(field=field):
+                self.assertFalse(report[field])
+        for path in report_contract["inert_true_field_paths"]:
+            with self.subTest(path=path):
+                self.assertTrue(_path_value(report, path))
+        for field in report_contract["raw_input_echo_fields_absent"]:
+            with self.subTest(field=field):
+                self.assertNotIn(field, report)
+
+    def test_contract_manifest_allowed_statuses_cover_validation_outputs(self) -> None:
+        manifest = build_phase14c_candidate_decision_support_contract_manifest()
+        allowed_statuses = set(manifest["allowed_validation_statuses"])
+        records = (
+            None,
+            blank_phase14c_candidate_decision_support_record(),
             {
-                "schema_version",
-                "generated_at_utc",
-                "phase_label",
-                "status",
-                "decision_record_validated_as_unfilled",
-                "human_decision_recorded",
-                "decision_option_selected",
-                "decision_option",
-                "candidate_review_tracking_only",
-                "candidate_review_tracking",
-                "phase14_c_blocked",
-                "candidate_approved",
-                "candidate_authorized",
-                "candidate_activated",
-                "candidate_run",
-                "candidate_execution_authorized",
-                "live_pilot_authorized",
-                "live_pilot_run",
-                "approval_to_merge_docs_is_not_live_authorization",
-                "gmail_touched",
-                "todoist_touched",
-                "calendar_touched",
-                "openclaw_called",
-                "scheduler_activated",
-                "background_loop_activated",
-                "launch_agent_installed",
-                "crontab_modified",
-                "daemon_started",
-                "credentials_loaded",
-                "credentials_read",
-                "production_db_path_active",
-                "personalos_markdown_written",
-                "protected_paths_touched",
-                "live_model_api_called",
-                "watch_tower_adopted_or_merged",
-                "agent_directory_created",
-                "claude_md_created",
-                "runtime_operator_scaffolding_created",
-                "external_services_contacted",
-                "external_mutation",
-                "readiness",
-                "decision_record_validation",
-                "decision_record_template",
-                "preflight_checklist",
-                "safety_posture",
+                **blank_phase14c_candidate_decision_support_record(),
+                "candidate_approved": True,
+            },
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "decision_option": "reject candidate",
+            },
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "unknown_future_field": "must-not-pass",
             },
         )
-        self.assertNotIn("raw_decision_record", report)
-        self.assertNotIn("input_record", report)
-        self.assertNotIn("unsafe_input", report)
+
+        statuses = {
+            validate_phase14c_candidate_decision_record(record).status.value
+            for record in records
+        }
+
+        self.assertEqual(
+            allowed_statuses,
+            {PilotPrepStatus.DECISION_NEEDED.value, PilotPrepStatus.BLOCKED.value},
+        )
+        self.assertLessEqual(statuses, allowed_statuses)
 
     def test_validation_payload_shape_remains_explicit(self) -> None:
         validation = validate_phase14c_candidate_decision_record(
@@ -765,65 +845,17 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
 
     def test_report_top_level_inert_false_fields_remain_false(self) -> None:
         report = build_phase14c_candidate_decision_support_report()
-        false_fields = (
-            "human_decision_recorded",
-            "decision_option_selected",
-            "candidate_approved",
-            "candidate_authorized",
-            "candidate_activated",
-            "candidate_run",
-            "candidate_execution_authorized",
-            "live_pilot_authorized",
-            "live_pilot_run",
-            "gmail_touched",
-            "todoist_touched",
-            "calendar_touched",
-            "openclaw_called",
-            "scheduler_activated",
-            "background_loop_activated",
-            "launch_agent_installed",
-            "crontab_modified",
-            "daemon_started",
-            "credentials_loaded",
-            "credentials_read",
-            "production_db_path_active",
-            "personalos_markdown_written",
-            "protected_paths_touched",
-            "live_model_api_called",
-            "watch_tower_adopted_or_merged",
-            "agent_directory_created",
-            "claude_md_created",
-            "runtime_operator_scaffolding_created",
-            "external_services_contacted",
-            "external_mutation",
-        )
 
-        for field in false_fields:
+        for field in REPORT_INERT_FALSE_FIELDS:
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
     def test_report_inert_true_fields_remain_true(self) -> None:
         report = build_phase14c_candidate_decision_support_report()
-        tracking = report["candidate_review_tracking"]
-        candidate = tracking["candidate"]
-        true_paths = (
-            ("candidate_review_tracking_only", report["candidate_review_tracking_only"]),
-            ("phase14_c_blocked", report["phase14_c_blocked"]),
-            (
-                "approval_to_merge_docs_is_not_live_authorization",
-                report["approval_to_merge_docs_is_not_live_authorization"],
-            ),
-            (
-                "candidate_review_tracking.exactly_one_candidate_recorded",
-                tracking["exactly_one_candidate_recorded"],
-            ),
-            ("candidate.review_tracking_only", candidate["review_tracking_only"]),
-            ("readiness.inert_report_only", report["readiness"]["inert_report_only"]),
-        )
 
-        for field, value in true_paths:
-            with self.subTest(field=field):
-                self.assertTrue(value)
+        for path in REPORT_INERT_TRUE_FIELD_PATHS:
+            with self.subTest(path=path):
+                self.assertTrue(_path_value(report, path))
 
     def test_blocked_report_does_not_echo_unsafe_input_values(self) -> None:
         report = build_phase14c_candidate_decision_support_report(
@@ -1091,3 +1123,12 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         self.assertIn("Phase 14-C remains blocked.", checklist)
         self.assertIn("Candidate is not approved, authorized, activated, or run.", checklist)
         self.assertIn("Todoist, Gmail, Calendar, OpenClaw", checklist)
+
+
+def _path_value(mapping: dict[str, object], dotted_path: str) -> object:
+    value: object = mapping
+    for part in dotted_path.split("."):
+        if not isinstance(value, dict):
+            raise AssertionError(f"path segment {part!r} is not in a mapping")
+        value = value[part]
+    return value

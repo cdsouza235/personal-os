@@ -238,6 +238,11 @@ execution, live rail, credential, scheduler, protected-path, model/API, Watch
 Tower, `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flags.
 Report inert true-field matrix tests must cover blocked, tracking-only,
 merge-is-not-live-authorization, and inert readiness flags.
+Contract manifest tests must keep the structured audit manifest synchronized
+with the false-default decision-record schema, allowed `decision_needed` /
+`blocked` status set, prohibited field groups, report top-level shape, inert
+false fields, inert true field paths, raw decision-record echo exclusions, and
+non-authorization assertions.
 
 ## High-Stakes Domains
 

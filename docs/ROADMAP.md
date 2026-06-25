@@ -69,6 +69,18 @@ live rail, credential, scheduler, protected-path, model/API, Watch Tower,
 `.agent`, `CLAUDE.md`, runtime scaffold, and external mutation flags.
 Report inert true-field matrix tests cover blocked, tracking-only,
 merge-is-not-live-authorization, and inert readiness flags.
+Long-run governance now treats the completed bounded packet as the default
+PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
+adjacent safe substeps rather than stop after every micro-invariant. Human
+judgment conditions remain explicit stop gates for product, safety, scope,
+design, secrets, credentials, live-service testing, and validation failures
+requiring architectural, product, safety, or workflow judgment. Delegated
+repo-merge authority, when Chris grants it for a current loop, is repo merge
+authority only and does not authorize Phase 14-C, candidate approval,
+candidate authorization, activation, execution, live-service access,
+credentials, production DB, scheduler/background behavior, OpenClaw,
+protected paths, dynamic cleaning, Watch Tower, `.agent/`, `CLAUDE.md`, or
+runtime/operator scaffolding.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -140,11 +152,20 @@ bounded envelope. This can include docs/control-plane alignment, tests,
 fake/local adapters, read-only/report-only surfaces, no-send workflows,
 previews, dry-runs, and safe dev/test work.
 
+The completed bounded packet is the default unit for PRs and Claude Code audit
+in safe inert long-run work. Codex/Fable should bundle adjacent safe
+repo-local substeps into one packet and one audit handoff instead of creating a
+separate PR or audit after each micro-invariant, unless the scope becomes
+ambiguous, a human judgment condition appears, or a real stop gate is reached.
+
 A work packet may not cross into live activation, credentials/OAuth/API keys,
 production DB paths, protected paths, scheduler/background/LaunchAgent/
 crontab/daemon work, OpenClaw runtime operation, external runtime writes,
 live model/API providers, high-stakes execution, major product decisions, or
-merge approval without explicit Chris approval.
+merge approval without explicit Chris approval or a current explicit delegated
+repo-merge instruction that satisfies all audited-head, mergeable/clean,
+validation, clean-worktree, no-drift, and no-open-gate conditions. Delegated
+repo-merge authority is not product approval or live authorization.
 
 The canonical work packet protocol is
 [AGENT_WORK_PACKET_PROTOCOL.md](AGENT_WORK_PACKET_PROTOCOL.md).

@@ -23,6 +23,16 @@ fake/local, read-only, report-only, no-send, preview, dry-run, or otherwise
 non-live. In those conditions, Codex/Fable may complete multiple approved
 repo-local substeps before returning.
 
+After Chris approves a safe long-run envelope, the default unit of work is the
+completed bounded packet, not an individual micro-invariant, one small doc
+edit, or one narrow test tweak. Codex/Fable should bundle adjacent safe
+repo-local substeps and return one PR/audit packet for the completed bounded
+packet, rather than forcing a Claude Code audit after every micro-invariant,
+unless the scope becomes ambiguous, a required audit boundary is reached, or a
+real human gate appears.
+Claude Code audit should happen after the bundled packet is ready unless a
+real gate requires earlier review.
+
 When the approved work envelope is clear and safety assertions remain clean,
 Codex/Fable should not stop after every small milestone. It should continue
 until the packet is complete, the PR or approved PR stack is ready, validation
@@ -50,7 +60,8 @@ credential/API/OAuth/secrets/token handling, production DB activation,
 protected path access, scheduler/background/LaunchAgent/crontab/daemon/
 watcher/service changes, OpenClaw runtime handoff or invocation, external
 runtime writes, live model/API calls, high-stakes execution, major product
-direction choices, and merge approval.
+direction choices, and any merge that is not covered by a current explicit
+delegated repo-merge instruction.
 
 Real gates include human merge approval, required Claude Code audit, live
 activation, Phase 14-C authorization, candidate approval, candidate
@@ -60,6 +71,24 @@ scheduler/background activation, OpenClaw invocation, protected path access,
 live model/API calls, dynamic cleaning implementation, high-stakes execution
 boundaries, and test failures requiring architectural, product, safety, or
 workflow judgment.
+
+Human judgment conditions include any product, safety, scope, or design choice
+that cannot be resolved from repo-local evidence; any secrets, credentials,
+OAuth, API keys, tokens, or actual live-service testing; and any failed
+validation that requires architectural, product, safety, or workflow judgment.
+When one of those conditions appears, Codex/Fable must stop and ask Chris
+instead of guessing.
+
+Delegated repo-merge authority, when Chris grants it for a current long-run
+loop, is limited to repo-local, inert, deterministic, testable work after the
+audited head commit, mergeable/clean state, validation, clean worktree, and
+Claude Code `Pass` or `Pass with notes` gates all pass. It is repo merge
+authority only and must not be read as product approval, Phase 14-C
+authorization, candidate approval, candidate authorization, candidate
+activation or execution, live-service access, live activation, credential
+handling, production DB activation, scheduler/background activation, OpenClaw
+invocation, protected-path access, dynamic cleaning implementation, Watch Tower
+adoption, `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
 
 This protocol is not Watch Tower adoption and does not authorize `.agent/`,
 `CLAUDE.md`, runtime/operator scaffolding, OpenClaw invocation, live

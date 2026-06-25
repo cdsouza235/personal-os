@@ -1,6 +1,6 @@
 # Codex/Fable Workflow
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Required First Reads
 
@@ -59,6 +59,14 @@ repo-local substeps before returning. Codex/Fable should not stop after every
 small milestone when the approved work envelope is clear and safety assertions
 remain clean.
 
+After Chris approves a safe long-run envelope, the default unit of work is the
+completed bounded packet. Codex/Fable should bundle adjacent safe repo-local
+substeps and return one PR/audit packet for the completed bounded packet, not
+one PR or Claude Code audit after every micro-invariant, tiny doc edit, or
+narrow test assertion. Claude Code audit should happen after the bundled
+packet is ready unless the scope becomes ambiguous, a real human gate appears,
+Chris narrows the scope, or a real audit boundary is reached.
+
 Post-merge verification is normally sufficient. Codex/Fable must not create a
 standalone checkpoint/status refresh PR after every merge by default. A
 separate checkpoint/status refresh PR is allowed only when stale status docs
@@ -102,7 +110,11 @@ Codex/Fable must stop and request human review before:
   health/medical, relationship, external-message, external-meeting, family, or
   large-financial-commitment decisions
 - major product direction choices
-- merge approval
+- merge approval unless a current explicit delegated repo-merge instruction
+  applies and all delegated merge conditions pass
+- product, safety, scope, or design choices that cannot be resolved from
+  repo-local evidence
+- actual live-service testing, live-service access, or live-service writes
 - any test failure requiring architectural or product judgment
 
 ### Real Human Gates
@@ -126,9 +138,15 @@ Local branch creation, repo-local edits, test additions, validation runs,
 commits, PR body drafting, and PR opening are not separate human gates when
 they are already inside the approved inert packet.
 
+Human judgment conditions include any product, safety, scope, or design choice
+that cannot be resolved from repo-local evidence; secrets, credentials, OAuth,
+API keys, tokens, or credential stores; actual live-service testing; and any
+failed validation that requires architectural, product, safety, or workflow
+judgment. Codex/Fable must stop and ask Chris when those conditions appear.
+
 ## Default PR Flow
 
-The normal long-run repo workflow is:
+The normal non-delegated long-run repo workflow is:
 
 1. Codex/Fable completes one larger bounded repo-local packet.
 2. Codex/Fable validates, commits, opens a PR, and includes a human-review
@@ -144,7 +162,25 @@ The normal long-run repo workflow is:
 
 If Claude Code audit is required or recommended, the PR must not be merged
 until the Claude Code audit is complete and Chris has reviewed the audit
-result. Claude Code audit does not approve a merge by itself.
+result, unless Chris has granted a current explicit delegated repo-merge
+instruction for the audited PR loop and all delegated merge conditions pass.
+Claude Code audit does not approve a merge by itself.
+
+When Chris grants delegated repo-merge authority for a current long-run loop,
+Codex/Fable may merge and verify a PR without asking for rubber-stamp merge
+approval only when the work is repo-local, inert, deterministic, testable, and
+inside the approved envelope; the PR is still at the audited head commit; the
+PR is mergeable/clean; changed files have no unexpected drift; validation
+passes; there is a clean worktree; Claude Code audit is absent by policy or
+returns `Pass` or `Pass with notes` with no required fixes; and no unresolved
+deviations, open questions, ambiguous authorization wording, or real human
+gate remains. Delegated repo-merge authority is repo merge authority only and
+does not mean product approval, Phase 14-C authorization, candidate approval,
+candidate authorization, candidate activation or execution, live-service
+access, live activation, credential handling, production DB activation,
+scheduler/background activation, OpenClaw invocation, protected-path access,
+dynamic cleaning implementation, Watch Tower adoption, `.agent/`,
+`CLAUDE.md`, or runtime/operator scaffolding.
 
 Codex/Fable PR-opening final reports must include:
 
@@ -187,7 +223,11 @@ Stop instead of continuing when a task would require:
 - OpenClaw invocation or runtime/operator handoff execution
 - scheduler, LaunchAgent, crontab, daemon, watcher, service, or background
   loop activation
-- a merge, even when tests pass and the PR is open
+- a merge that is not covered by a current explicit delegated repo-merge
+  instruction, even when tests pass and the PR is open
+- product, safety, scope, or design judgment that cannot be resolved from
+  repo-local evidence
+- actual live-service testing, access, or writes
 
 Long-run mode never authorizes live rails, credentials, production DB paths,
 protected path access, scheduler/background activation, OpenClaw runtime,

@@ -243,6 +243,9 @@ with the false-default decision-record schema, allowed `decision_needed` /
 `blocked` status set, prohibited field groups, report top-level shape, inert
 false fields, inert true field paths, raw decision-record echo exclusions, and
 non-authorization assertions.
+Report-embedded contract manifest tests must keep the same static manifest in
+default and blocked reports while preserving the blocked-report non-echo
+boundary for caller-controlled unsafe input tokens.
 
 ## High-Stakes Domains
 

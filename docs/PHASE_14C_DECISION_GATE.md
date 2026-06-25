@@ -21,7 +21,9 @@ the same blocked candidate posture. The companion inert validator lives in
 `src/personalos/phase14c_candidate_decision_support.py` and validates only the
 unfilled false-default template/report state; it does not record a decision.
 Its contract manifest is structured inert audit metadata only and does not
-approve, authorize, activate, execute, or grant live-service access.
+approve, authorize, activate, execute, or grant live-service access. The
+inert report embeds that same static manifest for auditability without
+echoing unsafe caller-controlled input.
 
 ## Current Recorded Candidate
 

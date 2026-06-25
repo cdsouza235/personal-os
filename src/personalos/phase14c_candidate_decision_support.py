@@ -164,6 +164,7 @@ REPORT_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "external_mutation",
     "readiness",
     "decision_record_validation",
+    "contract_manifest",
     "decision_record_template",
     "preflight_checklist",
     "safety_posture",
@@ -383,6 +384,7 @@ def build_phase14c_candidate_decision_support_report(
             "live_rails_activated": False,
         },
         "decision_record_validation": validation.to_dict(),
+        "contract_manifest": build_phase14c_candidate_decision_support_contract_manifest(),
         "decision_record_template": blank_phase14c_candidate_decision_support_record(),
         "preflight_checklist": render_phase14c_candidate_decision_support_checklist(
             status=validation.status,

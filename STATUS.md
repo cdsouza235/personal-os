@@ -6,9 +6,10 @@ Last updated: 2026-06-25
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #69:
-  `46ab7b7ce64a59fc56c8e104e09dc4d57f9e9c12`
-- Latest merged PR at that baseline: PR #69, longer work packet governance
+- Last validated main baseline after PR #70:
+  `fe10a9960b4b5b1283f00b332b79e20122efe6be`
+- Latest merged PR at that baseline: PR #70, Phase 14-C decision support
+  contract manifest
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -27,10 +28,11 @@ Last updated: 2026-06-25
   non-echo matrix coverage and fillable/prohibited-field non-echo matrix
   coverage and report inert false-field matrix coverage and report inert
   true-field matrix coverage, the larger bounded-packet audit unit, explicit
-  human-judgment stop conditions, and delegated repo-merge guardrails for safe
-  inert repo-local loops are merged on `main`; this packet adds an inert
-  decision-support contract manifest with schema/report/status synchronization
-  tests
+  human-judgment stop conditions, delegated repo-merge guardrails for safe
+  inert repo-local loops, and the inert decision-support contract manifest
+  with schema/report/status synchronization tests are merged on `main`; this
+  packet embeds that manifest in the inert decision-support report and tests
+  blocked-report non-echo behavior
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -52,7 +54,8 @@ Last updated: 2026-06-25
   prohibited-field non-echo matrix coverage, plus report inert false-field
   matrix coverage, plus report inert true-field matrix coverage, plus
   long-run packet-unit and delegated repo-merge governance hardening, plus
-  decision-support contract manifest coverage
+  decision-support contract manifest coverage, plus report-embedded contract
+  manifest coverage
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -60,14 +63,14 @@ Last updated: 2026-06-25
 
 ## Validated State
 
-- Full suite: 555 tests OK
-- ResourceWarning-sensitive suite: 555 tests OK
+- Full suite: 557 tests OK
+- ResourceWarning-sensitive suite: 557 tests OK
 - Targeted Codex workflow docs suite: 12 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
-- Targeted Phase 14-C candidate decision-support validator suite: 50 tests OK
+- Targeted Phase 14-C candidate decision-support validator suite: 52 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -169,6 +172,9 @@ Last updated: 2026-06-25
 - PR #69 longer work packet governance: merged
 - PR #69 Claude Code audit: Pass
 - PR #69 post-merge validation: passed
+- PR #70 Phase 14-C decision support contract manifest: merged
+- PR #70 Claude Code audit: Pass
+- PR #70 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -259,6 +265,9 @@ true field paths, raw decision-record echo exclusions, and non-authorization
 assertions as structured inert audit metadata. It remains synchronized with
 the actual template and report behavior through tests and does not record a
 human decision or authorize live work.
+Report-embedded contract manifest coverage keeps that same static audit
+manifest present in default and blocked reports without echoing
+caller-controlled unsafe input tokens.
 Long-run governance now records that the completed bounded packet is the
 default PR/audit unit for safe inert repo-local work, that Codex/Fable should
 bundle adjacent safe substeps rather than stop after every micro-invariant,
@@ -352,6 +361,7 @@ production runtime state.
 - PR #67: Add Phase 14-C report false-field matrix test.
 - PR #68: Add Phase 14-C report true-field matrix test.
 - PR #69: Codify longer work packet governance.
+- PR #70: Add Phase 14-C decision support contract manifest.
 
 ## Known Gaps
 
@@ -428,6 +438,9 @@ production runtime state.
   prohibited-field, and non-authorization contracts as structured inert audit
   metadata and keeps that manifest synchronized with the actual report and
   template behavior.
+  Report-embedded contract manifest coverage keeps the same static audit
+  manifest inside the inert report and verifies blocked reports still do not
+  echo caller-controlled unsafe tokens.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -447,14 +460,16 @@ production runtime state.
   PR #69 memorializes the longer completed-packet audit unit, human-judgment
   stop conditions, and narrow delegated repo-merge guardrails requested after
   PR #68.
-  The current decision-support contract-manifest packet keeps those governance
+  PR #70 adds only inert decision-support contract manifest source/test/docs
+  coverage.
+  The current report-embedded contract-manifest packet keeps those governance
   rules in place and adds only inert repo-local source/test/docs coverage.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
   PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, PR #65, PR #66, PR #67,
-  PR #68, and PR #69 do not authorize OpenClaw, credentials, production DB,
-  scheduler/background loop, external runtime writes, protected path access,
-  Phase 14-C activation, or candidate execution.
+  PR #68, PR #69, and PR #70 do not authorize OpenClaw, credentials,
+  production DB, scheduler/background loop, external runtime writes,
+  protected path access, Phase 14-C activation, or candidate execution.
 
 ## Core Docs
 

@@ -74,6 +74,9 @@ decision-record schema, allowed `decision_needed` / `blocked` status set,
 prohibited field groups, report top-level shape, inert false fields, inert
 true field paths, raw decision-record echo exclusions, and non-authorization
 assertions as structured inert audit metadata.
+Report-embedded contract manifest tests verify that the inert report carries
+that same static manifest and that blocked reports still do not echo
+caller-controlled unsafe input tokens through the manifest field.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -145,6 +148,9 @@ safe blocked/tracking/inert report flags remain true.
 Contract manifest tests preserve the same boundary by checking that structured
 audit metadata stays synchronized with the template, report, status, and
 blocked-field contracts without recording a decision.
+Report-embedded contract manifest tests preserve the same boundary by keeping
+that manifest available in inert reports without exposing caller-controlled
+unsafe input tokens.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -274,6 +280,8 @@ Future Phase 14 should be structured as:
   report flags.
   Contract manifest tests cover structured schema/report/status
   synchronization for inert audit metadata.
+  Report-embedded contract manifest tests cover the static manifest inside
+  default and blocked reports without echoing caller-controlled unsafe input.
 
 ## Historical Boundary Reference
 

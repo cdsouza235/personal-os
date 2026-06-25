@@ -520,6 +520,43 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         )
         self.assertNotIn("matrix-secret-text-default-value", serialized_report)
 
+    def test_readiness_status_blocks_when_not_exact_literal(self) -> None:
+        record = {
+            **blank_phase14c_candidate_decision_support_record(),
+            "readiness.status": " not_ready ",
+        }
+
+        validation = validate_phase14c_candidate_decision_record(record)
+
+        self.assertEqual(validation.status, PilotPrepStatus.BLOCKED)
+        self.assertFalse(validation.record_accepted_as_unfilled_template)
+        self.assertFalse(validation.human_decision_recorded)
+        self.assertIn(
+            "Decision record changes readiness.status; expected 'not_ready'.",
+            validation.reasons,
+        )
+
+    def test_readiness_status_drift_value_is_not_echoed_in_blocked_report(self) -> None:
+        report = build_phase14c_candidate_decision_support_report(
+            {
+                **blank_phase14c_candidate_decision_support_record(),
+                "readiness.status": "matrix-secret-readiness-status-value",
+            }
+        )
+
+        serialized_report = json.dumps(report, sort_keys=True)
+        validation = report["decision_record_validation"]
+
+        self.assertEqual(report["status"], PilotPrepStatus.BLOCKED.value)
+        self.assertFalse(report["decision_record_validated_as_unfilled"])
+        self.assertFalse(validation["human_decision_recorded"])
+        self.assertIsNone(validation["normalized_record"])
+        self.assertIn(
+            "Decision record changes readiness.status; expected 'not_ready'.",
+            validation["reasons"],
+        )
+        self.assertNotIn("matrix-secret-readiness-status-value", serialized_report)
+
     def test_each_required_text_default_missing_fails_closed_as_decision_needed(self) -> None:
         for field, expected in REQUIRED_TEXT_DEFAULTS.items():
             with self.subTest(field=field):

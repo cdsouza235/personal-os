@@ -429,7 +429,7 @@ def _blocked_decision_record_reasons(record: Mapping[str, Any]) -> list[str]:
             )
 
     readiness_status = record.get("readiness.status")
-    if _present(readiness_status) and _normalize(readiness_status) != "not_ready":
+    if _present(readiness_status) and readiness_status != "not_ready":
         reasons.append("Decision record changes readiness.status; expected 'not_ready'.")
 
     return _dedupe(reasons)

@@ -190,6 +190,9 @@ blocked report JSON. Strict required-false-field tests must block non-boolean
 false-like values instead of accepting them as the unfilled false-default
 template. Strict required-text-default tests must block case/spacing variants
 instead of accepting them as the unfilled template.
+Strict readiness.status tests must block case/spacing variants instead of
+accepting them as `not_ready` and must keep caller-controlled readiness drift
+values out of blocked report JSON.
 
 ## High-Stakes Domains
 

@@ -45,7 +45,9 @@ credential/secret values out of blocked report JSON. Strict
 required-false-field tests block non-boolean false-like values instead of
 accepting them as the unfilled false-default template. Strict
 required-text-default tests block case/spacing variants instead of accepting
-them as the unfilled template.
+them as the unfilled template. Strict readiness.status tests block
+case/spacing variants instead of accepting them as `not_ready` and keep
+caller-controlled readiness drift values out of blocked report JSON.
 
 The Phase 13E-D planning/evidence doc is
 [PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md](PHASE_13E_D_SYNTHETIC_NO_SEND_DEMO.md).
@@ -84,7 +86,8 @@ record shapes. Nested prohibited-field tests preserve that boundary for
 nested live/API and credential/secret values. Strict required-false-field
 tests preserve the false-default boundary for boolean false values only.
 Strict required-text-default tests preserve the same boundary for exact
-literal text defaults only.
+literal text defaults only. Strict readiness.status tests preserve the same
+boundary for the exact `not_ready` readiness value only.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -192,7 +195,8 @@ Future Phase 14 should be structured as:
   non-echo coverage for caller-controlled nested live/API and
   credential/secret values. Strict required-false-field tests block
   non-boolean false-like values. Strict required-text-default tests block
-  case/spacing variants.
+  case/spacing variants. Strict readiness.status tests block non-exact
+  `not_ready` variants.
 
 ## Historical Boundary Reference
 

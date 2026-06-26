@@ -2,7 +2,7 @@
 
 Status: Updated working draft for review
 Owner: Chris
-Updated: 2026-06-25
+Updated: 2026-06-26
 Development model: ChatGPT + Codex/Fable + OpenClaw
 Product: Personal OS
 Runtime host: Mac Mini
@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #75:
-    `97710fdcdae1471a8ebd5d003aa0d808fae50fc5`
-  - latest merged PR: PR #75, Phase 14-C report-payload contract hardening
+  - last validated main baseline after PR #76:
+    `1b50bba9d2b4c365c16a1a6f8d8380b0a88291f1`
+  - latest merged PR: PR #76, Phase 14-C report-payload contract matrix tests
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -88,6 +88,11 @@ Key changes from v0.1:
   missing validation payload fields, validation payload type drift, missing
   payload surfaces, and preflight checklist type drift without echoing
   caller-controlled values.
+- Records [MVP_READINESS_GAP_REPORT.md](MVP_READINESS_GAP_REPORT.md) as an
+  inert source/test/docs report contract that summarizes completed repo-local
+  scaffolding, pending human decisions, and blocked live rails while preserving
+  `readiness.status=not_ready`, `inert_report_only=true`, and
+  `live_rails_activated=false`.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -313,11 +318,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #75:
+As of this post-merge validation update after PR #76:
 
-- Last validated main baseline after PR #75:
-  `97710fdcdae1471a8ebd5d003aa0d808fae50fc5`
-- Latest merged PR: PR #75, Phase 14-C report-payload contract hardening
+- Last validated main baseline after PR #76:
+  `1b50bba9d2b4c365c16a1a6f8d8380b0a88291f1`
+- Latest merged PR: PR #76, Phase 14-C report-payload contract matrix tests
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -348,6 +353,7 @@ As of this post-merge validation update after PR #75:
 - PR #73 Claude Code audit: Pass
 - PR #74 Claude Code audit: Pass
 - PR #75 Claude Code audit: Pass
+- PR #76 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -359,8 +365,8 @@ As of this post-merge validation update after PR #75:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 581 tests OK
-- ResourceWarning-sensitive suite: 581 tests OK
+- Full test suite: 596 tests OK
+- ResourceWarning-sensitive suite: 596 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -1417,14 +1423,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #75:
+Last validated main baseline after PR #76:
 
-`97710fdcdae1471a8ebd5d003aa0d808fae50fc5`
+`1b50bba9d2b4c365c16a1a6f8d8380b0a88291f1`
 
 Current validated state:
 
-- Full suite: 581 tests OK
-- ResourceWarning-sensitive suite: 581 tests OK
+- Full suite: 596 tests OK
+- ResourceWarning-sensitive suite: 596 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1451,6 +1457,8 @@ Current validated state:
   non-authorizing
 - Phase 14-C candidate decision-support validator/reporting is inert,
   source/test-only, and non-authorizing
+- MVP readiness gap reporting is inert, argument-free, source/test/docs-only,
+  non-authorizing, and keeps live MVP readiness blocked
 - PR #45 Claude Code audit passed with no required fixes
 - PR #46 anti-micro-loop workflow and checkpoint refresh is merged
 - PR #47 Phase 14-C candidate decision support bundle is merged
@@ -1488,8 +1496,9 @@ Current validated state:
 - PR #73 Phase 14-C report-contract validator matrix is merged
 - PR #74 Phase 14-C report-contract posture matrix is merged
 - PR #75 Phase 14-C report-payload contract hardening is merged
-- The current report-payload contract matrix-test packet adds only inert
-  test/docs/status coverage and keeps Phase 14-C blocked.
+- PR #76 Phase 14-C report-payload contract matrix tests are merged
+- The current MVP readiness gap report packet adds only inert source/test/docs
+  report-contract coverage and keeps Phase 14-C blocked.
 
 Next human decision:
 

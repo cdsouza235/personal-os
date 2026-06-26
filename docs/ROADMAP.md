@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 [../STATUS.md](../STATUS.md) is the canonical current phase snapshot. This
 roadmap records phase history and near-term sequencing; it should not be the
@@ -93,6 +93,13 @@ caller-controlled values.
 Report-payload contract matrix tests cover missing validation payload fields,
 validation payload type drift, missing payload surfaces, and preflight
 checklist type drift without echoing caller-controlled values.
+The MVP readiness gap report summarizes completed inert repo-local
+capabilities, pending human decisions, and blocked live rails as a
+deterministic report-only contract. Its validator keeps
+`readiness.status=not_ready`, `inert_report_only=true`, and
+`live_rails_activated=false`, composes the Phase 14-C decision-support
+contract, requires exact nested payload shapes, and fails closed on drift
+without echoing caller-controlled values.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -118,6 +125,8 @@ The Phase 14-C candidate decision-gate artifact is
 [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md).
 The Phase 14-C candidate decision-support artifact is
 [PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
+The MVP readiness gap report artifact is
+[MVP_READINESS_GAP_REPORT.md](MVP_READINESS_GAP_REPORT.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 

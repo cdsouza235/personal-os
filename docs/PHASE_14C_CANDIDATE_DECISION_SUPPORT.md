@@ -291,6 +291,10 @@ unsafe caller-controlled report keys and values out of validator output.
 Report-contract posture matrix coverage verifies report metadata drift,
 readiness payload drift, every safety posture field drift, and extra safety
 posture keys while keeping caller-controlled values out of validator output.
+Report-payload contract hardening verifies decision option drift, candidate
+tracking payload drift, decision-record template drift, validation-payload
+field/reason/normalized-record drift, and preflight-checklist drift while
+keeping caller-controlled values out of validator output.
 
 ## Stop Conditions
 

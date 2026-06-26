@@ -6,9 +6,9 @@ Last updated: 2026-06-26
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #79:
-  `0b011e2878c103408be9bbed31f5ffc70d5c5f34`
-- Latest merged PR at that baseline: PR #79, weekend test readiness runbook
+- Last validated main baseline after PR #80:
+  `8745152bdaa31ccb41c881e760773101d5058e7b`
+- Latest merged PR at that baseline: PR #80, dry-run evidence bundle
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -37,8 +37,9 @@ Last updated: 2026-06-26
   the inert MVP readiness gap report and contract validator are merged on
   `main`; the inert non-human closure plan and contract validator are merged
   on `main`; the inert weekend test readiness runbook and contract validator
-  are merged on `main`; this packet adds an inert dry-run evidence bundle and
-  completion-report validator
+  are merged on `main`; the inert dry-run evidence bundle and completion-report
+  validator are merged on `main`; this packet adds an inert final non-human
+  handoff report and exact human-gate checklist
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -67,7 +68,8 @@ Last updated: 2026-06-26
   report-payload contract matrix tests, plus an inert MVP readiness gap report
   and validator, plus an inert non-human closure plan and validator, plus an
   inert weekend test readiness runbook and validator, plus an inert dry-run
-  evidence bundle and no-send completion-report validator
+  evidence bundle and no-send completion-report validator, plus an inert final
+  non-human handoff report and validator
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -75,8 +77,8 @@ Last updated: 2026-06-26
 
 ## Validated State
 
-- Full suite: 649 tests OK
-- ResourceWarning-sensitive suite: 649 tests OK
+- Full suite: 666 tests OK
+- ResourceWarning-sensitive suite: 666 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -91,6 +93,8 @@ Last updated: 2026-06-26
 - Targeted weekend test readiness docs suite: 5 tests OK
 - Targeted dry-run evidence bundle suite: 14 tests OK
 - Targeted dry-run evidence docs suite: 5 tests OK
+- Targeted final non-human handoff suite: 12 tests OK
+- Targeted final non-human handoff docs suite: 5 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -222,6 +226,9 @@ Last updated: 2026-06-26
 - PR #79 Weekend test readiness runbook: merged
 - PR #79 Claude Code audit: Pass
 - PR #79 post-merge validation: passed
+- PR #80 Dry-run evidence bundle: merged
+- PR #80 Claude Code audit: Pass
+- PR #80 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -397,6 +404,23 @@ caller-controlled values in validator output. Its completion-report validator
 checks temp-only Phase 13E-D no-send demo reports without reading artifact
 files and keeps live, credential, production DB, scheduler/background,
 OpenClaw, protected-path, and external-write assertions false.
+The final non-human handoff is an inert source/test/docs report contract in
+[docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md) and
+`src/personalos/final_nonhuman_handoff.py`. It records the five packet
+closure statuses, exact pending human gate checklist, blocked live rails, and
+next-human-work plan while keeping
+`status=nonhuman_handoff_recorded_human_gates_remain`,
+`safe_nonhuman_packet_artifacts_complete=true`,
+`final_packet_requires_claude_code_audit=true`, `live_mvp_ready=false`,
+`human_gates_remaining=true`, `readiness.status=not_ready`,
+`inert_report_only=true`, and `live_rails_activated=false`. Its validator
+checks exact top-level and nested readiness, dry-run evidence, packet status,
+human gate, blocked rail, next-human-work, non-authorization, and safety
+posture surfaces without echoing caller-controlled values in validator output.
+The handoff does not approve Phase 14-C, approve a candidate, authorize a
+candidate, activate or run a candidate, start live-service testing, handle
+credentials, activate production DB, activate scheduler/background behavior,
+invoke OpenClaw, touch protected paths, or make a go/no-go launch decision.
 Long-run governance now records that the completed bounded packet is the
 default PR/audit unit for safe inert repo-local work, that Codex/Fable should
 bundle adjacent safe substeps rather than stop after every micro-invariant,
@@ -500,6 +524,7 @@ production runtime state.
 - PR #77: Add MVP readiness gap report.
 - PR #78: Add non-human closure plan.
 - PR #79: Add weekend test readiness runbook.
+- PR #80: Add dry-run evidence bundle.
 
 ## Known Gaps
 
@@ -611,6 +636,10 @@ production runtime state.
   templates, fake/local fixture surfaces, and a no-send demo completion-report
   validator while keeping dry-run execution not started by default, repo
   evidence artifacts unwritten by default, and live rails disabled.
+  The final non-human handoff records five packet closure statuses, the exact
+  pending human gate checklist, blocked live rails, and next-human-work plan
+  while keeping safe non-human packet artifacts review-only, Claude Code audit
+  required for this packet, MVP readiness false, and human gates unresolved.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -648,15 +677,16 @@ production runtime state.
   coverage.
   PR #79 adds only inert weekend test readiness source/test/docs/status
   coverage.
-  The current dry-run evidence packet keeps those governance rules in place
-  and adds only inert repo-local source/test/docs/status coverage.
+  PR #80 adds only inert dry-run evidence source/test/docs/status coverage.
+  The current final non-human handoff packet keeps those governance rules in
+  place and adds only inert repo-local source/test/docs/status coverage.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
   PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, PR #65, PR #66, PR #67,
   PR #68, PR #69, PR #70, PR #71, PR #72, PR #73, PR #74, PR #75, PR #76,
-  PR #77, PR #78, and PR #79 do not authorize OpenClaw, credentials, production DB,
-  scheduler/background loop, external runtime writes, protected path access,
-  Phase 14-C activation, or candidate execution.
+  PR #77, PR #78, PR #79, and PR #80 do not authorize OpenClaw, credentials,
+  production DB, scheduler/background loop, external runtime writes, protected
+  path access, Phase 14-C activation, or candidate execution.
 
 ## Core Docs
 
@@ -677,4 +707,5 @@ production runtime state.
 - [docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md)
 - [docs/WEEKEND_TEST_READINESS_RUNBOOK.md](docs/WEEKEND_TEST_READINESS_RUNBOOK.md)
 - [docs/DRY_RUN_EVIDENCE_BUNDLE.md](docs/DRY_RUN_EVIDENCE_BUNDLE.md)
+- [docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md)
 - [docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md)

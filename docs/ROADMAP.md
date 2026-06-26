@@ -113,6 +113,9 @@ The dry-run evidence bundle records temp-only no-send smoke command
 templates, fake/local fixture surfaces, and a completion-report validator for
 the existing Phase 13E-D no-send demo while keeping repo evidence artifacts
 unwritten by default and live rails disabled.
+The final non-human handoff records the closure packet statuses, exact
+pending human gate checklist, and next-human-work plan while keeping the MVP
+not live-ready, live rails disabled, and every live/product gate unresolved.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -146,6 +149,8 @@ The weekend test readiness runbook artifact is
 [WEEKEND_TEST_READINESS_RUNBOOK.md](WEEKEND_TEST_READINESS_RUNBOOK.md).
 The dry-run evidence bundle artifact is
 [DRY_RUN_EVIDENCE_BUNDLE.md](DRY_RUN_EVIDENCE_BUNDLE.md).
+The final non-human handoff artifact is
+[FINAL_NONHUMAN_HANDOFF.md](FINAL_NONHUMAN_HANDOFF.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 
@@ -208,6 +213,10 @@ the remaining inert report payload surfaces without exposing caller-controlled
 values.
 Report-payload contract matrix tests preserve the same boundary by checking
 the stricter payload branches without exposing caller-controlled values.
+MVP readiness, non-human closure, weekend test readiness, dry-run evidence,
+and final non-human handoff reports preserve the same boundary by keeping
+repo-local non-human artifacts inert, non-authorizing, non-live, and blocked
+by pending human gates.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B

@@ -27,8 +27,10 @@ be collapsed without explicit Chris approval.
 - SQLite: structured runtime state.
 - Dashboard/CLI: local no-send and inert status/report surfaces.
 - PersonalOS/Obsidian/Markdown: durable notes later, behind explicit gates.
-- Todoist, Google Calendar, Gmail: gated execution rails later.
-- OpenClaw: approved runtime/operator layer later.
+- Todoist, Google Calendar, Gmail: gated execution rails, with a bounded
+  Phase 14-C supervised smoke-test path for one marked test object per rail.
+- OpenClaw: approved runtime/operator layer, with a bounded Phase 14-C
+  local/test/sandbox smoke invocation path.
 
 ## Repo-Local Surfaces
 
@@ -68,7 +70,7 @@ the relevant readiness and activation policy gates.
 
 ## Gated Rails
 
-The following rails are future-only until explicit design and approval:
+The following rails require explicit design and approval:
 
 - Gmail send/draft/read behavior.
 - Todoist live writes.
@@ -79,6 +81,15 @@ The following rails are future-only until explicit design and approval:
 - Scheduler, LaunchAgent, crontab, daemon, or background-loop activation.
 - OpenClaw runtime workflows.
 
+Phase 14-C supervised smoke-test prep narrows the immediate next integration
+step to Todoist, Google Calendar, Gmail, and OpenClaw under
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+That path uses guardrail validation and explicit injected clients. It allows
+at most one marked Todoist task, one marked Calendar event, one marked Gmail
+test email to a controlled/self recipient, and one OpenClaw local/test/sandbox
+invocation after Chris initiates the live-test step. Repo prep does not run
+those live actions.
+
 Activation policies live in:
 
 - [PRE_LIVE_READINESS.md](PRE_LIVE_READINESS.md)
@@ -87,6 +98,7 @@ Activation policies live in:
 - [FIRST_LIVE_PILOT_PROTOCOL.md](FIRST_LIVE_PILOT_PROTOCOL.md)
 - [PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md](PHASE_14_AB_FIRST_LIVE_PILOT_PREP.md)
 - [PHASE_14_CANDIDATE_SELECTION_PREP.md](PHASE_14_CANDIDATE_SELECTION_PREP.md)
+- [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
 - [OPERATOR_HANDOFF_CONTRACT.md](OPERATOR_HANDOFF_CONTRACT.md)
 - [PRODUCTION_DB_POLICY.md](PRODUCTION_DB_POLICY.md)
 
@@ -116,3 +128,11 @@ Pre-Phase-14-C candidate-selection preparation defines an inert
 candidate-selection process, blank template, and fail-closed validator only. It
 does not select or approve a Todoist candidate, authorize Phase 14-C, or
 activate any live rail.
+
+Phase 14-C supervised smoke-test preparation defines the bounded multi-rail
+test runbook, guardrail validator, credential-name-only preflight, read-only
+CLI discovery surface, and injected-client execution path. It treats Todoist,
+Google Calendar, Gmail, and OpenClaw as acceptable low-blast-radius supervised
+smoke rails inside that runbook, but it does not run the live smoke test,
+activate scheduler/background behavior, activate production DB, implement
+dynamic cleaning, touch protected paths, or broaden OpenClaw runtime scope.

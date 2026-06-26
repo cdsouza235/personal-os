@@ -8,10 +8,13 @@ not add live permission keys, implement live adapters, activate a scheduler,
 activate production SQLite, call live APIs, load credentials, or authorize
 OpenClaw runtime operation.
 
-All live rails remain disabled until a later implementation phase adds the
-rail, tests it, documents it, and Chris explicitly approves activation.
-Phase 13F-B rail statuses are descriptive only; a disabled, blocked,
-not-configured, or requires-approval status is not an activation path.
+Live rails are not activated by repo prep alone. Todoist, Google Calendar,
+Gmail, and OpenClaw may be used as bounded low-blast-radius supervised smoke
+rails only under the Phase 14-C runbook in
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
+after Chris explicitly initiates that live-test step. Phase 13F-B rail
+statuses are descriptive only; a disabled, blocked, not-configured, or
+requires-approval status is not broad activation.
 
 ## Shared Activation Rules
 
@@ -40,6 +43,31 @@ Shared rules:
 
 Dev/test, preview, simulated-write, and internal apply permissions do not
 authorize live behavior.
+
+## Phase 14-C Supervised Multi-Rail Smoke Test
+
+The Phase 14-C supervised smoke test is a narrow exception to the earlier
+single-rail-first preference. It is allowed because the operations are
+low-blast-radius, clearly marked test actions, manually supervised, and capped
+at one operation per rail:
+
+- Todoist: create at most one clearly marked test task.
+- Google Calendar: create at most one clearly marked self test event.
+- Gmail: create or send at most one clearly marked test email to a
+  controlled/self recipient.
+- OpenClaw: perform at most one local/test/sandbox smoke invocation.
+
+This exception does not authorize broad live operation. It does not authorize
+Calendar recurrence, uncontrolled Calendar attendees, Gmail uncontrolled
+recipients, Gmail attachments, Gmail forwarding, Gmail replies to existing real
+threads, scheduler/background behavior, production DB activation, dynamic
+cleaning, bulk writes, protected path access, broad OpenClaw runtime handoff,
+`.agent/`, `CLAUDE.md`, Watch Tower adoption, or broad runtime/operator
+scaffolding.
+
+Credential preflight may report missing environment/config entry names only.
+It must not print, inspect, copy, commit, log, or summarize credential/token
+values.
 
 ## Rail Activation Matrix
 

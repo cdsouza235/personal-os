@@ -32,6 +32,9 @@ Markdown documentation. The current project snapshot lives in
 - [docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md):
   final inert non-human handoff report, exact human gates, and next human
   work checklist.
+- [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md):
+  guarded supervised smoke-test runbook for Todoist, Google Calendar, Gmail,
+  and OpenClaw.
 - [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md):
   long-run Codex/Fable work packet protocol.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and current/next phase.
@@ -54,9 +57,11 @@ Markdown documentation. The current project snapshot lives in
 
 ## Safety Boundary
 
-Personal OS is currently inert, no-send, and report-only. Live rails are
-disabled. Phase 14-A/B preparation and pre-Phase-14-C candidate-selection
-preparation are proposed-only and inert; no Phase 14 live pilot has started.
+Personal OS is currently not live and no smoke test has been run. Todoist,
+Google Calendar, Gmail, and OpenClaw are acceptable low-blast-radius rails for
+the bounded Phase 14-C supervised smoke-test plan in
+[docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md),
+but repo prep and runbook review do not perform those live actions.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,
@@ -86,6 +91,7 @@ activation policies:
 - [docs/WEEKEND_TEST_READINESS_RUNBOOK.md](docs/WEEKEND_TEST_READINESS_RUNBOOK.md)
 - [docs/DRY_RUN_EVIDENCE_BUNDLE.md](docs/DRY_RUN_EVIDENCE_BUNDLE.md)
 - [docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md)
+- [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md)
 - [docs/OPERATOR_HANDOFF_CONTRACT.md](docs/OPERATOR_HANDOFF_CONTRACT.md)
 - [docs/PRODUCTION_DB_POLICY.md](docs/PRODUCTION_DB_POLICY.md)
 

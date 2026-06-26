@@ -125,7 +125,7 @@ NONHUMAN_CLOSURE_PACKET_PLAN: tuple[dict[str, Any], ...] = (
     {
         "packet_id": "packet_4_dry_run_evidence_bundle",
         "label": "Dry-run evidence bundle",
-        "status": "current_repo_local_packet",
+        "status": "merged_on_main",
         "scope": "local no-send smoke commands, fake/local fixtures, report validators",
         "allowed_surface": "repo-local tests/fixtures/report-only helpers",
         "claude_code_audit_required": True,
@@ -135,7 +135,7 @@ NONHUMAN_CLOSURE_PACKET_PLAN: tuple[dict[str, Any], ...] = (
     {
         "packet_id": "packet_5_final_nonhuman_handoff",
         "label": "Final non-human handoff",
-        "status": "planned_repo_local_packet",
+        "status": "current_repo_local_packet",
         "scope": "final non-human closure report and exact human gate checklist",
         "allowed_surface": "repo-local docs/tests/report-only helpers",
         "claude_code_audit_required": True,

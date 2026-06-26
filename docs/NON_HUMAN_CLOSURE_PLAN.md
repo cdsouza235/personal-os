@@ -63,11 +63,12 @@ The current report records five packet slots:
 3. [Weekend test readiness runbook](WEEKEND_TEST_READINESS_RUNBOOK.md):
    merged on `main` after Claude Code audit, covering manual
    test plan, no-go criteria, rollback checklist, and evidence templates.
-4. [Dry-run evidence bundle](DRY_RUN_EVIDENCE_BUNDLE.md): current repo-local
-   packet covering local no-send smoke commands, fake/local fixtures, and
-   report validators.
-5. Final non-human handoff: planned repo-local packet covering final
-   non-human closure report and exact human gate checklist.
+4. [Dry-run evidence bundle](DRY_RUN_EVIDENCE_BUNDLE.md): merged on `main`
+   after Claude Code audit, covering local no-send smoke commands, fake/local
+   fixtures, and report validators.
+5. [Final non-human handoff](FINAL_NONHUMAN_HANDOFF.md): current repo-local
+   packet covering final non-human closure report and exact human gate
+   checklist.
 
 Every packet in this plan has:
 

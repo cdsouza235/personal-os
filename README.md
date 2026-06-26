@@ -29,6 +29,9 @@ Markdown documentation. The current project snapshot lives in
 - [docs/DRY_RUN_EVIDENCE_BUNDLE.md](docs/DRY_RUN_EVIDENCE_BUNDLE.md):
   inert dry-run evidence contract, no-send demo report validator, and
   fake/local fixture surface map.
+- [docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md):
+  final inert non-human handoff report, exact human gates, and next human
+  work checklist.
 - [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md):
   long-run Codex/Fable work packet protocol.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and current/next phase.
@@ -82,6 +85,7 @@ activation policies:
 - [docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md)
 - [docs/WEEKEND_TEST_READINESS_RUNBOOK.md](docs/WEEKEND_TEST_READINESS_RUNBOOK.md)
 - [docs/DRY_RUN_EVIDENCE_BUNDLE.md](docs/DRY_RUN_EVIDENCE_BUNDLE.md)
+- [docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md)
 - [docs/OPERATOR_HANDOFF_CONTRACT.md](docs/OPERATOR_HANDOFF_CONTRACT.md)
 - [docs/PRODUCTION_DB_POLICY.md](docs/PRODUCTION_DB_POLICY.md)
 

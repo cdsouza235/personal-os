@@ -157,6 +157,11 @@ class Phase14CCandidateDecisionSupportDocsTest(unittest.TestCase):
             "decision-record template drift",
             "validation-payload field/reason/normalized-record drift",
             "preflight-checklist drift",
+            "report-payload contract matrix coverage",
+            "missing validation payload fields",
+            "validation payload type drift",
+            "missing payload surfaces",
+            "preflight checklist type drift",
             "stop conditions",
             "missing, ambiguous, or unsafe evidence means defer / keep blocked",
         )

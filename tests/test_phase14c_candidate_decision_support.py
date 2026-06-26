@@ -661,6 +661,122 @@ class Phase14CCandidateDecisionSupportRecordTest(unittest.TestCase):
         )
         self.assertNotIn(unsafe_value, serialized_validation)
 
+    def test_report_contract_validator_blocks_each_missing_validation_payload_field(
+        self,
+    ) -> None:
+        for field in VALIDATION_PAYLOAD_FIELDS:
+            with self.subTest(field=field):
+                report = build_phase14c_candidate_decision_support_report()
+                del report["decision_record_validation"][field]
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(
+                    report
+                )
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(
+                    "Decision-support report decision_record_validation payload fields do not match the contract.",
+                    validation.reasons,
+                )
+
+    def test_report_contract_validator_blocks_validation_payload_type_drift_without_echo(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "status",
+                lambda payload, token: payload.update({"status": token}),
+                "Decision-support report decision_record_validation status is outside allowed decision-support statuses.",
+            ),
+            (
+                "record_accepted_as_unfilled_template",
+                lambda payload, token: payload.update(
+                    {"record_accepted_as_unfilled_template": token}
+                ),
+                "Decision-support report unfilled-template flag must remain boolean.",
+            ),
+            (
+                "human_decision_recorded",
+                lambda payload, token: payload.update({"human_decision_recorded": token}),
+                "Decision-support report human_decision_recorded validation flag must remain boolean.",
+            ),
+            (
+                "reasons",
+                lambda payload, token: payload.update({"reasons": token}),
+                "Decision-support report decision_record_validation reasons payload is missing.",
+            ),
+        )
+        for label, mutate, expected_reason in cases:
+            with self.subTest(label=label):
+                unsafe_value = f"matrix-secret-validation-type-{label}"
+                report = build_phase14c_candidate_decision_support_report()
+                mutate(report["decision_record_validation"], unsafe_value)
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(
+                    report
+                )
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_missing_payload_surfaces_without_echo(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "candidate_review_tracking",
+                "matrix-secret-candidate-tracking-payload",
+                "Decision-support report candidate_review_tracking payload does not match the inert tracking contract.",
+            ),
+            (
+                "decision_record_template",
+                "matrix-secret-decision-template-payload",
+                "Decision-support report decision_record_template does not match the false-default template.",
+            ),
+            (
+                "decision_record_validation",
+                "matrix-secret-validation-payload",
+                "Decision-support report decision_record_validation payload is missing.",
+            ),
+            (
+                "preflight_checklist",
+                "matrix-secret-preflight-payload",
+                "Decision-support report preflight_checklist payload is missing.",
+            ),
+        )
+        for field, unsafe_value, expected_reason in cases:
+            with self.subTest(field=field):
+                report = build_phase14c_candidate_decision_support_report()
+                report[field] = unsafe_value
+
+                validation = validate_phase14c_candidate_decision_support_report_contract(
+                    report
+                )
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_report_contract_validator_blocks_preflight_checklist_type_drift_without_echo(
+        self,
+    ) -> None:
+        unsafe_value = "matrix-secret-preflight-list-item"
+        report = build_phase14c_candidate_decision_support_report()
+        report["preflight_checklist"] = ["still-text", {"unsafe": unsafe_value}]
+
+        validation = validate_phase14c_candidate_decision_support_report_contract(report)
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "Decision-support report preflight_checklist payload is missing.",
+            validation.reasons,
+        )
+        self.assertNotIn(unsafe_value, serialized_validation)
+
     def test_contract_manifest_allowed_statuses_cover_validation_outputs(self) -> None:
         manifest = build_phase14c_candidate_decision_support_contract_manifest()
         allowed_statuses = set(manifest["allowed_validation_statuses"])

@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #78:
-    `81715ac620f5181176324bbb02457a1a53f72533`
-  - latest merged PR: PR #78, non-human closure plan
+  - last validated main baseline after PR #79:
+    `0b011e2878c103408be9bbed31f5ffc70d5c5f34`
+  - latest merged PR: PR #79, weekend test readiness runbook
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -102,6 +102,10 @@ Key changes from v0.1:
   pass. It records manual test categories, evidence templates, no-go criteria,
   and rollback tabletop templates while keeping testing not started, live
   testing not authorized, live rails disabled, and human gates unresolved.
+- Records [DRY_RUN_EVIDENCE_BUNDLE.md](DRY_RUN_EVIDENCE_BUNDLE.md) as an inert
+  source/test/docs report contract for temp-only no-send smoke command
+  templates, fake/local fixture surfaces, and a completion-report validator
+  for the existing Phase 13E-D no-send demo.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -327,11 +331,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #78:
+As of this post-merge validation update after PR #79:
 
-- Last validated main baseline after PR #78:
-  `81715ac620f5181176324bbb02457a1a53f72533`
-- Latest merged PR: PR #78, non-human closure plan
+- Last validated main baseline after PR #79:
+  `0b011e2878c103408be9bbed31f5ffc70d5c5f34`
+- Latest merged PR: PR #79, weekend test readiness runbook
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -365,6 +369,7 @@ As of this post-merge validation update after PR #78:
 - PR #76 Claude Code audit: Pass
 - PR #77 Claude Code audit: Pass with notes; no required fixes
 - PR #78 Claude Code audit: Pass
+- PR #79 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -376,8 +381,8 @@ As of this post-merge validation update after PR #78:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 630 tests OK
-- ResourceWarning-sensitive suite: 630 tests OK
+- Full test suite: 649 tests OK
+- ResourceWarning-sensitive suite: 649 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -1434,14 +1439,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #78:
+Last validated main baseline after PR #79:
 
-`81715ac620f5181176324bbb02457a1a53f72533`
+`0b011e2878c103408be9bbed31f5ffc70d5c5f34`
 
 Current validated state:
 
-- Full suite: 630 tests OK
-- ResourceWarning-sensitive suite: 630 tests OK
+- Full suite: 649 tests OK
+- ResourceWarning-sensitive suite: 649 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1474,6 +1479,8 @@ Current validated state:
   non-authorizing, and keeps human gates explicit
 - Weekend test readiness planning is inert, argument-free, source/test/docs-only,
   non-authorizing, and keeps weekend testing not started
+- Dry-run evidence planning is inert, argument-free, source/test/docs-only,
+  non-authorizing, and keeps dry-run execution not started by default
 - PR #45 Claude Code audit passed with no required fixes
 - PR #46 anti-micro-loop workflow and checkpoint refresh is merged
 - PR #47 Phase 14-C candidate decision support bundle is merged
@@ -1514,8 +1521,10 @@ Current validated state:
 - PR #76 Phase 14-C report-payload contract matrix tests are merged
 - PR #77 MVP readiness gap report is merged
 - PR #78 non-human closure plan is merged
-- The current weekend test readiness packet adds only inert source/test/docs
-  report-contract and runbook coverage and keeps Phase 14-C blocked.
+- PR #79 weekend test readiness runbook is merged
+- The current dry-run evidence packet adds only inert source/test/docs
+  report-contract and no-send completion-report validator coverage and keeps
+  Phase 14-C blocked.
 
 Next human decision:
 

@@ -109,6 +109,10 @@ The weekend test readiness runbook records manual test categories, evidence
 templates, no-go criteria, and rollback tabletop templates for a future
 weekend testing pass while keeping testing not started, live testing not
 authorized, live rails disabled, and human gates unresolved.
+The dry-run evidence bundle records temp-only no-send smoke command
+templates, fake/local fixture surfaces, and a completion-report validator for
+the existing Phase 13E-D no-send demo while keeping repo evidence artifacts
+unwritten by default and live rails disabled.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -140,6 +144,8 @@ The non-human closure plan artifact is
 [NON_HUMAN_CLOSURE_PLAN.md](NON_HUMAN_CLOSURE_PLAN.md).
 The weekend test readiness runbook artifact is
 [WEEKEND_TEST_READINESS_RUNBOOK.md](WEEKEND_TEST_READINESS_RUNBOOK.md).
+The dry-run evidence bundle artifact is
+[DRY_RUN_EVIDENCE_BUNDLE.md](DRY_RUN_EVIDENCE_BUNDLE.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 

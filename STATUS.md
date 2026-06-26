@@ -6,10 +6,9 @@ Last updated: 2026-06-26
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #76:
-  `1b50bba9d2b4c365c16a1a6f8d8380b0a88291f1`
-- Latest merged PR at that baseline: PR #76, Phase 14-C report-payload
-  contract matrix tests
+- Last validated main baseline after PR #77:
+  `778547255c095621b6cebc49c0b32d481a48b669`
+- Latest merged PR at that baseline: PR #77, MVP readiness gap report
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -35,7 +34,9 @@ Last updated: 2026-06-26
   decision-support report, table-driven report-contract validator matrix
   coverage, report-contract posture matrix coverage, report-payload contract
   hardening, and report-payload contract matrix tests are merged on `main`;
-  this packet adds an inert MVP readiness gap report and contract validator
+  the inert MVP readiness gap report and contract validator are merged on
+  `main`; this packet adds an inert non-human closure plan and contract
+  validator
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -62,7 +63,7 @@ Last updated: 2026-06-26
   report-contract validator matrix coverage, plus report-contract posture
   matrix coverage, plus report-payload contract hardening, plus
   report-payload contract matrix tests, plus an inert MVP readiness gap report
-  and validator
+  and validator, plus an inert non-human closure plan and validator
 - Current / next phase: candidate-review tracking outcome recorded and
   decision-gate criteria documented; Phase 14-C live pilot remains blocked
   pending separate candidate approval and live authorization
@@ -70,9 +71,9 @@ Last updated: 2026-06-26
 
 ## Validated State
 
-- Full suite: 596 tests OK
-- ResourceWarning-sensitive suite: 596 tests OK
-- Targeted Codex workflow docs suite: 12 tests OK
+- Full suite: 613 tests OK
+- ResourceWarning-sensitive suite: 613 tests OK
+- Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
@@ -80,6 +81,8 @@ Last updated: 2026-06-26
 - Targeted Phase 14-C candidate decision-support validator suite: 76 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK
+- Targeted non-human closure plan suite: 11 tests OK
+- Targeted non-human closure docs suite: 5 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -202,6 +205,9 @@ Last updated: 2026-06-26
 - PR #76 Phase 14-C report-payload contract matrix tests: merged
 - PR #76 Claude Code audit: Pass
 - PR #76 post-merge validation: passed
+- PR #77 MVP readiness gap report: merged
+- PR #77 Claude Code audit: Pass with notes; no required fixes
+- PR #77 post-merge validation: passed
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -332,6 +338,20 @@ live-service access, handle credentials, activate production DB, activate
 scheduler/background behavior, invoke OpenClaw, touch protected paths,
 implement dynamic cleaning, adopt Watch Tower, add `.agent/`, add
 `CLAUDE.md`, or add runtime/operator scaffolding.
+The non-human closure plan is an inert source/test/docs report contract in
+[docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md) and
+`src/personalos/nonhuman_closure.py`. It records a three-to-five-packet
+Codex/Fable + Claude Code loop for closing remaining repo-local non-human
+work while keeping `status=blocked_by_human_gates`,
+`nonhuman_closure_complete=false`, `live_mvp_ready=false`,
+`human_gates_remaining=true`, `readiness.status=not_ready`,
+`inert_report_only=true`, and `live_rails_activated=false`. Each packet slot
+keeps `claude_code_audit_required=true`, `contains_human_decision=false`, and
+`contains_live_access=false`. The closure plan keeps candidate approval,
+Phase 14-C authorization, live-service access, credential/auth handling,
+production DB activation, scheduler/background activation, OpenClaw handoff
+or invocation, actual live-service testing, and go/no-go launch approval as
+separate human gates.
 Long-run governance now records that the completed bounded packet is the
 default PR/audit unit for safe inert repo-local work, that Codex/Fable should
 bundle adjacent safe substeps rather than stop after every micro-invariant,
@@ -432,6 +452,7 @@ production runtime state.
 - PR #74: Add Phase 14-C report-contract posture matrix.
 - PR #75: Harden Phase 14-C report payload contract.
 - PR #76: Add Phase 14-C report payload contract matrix tests.
+- PR #77: Add MVP readiness gap report.
 
 ## Known Gaps
 
@@ -532,6 +553,9 @@ production runtime state.
   capabilities, pending human decisions, and blocked live rails in a
   deterministic report-only contract. Its validator keeps the report
   `not_ready`, exact-shaped, non-authorizing, and non-echoing.
+  The non-human closure plan records a three-to-five-packet repo-local
+  Codex/Fable + Claude Code loop for closing non-human work and keeps every
+  planned packet audited, non-human, and non-live.
   It does not select approve, reject, or defer and does not authorize Phase
   14-C, candidate execution, live service access, credentials, production DB,
   scheduler/background behavior, OpenClaw, protected paths, dynamic cleaning,
@@ -564,13 +588,14 @@ production runtime state.
   hardening.
   PR #76 adds only inert report-payload contract matrix test/docs/status
   coverage.
-  The current MVP readiness gap report packet keeps those governance rules in
+  PR #77 adds only inert MVP readiness source/test/docs/status coverage.
+  The current non-human closure plan packet keeps those governance rules in
   place and adds only inert repo-local source/test/docs/status coverage.
 - PR #41, PR #42, PR #43, PR #44, PR #45, PR #46, PR #47, PR #48, PR #49,
   PR #50, PR #51, PR #52, PR #53, PR #54, PR #55, PR #56, PR #57, PR #58,
   PR #59, PR #60, PR #61, PR #62, PR #63, PR #64, PR #65, PR #66, PR #67,
-  PR #68, PR #69, PR #70, PR #71, PR #72, PR #73, PR #74, PR #75, and
-  PR #76 do not authorize OpenClaw, credentials, production DB,
+  PR #68, PR #69, PR #70, PR #71, PR #72, PR #73, PR #74, PR #75, PR #76,
+  and PR #77 do not authorize OpenClaw, credentials, production DB,
   scheduler/background loop, external runtime writes, protected path access,
   Phase 14-C activation, or candidate execution.
 
@@ -590,4 +615,5 @@ production runtime state.
 - [docs/PHASE_14_CANDIDATE_SELECTION_PREP.md](docs/PHASE_14_CANDIDATE_SELECTION_PREP.md)
 - [docs/PHASE_14C_DECISION_GATE.md](docs/PHASE_14C_DECISION_GATE.md)
 - [docs/MVP_READINESS_GAP_REPORT.md](docs/MVP_READINESS_GAP_REPORT.md)
+- [docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md)
 - [docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md)

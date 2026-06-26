@@ -100,6 +100,11 @@ deterministic report-only contract. Its validator keeps
 `live_rails_activated=false`, composes the Phase 14-C decision-support
 contract, requires exact nested payload shapes, and fails closed on drift
 without echoing caller-controlled values.
+The non-human closure plan records a three-to-five-packet Codex/Fable +
+Claude Code loop for finishing remaining repo-local non-human work while
+preserving human gates for candidate approval, Phase 14-C authorization,
+live-service access, credentials, production DB, scheduler/background,
+OpenClaw, live-service testing, and go/no-go launch approval.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -127,6 +132,8 @@ The Phase 14-C candidate decision-support artifact is
 [PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
 The MVP readiness gap report artifact is
 [MVP_READINESS_GAP_REPORT.md](MVP_READINESS_GAP_REPORT.md).
+The non-human closure plan artifact is
+[NON_HUMAN_CLOSURE_PLAN.md](NON_HUMAN_CLOSURE_PLAN.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 

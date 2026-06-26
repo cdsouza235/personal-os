@@ -19,6 +19,8 @@ Markdown documentation. The current project snapshot lives in
   model.
 - [docs/SAFETY_POLICY.md](docs/SAFETY_POLICY.md): safety posture, protected
   systems, readiness gates, and prohibited work.
+- [docs/MVP_READINESS_GAP_REPORT.md](docs/MVP_READINESS_GAP_REPORT.md):
+  inert MVP readiness/gap report contract and blocked human-decision surface.
 - [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md):
   long-run Codex/Fable work packet protocol.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and current/next phase.
@@ -68,6 +70,7 @@ activation policies:
 - [docs/PHASE_14_CANDIDATE_SELECTION_PREP.md](docs/PHASE_14_CANDIDATE_SELECTION_PREP.md)
 - [docs/PHASE_14C_DECISION_GATE.md](docs/PHASE_14C_DECISION_GATE.md)
 - [docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md)
+- [docs/MVP_READINESS_GAP_REPORT.md](docs/MVP_READINESS_GAP_REPORT.md)
 - [docs/OPERATOR_HANDOFF_CONTRACT.md](docs/OPERATOR_HANDOFF_CONTRACT.md)
 - [docs/PRODUCTION_DB_POLICY.md](docs/PRODUCTION_DB_POLICY.md)
 

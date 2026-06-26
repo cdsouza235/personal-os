@@ -267,6 +267,22 @@ fields, validation payload type drift, missing payload surfaces, and preflight
 checklist type drift without echoing caller-controlled values or weakening the
 inert, not-ready posture.
 
+The [MVP readiness gap report](MVP_READINESS_GAP_REPORT.md) is an inert,
+repo-local audit surface. It may summarize completed repo-local scaffolding,
+pending human decisions, and blocked live rails, but it must keep
+`readiness.status=not_ready`, `inert_report_only=true`, and
+`live_rails_activated=false`. Its source contract must remain deterministic,
+pure in-memory, and report-only. Its validator must fail closed on top-level,
+readiness, Phase 14-C, non-authorization, list, and safety posture drift
+without echoing caller-controlled values in validator output.
+
+The MVP readiness gap report does not approve Phase 14-C, approve a
+candidate, authorize a candidate, activate or run a candidate, authorize
+live-service access, handle credentials, activate production DB, activate
+scheduler/background behavior, invoke OpenClaw, touch protected paths,
+implement dynamic cleaning, adopt Watch Tower, add `.agent/`, add
+`CLAUDE.md`, or add runtime/operator scaffolding.
+
 ## High-Stakes Domains
 
 Legal, tax, medical, health, investment, portfolio, crypto, relationship,

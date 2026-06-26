@@ -295,6 +295,10 @@ Report-payload contract hardening verifies decision option drift, candidate
 tracking payload drift, decision-record template drift, validation-payload
 field/reason/normalized-record drift, and preflight-checklist drift while
 keeping caller-controlled values out of validator output.
+Report-payload contract matrix coverage verifies missing validation payload
+fields, validation payload type drift, missing payload surfaces, and preflight
+checklist type drift while keeping caller-controlled values out of validator
+output.
 
 ## Stop Conditions
 

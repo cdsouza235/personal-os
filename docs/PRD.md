@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #74:
-    `5cc042fbc3f3a093466de60f2aef97ad89a07d9d`
-  - latest merged PR: PR #74, Phase 14-C report-contract posture matrix
+  - last validated main baseline after PR #75:
+    `97710fdcdae1471a8ebd5d003aa0d808fae50fc5`
+  - latest merged PR: PR #75, Phase 14-C report-payload contract hardening
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -84,6 +84,10 @@ Key changes from v0.1:
   validates report decision option, candidate tracking, decision-record
   template, validation payload, normalized record, and preflight checklist
   surfaces without echoing caller-controlled values.
+- Records report-payload contract matrix tests as inert test/docs work covering
+  missing validation payload fields, validation payload type drift, missing
+  payload surfaces, and preflight checklist type drift without echoing
+  caller-controlled values.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -309,11 +313,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #74:
+As of this post-merge validation update after PR #75:
 
-- Last validated main baseline after PR #74:
-  `5cc042fbc3f3a093466de60f2aef97ad89a07d9d`
-- Latest merged PR: PR #74, Phase 14-C report-contract posture matrix
+- Last validated main baseline after PR #75:
+  `97710fdcdae1471a8ebd5d003aa0d808fae50fc5`
+- Latest merged PR: PR #75, Phase 14-C report-payload contract hardening
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -343,6 +347,7 @@ As of this post-merge validation update after PR #74:
 - PR #72 Claude Code audit: Pass
 - PR #73 Claude Code audit: Pass
 - PR #74 Claude Code audit: Pass
+- PR #75 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -354,8 +359,8 @@ As of this post-merge validation update after PR #74:
   Phase 14-C live pilot remains blocked pending explicit candidate approval
   and live authorization
 - Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 577 tests OK
-- ResourceWarning-sensitive suite: 577 tests OK
+- Full test suite: 581 tests OK
+- ResourceWarning-sensitive suite: 581 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -544,7 +549,9 @@ Completed major phases:
   readiness, and safety posture drift, hardens report payload contract
   validation for decision option, candidate tracking, template, validation
   payload, normalized record, and preflight checklist drift, and does not
-  record a human decision.
+  record a human decision, plus adds report-payload contract matrix tests for
+  missing validation payload fields, validation payload type drift, missing
+  payload surfaces, and preflight checklist type drift.
   Report and validation payload shape tests keep raw decision-record echo
   fields out of the report contract.
 
@@ -1336,6 +1343,10 @@ Report-payload contract hardening checks decision option, candidate tracking
 payload, decision-record template, validation payload fields/reasons,
 normalized record, and preflight checklist drift without echoing
 caller-controlled values in validator output.
+Report-payload contract matrix coverage checks missing validation payload
+fields, validation payload type drift, missing payload surfaces, and preflight
+checklist type drift without echoing caller-controlled values in validator
+output.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1406,14 +1417,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #74:
+Last validated main baseline after PR #75:
 
-`5cc042fbc3f3a093466de60f2aef97ad89a07d9d`
+`97710fdcdae1471a8ebd5d003aa0d808fae50fc5`
 
 Current validated state:
 
-- Full suite: 577 tests OK
-- ResourceWarning-sensitive suite: 577 tests OK
+- Full suite: 581 tests OK
+- ResourceWarning-sensitive suite: 581 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1476,8 +1487,9 @@ Current validated state:
 - PR #72 Phase 14-C report contract validator is merged
 - PR #73 Phase 14-C report-contract validator matrix is merged
 - PR #74 Phase 14-C report-contract posture matrix is merged
-- The current report-payload contract hardening packet adds only inert
-  source/test/docs/status coverage and keeps Phase 14-C blocked.
+- PR #75 Phase 14-C report-payload contract hardening is merged
+- The current report-payload contract matrix-test packet adds only inert
+  test/docs/status coverage and keeps Phase 14-C blocked.
 
 Next human decision:
 

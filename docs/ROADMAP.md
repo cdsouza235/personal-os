@@ -90,6 +90,9 @@ Report-payload contract hardening checks decision option, candidate tracking
 payload, decision-record template, validation payload fields/reasons,
 normalized record, and preflight checklist drift without echoing
 caller-controlled values.
+Report-payload contract matrix tests cover missing validation payload fields,
+validation payload type drift, missing payload surfaces, and preflight
+checklist type drift without echoing caller-controlled values.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -175,6 +178,8 @@ caller-controlled values.
 Report-payload contract hardening preserves the same boundary by checking
 the remaining inert report payload surfaces without exposing caller-controlled
 values.
+Report-payload contract matrix tests preserve the same boundary by checking
+the stricter payload branches without exposing caller-controlled values.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B
@@ -317,6 +322,9 @@ Future Phase 14 should be structured as:
   tracking payload, decision-record template, validation payload, normalized
   record, and preflight checklist drift without echoing caller-controlled
   values.
+  Report-payload contract matrix tests cover missing validation payload
+  fields, validation payload type drift, missing payload surfaces, and
+  preflight checklist type drift.
 
 ## Historical Boundary Reference
 

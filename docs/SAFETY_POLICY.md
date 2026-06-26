@@ -262,6 +262,10 @@ tracking payload, decision-record template, validation payload fields,
 validation reasons, normalized record, and preflight checklist fail-closed
 without echoing caller-controlled values or weakening the inert, not-ready
 posture.
+Report-payload contract matrix tests must cover missing validation payload
+fields, validation payload type drift, missing payload surfaces, and preflight
+checklist type drift without echoing caller-controlled values or weakening the
+inert, not-ready posture.
 
 ## High-Stakes Domains
 

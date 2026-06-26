@@ -33,6 +33,16 @@ real human gate appears.
 Claude Code audit should happen after the bundled packet is ready unless a
 real gate requires earlier review.
 
+For the current non-human MVP closure loop, Codex/Fable may target three to
+five large repo-local, inert, deterministic packets, each followed by Claude
+Code read-only audit before delegated merge conditions are evaluated. The
+canonical plan is
+[docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md). That plan
+does not include human decisions, live-service access, credentials, production
+DB activation, scheduler/background activation, OpenClaw invocation, protected
+path access, dynamic cleaning implementation, Watch Tower adoption, `.agent/`,
+`CLAUDE.md`, or runtime/operator scaffolding.
+
 When the approved work envelope is clear and safety assertions remain clean,
 Codex/Fable should not stop after every small milestone. It should continue
 until the packet is complete, the PR or approved PR stack is ready, validation

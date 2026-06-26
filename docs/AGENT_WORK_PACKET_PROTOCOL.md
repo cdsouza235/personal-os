@@ -115,6 +115,15 @@ validation cleanup, folding checkpoint/status refreshes into the next
 substantive safe packet, and preparing, validating, committing, pushing, and
 opening a PR for an approved repo-local docs/test packet.
 
+For the current non-human MVP closure loop, Codex/Fable may target three to
+five large repo-local, inert, deterministic packets, each followed by Claude
+Code read-only audit before delegated merge conditions are evaluated. The
+canonical plan is [NON_HUMAN_CLOSURE_PLAN.md](NON_HUMAN_CLOSURE_PLAN.md).
+That plan does not include human decisions, live-service access, credential
+handling, production DB activation, scheduler/background activation, OpenClaw
+invocation, protected path access, dynamic cleaning implementation, Watch
+Tower adoption, `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
+
 ## Default Packet And Audit Unit
 
 After Chris approves a safe long-run envelope, the default unit of work is the

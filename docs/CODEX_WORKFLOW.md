@@ -1,6 +1,6 @@
 # Codex/Fable Workflow
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 ## Required First Reads
 
@@ -82,6 +82,15 @@ work, such as checkpoint refresh, docs discoverability updates, invariant test
 hardening, small consistency fixes, audit follow-up nits, and
 validation/reporting updates. Do not stop after every small milestone unless a
 real gate is reached.
+
+For the current non-human MVP closure loop, Codex/Fable may target three to
+five large repo-local, inert, deterministic packets, each followed by Claude
+Code read-only audit before delegated merge conditions are evaluated. The
+canonical plan is [NON_HUMAN_CLOSURE_PLAN.md](NON_HUMAN_CLOSURE_PLAN.md).
+That plan does not include human decisions, live-service access, credential
+handling, production DB activation, scheduler/background activation, OpenClaw
+invocation, protected path access, dynamic cleaning implementation, Watch
+Tower adoption, `.agent/`, `CLAUDE.md`, or runtime/operator scaffolding.
 
 In long-run mode, Codex/Fable should continue until:
 

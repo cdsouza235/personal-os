@@ -204,6 +204,36 @@ class CodexWorkflowDocsTest(unittest.TestCase):
                 with self.subTest(phrase=phrase):
                     self.assertIn(phrase, text)
 
+    def test_accelerated_nonhuman_closure_loop_is_memorialized(self) -> None:
+        agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
+        workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")
+        protocol_text = _normalized_doc_text(
+            REPO_ROOT / "docs" / "AGENT_WORK_PACKET_PROTOCOL.md"
+        )
+
+        required_phrases = (
+            "current non-human mvp closure loop",
+            "three to five large repo-local, inert, deterministic packets",
+            "each followed by claude code read-only audit",
+            "non_human_closure_plan.md",
+            "does not include human decisions",
+            "live-service access",
+            "credential handling",
+            "production db activation",
+            "scheduler/background activation",
+            "openclaw invocation",
+            "protected path access",
+            "dynamic cleaning implementation",
+            "watch tower adoption",
+            "`.agent/`",
+            "`claude.md`",
+            "runtime/operator scaffolding",
+        )
+        for text in (agents_text, workflow_text, protocol_text):
+            for phrase in required_phrases:
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, text)
+
     def test_real_gates_include_workflow_and_phase14c_boundaries(self) -> None:
         agents_text = _normalized_doc_text(REPO_ROOT / "AGENTS.md")
         workflow_text = _normalized_doc_text(REPO_ROOT / "docs" / "CODEX_WORKFLOW.md")

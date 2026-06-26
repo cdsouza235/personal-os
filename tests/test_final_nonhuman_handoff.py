@@ -44,7 +44,7 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
         )
         self.assertEqual(report["status"], FINAL_NONHUMAN_HANDOFF_STATUS)
         self.assertTrue(report["safe_nonhuman_packet_artifacts_complete"])
-        self.assertTrue(report["final_packet_requires_claude_code_audit"])
+        self.assertTrue(report["final_packet_claude_code_audit_passed"])
         self.assertFalse(report["live_mvp_ready"])
         self.assertTrue(report["human_gates_remaining"])
         self.assertEqual(tuple(report["readiness"]), READINESS_PAYLOAD_FIELDS)
@@ -71,7 +71,7 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
         self.assertFalse(dry_run["live_mvp_ready"])
         self.assertTrue(dry_run["human_gates_remaining"])
 
-    def test_packet_statuses_record_four_merged_packets_and_current_final_packet(self) -> None:
+    def test_packet_statuses_record_five_merged_packets(self) -> None:
         report = build_final_nonhuman_handoff_report()
 
         self.assertEqual(
@@ -79,33 +79,16 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
             [dict(packet) for packet in FINAL_NONHUMAN_CLOSURE_PACKET_STATUSES],
         )
         self.assertEqual(len(report["closure_packet_statuses"]), 5)
-        merged_packets = [
-            packet
-            for packet in report["closure_packet_statuses"]
-            if packet["repo_local_status"] == "merged_on_main"
-        ]
-        current_packets = [
-            packet
-            for packet in report["closure_packet_statuses"]
-            if packet["repo_local_status"] == "current_repo_local_packet"
-        ]
-        self.assertEqual(len(merged_packets), 4)
-        self.assertEqual(len(current_packets), 1)
-        self.assertEqual(
-            current_packets[0]["packet_id"], "packet_5_final_nonhuman_handoff"
-        )
-        self.assertEqual(
-            current_packets[0]["claude_code_audit_status"],
-            "required_before_merge",
-        )
-        self.assertEqual(
-            current_packets[0]["merge_status"],
-            "pending_delegated_merge_conditions",
-        )
         for packet in report["closure_packet_statuses"]:
             with self.subTest(packet=packet["packet_id"]):
                 self.assertEqual(tuple(packet), CLOSURE_PACKET_STATUS_FIELDS)
+                self.assertEqual(packet["repo_local_status"], "merged_on_main")
                 self.assertTrue(packet["claude_code_audit_required"])
+                self.assertIn(
+                    packet["claude_code_audit_status"],
+                    {"pass", "pass_with_notes_no_required_fixes"},
+                )
+                self.assertEqual(packet["merge_status"], "merged_on_main")
                 self.assertFalse(packet["contains_human_decision"])
                 self.assertFalse(packet["contains_live_access"])
 

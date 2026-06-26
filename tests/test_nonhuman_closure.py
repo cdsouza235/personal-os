@@ -58,7 +58,7 @@ class NonhumanClosurePlanReportTest(unittest.TestCase):
         self.assertTrue(mvp_readiness["candidate_review_tracking_only"])
         self.assertTrue(mvp_readiness["phase14_c_blocked"])
 
-    def test_packet_plan_records_five_safe_audited_packets(self) -> None:
+    def test_packet_plan_records_five_safe_merged_audited_packets(self) -> None:
         report = build_nonhuman_closure_plan_report()
 
         self.assertEqual(report["packet_plan"], [dict(packet) for packet in NONHUMAN_CLOSURE_PACKET_PLAN])
@@ -66,7 +66,7 @@ class NonhumanClosurePlanReportTest(unittest.TestCase):
         for packet in report["packet_plan"]:
             with self.subTest(packet=packet["packet_id"]):
                 self.assertEqual(tuple(packet), PACKET_PLAN_FIELDS)
-                self.assertIn(packet["status"], {"merged_on_main", "current_repo_local_packet", "planned_repo_local_packet"})
+                self.assertEqual(packet["status"], "merged_on_main")
                 self.assertIn("repo-local", packet["allowed_surface"])
                 self.assertTrue(packet["claude_code_audit_required"])
                 self.assertFalse(packet["contains_human_decision"])

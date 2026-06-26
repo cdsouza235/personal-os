@@ -35,7 +35,7 @@ class FinalNonhumanHandoffDocsTest(unittest.TestCase):
         required_phrases = (
             "`status=nonhuman_handoff_recorded_human_gates_remain`",
             "`safe_nonhuman_packet_artifacts_complete=true`",
-            "`final_packet_requires_claude_code_audit=true`",
+            "`final_packet_claude_code_audit_passed=true`",
             "`live_mvp_ready=false`",
             "`human_gates_remaining=true`",
             "`readiness.status=not_ready`",
@@ -67,7 +67,7 @@ class FinalNonhumanHandoffDocsTest(unittest.TestCase):
             "weekend test readiness runbook",
             "dry-run evidence bundle",
             "final non-human handoff",
-            "requiring claude code audit before merge",
+            "merged on `main` after claude code audit",
             "`claude_code_audit_required=true`",
             "`contains_human_decision=false`",
             "`contains_live_access=false`",

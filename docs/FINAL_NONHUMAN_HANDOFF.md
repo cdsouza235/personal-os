@@ -31,7 +31,7 @@ The builder accepts no caller input. The report defaults to:
 
 - `status=nonhuman_handoff_recorded_human_gates_remain`
 - `safe_nonhuman_packet_artifacts_complete=true`
-- `final_packet_requires_claude_code_audit=true`
+- `final_packet_claude_code_audit_passed=true`
 - `live_mvp_ready=false`
 - `human_gates_remaining=true`
 - `readiness.status=not_ready`
@@ -51,8 +51,7 @@ packets:
 2. Non-human closure plan: merged on `main` after Claude Code audit.
 3. Weekend test readiness runbook: merged on `main` after Claude Code audit.
 4. Dry-run evidence bundle: merged on `main` after Claude Code audit.
-5. Final non-human handoff: current repo-local packet requiring Claude Code
-   audit before delegated merge conditions are evaluated.
+5. Final non-human handoff: merged on `main` after Claude Code audit.
 
 Every packet keeps:
 
@@ -61,10 +60,9 @@ Every packet keeps:
 - `contains_live_access=false`
 
 `safe_nonhuman_packet_artifacts_complete=true` means the safe repo-local
-non-human artifacts have been assembled for review in this packet. It does
-not mean Claude Code audit has passed for this packet, does not mean this PR
-has merged, does not mean human gates are cleared, and does not mean the MVP
-is live-ready.
+non-human artifacts have been assembled and merged. It does not mean human
+gates are cleared, does not mean live testing has started, and does not mean
+the MVP is live-ready.
 
 ## Dry-Run Evidence Summary
 
@@ -139,8 +137,8 @@ Tower adoption, `.agent`, `CLAUDE.md`, and runtime/operator scaffolding.
 - the report builder accepts no caller input
 - the default report is inert and human-gated
 - dry-run evidence is composed without starting dry-run execution
-- the packet status list records four merged packets and one current final
-  packet requiring Claude Code audit before merge
+- the packet status list records five merged packets and retained Claude Code
+  audit requirements
 - human gates remain exact and pending
 - blocked live rails and next human work remain non-live
 - non-authorization flags remain false

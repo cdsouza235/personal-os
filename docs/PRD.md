@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #80:
-    `8745152bdaa31ccb41c881e760773101d5058e7b`
-  - latest merged PR: PR #80, dry-run evidence bundle
+  - last validated main baseline after PR #81:
+    `cba2f2adaf2c459eb72207e4449dc927efcb3955`
+  - latest merged PR: PR #81, final non-human handoff
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -336,11 +336,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #80:
+As of this post-merge validation update after PR #81:
 
-- Last validated main baseline after PR #80:
-  `8745152bdaa31ccb41c881e760773101d5058e7b`
-- Latest merged PR: PR #80, dry-run evidence bundle
+- Last validated main baseline after PR #81:
+  `cba2f2adaf2c459eb72207e4449dc927efcb3955`
+- Latest merged PR: PR #81, final non-human handoff
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -376,6 +376,7 @@ As of this post-merge validation update after PR #80:
 - PR #78 Claude Code audit: Pass
 - PR #79 Claude Code audit: Pass
 - PR #80 Claude Code audit: Pass
+- PR #81 Claude Code audit: Pass
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -1445,9 +1446,9 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #80:
+Last validated main baseline after PR #81:
 
-`8745152bdaa31ccb41c881e760773101d5058e7b`
+`cba2f2adaf2c459eb72207e4449dc927efcb3955`
 
 Current validated state:
 
@@ -1531,9 +1532,10 @@ Current validated state:
 - PR #78 non-human closure plan is merged
 - PR #79 weekend test readiness runbook is merged
 - PR #80 dry-run evidence bundle is merged
-- The current final non-human handoff packet adds only inert source/test/docs
-  handoff-report coverage and keeps Phase 14-C, live services, credentials,
-  testing, and go/no-go launch approval blocked by separate human gates.
+- PR #81 final non-human handoff is merged
+- The final non-human handoff adds only inert source/test/docs handoff-report
+  coverage and keeps Phase 14-C, live services, credentials, testing, and
+  go/no-go launch approval blocked by separate human gates.
 
 Next human decision:
 

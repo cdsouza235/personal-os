@@ -26,7 +26,7 @@ FINAL_NONHUMAN_HANDOFF_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "phase_label",
     "status",
     "safe_nonhuman_packet_artifacts_complete",
-    "final_packet_requires_claude_code_audit",
+    "final_packet_claude_code_audit_passed",
     "live_mvp_ready",
     "human_gates_remaining",
     "readiness",
@@ -159,10 +159,10 @@ FINAL_NONHUMAN_CLOSURE_PACKET_STATUSES: tuple[dict[str, Any], ...] = (
     {
         "packet_id": "packet_5_final_nonhuman_handoff",
         "label": "Final non-human handoff",
-        "repo_local_status": "current_repo_local_packet",
+        "repo_local_status": "merged_on_main",
         "claude_code_audit_required": True,
-        "claude_code_audit_status": "required_before_merge",
-        "merge_status": "pending_delegated_merge_conditions",
+        "claude_code_audit_status": "pass",
+        "merge_status": "merged_on_main",
         "contains_human_decision": False,
         "contains_live_access": False,
     },
@@ -289,7 +289,7 @@ def build_final_nonhuman_handoff_report() -> dict[str, Any]:
         "phase_label": FINAL_NONHUMAN_HANDOFF_PHASE_LABEL,
         "status": FINAL_NONHUMAN_HANDOFF_STATUS,
         "safe_nonhuman_packet_artifacts_complete": True,
-        "final_packet_requires_claude_code_audit": True,
+        "final_packet_claude_code_audit_passed": True,
         "live_mvp_ready": False,
         "human_gates_remaining": True,
         "readiness": {
@@ -385,7 +385,7 @@ def _blocked_final_handoff_reasons(report: Mapping[str, Any]) -> list[str]:
 
     expected_bools = {
         "safe_nonhuman_packet_artifacts_complete": True,
-        "final_packet_requires_claude_code_audit": True,
+        "final_packet_claude_code_audit_passed": True,
         "live_mvp_ready": False,
         "human_gates_remaining": True,
     }

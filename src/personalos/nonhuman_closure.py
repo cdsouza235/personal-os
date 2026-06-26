@@ -115,7 +115,7 @@ NONHUMAN_CLOSURE_PACKET_PLAN: tuple[dict[str, Any], ...] = (
     {
         "packet_id": "packet_3_weekend_test_readiness_runbook",
         "label": "Weekend test readiness runbook",
-        "status": "current_repo_local_packet",
+        "status": "merged_on_main",
         "scope": "manual test plan, no-go criteria, rollback checklist, evidence templates",
         "allowed_surface": "repo-local docs/tests/report-only helpers",
         "claude_code_audit_required": True,
@@ -125,7 +125,7 @@ NONHUMAN_CLOSURE_PACKET_PLAN: tuple[dict[str, Any], ...] = (
     {
         "packet_id": "packet_4_dry_run_evidence_bundle",
         "label": "Dry-run evidence bundle",
-        "status": "planned_repo_local_packet",
+        "status": "current_repo_local_packet",
         "scope": "local no-send smoke commands, fake/local fixtures, report validators",
         "allowed_surface": "repo-local tests/fixtures/report-only helpers",
         "claude_code_audit_required": True,

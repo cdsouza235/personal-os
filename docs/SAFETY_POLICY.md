@@ -301,6 +301,14 @@ candidate, handle credentials, activate production DB, activate
 scheduler/background behavior, invoke OpenClaw, touch protected paths, or
 grant go/no-go launch approval.
 
+The [dry-run evidence bundle](DRY_RUN_EVIDENCE_BUNDLE.md) may record
+temp-only no-send smoke command templates, fake/local fixture surfaces, and a
+completion-report validator for the existing Phase 13E-D no-send demo. It
+must keep dry-run execution not started by default, repo evidence artifacts
+unwritten by default, and all live, credential, production DB,
+scheduler/background, OpenClaw, protected-path, and external-write surfaces
+blocked unless a separate future human gate explicitly approves them.
+
 ## High-Stakes Domains
 
 Legal, tax, medical, health, investment, portfolio, crypto, relationship,

@@ -193,3 +193,8 @@ paths, live model/API calls, dynamic cleaning, Watch Tower adoption, `.agent`,
 `tests/test_weekend_test_readiness_docs.py` verifies that this document is
 linked from the primary project docs and preserves the non-live, non-secret,
 non-authorization, human-gate, no-go, and rollback-tabletop boundaries.
+
+The follow-on non-human packet is
+[DRY_RUN_EVIDENCE_BUNDLE.md](DRY_RUN_EVIDENCE_BUNDLE.md), which records the
+temp-only no-send evidence contract and completion-report validator without
+starting weekend testing or authorizing live access.

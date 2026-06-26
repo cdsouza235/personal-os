@@ -292,6 +292,15 @@ invocation, no protected path access, no dynamic cleaning implementation, no
 Watch Tower adoption, no `.agent/`, no `CLAUDE.md`, and no runtime/operator
 scaffolding. It does not weaken any human gate.
 
+The [weekend test readiness runbook](WEEKEND_TEST_READINESS_RUNBOOK.md) may
+prepare manual test categories, evidence templates, no-go criteria, and
+rollback tabletop templates for a future weekend testing pass. It must remain
+repo-local, inert, report-only, and non-live. It does not start testing,
+authorize live-service testing, approve Phase 14-C, approve or authorize a
+candidate, handle credentials, activate production DB, activate
+scheduler/background behavior, invoke OpenClaw, touch protected paths, or
+grant go/no-go launch approval.
+
 ## High-Stakes Domains
 
 Legal, tax, medical, health, investment, portfolio, crypto, relationship,

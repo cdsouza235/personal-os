@@ -105,6 +105,10 @@ Claude Code loop for finishing remaining repo-local non-human work while
 preserving human gates for candidate approval, Phase 14-C authorization,
 live-service access, credentials, production DB, scheduler/background,
 OpenClaw, live-service testing, and go/no-go launch approval.
+The weekend test readiness runbook records manual test categories, evidence
+templates, no-go criteria, and rollback tabletop templates for a future
+weekend testing pass while keeping testing not started, live testing not
+authorized, live rails disabled, and human gates unresolved.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -134,6 +138,8 @@ The MVP readiness gap report artifact is
 [MVP_READINESS_GAP_REPORT.md](MVP_READINESS_GAP_REPORT.md).
 The non-human closure plan artifact is
 [NON_HUMAN_CLOSURE_PLAN.md](NON_HUMAN_CLOSURE_PLAN.md).
+The weekend test readiness runbook artifact is
+[WEEKEND_TEST_READINESS_RUNBOOK.md](WEEKEND_TEST_READINESS_RUNBOOK.md).
 Phase 14-A/B preparation must remain proposed-only and must not authorize,
 activate, schedule, or run a live pilot.
 

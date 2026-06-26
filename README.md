@@ -23,6 +23,9 @@ Markdown documentation. The current project snapshot lives in
   inert MVP readiness/gap report contract and blocked human-decision surface.
 - [docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md):
   accelerated non-human repo-local closure packet plan and human-gate split.
+- [docs/WEEKEND_TEST_READINESS_RUNBOOK.md](docs/WEEKEND_TEST_READINESS_RUNBOOK.md):
+  inert weekend testing plan, no-go criteria, rollback templates, and evidence
+  labels.
 - [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md):
   long-run Codex/Fable work packet protocol.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and current/next phase.
@@ -74,6 +77,7 @@ activation policies:
 - [docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](docs/PHASE_14C_CANDIDATE_DECISION_SUPPORT.md)
 - [docs/MVP_READINESS_GAP_REPORT.md](docs/MVP_READINESS_GAP_REPORT.md)
 - [docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md)
+- [docs/WEEKEND_TEST_READINESS_RUNBOOK.md](docs/WEEKEND_TEST_READINESS_RUNBOOK.md)
 - [docs/OPERATOR_HANDOFF_CONTRACT.md](docs/OPERATOR_HANDOFF_CONTRACT.md)
 - [docs/PRODUCTION_DB_POLICY.md](docs/PRODUCTION_DB_POLICY.md)
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from collections.abc import Mapping, Sequence
@@ -24,6 +25,7 @@ from personalos.path_safety import (
     validate_output_file_path,
 )
 from personalos.phase14c_supervised_smoke import (
+    build_phase14c_credential_preflight_report,
     build_phase14c_supervised_smoke_runbook,
     build_phase14c_supervised_smoke_request_validation_report,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
@@ -191,6 +193,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "local_effect": "reads one explicit safe JSON file; no DB opened; no files written",
         "output": "stdout redacted validation JSON or human summary",
     },
+    {
+        "name": "Phase 14-C supervised smoke credential preflight",
+        "safe_local_action": "Check required config entry names without reading values",
+        "command": "personalos phase14c supervised-smoke-credential-preflight [--json]",
+        "mode": "repo-local credential-name preflight / no values / no live clients",
+        "local_effect": "reads environment key names only; no DB opened; no files written",
+        "output": "stdout missing-name report JSON or human summary",
+    },
 )
 
 
@@ -349,6 +359,22 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_validate_parser)
     phase14c_validate_parser.set_defaults(
         func=_command_phase14c_supervised_smoke_validate
+    )
+
+    phase14c_credential_preflight_parser = phase14c_subparsers.add_parser(
+        "supervised-smoke-credential-preflight",
+        help="Check Phase 14-C required config entry names without reading values.",
+        description=(
+            "Check whether the required Phase 14-C supervised smoke-test config entry "
+            "names exist in the environment. This command reads environment key names "
+            "only; it does not read credential values, load credentials, open a DB, "
+            "initialize live clients, write Todoist, write Calendar, create or send "
+            "Gmail, or invoke OpenClaw."
+        ),
+    )
+    _add_json_arg(phase14c_credential_preflight_parser)
+    phase14c_credential_preflight_parser.set_defaults(
+        func=_command_phase14c_supervised_smoke_credential_preflight
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -798,6 +824,58 @@ def _command_phase14c_supervised_smoke_validate(args: argparse.Namespace) -> int
     )
     _emit_report(report, json_output=args.json)
     return 0 if accepted else 1
+
+
+def _command_phase14c_supervised_smoke_credential_preflight(
+    args: argparse.Namespace,
+) -> int:
+    preflight = build_phase14c_credential_preflight_report(os.environ.keys())
+    missing_names = list(preflight["missing_config_entry_names"])
+    all_names_present = not missing_names
+    safe_preflight_report = {
+        "required_config_entry_count": len(preflight["checked_config_entry_names"]),
+        "missing_config_entry_names": missing_names,
+        "all_required_config_entry_names_present": all_names_present,
+        "reports_missing_names_only": True,
+        "available_config_entry_names_reported": False,
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "credential_values_copied": False,
+        "credential_values_committed": False,
+    }
+    report = _with_workflow_context(
+        {
+            "command": "phase14c supervised-smoke-credential-preflight",
+            "status": (
+                "all_required_config_names_present"
+                if all_names_present
+                else "missing_required_config_names"
+            ),
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "credential_preflight": safe_preflight_report,
+        },
+        workflow_name="Phase 14-C supervised smoke credential preflight",
+        workflow_mode="repo-local credential-name preflight / no values / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review missing required config entry names only.",
+            "Do not paste or inspect credential values.",
+            "Live execution still requires a separate explicit supervised smoke-test initiation.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
 
 
 def _command_briefing_preview(args: argparse.Namespace) -> int:

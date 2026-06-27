@@ -6,6 +6,7 @@ import re
 import sqlite3
 import tempfile
 import unittest
+from unittest import mock
 from collections.abc import Iterator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -26,6 +27,7 @@ from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
+    REQUIRED_CONFIG_ENTRY_NAMES,
     build_default_phase14c_supervised_smoke_request,
 )
 from personalos.runtime_bootstrap import (
@@ -404,6 +406,10 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C supervised smoke-test runbook", workflow_names)
         self.assertIn("Phase 14-C supervised smoke dry-run rehearsal", workflow_names)
         self.assertIn("Phase 14-C supervised smoke request validation", workflow_names)
+        self.assertIn(
+            "Phase 14-C supervised smoke credential preflight",
+            workflow_names,
+        )
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
 
@@ -613,6 +619,90 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(result.code, 1)
         self.assertIn("error:", result.stderr)
         self.assertIn("credential or authorization path", result.stderr)
+
+    def test_phase14c_supervised_smoke_credential_preflight_missing_names_only(
+        self,
+    ) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"PERSONALOS_PHASE14C_TODOIST_TOKEN": "todoist-secret-value"},
+            clear=True,
+        ):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-credential-preflight",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        preflight = payload["credential_preflight"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c supervised-smoke-credential-preflight",
+        )
+        self.assertEqual(payload["status"], "missing_required_config_names")
+        self.assertEqual(
+            payload["workflow_mode"],
+            "repo-local credential-name preflight / no values / no live clients",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertEqual(preflight["required_config_entry_count"], 4)
+        self.assertEqual(
+            preflight["missing_config_entry_names"],
+            [
+                "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL",
+                "PERSONALOS_PHASE14C_GMAIL_CREDENTIAL",
+                "PERSONALOS_PHASE14C_OPENCLAW_TEST_MODE",
+            ],
+        )
+        self.assertFalse(preflight["all_required_config_entry_names_present"])
+        self.assertTrue(preflight["reports_missing_names_only"])
+        self.assertFalse(preflight["available_config_entry_names_reported"])
+        self.assertFalse(preflight["credential_values_read"])
+        self.assertFalse(preflight["credential_values_logged"])
+        self.assertNotIn("todoist-secret-value", result.stdout)
+        self.assertNotIn("PERSONALOS_PHASE14C_TODOIST_TOKEN", result.stdout)
+
+    def test_phase14c_supervised_smoke_credential_preflight_complete_redacts_values(
+        self,
+    ) -> None:
+        secret_environment = {
+            name: f"secret-value-for-{index}"
+            for index, name in enumerate(REQUIRED_CONFIG_ENTRY_NAMES)
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-credential-preflight",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        preflight = payload["credential_preflight"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["status"], "all_required_config_names_present")
+        self.assertEqual(preflight["missing_config_entry_names"], [])
+        self.assertTrue(preflight["all_required_config_entry_names_present"])
+        self.assertFalse(preflight["available_config_entry_names_reported"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+        for present_name in REQUIRED_CONFIG_ENTRY_NAMES:
+            self.assertNotIn(present_name, result.stdout)
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

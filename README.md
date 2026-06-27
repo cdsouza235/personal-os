@@ -61,8 +61,8 @@ Personal OS is currently not live and no smoke test has been run. Todoist,
 Google Calendar, Gmail, and OpenClaw are acceptable low-blast-radius rails for
 the bounded Phase 14-C supervised smoke-test plan in
 [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md),
-but repo prep, runbook review, request validation, and the fake-client dry-run
-rehearsal do not perform those live actions.
+but repo prep, runbook review, request validation, credential-name preflight,
+and the fake-client dry-run rehearsal do not perform those live actions.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

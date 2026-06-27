@@ -166,6 +166,8 @@ credential/token values.
 Repo prep for the smoke test does not run the live smoke test. The live-test
 step remains separate and manually initiated. Repo-local request validation may
 read one explicit safe JSON request file and print a redacted stdout report.
+Repo-local credential-name preflight may check required environment/config entry
+names without reading values and may report missing required names only.
 Repo-local dry-run rehearsal may use deterministic fake clients and write
 redacted artifacts only under an explicit safe temp output directory.
 

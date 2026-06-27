@@ -7,7 +7,7 @@ import json
 import os
 import sqlite3
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from contextlib import closing
 from pathlib import Path
 from typing import Any
@@ -201,6 +201,17 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "local_effect": "reads environment key names only; no DB opened; no files written",
         "output": "stdout missing-name report JSON or human summary",
     },
+    {
+        "name": "Phase 14-C supervised smoke live readiness",
+        "safe_local_action": "Check one live smoke request and config names without executing",
+        "command": (
+            "personalos phase14c supervised-smoke-live-readiness "
+            "--input-file <safe_request_json> [--json]"
+        ),
+        "mode": "repo-local live-readiness report / no live clients / no execution",
+        "local_effect": "reads one explicit safe JSON file and environment key names only",
+        "output": "stdout redacted live-readiness JSON or human summary",
+    },
 )
 
 
@@ -375,6 +386,24 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_credential_preflight_parser)
     phase14c_credential_preflight_parser.set_defaults(
         func=_command_phase14c_supervised_smoke_credential_preflight
+    )
+
+    phase14c_live_readiness_parser = phase14c_subparsers.add_parser(
+        "supervised-smoke-live-readiness",
+        help="Check one Phase 14-C live smoke request without executing it.",
+        description=(
+            "Validate one guarded Phase 14-C supervised smoke-test request from an "
+            "explicit safe JSON file while checking required environment/config entry "
+            "names only. This command prints a redacted live-readiness report; it does "
+            "not read credential values, load credentials, open a DB, initialize live "
+            "clients, write Todoist, write Calendar, create or send Gmail, or invoke "
+            "OpenClaw."
+        ),
+    )
+    phase14c_live_readiness_parser.add_argument("--input-file", required=True)
+    _add_json_arg(phase14c_live_readiness_parser)
+    phase14c_live_readiness_parser.set_defaults(
+        func=_command_phase14c_supervised_smoke_live_readiness
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -829,20 +858,12 @@ def _command_phase14c_supervised_smoke_validate(args: argparse.Namespace) -> int
 def _command_phase14c_supervised_smoke_credential_preflight(
     args: argparse.Namespace,
 ) -> int:
-    preflight = build_phase14c_credential_preflight_report(os.environ.keys())
-    missing_names = list(preflight["missing_config_entry_names"])
-    all_names_present = not missing_names
-    safe_preflight_report = {
-        "required_config_entry_count": len(preflight["checked_config_entry_names"]),
-        "missing_config_entry_names": missing_names,
-        "all_required_config_entry_names_present": all_names_present,
-        "reports_missing_names_only": True,
-        "available_config_entry_names_reported": False,
-        "credential_values_read": False,
-        "credential_values_logged": False,
-        "credential_values_copied": False,
-        "credential_values_committed": False,
-    }
+    safe_preflight_report = _phase14c_safe_credential_preflight_report(
+        os.environ.keys()
+    )
+    all_names_present = safe_preflight_report[
+        "all_required_config_entry_names_present"
+    ]
     report = _with_workflow_context(
         {
             "command": "phase14c supervised-smoke-credential-preflight",
@@ -876,6 +897,154 @@ def _command_phase14c_supervised_smoke_credential_preflight(
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _command_phase14c_supervised_smoke_live_readiness(args: argparse.Namespace) -> int:
+    input_path = validate_existing_input_file_path(
+        args.input_file,
+        path_label="phase14c smoke input_file",
+    )
+    request = _load_json_object(input_path)
+    config_names = tuple(os.environ.keys())
+    validation_report = build_phase14c_supervised_smoke_request_validation_report(
+        request,
+        available_config_names=config_names,
+    )
+    validation_report = _phase14c_validation_report_missing_names_only(
+        validation_report
+    )
+    credential_preflight = _phase14c_safe_credential_preflight_report(config_names)
+    live_readiness = _phase14c_live_readiness_summary(
+        request=request,
+        validation_report=validation_report,
+        credential_preflight=credential_preflight,
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c supervised-smoke-live-readiness",
+            "status": (
+                "separate_manual_live_step_prerequisites_met_not_executed"
+                if live_readiness["separate_manual_live_step_prerequisites_met"]
+                else "blocked_before_live_step"
+            ),
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "input_file": str(input_path),
+            "validation_report": validation_report,
+            "credential_preflight": credential_preflight,
+            "live_readiness": live_readiness,
+        },
+        workflow_name="Phase 14-C supervised smoke live readiness",
+        workflow_mode="repo-local live-readiness report / no live clients / no execution",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the redacted live-readiness report.",
+            "Do not paste or inspect credential values.",
+            "Live execution still requires a separate explicit supervised smoke-test initiation.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _phase14c_safe_credential_preflight_report(
+    available_config_names: Iterable[str],
+) -> dict[str, Any]:
+    preflight = build_phase14c_credential_preflight_report(available_config_names)
+    missing_names = list(preflight["missing_config_entry_names"])
+    return {
+        "required_config_entry_count": len(preflight["checked_config_entry_names"]),
+        "missing_config_entry_names": missing_names,
+        "all_required_config_entry_names_present": not missing_names,
+        "reports_missing_names_only": True,
+        "available_config_entry_names_reported": False,
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "credential_values_copied": False,
+        "credential_values_committed": False,
+    }
+
+
+def _phase14c_live_readiness_summary(
+    *,
+    request: Mapping[str, Any],
+    validation_report: Mapping[str, Any],
+    credential_preflight: Mapping[str, Any],
+) -> dict[str, Any]:
+    live_mode_requested = request.get("mode") == "live_run"
+    live_run_requested = request.get("live_run_requested") is True
+    approval_reference_present = bool(str(request.get("approval_reference", "")).strip())
+    all_config_names_present = (
+        credential_preflight.get("all_required_config_entry_names_present") is True
+    )
+    request_guardrails_accepted = validation_report.get("accepted") is True
+    prerequisites_met = all(
+        (
+            request_guardrails_accepted,
+            live_mode_requested,
+            live_run_requested,
+            approval_reference_present,
+            all_config_names_present,
+        )
+    )
+    blocking_reasons: list[str] = []
+    if not request_guardrails_accepted:
+        blocking_reasons.append("Smoke request failed guardrail or config validation.")
+    if not live_mode_requested:
+        blocking_reasons.append("Live readiness requires mode=live_run.")
+    if not live_run_requested:
+        blocking_reasons.append("Live readiness requires live_run_requested=true.")
+    if not approval_reference_present:
+        blocking_reasons.append("Live readiness requires approval_reference to be present.")
+    if not all_config_names_present:
+        blocking_reasons.append(
+            "Live readiness requires all required config entry names to be present."
+        )
+    blocking_reasons.append(
+        "This CLI never executes live rails; live clients and live_run_approved=true "
+        "remain required in a separate supervised step."
+    )
+    return {
+        "request_guardrails_accepted": request_guardrails_accepted,
+        "live_mode_requested": live_mode_requested,
+        "live_run_requested": live_run_requested,
+        "approval_reference_present": approval_reference_present,
+        "all_required_config_entry_names_present": all_config_names_present,
+        "missing_config_entry_names": list(
+            credential_preflight.get("missing_config_entry_names", [])
+        ),
+        "separate_manual_live_step_prerequisites_met": prerequisites_met,
+        "ready_for_live_execution_in_this_cli": False,
+        "live_run_executed": False,
+        "external_mutation": False,
+        "live_clients_initialized": False,
+        "live_clients_required_for_future_step": True,
+        "live_run_approved_flag_required_for_future_step": True,
+        "blocking_reasons": blocking_reasons,
+    }
+
+
+def _phase14c_validation_report_missing_names_only(
+    validation_report: Mapping[str, Any],
+) -> dict[str, Any]:
+    safe_report = dict(validation_report)
+    validation = dict(safe_report.get("validation", {}))
+    checked_names = validation.pop("checked_config_entry_names", [])
+    validation["checked_config_entry_count"] = (
+        len(checked_names) if isinstance(checked_names, Sequence) else 0
+    )
+    safe_report["validation"] = validation
+    return safe_report
 
 
 def _command_briefing_preview(args: argparse.Namespace) -> int:

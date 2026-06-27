@@ -168,6 +168,9 @@ step remains separate and manually initiated. Repo-local request validation may
 read one explicit safe JSON request file and print a redacted stdout report.
 Repo-local credential-name preflight may check required environment/config entry
 names without reading values and may report missing required names only.
+Repo-local live-readiness reports may compose request validation and
+credential-name preflight for one explicit safe JSON request file, but must
+report `ready_for_live_execution_in_this_cli=false` and `live_run_executed=false`.
 Repo-local dry-run rehearsal may use deterministic fake clients and write
 redacted artifacts only under an explicit safe temp output directory.
 

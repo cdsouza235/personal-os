@@ -59,6 +59,21 @@ credentials, open a database, initialize live clients, create Todoist tasks,
 create Calendar events, create or send Gmail, invoke OpenClaw, write files, or
 perform external writes.
 
+Live-readiness report:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c supervised-smoke-live-readiness --input-file <safe_request_json> --json
+```
+
+That CLI command reads one explicit safe JSON request file, checks required
+environment/config entry names only, and prints a redacted live-readiness
+report. It can confirm whether request/config prerequisites are met for a
+separate manually initiated live step, but `ready_for_live_execution_in_this_cli`
+is always false and `live_run_executed=false`. It does not read credential
+values, load credentials, open a database, initialize live clients, create
+Todoist tasks, create Calendar events, create or send Gmail, invoke OpenClaw,
+write files, or perform external writes.
+
 Dry-run rehearsal:
 
 ```bash
@@ -126,6 +141,8 @@ Dry-run validation may:
 - Validate one explicit safe JSON request file with a redacted stdout report.
 - Check that required environment/config entry names are present.
 - Report missing required environment/config entry names only.
+- Produce a redacted live-readiness report for one explicit safe JSON request
+  file without executing it.
 - Produce a runbook or validation report.
 - Use deterministic fake clients in the dry-run rehearsal.
 - Write redacted dry-run rehearsal artifacts only under an explicit safe temp
@@ -248,6 +265,9 @@ This packet does not:
 - The credential-preflight CLI reads environment key names only, reports missing
   required names, omits present names and values, and performs no writes or live
   initialization.
+- The live-readiness CLI composes request validation and credential-name
+  preflight, omits raw recipients, approval references, present config names,
+  and credential values, and always reports no live execution in that CLI.
 - Dry-run rehearsal fake clients report no network calls, no credential reads,
   and no external mutation.
 - Dry-run rehearsal output directories must be fresh, temp-only, and outside
@@ -300,5 +320,5 @@ Repo prep keeps:
 - `live_rails_activated=false`
 
 That status means the repo has prepared a guarded supervised smoke-test path
-plus redacted request-validation, credential-preflight, and fake-client dry-run
-rehearsal surfaces but has not run the live smoke test yet.
+plus redacted request-validation, credential-preflight, live-readiness, and
+fake-client dry-run rehearsal surfaces but has not run the live smoke test yet.

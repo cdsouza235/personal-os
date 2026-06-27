@@ -27,6 +27,7 @@ from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
+    LIVE_RUN_MODE,
     REQUIRED_CONFIG_ENTRY_NAMES,
     build_default_phase14c_supervised_smoke_request,
 )
@@ -410,6 +411,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C supervised smoke credential preflight",
             workflow_names,
         )
+        self.assertIn("Phase 14-C supervised smoke live readiness", workflow_names)
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
 
@@ -703,6 +705,133 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             self.assertNotIn(secret_value, result.stdout)
         for present_name in REQUIRED_CONFIG_ENTRY_NAMES:
             self.assertNotIn(present_name, result.stdout)
+
+    def test_phase14c_supervised_smoke_live_readiness_reports_without_execution(
+        self,
+    ) -> None:
+        private_recipient = "private.phase14c@example.test"
+        approval_reference = "approval-reference-that-must-not-echo"
+        request = build_default_phase14c_supervised_smoke_request(
+            mode=LIVE_RUN_MODE,
+            controlled_test_recipient=private_recipient,
+            live_run_requested=True,
+            approval_reference=approval_reference,
+        )
+        secret_environment = {
+            name: f"secret-value-for-{index}"
+            for index, name in enumerate(REQUIRED_CONFIG_ENTRY_NAMES)
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_file = Path(temp_dir) / "phase14c-request.json"
+            input_file.write_text(json.dumps(request), encoding="utf-8")
+            with mock.patch.dict(os.environ, secret_environment, clear=True):
+                result = _run_cli(
+                    [
+                        "phase14c",
+                        "supervised-smoke-live-readiness",
+                        "--input-file",
+                        str(input_file),
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(result.stdout)
+        live_readiness = payload["live_readiness"]
+        validation_report = payload["validation_report"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c supervised-smoke-live-readiness")
+        self.assertEqual(
+            payload["status"],
+            "separate_manual_live_step_prerequisites_met_not_executed",
+        )
+        self.assertEqual(
+            payload["workflow_mode"],
+            "repo-local live-readiness report / no live clients / no execution",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(validation_report["accepted"])
+        self.assertNotIn("normalized_request", validation_report["validation"])
+        self.assertEqual(
+            validation_report["validation"]["checked_config_entry_count"],
+            len(REQUIRED_CONFIG_ENTRY_NAMES),
+        )
+        self.assertNotIn("checked_config_entry_names", validation_report["validation"])
+        self.assertEqual(payload["credential_preflight"]["missing_config_entry_names"], [])
+        self.assertTrue(live_readiness["request_guardrails_accepted"])
+        self.assertTrue(live_readiness["live_mode_requested"])
+        self.assertTrue(live_readiness["live_run_requested"])
+        self.assertTrue(live_readiness["approval_reference_present"])
+        self.assertTrue(live_readiness["all_required_config_entry_names_present"])
+        self.assertTrue(live_readiness["separate_manual_live_step_prerequisites_met"])
+        self.assertFalse(live_readiness["ready_for_live_execution_in_this_cli"])
+        self.assertFalse(live_readiness["live_run_executed"])
+        self.assertFalse(live_readiness["external_mutation"])
+        self.assertFalse(live_readiness["live_clients_initialized"])
+        self.assertTrue(live_readiness["live_clients_required_for_future_step"])
+        self.assertTrue(live_readiness["live_run_approved_flag_required_for_future_step"])
+        self.assertNotIn(private_recipient, result.stdout)
+        self.assertNotIn(approval_reference, result.stdout)
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+        for present_name in REQUIRED_CONFIG_ENTRY_NAMES:
+            self.assertNotIn(present_name, result.stdout)
+
+    def test_phase14c_supervised_smoke_live_readiness_blocks_without_echo(
+        self,
+    ) -> None:
+        unsafe = "unsafe-live-readiness-value-that-must-not-echo"
+        request = build_default_phase14c_supervised_smoke_request(
+            mode=LIVE_RUN_MODE,
+            controlled_test_recipient=unsafe,
+            live_run_requested=True,
+            approval_reference=unsafe,
+        )
+        request["test_marker"] = unsafe
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_file = Path(temp_dir) / "phase14c-request.json"
+            input_file.write_text(json.dumps(request), encoding="utf-8")
+            with mock.patch.dict(os.environ, {}, clear=True):
+                result = _run_cli(
+                    [
+                        "phase14c",
+                        "supervised-smoke-live-readiness",
+                        "--input-file",
+                        str(input_file),
+                        "--json",
+                    ]
+                )
+
+        payload = json.loads(result.stdout)
+        live_readiness = payload["live_readiness"]
+        validation_report = payload["validation_report"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["status"], "blocked_before_live_step")
+        self.assertFalse(validation_report["accepted"])
+        self.assertFalse(live_readiness["request_guardrails_accepted"])
+        self.assertTrue(live_readiness["live_mode_requested"])
+        self.assertTrue(live_readiness["live_run_requested"])
+        self.assertTrue(live_readiness["approval_reference_present"])
+        self.assertFalse(live_readiness["all_required_config_entry_names_present"])
+        self.assertFalse(live_readiness["separate_manual_live_step_prerequisites_met"])
+        self.assertFalse(live_readiness["ready_for_live_execution_in_this_cli"])
+        self.assertFalse(live_readiness["live_run_executed"])
+        self.assertFalse(live_readiness["external_mutation"])
+        self.assertNotIn("normalized_request", validation_report["validation"])
+        self.assertIsNone(
+            validation_report["validation"]["normalized_request_summary"]
+        )
+        self.assertNotIn(unsafe, result.stdout)
+        self.assertNotIn(unsafe, result.stderr)
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

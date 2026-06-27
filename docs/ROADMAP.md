@@ -129,7 +129,8 @@ rehearsal that writes redacted artifacts under an explicit safe temp output
 directory, redacted executor report validation summaries, a redacted
 request-validation CLI for one explicit safe JSON request file, a
 credential-name preflight CLI that reports missing required names without
-reading values, and tests; it does not run the live smoke test.
+reading values, a live-readiness CLI that composes those checks without
+executing, and tests; it does not run the live smoke test.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -169,8 +170,8 @@ The Phase 14-C supervised smoke-test runbook is
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 Phase 14-A/B historical preparation remains proposed-only. Current Phase 14-C
 movement is the bounded supervised smoke-test request-validation,
-credential-preflight, dry-run, and report-surface prep described above; no
-live smoke test has been run by repo prep.
+credential-preflight, live-readiness, dry-run, and report-surface prep
+described above; no live smoke test has been run by repo prep.
 
 ## Future Blocked Work
 
@@ -392,7 +393,8 @@ Future Phase 14 should be structured as:
   preflight and no scheduler/production DB/dynamic cleaning/bulk/protected
   path/broad OpenClaw scope, validates one explicit safe JSON request file with
   a redacted stdout report, checks required config entry names without reading
-  values, reports missing required names only, writes only redacted dry-run
+  values, reports missing required names only, composes those checks into a
+  redacted live-readiness report without execution, writes only redacted dry-run
   artifacts under an explicit safe temp output directory, keeps executor
   dry-run/blocked/live-completed validation reports redacted, and does not run
   the live smoke test.

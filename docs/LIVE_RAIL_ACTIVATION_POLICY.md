@@ -13,10 +13,11 @@ Gmail, and OpenClaw may be used as bounded low-blast-radius supervised smoke
 rails only under the Phase 14-C runbook in
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
 after Chris explicitly initiates that live-test step. The Phase 14-C
-fake-client dry-run rehearsal may write redacted artifacts under an explicit
-safe temp output directory and does not activate live rails. Phase 13F-B rail
-statuses are descriptive only; a disabled, blocked, not-configured, or
-requires-approval status is not broad activation.
+request-validation CLI may read one explicit safe JSON request file and print a
+redacted report; the fake-client dry-run rehearsal may write redacted artifacts
+under an explicit safe temp output directory. Neither surface activates live
+rails. Phase 13F-B rail statuses are descriptive only; a disabled, blocked,
+not-configured, or requires-approval status is not broad activation.
 
 ## Shared Activation Rules
 

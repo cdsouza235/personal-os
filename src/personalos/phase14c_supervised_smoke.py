@@ -18,6 +18,10 @@ PHASE14C_SUPERVISED_SMOKE_DRY_RUN_STATUS = "dry_run_rehearsal_completed"
 PHASE14C_SUPERVISED_SMOKE_DRY_RUN_DEFAULT_GENERATED_AT_UTC = (
     "2026-06-27T04:00:00+00:00"
 )
+PHASE14C_SUPERVISED_SMOKE_VALIDATION_STATUS = "request_validation_completed"
+PHASE14C_SUPERVISED_SMOKE_VALIDATION_DEFAULT_GENERATED_AT_UTC = (
+    "2026-06-27T06:00:00+00:00"
+)
 PHASE14C_SUPERVISED_SMOKE_MARKER = (
     "[Phase 14-C Test] Clean Kitchen Countertops and Stovetop"
 )
@@ -112,6 +116,34 @@ DRY_RUN_SAFETY_ASSERTION_FIELDS: tuple[str, ...] = (
     "protected_paths_touched",
     "repo_files_written",
     "writes_only_output_dir",
+)
+
+REQUEST_VALIDATION_REPORT_FIELDS: tuple[str, ...] = (
+    "schema_version",
+    "generated_at_utc",
+    "status",
+    "accepted",
+    "test_marker",
+    "input_request_summary",
+    "validation",
+    "safety_assertions",
+)
+
+REQUEST_VALIDATION_SAFETY_ASSERTION_FIELDS: tuple[str, ...] = (
+    "live_run_executed",
+    "external_mutation",
+    "real_todoist_task_created",
+    "real_calendar_event_created",
+    "real_gmail_email_created_or_sent",
+    "real_openclaw_invoked",
+    "credential_values_read",
+    "credential_values_logged",
+    "production_db_active",
+    "scheduler_activated",
+    "protected_paths_touched",
+    "database_write",
+    "file_write",
+    "live_clients_initialized",
 )
 
 PROTECTED_PATH_MARKERS: tuple[str, ...] = (
@@ -451,6 +483,34 @@ def build_default_phase14c_supervised_smoke_request(
             },
         },
         "boundaries": {field: False for field in BOUNDARY_FIELDS},
+    }
+
+
+def build_phase14c_supervised_smoke_request_validation_report(
+    request: Mapping[str, Any] | None,
+    *,
+    available_config_names: Iterable[str] | Mapping[str, Any] = (),
+    generated_at_utc: str = PHASE14C_SUPERVISED_SMOKE_VALIDATION_DEFAULT_GENERATED_AT_UTC,
+) -> dict[str, Any]:
+    """Validate a smoke request and return a redacted report-only payload."""
+
+    validation = validate_phase14c_supervised_smoke_request(
+        request,
+        available_config_names=available_config_names,
+    )
+    request_mapping: Mapping[str, Any] = request if isinstance(request, Mapping) else {}
+    return {
+        "schema_version": PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION,
+        "generated_at_utc": generated_at_utc,
+        "status": PHASE14C_SUPERVISED_SMOKE_VALIDATION_STATUS,
+        "accepted": validation.accepted,
+        "test_marker": PHASE14C_SUPERVISED_SMOKE_MARKER,
+        "input_request_summary": _safe_dry_run_request_artifact(
+            request_mapping,
+            validation,
+        ),
+        "validation": _safe_validation_artifact(validation),
+        "safety_assertions": _request_validation_safety_assertions(),
     }
 
 
@@ -818,6 +878,25 @@ def _dry_run_safety_assertions(output_path: Path) -> dict[str, bool]:
         "protected_paths_touched": False,
         "repo_files_written": False,
         "writes_only_output_dir": output_path.exists(),
+    }
+
+
+def _request_validation_safety_assertions() -> dict[str, bool]:
+    return {
+        "live_run_executed": False,
+        "external_mutation": False,
+        "real_todoist_task_created": False,
+        "real_calendar_event_created": False,
+        "real_gmail_email_created_or_sent": False,
+        "real_openclaw_invoked": False,
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "production_db_active": False,
+        "scheduler_activated": False,
+        "protected_paths_touched": False,
+        "database_write": False,
+        "file_write": False,
+        "live_clients_initialized": False,
     }
 
 

@@ -14,12 +14,15 @@ from personalos.phase14c_supervised_smoke import (
     PHASE14C_SUPERVISED_SMOKE_MARKER,
     PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION,
     PHASE14C_SUPERVISED_SMOKE_STATUS,
+    REQUEST_VALIDATION_REPORT_FIELDS,
+    REQUEST_VALIDATION_SAFETY_ASSERTION_FIELDS,
     REQUIRED_CONFIG_ENTRY_NAMES,
     RUNBOOK_TOP_LEVEL_FIELDS,
     Phase14CSupervisedSmokeClients,
     build_default_phase14c_supervised_smoke_request,
     build_phase14c_credential_preflight_report,
     build_phase14c_supervised_smoke_runbook,
+    build_phase14c_supervised_smoke_request_validation_report,
     execute_phase14c_supervised_smoke_request,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
     validate_phase14c_supervised_smoke_request,
@@ -103,6 +106,57 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
         self.assertNotIn("todoist-secret-value", serialized)
         self.assertNotIn("calendar-secret-value", serialized)
         self.assertNotIn("gmail-secret-value", serialized)
+
+    def test_request_validation_report_redacts_accepted_request_values(self) -> None:
+        private_recipient = "private.phase14c@example.test"
+        request = build_default_phase14c_supervised_smoke_request(
+            controlled_test_recipient=private_recipient
+        )
+        report = build_phase14c_supervised_smoke_request_validation_report(
+            request,
+            available_config_names={
+                "PERSONALOS_PHASE14C_TODOIST_TOKEN": "todoist-secret-value",
+            },
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(tuple(report), REQUEST_VALIDATION_REPORT_FIELDS)
+        self.assertEqual(report["status"], "request_validation_completed")
+        self.assertTrue(report["accepted"])
+        self.assertEqual(
+            tuple(report["safety_assertions"]),
+            REQUEST_VALIDATION_SAFETY_ASSERTION_FIELDS,
+        )
+        for value in report["safety_assertions"].values():
+            self.assertIs(value, False)
+        self.assertEqual(report["input_request_summary"]["rails"]["gmail"]["to_count"], 1)
+        self.assertNotIn("normalized_request", report["validation"])
+        self.assertIn("normalized_request_summary", report["validation"])
+        self.assertTrue(
+            all(
+                report["validation"]["normalized_request_summary"][
+                    "boundaries_remain_false"
+                ].values()
+            )
+        )
+        self.assertNotIn(private_recipient, serialized)
+        self.assertNotIn("todoist-secret-value", serialized)
+
+    def test_request_validation_report_blocked_does_not_echo_unsafe_values(self) -> None:
+        unsafe = "secret-token-value-that-must-not-echo"
+        request = build_default_phase14c_supervised_smoke_request()
+        request["test_marker"] = unsafe
+        request["rails"]["gmail"]["emails"][0]["to"] = [unsafe]
+
+        report = build_phase14c_supervised_smoke_request_validation_report(request)
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], "request_validation_completed")
+        self.assertFalse(report["accepted"])
+        self.assertFalse(report["validation"]["accepted"])
+        self.assertNotIn("normalized_request", report["validation"])
+        self.assertIsNone(report["validation"]["normalized_request_summary"])
+        self.assertNotIn(unsafe, serialized)
 
     def test_dry_run_execution_never_calls_clients(self) -> None:
         clients = _fake_clients()

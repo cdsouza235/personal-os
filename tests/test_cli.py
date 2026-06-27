@@ -25,6 +25,9 @@ from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
+from personalos.phase14c_supervised_smoke import (
+    build_default_phase14c_supervised_smoke_request,
+)
 from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_RUN_PERMISSION,
     RUNTIME_BOOTSTRAP_WRITE_PERMISSION,
@@ -400,6 +403,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("simulated scheduler preview", workflow_names)
         self.assertIn("Phase 14-C supervised smoke-test runbook", workflow_names)
         self.assertIn("Phase 14-C supervised smoke dry-run rehearsal", workflow_names)
+        self.assertIn("Phase 14-C supervised smoke request validation", workflow_names)
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
 
@@ -509,6 +513,106 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(result.code, 1)
         self.assertIn("error:", result.stderr)
         self.assertIn("must not be inside the repository", result.stderr)
+
+    def test_phase14c_supervised_smoke_validate_command_redacts_request(self) -> None:
+        private_recipient = "private.phase14c@example.test"
+        request = build_default_phase14c_supervised_smoke_request(
+            controlled_test_recipient=private_recipient
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_file = Path(temp_dir) / "phase14c-request.json"
+            input_file.write_text(json.dumps(request), encoding="utf-8")
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-validate",
+                    "--input-file",
+                    str(input_file),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        validation_report = payload["validation_report"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c supervised-smoke-validate")
+        self.assertEqual(payload["status"], "accepted")
+        self.assertEqual(
+            payload["workflow_mode"],
+            "repo-local validation / redacted report / no live clients",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(validation_report["accepted"])
+        self.assertEqual(
+            validation_report["input_request_summary"]["rails"]["gmail"]["to_count"],
+            1,
+        )
+        self.assertNotIn("normalized_request", validation_report["validation"])
+        self.assertIn(
+            "normalized_request_summary",
+            validation_report["validation"],
+        )
+        self.assertNotIn(private_recipient, result.stdout)
+
+    def test_phase14c_supervised_smoke_validate_blocks_without_echo(self) -> None:
+        unsafe = "secret-token-value-that-must-not-echo"
+        request = build_default_phase14c_supervised_smoke_request()
+        request["test_marker"] = unsafe
+        request["rails"]["gmail"]["emails"][0]["to"] = [unsafe]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_file = Path(temp_dir) / "phase14c-request.json"
+            input_file.write_text(json.dumps(request), encoding="utf-8")
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-validate",
+                    "--input-file",
+                    str(input_file),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        validation_report = payload["validation_report"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertFalse(validation_report["accepted"])
+        self.assertFalse(validation_report["validation"]["accepted"])
+        self.assertNotIn("normalized_request", validation_report["validation"])
+        self.assertIsNone(
+            validation_report["validation"]["normalized_request_summary"]
+        )
+        self.assertNotIn(unsafe, result.stdout)
+        self.assertNotIn(unsafe, result.stderr)
+
+    def test_phase14c_supervised_smoke_validate_rejects_sensitive_input_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_file = Path(temp_dir) / "oauth-request.json"
+            input_file.write_text("{}", encoding="utf-8")
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-validate",
+                    "--input-file",
+                    str(input_file),
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(result.code, 1)
+        self.assertIn("error:", result.stderr)
+        self.assertIn("credential or authorization path", result.stderr)
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

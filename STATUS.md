@@ -6,10 +6,10 @@ Last updated: 2026-06-27
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #84:
-  `d5020dfe3c81a77ae51f0ccef5a21814fb530f69`
-- Latest merged PR at that baseline: PR #84, Phase 14-C smoke dry-run
-  rehearsal
+- Last validated main baseline after PR #85:
+  `bd93ae63338c7e5dd9c77a518bf4c223530c9846`
+- Latest merged PR at that baseline: PR #85, Phase 14-C executor report
+  redaction alignment
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -49,7 +49,9 @@ Last updated: 2026-06-27
   surface with redacted artifacts written only under an explicit safe temp
   output directory; Phase 14-C executor dry-run, blocked, and live-completed
   reports now use redacted validation summaries instead of raw normalized
-  request payloads
+  request payloads; the Phase 14-C request-validation CLI reads one explicit
+  safe JSON request file and prints a redacted report without executing live
+  clients, opening a DB, loading credentials, or writing files
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -83,11 +85,12 @@ Last updated: 2026-06-27
   multi-rail smoke-test preparation with one-object-per-rail guardrails, plus
   Phase 14-C supervised smoke-test dry-run rehearsal with fake clients and
   redacted safe-temp artifacts, plus Phase 14-C executor report redaction
-  alignment
+  alignment, plus Phase 14-C supervised smoke-test request validation with
+  redacted stdout reports
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
-  dry-run/report-surface review and future live-test decision. Todoist, Google
-  Calendar, Gmail, and OpenClaw are acceptable low-blast-radius supervised
-  smoke-test rails inside the bounded runbook in
+  request-validation/dry-run/report-surface review and future live-test
+  decision. Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
+  low-blast-radius supervised smoke-test rails inside the bounded runbook in
   [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 - Phase 14-C supervised smoke test: prepared but not run; no real Todoist
   task, Calendar event, Gmail email, or OpenClaw invocation has been performed
@@ -98,21 +101,26 @@ Last updated: 2026-06-27
 - Phase 14-C executor reports: dry-run, blocked, and live-completed reports
   use redacted validation summaries and do not include raw `normalized_request`
   payloads or raw controlled test recipients.
+- Phase 14-C request-validation CLI: reads one explicit safe JSON request file,
+  validates the one-object-per-rail guardrails, rejects protected or
+  credential-looking input paths, prints only a redacted stdout report, and
+  does not write files, open a DB, load credentials, initialize live clients,
+  execute rails, or perform external mutation.
 
 ## Validated State
 
-- Full suite: 692 tests OK
-- ResourceWarning-sensitive suite: 692 tests OK
+- Full suite: 697 tests OK
+- ResourceWarning-sensitive suite: 697 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
 - Targeted Phase 14-C candidate decision-support validator suite: 76 tests OK
-- Targeted Phase 14-C supervised smoke-test suite: 19 tests OK
+- Targeted Phase 14-C supervised smoke-test suite: 21 tests OK
 - Targeted Phase 14-C supervised smoke-test docs suite: 4 tests OK
-- Targeted Phase 14-C supervised smoke dry-run source/docs/CLI suite: 65 tests
-  OK
+- Targeted Phase 14-C supervised smoke request-validation/dry-run
+  source/docs/CLI suite: 70 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK
 - Targeted non-human closure plan suite: 11 tests OK
@@ -131,6 +139,11 @@ Last updated: 2026-06-27
   `validation.json`, `fake_client_results.json`, `completion_report.json`, and
   `summary.md` with no live clients, no credential loading, no DB, no
   scheduler, no OpenClaw runtime call, and no external mutation
+- Phase 14-C request-validation CLI: accepted and blocked validation paths are
+  covered with redacted stdout reports, no raw `normalized_request`, no raw
+  controlled recipient echo, protected/credential-looking input-path rejection,
+  no live clients, no credential loading, no DB, no file writes, no OpenClaw
+  runtime call, and no external mutation
 - PR #33 post-merge read-only CLI validation: passed
 - Phase 13E-D demo command: completed on merged `main`
 - Phase 13E-D demo evidence bundle: generated under a safe temporary output
@@ -273,7 +286,11 @@ Last updated: 2026-06-27
 - PR #84 Phase 14-C smoke dry-run rehearsal: merged
 - PR #84 Claude Code audit: Pass with notes; no required fixes
 - PR #84 post-merge validation: passed
-- Phase 14-C executor report redaction alignment: source/docs prep validated
+- PR #85 Phase 14-C executor report redaction alignment: merged
+- PR #85 Claude Code audit: Pass
+- PR #85 post-merge validation: passed
+- Phase 14-C supervised smoke request-validation CLI: source/docs prep
+  validated
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -607,9 +624,13 @@ production runtime state.
   and CLI runbook surface.
 - PR #84: Add Phase 14-C supervised smoke-test dry-run rehearsal with fake
   clients, redacted safe-temp artifacts, and CLI evidence surface.
-- Phase 14-C executor report redaction alignment: redacts legacy dry-run,
+- PR #85: Align Phase 14-C executor report redaction by redacting dry-run,
   blocked, and live-completed executor report validation payloads; no live
   smoke test run.
+- Phase 14-C request-validation CLI: validates one explicit safe JSON request
+  file with a redacted stdout report; rejects protected/credential-looking
+  input paths; does not execute live clients, load credentials, open a DB, write
+  files, invoke OpenClaw, or perform external mutation.
 
 ## Known Gaps
 

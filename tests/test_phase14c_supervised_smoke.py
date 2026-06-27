@@ -9,11 +9,16 @@ from personalos.phase14c_supervised_smoke import (
     DRY_RUN_COMPLETION_REPORT_FIELDS,
     DRY_RUN_REHEARSAL_ARTIFACT_NAMES,
     DRY_RUN_SAFETY_ASSERTION_FIELDS,
+    DRY_RUN_MODE,
     LIVE_RUN_MODE,
     PHASE14C_SUPERVISED_SMOKE_DRY_RUN_STATUS,
     PHASE14C_SUPERVISED_SMOKE_MARKER,
     PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION,
     PHASE14C_SUPERVISED_SMOKE_STATUS,
+    PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT,
+    PHASE14C_SUPERVISED_SMOKE_TEMPLATE_STATUS,
+    REQUEST_TEMPLATE_REPORT_FIELDS,
+    REQUEST_TEMPLATE_SAFETY_ASSERTION_FIELDS,
     REQUEST_VALIDATION_REPORT_FIELDS,
     REQUEST_VALIDATION_SAFETY_ASSERTION_FIELDS,
     REQUIRED_CONFIG_ENTRY_NAMES,
@@ -22,6 +27,7 @@ from personalos.phase14c_supervised_smoke import (
     build_default_phase14c_supervised_smoke_request,
     build_phase14c_credential_preflight_report,
     build_phase14c_supervised_smoke_runbook,
+    build_phase14c_supervised_smoke_request_template_report,
     build_phase14c_supervised_smoke_request_validation_report,
     execute_phase14c_supervised_smoke_request,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
@@ -84,6 +90,59 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
                 "gmail_emails": 1,
                 "openclaw_invocations": 1,
             },
+        )
+
+    def test_request_template_report_builds_dry_run_template_without_authorization(
+        self,
+    ) -> None:
+        report = build_phase14c_supervised_smoke_request_template_report()
+        request = report["request"]
+        validation = validate_phase14c_supervised_smoke_request(request)
+
+        self.assertEqual(tuple(report), REQUEST_TEMPLATE_REPORT_FIELDS)
+        self.assertEqual(report["status"], PHASE14C_SUPERVISED_SMOKE_TEMPLATE_STATUS)
+        self.assertEqual(report["mode"], DRY_RUN_MODE)
+        self.assertTrue(report["template_only_not_authorization"])
+        self.assertFalse(report["ready_for_live_execution"])
+        self.assertEqual(request["mode"], DRY_RUN_MODE)
+        self.assertFalse(request["live_run_requested"])
+        self.assertIsNone(request["approval_reference"])
+        self.assertEqual(
+            request["controlled_test_recipients"],
+            [PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT],
+        )
+        self.assertEqual(
+            request["rails"]["gmail"]["emails"][0]["to"],
+            [PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT],
+        )
+        self.assertTrue(validation.accepted)
+        self.assertTrue(report["validation_preview"]["accepted"])
+        self.assertNotIn("normalized_request", report["validation_preview"])
+        self.assertEqual(
+            tuple(report["safety_assertions"]),
+            REQUEST_TEMPLATE_SAFETY_ASSERTION_FIELDS,
+        )
+        for field, value in report["safety_assertions"].items():
+            with self.subTest(field=field):
+                expected = field == "template_only_not_authorization"
+                self.assertIs(value, expected)
+
+    def test_live_run_request_template_is_not_ready_or_authorized(self) -> None:
+        report = build_phase14c_supervised_smoke_request_template_report(
+            mode=LIVE_RUN_MODE
+        )
+        request = report["request"]
+
+        self.assertEqual(report["mode"], LIVE_RUN_MODE)
+        self.assertEqual(request["mode"], LIVE_RUN_MODE)
+        self.assertFalse(request["live_run_requested"])
+        self.assertIsNone(request["approval_reference"])
+        self.assertFalse(report["ready_for_live_execution"])
+        self.assertFalse(report["validation_preview"]["accepted"])
+        self.assertIsNone(report["validation_preview"]["normalized_request_summary"])
+        self.assertIn(
+            "Set live_run_requested=true only after explicit current live-test initiation.",
+            report["operator_fill_required"],
         )
 
     def test_credential_preflight_reports_names_only_without_values(self) -> None:

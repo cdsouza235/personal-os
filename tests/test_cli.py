@@ -28,6 +28,7 @@ from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
     LIVE_RUN_MODE,
+    PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT,
     REQUIRED_CONFIG_ENTRY_NAMES,
     build_default_phase14c_supervised_smoke_request,
 )
@@ -405,6 +406,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("ChatGPT synthesis import preview", workflow_names)
         self.assertIn("simulated scheduler preview", workflow_names)
         self.assertIn("Phase 14-C supervised smoke-test runbook", workflow_names)
+        self.assertIn("Phase 14-C supervised smoke request template", workflow_names)
         self.assertIn("Phase 14-C supervised smoke dry-run rehearsal", workflow_names)
         self.assertIn("Phase 14-C supervised smoke request validation", workflow_names)
         self.assertIn(
@@ -435,6 +437,67 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(runbook["repo_prep_safety"]["gmail_email_created_or_sent"])
         self.assertFalse(runbook["repo_prep_safety"]["openclaw_invoked"])
         self.assertFalse(runbook["repo_prep_safety"]["credential_values_read"])
+
+    def test_phase14c_supervised_smoke_request_template_is_not_authorization(
+        self,
+    ) -> None:
+        with mock.patch.dict(os.environ, {"SECRET_ENV": "secret-value"}, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-request-template",
+                    "--mode",
+                    "live_run",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        template_report = payload["template_report"]
+        request = template_report["request"]
+        safety = template_report["safety_assertions"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"], "phase14c supervised-smoke-request-template"
+        )
+        self.assertEqual(
+            payload["status"], "request_template_generated_not_authorized"
+        )
+        self.assertEqual(
+            payload["workflow_mode"],
+            "repo-local request template / no live clients / no execution",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_environment_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(template_report["template_only_not_authorization"])
+        self.assertFalse(template_report["ready_for_live_execution"])
+        self.assertEqual(request["mode"], "live_run")
+        self.assertFalse(request["live_run_requested"])
+        self.assertIsNone(request["approval_reference"])
+        self.assertEqual(
+            request["controlled_test_recipients"],
+            [PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT],
+        )
+        self.assertFalse(template_report["validation_preview"]["accepted"])
+        self.assertFalse(safety["live_run_executed"])
+        self.assertFalse(safety["external_mutation"])
+        self.assertFalse(safety["credential_values_read"])
+        self.assertFalse(safety["file_write"])
+        self.assertFalse(safety["live_clients_initialized"])
+        self.assertTrue(safety["template_only_not_authorization"])
+        self.assertFalse(safety["ready_for_live_execution"])
+        self.assertNotIn("normalized_request", template_report["validation_preview"])
+        self.assertNotIn("secret-value", result.stdout)
 
     def test_phase14c_supervised_smoke_dry_run_command_writes_safe_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -612,6 +675,27 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
                 [
                     "phase14c",
                     "supervised-smoke-validate",
+                    "--input-file",
+                    str(input_file),
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(result.code, 1)
+        self.assertIn("error:", result.stderr)
+        self.assertIn("credential or authorization path", result.stderr)
+
+    def test_phase14c_supervised_smoke_live_readiness_rejects_sensitive_input_path(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_file = Path(temp_dir) / "oauth-request.json"
+            input_file.write_text("{}", encoding="utf-8")
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-live-readiness",
                     "--input-file",
                     str(input_file),
                     "--json",

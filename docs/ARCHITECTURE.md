@@ -85,13 +85,14 @@ Phase 14-C supervised smoke-test prep narrows the immediate next integration
 step to Todoist, Google Calendar, Gmail, and OpenClaw under
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 That path uses guardrail validation, redacted request-validation reports,
-credential-name preflight, live-readiness reports, a fake-client dry-run
-rehearsal, and explicit injected clients. It allows at most one marked Todoist
-task, one marked Calendar event, one marked Gmail test email to a
+credential-name preflight, live-readiness reports, request-template generation,
+a fake-client dry-run rehearsal, and explicit injected clients. It allows at
+most one marked Todoist task, one marked Calendar event, one marked Gmail test
+email to a
 controlled/self recipient, and one OpenClaw local/test/sandbox invocation after
 Chris initiates the live-test step. Repo prep, request-validation reports,
-credential-name preflight, live-readiness reports, and fake-client rehearsal do
-not run those live actions.
+credential-name preflight, live-readiness reports, request-template generation,
+and fake-client rehearsal do not run those live actions.
 
 Activation policies live in:
 
@@ -135,11 +136,11 @@ activate any live rail.
 Phase 14-C supervised smoke-test preparation defines the bounded multi-rail
 test runbook, guardrail validator, credential-name-only preflight, read-only
 CLI discovery surface, redacted request-validation CLI, fake-client dry-run
-rehearsal, credential-name preflight CLI, live-readiness report CLI, and
-injected-client execution path. It treats Todoist, Google Calendar, Gmail, and
-OpenClaw as acceptable low-blast-radius supervised smoke rails inside that
+rehearsal, credential-name preflight CLI, live-readiness report CLI,
+request-template CLI, and injected-client execution path. It treats Todoist,
+Google Calendar, Gmail, and OpenClaw as acceptable low-blast-radius supervised smoke rails inside that
 runbook, but it does not run the live smoke test, activate
 scheduler/background behavior, activate production DB, implement dynamic
 cleaning, touch protected paths, write files during request validation,
-credential preflight, or live-readiness checks, read credential values, or
-broaden OpenClaw runtime scope.
+credential preflight, request-template generation, or live-readiness checks,
+read credential values, or broaden OpenClaw runtime scope.

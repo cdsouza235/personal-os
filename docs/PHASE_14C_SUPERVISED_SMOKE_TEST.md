@@ -13,6 +13,7 @@ Source contract:
 - `src/personalos/phase14c_supervised_smoke.py`
 - `build_phase14c_supervised_smoke_runbook`
 - `build_default_phase14c_supervised_smoke_request`
+- `build_phase14c_supervised_smoke_request_template_report`
 - `build_phase14c_credential_preflight_report`
 - `build_phase14c_supervised_smoke_request_validation_report`
 - `validate_phase14c_supervised_smoke_request`
@@ -29,6 +30,26 @@ That CLI command is a runbook/status surface only. It does not load
 credentials, open a database, initialize live clients, create Todoist tasks,
 create Calendar events, create or send Gmail, invoke OpenClaw, or perform
 external writes. In short, it does not initialize live clients.
+
+Request template:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c supervised-smoke-request-template --mode dry_run --json
+```
+
+That CLI command prints a request-template report for the one-object-per-rail
+smoke request. It is stdout-only: it does not read environment variables, load
+credentials, open a database, initialize live clients, create Todoist tasks,
+create Calendar events, create or send Gmail, invoke OpenClaw, write files, or
+perform external writes. The report includes `template_only_not_authorization`
+and `ready_for_live_execution=false`.
+
+The command also accepts `--mode live_run`, but that mode is still only a
+template. It keeps `live_run_requested=false` and `approval_reference=null` so
+the generated request is not a live authorization and still requires a
+separate explicit live-test initiation, request validation, credential-name
+preflight, live-readiness review, injected clients, and `live_run_approved=true`
+before any future execution path could run.
 
 Request validation:
 
@@ -138,6 +159,7 @@ are allowed only inside this bounded manually supervised test envelope.
 Dry-run validation may:
 
 - Build and validate the one-object-per-rail smoke request.
+- Print a template-only one-object-per-rail request report.
 - Validate one explicit safe JSON request file with a redacted stdout report.
 - Check that required environment/config entry names are present.
 - Report missing required environment/config entry names only.
@@ -163,6 +185,7 @@ Dry-run validation must not:
   scheduler-looking paths, production-looking paths, or non-temp output paths.
 - Read request input files from protected, credential-looking,
   production-looking, or unsafe paths.
+- Treat a request template as live authorization.
 
 ## Live-Run Boundary
 
@@ -252,6 +275,8 @@ This packet does not:
   assertions.
 - The default dry-run request validates without credentials and does not call
   clients.
+- The request-template report emits a one-object-per-rail template and records
+  `template_only_not_authorization=true` and `ready_for_live_execution=false`.
 - The dry-run rehearsal writes `request.json`, `validation.json`,
   `fake_client_results.json`, `completion_report.json`, and `summary.md` only
   under an explicit safe temp output directory.
@@ -268,6 +293,8 @@ This packet does not:
 - The live-readiness CLI composes request validation and credential-name
   preflight, omits raw recipients, approval references, present config names,
   and credential values, and always reports no live execution in that CLI.
+- The live-readiness CLI rejects credential-looking input paths before reading
+  JSON, matching the request-validation input-path guard.
 - Dry-run rehearsal fake clients report no network calls, no credential reads,
   and no external mutation.
 - Dry-run rehearsal output directories must be fresh, temp-only, and outside
@@ -320,5 +347,6 @@ Repo prep keeps:
 - `live_rails_activated=false`
 
 That status means the repo has prepared a guarded supervised smoke-test path
-plus redacted request-validation, credential-preflight, live-readiness, and
-fake-client dry-run rehearsal surfaces but has not run the live smoke test yet.
+plus request-template, redacted request-validation, credential-preflight,
+live-readiness, and fake-client dry-run rehearsal surfaces but has not run the
+live smoke test yet.

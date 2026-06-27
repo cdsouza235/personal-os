@@ -164,8 +164,11 @@ exist. It must not print, inspect, copy, commit, log, or summarize
 credential/token values.
 
 Repo prep for the smoke test does not run the live smoke test. The live-test
-step remains separate and manually initiated. Repo-local request validation may
-read one explicit safe JSON request file and print a redacted stdout report.
+step remains separate and manually initiated. Repo-local request-template
+generation may print one bounded template to stdout but must report
+`template_only_not_authorization=true` and `ready_for_live_execution=false`.
+Repo-local request validation may read one explicit safe JSON request file and
+print a redacted stdout report.
 Repo-local credential-name preflight may check required environment/config entry
 names without reading values and may report missing required names only.
 Repo-local live-readiness reports may compose request validation and

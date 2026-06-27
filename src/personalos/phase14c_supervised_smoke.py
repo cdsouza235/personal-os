@@ -22,8 +22,15 @@ PHASE14C_SUPERVISED_SMOKE_VALIDATION_STATUS = "request_validation_completed"
 PHASE14C_SUPERVISED_SMOKE_VALIDATION_DEFAULT_GENERATED_AT_UTC = (
     "2026-06-27T06:00:00+00:00"
 )
+PHASE14C_SUPERVISED_SMOKE_TEMPLATE_STATUS = "request_template_generated"
+PHASE14C_SUPERVISED_SMOKE_TEMPLATE_DEFAULT_GENERATED_AT_UTC = (
+    "2026-06-27T15:00:00+00:00"
+)
 PHASE14C_SUPERVISED_SMOKE_MARKER = (
     "[Phase 14-C Test] Clean Kitchen Countertops and Stovetop"
+)
+PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT = (
+    "self.phase14c.template@example.test"
 )
 
 DRY_RUN_MODE = "dry_run"
@@ -144,6 +151,39 @@ REQUEST_VALIDATION_SAFETY_ASSERTION_FIELDS: tuple[str, ...] = (
     "database_write",
     "file_write",
     "live_clients_initialized",
+)
+
+REQUEST_TEMPLATE_REPORT_FIELDS: tuple[str, ...] = (
+    "schema_version",
+    "generated_at_utc",
+    "status",
+    "mode",
+    "test_marker",
+    "template_only_not_authorization",
+    "ready_for_live_execution",
+    "request",
+    "operator_fill_required",
+    "validation_preview",
+    "safety_assertions",
+)
+
+REQUEST_TEMPLATE_SAFETY_ASSERTION_FIELDS: tuple[str, ...] = (
+    "live_run_executed",
+    "external_mutation",
+    "real_todoist_task_created",
+    "real_calendar_event_created",
+    "real_gmail_email_created_or_sent",
+    "real_openclaw_invoked",
+    "credential_values_read",
+    "credential_values_logged",
+    "production_db_active",
+    "scheduler_activated",
+    "protected_paths_touched",
+    "database_write",
+    "file_write",
+    "live_clients_initialized",
+    "template_only_not_authorization",
+    "ready_for_live_execution",
 )
 
 PROTECTED_PATH_MARKERS: tuple[str, ...] = (
@@ -483,6 +523,38 @@ def build_default_phase14c_supervised_smoke_request(
             },
         },
         "boundaries": {field: False for field in BOUNDARY_FIELDS},
+    }
+
+
+def build_phase14c_supervised_smoke_request_template_report(
+    *,
+    mode: str = DRY_RUN_MODE,
+    generated_at_utc: str = PHASE14C_SUPERVISED_SMOKE_TEMPLATE_DEFAULT_GENERATED_AT_UTC,
+) -> dict[str, Any]:
+    """Build a template-only smoke request report without authorizing execution."""
+
+    if mode not in ALLOWED_MODES:
+        raise ValueError("Phase 14-C request template mode must be dry_run or live_run.")
+
+    request = build_default_phase14c_supervised_smoke_request(
+        mode=mode,
+        controlled_test_recipient=PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT,
+        live_run_requested=False,
+        approval_reference=None,
+    )
+    validation = validate_phase14c_supervised_smoke_request(request)
+    return {
+        "schema_version": PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION,
+        "generated_at_utc": generated_at_utc,
+        "status": PHASE14C_SUPERVISED_SMOKE_TEMPLATE_STATUS,
+        "mode": mode,
+        "test_marker": PHASE14C_SUPERVISED_SMOKE_MARKER,
+        "template_only_not_authorization": True,
+        "ready_for_live_execution": False,
+        "request": request,
+        "operator_fill_required": _request_template_operator_fill_required(mode),
+        "validation_preview": _safe_request_template_validation_preview(validation),
+        "safety_assertions": _request_template_safety_assertions(),
     }
 
 
@@ -897,6 +969,73 @@ def _request_validation_safety_assertions() -> dict[str, bool]:
         "database_write": False,
         "file_write": False,
         "live_clients_initialized": False,
+    }
+
+
+def _request_template_safety_assertions() -> dict[str, bool]:
+    return {
+        "live_run_executed": False,
+        "external_mutation": False,
+        "real_todoist_task_created": False,
+        "real_calendar_event_created": False,
+        "real_gmail_email_created_or_sent": False,
+        "real_openclaw_invoked": False,
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "production_db_active": False,
+        "scheduler_activated": False,
+        "protected_paths_touched": False,
+        "database_write": False,
+        "file_write": False,
+        "live_clients_initialized": False,
+        "template_only_not_authorization": True,
+        "ready_for_live_execution": False,
+    }
+
+
+def _request_template_operator_fill_required(mode: str) -> list[str]:
+    required = [
+        "Confirm or replace the controlled/self test recipient before any live-readiness check.",
+        "Run request validation and live-readiness before any separate supervised live step.",
+    ]
+    if mode == LIVE_RUN_MODE:
+        required.extend(
+            [
+                "Set live_run_requested=true only after explicit current live-test initiation.",
+                "Add the current approval_reference only inside the separately initiated live-test step.",
+                "Confirm all required config entry names are present without reading credential values.",
+            ]
+        )
+    return required
+
+
+def _safe_request_template_validation_preview(
+    validation: SupervisedSmokeValidation,
+) -> dict[str, Any]:
+    normalized = validation.normalized_request
+    return {
+        "accepted": validation.accepted,
+        "status": validation.status,
+        "reason_count": len(validation.reasons),
+        "missing_config_entry_count": len(validation.missing_config_entry_names),
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "normalized_request_summary": (
+            {
+                "mode": normalized["mode"],
+                "test_marker_present": normalized["test_marker"]
+                == PHASE14C_SUPERVISED_SMOKE_MARKER,
+                "live_run_requested": normalized["live_run_requested"],
+                "rail_operation_counts": normalized["rail_operation_counts"],
+                "rails": _safe_normalized_rail_summary(normalized),
+                "boundaries_remain_false": {
+                    field: normalized["boundaries"].get(field) is False
+                    for field in BOUNDARY_FIELDS
+                },
+            }
+            if normalized is not None
+            else None
+        ),
     }
 
 

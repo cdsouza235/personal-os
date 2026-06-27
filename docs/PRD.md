@@ -69,8 +69,9 @@ Key changes from v0.1:
   output directory, redacted executor reports, a redacted request-validation
   CLI for one explicit safe JSON request file, a credential-name preflight CLI
   that reports missing required names without reading values, a live-readiness
-  CLI that composes those checks without execution, and tests. It does not run
-  the live smoke test.
+  CLI that composes those checks without execution, a request-template CLI
+  that prints one bounded template without authorization, and tests. It does
+  not run the live smoke test.
 - Records the long-run governance refinement that the completed bounded packet
   is the default PR/audit unit for safe inert repo-local work, human judgment
   conditions are explicit stop gates, and delegated repo-merge authority is
@@ -425,12 +426,13 @@ As of this post-merge validation update after PR #87:
   PR #85; redacted request validation is implemented as a repo-local CLI
   surface through PR #86; credential-name preflight is implemented as a
   repo-local CLI surface through PR #87; live-readiness reporting is
-  implemented as a repo-local CLI surface.
+  implemented as a repo-local CLI surface through PR #88; request-template
+  generation is prepared as a repo-local CLI surface.
 - Current/next phase: Phase 14-C supervised multi-rail smoke-test
-  request-validation/credential-preflight/live-readiness/dry-run/report-surface
-  review and future live-test decision. Todoist, Google Calendar, Gmail, and
-  OpenClaw are acceptable low-blast-radius supervised smoke-test rails inside
-  the bounded runbook in
+  request-template/request-validation/credential-preflight/live-readiness/
+  dry-run/report-surface review and future live-test decision. Todoist, Google
+  Calendar, Gmail, and OpenClaw are acceptable low-blast-radius supervised
+  smoke-test rails inside the bounded runbook in
   [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 - Phase 14-C supervised smoke test: prepared but not run; no real Todoist
   task, Calendar event, Gmail email, or OpenClaw invocation has been performed
@@ -456,8 +458,12 @@ As of this post-merge validation update after PR #87:
   approval references, present config names, and credential values; it always
   reports no execution in that CLI and performs no writes or live
   initialization.
-- Full test suite: 701 tests OK
-- ResourceWarning-sensitive suite: 701 tests OK
+- Phase 14-C request-template CLI: one bounded request template is printed to
+  stdout only; live-mode templates remain not authorized with
+  `live_run_requested=false` and `approval_reference=null`; no environment,
+  credential, DB, file, client, rail, or external write side effect occurs.
+- Full test suite: 705 tests OK
+- ResourceWarning-sensitive suite: 705 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -1377,13 +1383,15 @@ candidate-review context only.
 
 ### Current Recommended Phase
 
-Phase 14-C supervised smoke-test request-validation, credential-preflight,
-live-readiness, and report-surface review before a future live-test decision.
+Phase 14-C supervised smoke-test request-template, request-validation,
+credential-preflight, live-readiness, and report-surface review before a future
+live-test decision.
 
 Purpose:
 
 - run the bounded one-object-per-rail request through deterministic fake
   clients
+- print a bounded one-object-per-rail request template without authorization
 - validate one explicit safe JSON request file with a redacted stdout report
 - check required config entry names without reading credential values
 - compose request validation and credential-name preflight into a redacted
@@ -1395,8 +1403,9 @@ Purpose:
   guardrails before any live smoke-test initiation
 - keep dry-run, blocked, and live-completed executor reports redacted
 - preserve no live clients, credentials, production DB, scheduler activation,
-  file writes during request validation, credential preflight, or
-  live-readiness checks, external writes, or OpenClaw calls
+  file writes during request-template generation, request validation,
+  credential preflight, or live-readiness checks, external writes, or OpenClaw
+  calls
 
 ### Not Yet Started
 
@@ -1434,9 +1443,10 @@ V1 is acceptable only when:
 ## 29. Immediate Next Step
 
 The immediate repo-local step is Phase 14-C supervised smoke-test
-request-validation, credential-name preflight, live-readiness, and dry-run
-rehearsal review in
+request-template generation, request-validation, credential-name preflight,
+live-readiness, and dry-run rehearsal review in
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+The request-template surface prints one bounded template without authorization.
 The request-validation surface reads one explicit safe JSON request file and
 prints a redacted report. The credential preflight surface checks required
 environment/config entry names without reading values. The live-readiness
@@ -1487,8 +1497,8 @@ Last validated main baseline after PR #87:
 
 Current validated state:
 
-- Full suite: 701 tests OK
-- ResourceWarning-sensitive suite: 701 tests OK
+- Full suite: 705 tests OK
+- ResourceWarning-sensitive suite: 705 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1583,7 +1593,8 @@ Current validated state:
   redacted validation summaries. The request-validation CLI validates one
   explicit safe JSON request file with a redacted stdout report. The
   credential-preflight CLI checks required config entry names without reading
-  values. The live-readiness CLI composes those checks without execution. None
+  values. The live-readiness CLI composes those checks without execution. The
+  request-template CLI prints one bounded template without authorization. None
   of these surfaces performs the live smoke test.
 - The final non-human handoff adds only inert source/test/docs handoff-report
   coverage and keeps Phase 14-C, live services, credentials, testing, and

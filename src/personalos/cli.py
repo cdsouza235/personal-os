@@ -25,7 +25,10 @@ from personalos.path_safety import (
     validate_output_file_path,
 )
 from personalos.phase14c_supervised_smoke import (
+    ALLOWED_MODES,
+    DRY_RUN_MODE,
     build_phase14c_credential_preflight_report,
+    build_phase14c_supervised_smoke_request_template_report,
     build_phase14c_supervised_smoke_runbook,
     build_phase14c_supervised_smoke_request_validation_report,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
@@ -167,6 +170,17 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local runbook / no live clients",
         "local_effect": "no DB opened; no files written; no live clients initialized",
         "output": "stdout runbook JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C supervised smoke request template",
+        "safe_local_action": "Generate one bounded smoke request template without executing",
+        "command": (
+            "personalos phase14c supervised-smoke-request-template "
+            "[--mode dry_run|live_run] [--json]"
+        ),
+        "mode": "repo-local request template / no live clients / no execution",
+        "local_effect": "stdout only; no DB opened; no files written; no env read",
+        "output": "stdout request-template JSON or human summary",
     },
     {
         "name": "Phase 14-C supervised smoke dry-run rehearsal",
@@ -337,6 +351,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_json_arg(phase14c_smoke_parser)
     phase14c_smoke_parser.set_defaults(func=_command_phase14c_supervised_smoke_runbook)
+
+    phase14c_template_parser = phase14c_subparsers.add_parser(
+        "supervised-smoke-request-template",
+        help="Print a Phase 14-C supervised smoke-test request template.",
+        description=(
+            "Print the guarded one-object-per-rail Phase 14-C supervised smoke-test "
+            "request template. This command does not read environment variables, load "
+            "credentials, open a DB, initialize live clients, write files, write "
+            "Todoist, write Calendar, create or send Gmail, or invoke OpenClaw. "
+            "A live_run mode template is not live authorization and still requires "
+            "separate explicit initiation before execution."
+        ),
+    )
+    phase14c_template_parser.add_argument(
+        "--mode",
+        choices=ALLOWED_MODES,
+        default=DRY_RUN_MODE,
+    )
+    _add_json_arg(phase14c_template_parser)
+    phase14c_template_parser.set_defaults(
+        func=_command_phase14c_supervised_smoke_request_template
+    )
 
     phase14c_dry_run_parser = phase14c_subparsers.add_parser(
         "supervised-smoke-dry-run",
@@ -774,6 +810,44 @@ def _command_phase14c_supervised_smoke_runbook(args: argparse.Namespace) -> int:
         safe_next_actions=(
             "Review the one-object-per-rail guardrails before any live test.",
             "Live execution still requires a separate explicit supervised smoke-test initiation.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_supervised_smoke_request_template(
+    args: argparse.Namespace,
+) -> int:
+    template_report = build_phase14c_supervised_smoke_request_template_report(
+        mode=args.mode,
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c supervised-smoke-request-template",
+            "status": "request_template_generated_not_authorized",
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_environment_read": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "template_report": template_report,
+        },
+        workflow_name="Phase 14-C supervised smoke request template",
+        workflow_mode="repo-local request template / no live clients / no execution",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the template request.",
+            "Replace placeholder recipient values only inside a controlled test request.",
+            "Run request validation and live-readiness before any separate live step.",
         ),
     )
     _emit_report(report, json_output=args.json)

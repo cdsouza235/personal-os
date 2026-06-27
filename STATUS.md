@@ -6,10 +6,9 @@ Last updated: 2026-06-27
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #87:
-  `9ac7d8bd9f42f8e144ac2185fc55cf7e44b86bc8`
-- Latest merged PR at that baseline: PR #87, Phase 14-C credential preflight
-  CLI
+- Last validated main baseline after PR #88:
+  `ec8ac10126fd8202f4652ca7c889488f3c8ccc99`
+- Latest merged PR at that baseline: PR #88, Phase 14-C live-readiness CLI
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -55,7 +54,8 @@ Last updated: 2026-06-27
   credential-preflight CLI checks required environment/config entry names
   without reading values and reports missing required names only; the Phase
   14-C live-readiness CLI composes request validation and credential-name
-  preflight without executing live rails
+  preflight without executing live rails; the Phase 14-C request-template CLI
+  prints one bounded request template without live authorization or execution
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -92,12 +92,13 @@ Last updated: 2026-06-27
   alignment, plus Phase 14-C supervised smoke-test request validation with
   redacted stdout reports, plus Phase 14-C supervised smoke-test
   credential-name preflight with missing-name-only reports, plus Phase 14-C
-  supervised smoke-test live-readiness reports with no execution
+  supervised smoke-test live-readiness reports with no execution, plus Phase
+  14-C supervised smoke-test request-template reports with no authorization
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
-  request-validation/credential-preflight/live-readiness/dry-run/report-surface
-  review and future live-test decision. Todoist, Google Calendar, Gmail, and
-  OpenClaw are acceptable low-blast-radius supervised smoke-test rails inside
-  the bounded runbook in
+  request-template/request-validation/credential-preflight/live-readiness/
+  dry-run/report-surface review and future live-test decision. Todoist, Google
+  Calendar, Gmail, and OpenClaw are acceptable low-blast-radius supervised
+  smoke-test rails inside the bounded runbook in
   [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 - Phase 14-C supervised smoke test: prepared but not run; no real Todoist
   task, Calendar event, Gmail email, or OpenClaw invocation has been performed
@@ -123,11 +124,16 @@ Last updated: 2026-06-27
   prerequisites for a separate supervised live step, omits raw recipients,
   approval references, present config names, and credential values, and always
   reports no live execution in that CLI.
+- Phase 14-C request-template CLI: prints a one-object-per-rail request
+  template to stdout only, keeps live-mode templates not authorized
+  (`live_run_requested=false`, `approval_reference=null`), does not read
+  environment variables or credential values, and performs no DB/file/live
+  client/external writes.
 
 ## Validated State
 
-- Full suite: 701 tests OK
-- ResourceWarning-sensitive suite: 701 tests OK
+- Full suite: 705 tests OK
+- ResourceWarning-sensitive suite: 705 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -137,7 +143,7 @@ Last updated: 2026-06-27
 - Targeted Phase 14-C supervised smoke-test suite: 21 tests OK
 - Targeted Phase 14-C supervised smoke-test docs suite: 4 tests OK
 - Targeted Phase 14-C supervised smoke request-validation/credential-preflight/
-  live-readiness/dry-run source/docs/CLI suite: 74 tests OK
+  live-readiness/request-template/dry-run source/docs/CLI suite: 78 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK
 - Targeted non-human closure plan suite: 11 tests OK
@@ -170,6 +176,10 @@ Last updated: 2026-06-27
   name, credential value, or raw `normalized_request` echo; no live clients, no
   credential loading, no DB, no file writes, no OpenClaw runtime call, and no
   external mutation
+- Phase 14-C request-template CLI: dry-run and live-run template paths are
+  covered with `template_only_not_authorization=true`,
+  `ready_for_live_execution=false`, no environment read, no credential loading,
+  no DB, no file writes, no OpenClaw runtime call, and no external mutation
 - PR #33 post-merge read-only CLI validation: passed
 - Phase 13E-D demo command: completed on merged `main`
 - Phase 13E-D demo evidence bundle: generated under a safe temporary output
@@ -321,7 +331,10 @@ Last updated: 2026-06-27
 - PR #87 Phase 14-C credential preflight CLI: merged
 - PR #87 Claude Code audit: Pass
 - PR #87 post-merge validation: passed
-- Phase 14-C supervised smoke live-readiness CLI: source/docs prep
+- PR #88 Phase 14-C live-readiness CLI: merged
+- PR #88 Claude Code audit: Pass
+- PR #88 post-merge validation: passed
+- Phase 14-C supervised smoke request-template CLI: source/docs prep
   validated
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
@@ -675,6 +688,12 @@ production runtime state.
   environment-name preflight in a redacted report; reports no live execution and
   does not execute live clients, load credentials, open a DB, write files,
   invoke OpenClaw, or perform external mutation.
+- PR #88: Add Phase 14-C live-readiness CLI. It composes request validation
+  and credential-name preflight without execution and reports no live
+  readiness inside that CLI.
+- Phase 14-C request-template CLI: prints a bounded one-object-per-rail request
+  template without reading environment variables, loading credentials,
+  initializing clients, writing files, or authorizing live execution.
 
 ## Known Gaps
 

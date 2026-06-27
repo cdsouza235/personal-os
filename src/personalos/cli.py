@@ -25,6 +25,7 @@ from personalos.path_safety import (
 )
 from personalos.phase14c_supervised_smoke import (
     build_phase14c_supervised_smoke_runbook,
+    build_phase14c_supervised_smoke_request_validation_report,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
 )
 from personalos.pre_live_readiness import create_default_pre_live_readiness_report
@@ -179,6 +180,17 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         ),
         "output": "stdout completion JSON or human summary plus evidence bundle files",
     },
+    {
+        "name": "Phase 14-C supervised smoke request validation",
+        "safe_local_action": "Validate one supervised smoke request file",
+        "command": (
+            "personalos phase14c supervised-smoke-validate "
+            "--input-file <safe_request_json> [--json]"
+        ),
+        "mode": "repo-local validation / redacted report / no live clients",
+        "local_effect": "reads one explicit safe JSON file; no DB opened; no files written",
+        "output": "stdout redacted validation JSON or human summary",
+    },
 )
 
 
@@ -321,6 +333,22 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_dry_run_parser)
     phase14c_dry_run_parser.set_defaults(
         func=_command_phase14c_supervised_smoke_dry_run
+    )
+
+    phase14c_validate_parser = phase14c_subparsers.add_parser(
+        "supervised-smoke-validate",
+        help="Validate one Phase 14-C supervised smoke-test request JSON file.",
+        description=(
+            "Validate one guarded Phase 14-C supervised multi-rail smoke-test request "
+            "from an explicit safe JSON file and print a redacted report. This command "
+            "does not load credentials, open a DB, initialize live clients, write "
+            "Todoist, write Calendar, create or send Gmail, or invoke OpenClaw."
+        ),
+    )
+    phase14c_validate_parser.add_argument("--input-file", required=True)
+    _add_json_arg(phase14c_validate_parser)
+    phase14c_validate_parser.set_defaults(
+        func=_command_phase14c_supervised_smoke_validate
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -731,6 +759,45 @@ def _command_phase14c_supervised_smoke_dry_run(args: argparse.Namespace) -> int:
     )
     _emit_report(report, json_output=args.json)
     return 0 if status == "dry_run_rehearsal_completed" else 1
+
+
+def _command_phase14c_supervised_smoke_validate(args: argparse.Namespace) -> int:
+    input_path = validate_existing_input_file_path(
+        args.input_file,
+        path_label="phase14c smoke input_file",
+    )
+    request = _load_json_object(input_path)
+    validation_report = build_phase14c_supervised_smoke_request_validation_report(
+        request
+    )
+    accepted = validation_report["accepted"] is True
+    report = _with_workflow_context(
+        {
+            "command": "phase14c supervised-smoke-validate",
+            "status": "accepted" if accepted else "blocked",
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "input_file": str(input_path),
+            "validation_report": validation_report,
+        },
+        workflow_name="Phase 14-C supervised smoke request validation",
+        workflow_mode="repo-local validation / redacted report / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the redacted validation report.",
+            "Live execution still requires a separate explicit supervised smoke-test initiation.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if accepted else 1
 
 
 def _command_briefing_preview(args: argparse.Namespace) -> int:

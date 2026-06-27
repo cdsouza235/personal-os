@@ -14,6 +14,7 @@ Source contract:
 - `build_phase14c_supervised_smoke_runbook`
 - `build_default_phase14c_supervised_smoke_request`
 - `build_phase14c_credential_preflight_report`
+- `build_phase14c_supervised_smoke_request_validation_report`
 - `validate_phase14c_supervised_smoke_request`
 - `execute_phase14c_supervised_smoke_request`
 - `run_phase14c_supervised_smoke_dry_run_rehearsal`
@@ -28,6 +29,21 @@ That CLI command is a runbook/status surface only. It does not load
 credentials, open a database, initialize live clients, create Todoist tasks,
 create Calendar events, create or send Gmail, invoke OpenClaw, or perform
 external writes. In short, it does not initialize live clients.
+
+Request validation:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c supervised-smoke-validate --input-file <safe_request_json> --json
+```
+
+That CLI command reads one explicit safe JSON request file and prints a
+redacted validation report. It does not load credentials, open a database,
+initialize live clients, create Todoist tasks, create Calendar events, create
+or send Gmail, invoke OpenClaw, write files, or perform external writes. The
+validation output includes counts, booleans, guardrail status, and missing
+config entry names only; it must not include raw `normalized_request`, raw
+controlled test recipients, credential values, OAuth material, or authorization
+material.
 
 Dry-run rehearsal:
 
@@ -93,6 +109,7 @@ are allowed only inside this bounded manually supervised test envelope.
 Dry-run validation may:
 
 - Build and validate the one-object-per-rail smoke request.
+- Validate one explicit safe JSON request file with a redacted stdout report.
 - Check that required environment/config entry names are present.
 - Report missing environment/config entry names.
 - Produce a runbook or validation report.
@@ -113,6 +130,8 @@ Dry-run validation must not:
 - Perform external writes.
 - Write inside the repository, protected paths, credential-looking paths,
   scheduler-looking paths, production-looking paths, or non-temp output paths.
+- Read request input files from protected, credential-looking,
+  production-looking, or unsafe paths.
 
 ## Live-Run Boundary
 
@@ -208,6 +227,9 @@ This packet does not:
   request values.
 - Executor dry-run, blocked, and live-completed reports do not include raw
   `normalized_request` payloads or raw controlled test recipients.
+- The request-validation CLI reads one safe JSON file, prints only a redacted
+  validation report, blocks invalid requests without echoing unsafe values, and
+  rejects credential-looking input paths.
 - Dry-run rehearsal fake clients report no network calls, no credential reads,
   and no external mutation.
 - Dry-run rehearsal output directories must be fresh, temp-only, and outside
@@ -260,5 +282,5 @@ Repo prep keeps:
 - `live_rails_activated=false`
 
 That status means the repo has prepared a guarded supervised smoke-test path
-and a fake-client dry-run rehearsal surface but has not run the live smoke test
-yet.
+plus redacted request-validation and fake-client dry-run rehearsal surfaces but
+has not run the live smoke test yet.

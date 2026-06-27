@@ -126,7 +126,8 @@ controlled/self recipient, and one OpenClaw local/test/sandbox invocation.
 The repo prep adds guardrails, credential-name-only preflight, an
 injected-client execution path, CLI runbook discovery, a fake-client dry-run
 rehearsal that writes redacted artifacts under an explicit safe temp output
-directory, and tests; it does not run the live smoke test.
+directory, redacted executor report validation summaries, and tests; it does
+not run the live smoke test.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -386,8 +387,9 @@ Future Phase 14 should be structured as:
   rails only inside the bounded runbook, enforces one marked object/invocation
   per rail plus credential-name-only preflight and no scheduler/production
   DB/dynamic cleaning/bulk/protected path/broad OpenClaw scope, writes only
-  redacted dry-run artifacts under an explicit safe temp output directory, and
-  does not run the live smoke test.
+  redacted dry-run artifacts under an explicit safe temp output directory,
+  keeps executor dry-run/blocked/live-completed validation reports redacted,
+  and does not run the live smoke test.
 
 ## Historical Boundary Reference
 

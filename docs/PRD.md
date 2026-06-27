@@ -22,10 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #83:
-    `c97edaac193160c79daac730659c1fd00b44d842`
-  - latest merged PR: PR #83, Phase 14-C supervised multi-rail smoke-test
-    preparation
+  - last validated main baseline after PR #84:
+    `d5020dfe3c81a77ae51f0ccef5a21814fb530f69`
+  - latest merged PR: PR #84, Phase 14-C smoke dry-run rehearsal
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -67,7 +66,8 @@ Key changes from v0.1:
   The repo prep adds guardrails, credential-name-only preflight, an
   injected-client execution path, CLI runbook discovery, a fake-client dry-run
   rehearsal that writes redacted artifacts only under an explicit safe temp
-  output directory, and tests. It does not run the live smoke test.
+  output directory, redacted executor reports, and tests. It does not run the
+  live smoke test.
 - Records the long-run governance refinement that the completed bounded packet
   is the default PR/audit unit for safe inert repo-local work, human judgment
   conditions are explicit stop gates, and delegated repo-merge authority is
@@ -345,12 +345,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #83:
+As of this post-merge validation update after PR #84:
 
-- Last validated main baseline after PR #83:
-  `c97edaac193160c79daac730659c1fd00b44d842`
-- Latest merged PR: PR #83, Phase 14-C supervised multi-rail smoke-test
-  preparation
+- Last validated main baseline after PR #84:
+  `d5020dfe3c81a77ae51f0ccef5a21814fb530f69`
+- Latest merged PR: PR #84, Phase 14-C smoke dry-run rehearsal
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -387,27 +386,38 @@ As of this post-merge validation update after PR #83:
 - PR #79 Claude Code audit: Pass
 - PR #80 Claude Code audit: Pass
 - PR #81 Claude Code audit: Pass
+- PR #83 Claude Code audit: Pass
+- PR #84 Claude Code audit: Pass with notes; no required fixes
 - PR #83 audited head merged:
   `58a79f525b17d4f5153c9ccfacbaabda8070f547`
 - PR #83 merge commit:
   `c97edaac193160c79daac730659c1fd00b44d842`
+- PR #84 audited head merged:
+  `725f738338645d3f6963482300f06d2d5921ee53`
+- PR #84 merge commit:
+  `d5020dfe3c81a77ae51f0ccef5a21814fb530f69`
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
   codified in repo docs; Phase 14-C candidate decision-support docs are merged
   on `main`; the final non-human handoff is merged and status-refreshed
   through PR #82; Phase 14-C supervised multi-rail smoke-test preparation is
-  merged through PR #83.
-- Current/next phase: Phase 14-C supervised multi-rail smoke-test preparation.
-  Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
-  low-blast-radius supervised smoke-test rails inside the bounded runbook in
+  merged through PR #83; Phase 14-C supervised smoke dry-run rehearsal is
+  merged through PR #84; executor report redaction alignment is implemented.
+- Current/next phase: Phase 14-C supervised multi-rail smoke-test
+  dry-run/report-surface review and future live-test decision. Todoist, Google
+  Calendar, Gmail, and OpenClaw are acceptable low-blast-radius supervised
+  smoke-test rails inside the bounded runbook in
   [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 - Phase 14-C supervised smoke test: prepared but not run; no real Todoist
   task, Calendar event, Gmail email, or OpenClaw invocation has been performed
   by repo prep.
 - Phase 14-C dry-run rehearsal: repo-local fake-client rehearsal surface is
-  being added for redacted safe-temp artifacts; it does not initialize live
+  implemented for redacted safe-temp artifacts; it does not initialize live
   clients or perform live actions.
+- Phase 14-C executor reports: dry-run, blocked, and live-completed report
+  validation payloads are redacted and do not include raw normalized requests
+  or raw controlled test recipients.
 - Full test suite: 686 tests OK
 - ResourceWarning-sensitive suite: 686 tests OK
 - Hygiene clean
@@ -1329,7 +1339,8 @@ candidate-review context only.
 
 ### Current Recommended Phase
 
-Phase 14-C supervised smoke-test dry-run rehearsal.
+Phase 14-C supervised smoke-test report-surface review and future live-test
+decision.
 
 Purpose:
 
@@ -1340,6 +1351,7 @@ Purpose:
   safe temp output directory
 - preserve the Todoist, Google Calendar, Gmail, and OpenClaw one-operation
   guardrails before any live smoke-test initiation
+- keep dry-run, blocked, and live-completed executor reports redacted
 - preserve no live clients, credentials, production DB, scheduler activation,
   external writes, or OpenClaw calls
 
@@ -1421,9 +1433,9 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #83:
+Last validated main baseline after PR #84:
 
-`c97edaac193160c79daac730659c1fd00b44d842`
+`d5020dfe3c81a77ae51f0ccef5a21814fb530f69`
 
 Current validated state:
 
@@ -1510,12 +1522,14 @@ Current validated state:
 - PR #81 final non-human handoff is merged
 - PR #82 final handoff status refresh is merged
 - PR #83 Phase 14-C supervised multi-rail smoke-test prep is merged
+- PR #84 Phase 14-C smoke dry-run rehearsal is merged
 - Phase 14-C supervised smoke-test prep adds
   [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md),
   guarded source/tests, credential-name-only preflight, an injected-client
   execution path, a read-only CLI runbook surface, and a fake-client dry-run
   rehearsal surface with redacted artifacts under an explicit safe temp output
-  directory. It does not perform the live smoke test.
+  directory. Executor dry-run, blocked, and live-completed reports use
+  redacted validation summaries. It does not perform the live smoke test.
 - The final non-human handoff adds only inert source/test/docs handoff-report
   coverage and keeps Phase 14-C, live services, credentials, testing, and
   go/no-go launch approval blocked by separate human gates.

@@ -28,6 +28,9 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "fake_client_results.json",
             "completion_report.json",
             "summary.md",
+            "executor reports",
+            "must not include a raw `normalized_request` payload",
+            "direct in-memory validation may still retain normalized data",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

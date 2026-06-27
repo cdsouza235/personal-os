@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-06-26
+Last updated: 2026-06-27
 
 [../STATUS.md](../STATUS.md) is the canonical current phase snapshot. This
 roadmap records phase history and near-term sequencing; it should not be the
@@ -124,8 +124,9 @@ rails inside a bounded, manually initiated test: at most one marked Todoist
 task, one marked Calendar event, one marked Gmail test email to a
 controlled/self recipient, and one OpenClaw local/test/sandbox invocation.
 The repo prep adds guardrails, credential-name-only preflight, an
-injected-client execution path, CLI runbook discovery, and tests; it does not
-run the live smoke test.
+injected-client execution path, CLI runbook discovery, a fake-client dry-run
+rehearsal that writes redacted artifacts under an explicit safe temp output
+directory, and tests; it does not run the live smoke test.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -379,12 +380,14 @@ Future Phase 14 should be structured as:
   fields, validation payload type drift, missing payload surfaces, and
   preflight checklist type drift.
 - Phase 14-C supervised multi-rail smoke-test preparation: guarded
-  source/test/docs/CLI runbook for one future manually initiated smoke test
-  across Todoist, Google Calendar, Gmail, and OpenClaw. It allows those rails
-  as low-blast-radius supervised smoke rails only inside the bounded runbook,
-  enforces one marked object/invocation per rail plus credential-name-only
-  preflight and no scheduler/production DB/dynamic cleaning/bulk/protected
-  path/broad OpenClaw scope, and does not run the live smoke test.
+  source/test/docs/CLI runbook and fake-client dry-run rehearsal for one
+  future manually initiated smoke test across Todoist, Google Calendar, Gmail,
+  and OpenClaw. It allows those rails as low-blast-radius supervised smoke
+  rails only inside the bounded runbook, enforces one marked object/invocation
+  per rail plus credential-name-only preflight and no scheduler/production
+  DB/dynamic cleaning/bulk/protected path/broad OpenClaw scope, writes only
+  redacted dry-run artifacts under an explicit safe temp output directory, and
+  does not run the live smoke test.
 
 ## Historical Boundary Reference
 

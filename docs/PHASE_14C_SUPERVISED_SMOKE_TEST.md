@@ -16,6 +16,7 @@ Source contract:
 - `build_phase14c_credential_preflight_report`
 - `validate_phase14c_supervised_smoke_request`
 - `execute_phase14c_supervised_smoke_request`
+- `run_phase14c_supervised_smoke_dry_run_rehearsal`
 
 CLI discovery:
 
@@ -27,6 +28,34 @@ That CLI command is a runbook/status surface only. It does not load
 credentials, open a database, initialize live clients, create Todoist tasks,
 create Calendar events, create or send Gmail, invoke OpenClaw, or perform
 external writes. In short, it does not initialize live clients.
+
+Dry-run rehearsal:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c supervised-smoke-dry-run --output-dir <safe_temp_output_dir> --json
+```
+
+That CLI command runs a fake-client dry-run rehearsal only. It validates the
+default one-object-per-rail request, calls deterministic repo-local fake
+clients, and writes a redacted evidence bundle only under the explicit safe
+temp output directory. It does not load credentials, open a database,
+initialize live clients, create Todoist tasks, create Calendar events, create
+or send Gmail, invoke OpenClaw, or perform external writes.
+
+Dry-run rehearsal artifacts:
+
+- `request.json`
+- `validation.json`
+- `fake_client_results.json`
+- `completion_report.json`
+- `summary.md`
+
+The `request.json` artifact is sanitized. It records marker presence, counts,
+booleans, allowed modes, and boundary status rather than raw invalid request
+values. Rehearsal artifacts must report `live_run_executed=false`,
+`external_mutation=false`, credential values not read or logged, no production
+DB, no scheduler activation, no protected paths touched, and writes only to
+the explicit output directory.
 
 ## Test Marker
 
@@ -61,7 +90,9 @@ Dry-run validation may:
 - Check that required environment/config entry names are present.
 - Report missing environment/config entry names.
 - Produce a runbook or validation report.
-- Use fake or injected test clients in unit tests.
+- Use deterministic fake clients in the dry-run rehearsal.
+- Write redacted dry-run rehearsal artifacts only under an explicit safe temp
+  output directory.
 
 Dry-run validation must not:
 
@@ -74,6 +105,8 @@ Dry-run validation must not:
 - Activate production DB.
 - Touch protected paths.
 - Perform external writes.
+- Write inside the repository, protected paths, credential-looking paths,
+  scheduler-looking paths, production-looking paths, or non-temp output paths.
 
 ## Live-Run Boundary
 
@@ -162,6 +195,15 @@ This packet does not:
   assertions.
 - The default dry-run request validates without credentials and does not call
   clients.
+- The dry-run rehearsal writes `request.json`, `validation.json`,
+  `fake_client_results.json`, `completion_report.json`, and `summary.md` only
+  under an explicit safe temp output directory.
+- Dry-run rehearsal artifacts are redacted and do not echo unsafe blocked
+  request values.
+- Dry-run rehearsal fake clients report no network calls, no credential reads,
+  and no external mutation.
+- Dry-run rehearsal output directories must be fresh, temp-only, and outside
+  the repository.
 - Credential preflight reports missing names only and does not echo secret
   values.
 - Live-run validation requires explicit request approval, approval reference,
@@ -210,4 +252,5 @@ Repo prep keeps:
 - `live_rails_activated=false`
 
 That status means the repo has prepared a guarded supervised smoke-test path
-but has not run the live smoke test yet.
+and a fake-client dry-run rehearsal surface but has not run the live smoke test
+yet.

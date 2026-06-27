@@ -360,6 +360,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "side-effect/idempotency ledger inspection",
             "simulated scheduler preview",
             "Phase 14-C supervised smoke-test runbook",
+            "Phase 14-C supervised smoke dry-run rehearsal",
         ):
             with self.subTest(workflow_name=workflow_name):
                 self.assertIn(f"- {workflow_name}", result.stdout)
@@ -398,6 +399,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("ChatGPT synthesis import preview", workflow_names)
         self.assertIn("simulated scheduler preview", workflow_names)
         self.assertIn("Phase 14-C supervised smoke-test runbook", workflow_names)
+        self.assertIn("Phase 14-C supervised smoke dry-run rehearsal", workflow_names)
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
 
@@ -421,6 +423,92 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(runbook["repo_prep_safety"]["gmail_email_created_or_sent"])
         self.assertFalse(runbook["repo_prep_safety"]["openclaw_invoked"])
         self.assertFalse(runbook["repo_prep_safety"]["credential_values_read"])
+
+    def test_phase14c_supervised_smoke_dry_run_command_writes_safe_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "phase14c-smoke-dry-run"
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "supervised-smoke-dry-run",
+                    "--output-dir",
+                    str(output_dir),
+                    "--json",
+                ]
+            )
+
+            payload = json.loads(result.stdout)
+            completion = payload["completion_report"]
+            self.assertEqual(result.code, 0)
+            self.assertEqual(payload["command"], "phase14c supervised-smoke-dry-run")
+            self.assertEqual(
+                payload["workflow_mode"],
+                "repo-local dry-run / fake clients / no live clients",
+            )
+            self.assertEqual(payload["status"], "completed")
+            self.assertFalse(payload["database_write"])
+            self.assertFalse(payload["external_mutation"])
+            self.assertTrue(payload["file_write"])
+            self.assertTrue(payload["no_external_writes"])
+            self.assertTrue(payload["no_credentials_loaded"])
+            self.assertTrue(payload["no_live_clients_initialized"])
+            self.assertTrue(payload["no_live_rails_activated"])
+            self.assertTrue(payload["fake_clients_used"])
+            self.assertFalse(payload["live_clients_called"])
+            self.assertFalse(payload["local_sqlite_read"])
+            self.assertFalse(payload["local_sqlite_changed"])
+            self.assertEqual(payload["credentials"], "not_loaded")
+            self.assertFalse(payload["production_db_active"])
+            self.assertEqual(payload["database_target"]["path"], None)
+            self.assertEqual(payload["output_target"]["kind"], "safe_temp_output_dir")
+            self.assertEqual(payload["output_dir"], str(output_dir.resolve(strict=False)))
+
+            self.assertEqual(completion["status"], "dry_run_rehearsal_completed")
+            self.assertTrue(completion["validation"]["accepted"])
+            self.assertNotIn("normalized_request", completion["validation"])
+            self.assertIn("normalized_request_summary", completion["validation"])
+            self.assertTrue(
+                all(
+                    completion["validation"]["normalized_request_summary"][
+                        "boundaries_remain_false"
+                    ].values()
+                )
+            )
+            self.assertFalse(completion["safety_assertions"]["live_run_executed"])
+            self.assertFalse(completion["safety_assertions"]["external_mutation"])
+            self.assertFalse(completion["safety_assertions"]["credential_values_read"])
+            self.assertFalse(completion["safety_assertions"]["production_db_active"])
+            self.assertFalse(completion["safety_assertions"]["scheduler_activated"])
+            self.assertTrue(completion["safety_assertions"]["writes_only_output_dir"])
+            for rail in ("todoist", "google_calendar", "gmail", "openclaw"):
+                fake_result = completion["fake_client_results"][rail]
+                self.assertFalse(fake_result["network_called"])
+                self.assertFalse(fake_result["credentials_read"])
+                self.assertFalse(fake_result["external_mutation"])
+
+            for path in payload["artifact_paths"].values():
+                self.assertTrue(Path(path).is_file(), path)
+                self.assertNotIn(
+                    "self.phase14c.test@example.test",
+                    Path(path).read_text(encoding="utf-8"),
+                )
+            self.assertNotIn("self.phase14c.test@example.test", result.stdout)
+
+    def test_phase14c_supervised_smoke_dry_run_rejects_repo_output_dir(self) -> None:
+        result = _run_cli(
+            [
+                "phase14c",
+                "supervised-smoke-dry-run",
+                "--output-dir",
+                str(REPO_ROOT / "phase14c-smoke-output"),
+                "--json",
+            ]
+        )
+
+        self.assertEqual(result.code, 1)
+        self.assertIn("error:", result.stderr)
+        self.assertIn("must not be inside the repository", result.stderr)
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

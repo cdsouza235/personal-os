@@ -164,7 +164,9 @@ exist. It must not print, inspect, copy, commit, log, or summarize
 credential/token values.
 
 Repo prep for the smoke test does not run the live smoke test. The live-test
-step remains separate and manually initiated.
+step remains separate and manually initiated. Repo-local dry-run rehearsal may
+use deterministic fake clients and write redacted artifacts only under an
+explicit safe temp output directory.
 
 ## Phase 13E-D / 13G Boundary
 

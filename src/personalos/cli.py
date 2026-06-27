@@ -25,6 +25,7 @@ from personalos.path_safety import (
 )
 from personalos.phase14c_supervised_smoke import (
     build_phase14c_supervised_smoke_runbook,
+    run_phase14c_supervised_smoke_dry_run_rehearsal,
 )
 from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
@@ -164,6 +165,20 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "local_effect": "no DB opened; no files written; no live clients initialized",
         "output": "stdout runbook JSON or human summary",
     },
+    {
+        "name": "Phase 14-C supervised smoke dry-run rehearsal",
+        "safe_local_action": "Run fake-client supervised smoke rehearsal",
+        "command": (
+            "personalos phase14c supervised-smoke-dry-run "
+            "--output-dir <safe_temp_output_dir> [--json]"
+        ),
+        "mode": "repo-local dry-run / fake clients / no live clients",
+        "local_effect": (
+            "writes redacted request, validation, fake-client, completion, and summary "
+            "artifacts only under the explicit safe temp output directory"
+        ),
+        "output": "stdout completion JSON or human summary plus evidence bundle files",
+    },
 )
 
 
@@ -289,6 +304,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_json_arg(phase14c_smoke_parser)
     phase14c_smoke_parser.set_defaults(func=_command_phase14c_supervised_smoke_runbook)
+
+    phase14c_dry_run_parser = phase14c_subparsers.add_parser(
+        "supervised-smoke-dry-run",
+        help=(
+            "Run the Phase 14-C supervised smoke-test fake-client dry-run rehearsal."
+        ),
+        description=(
+            "Run the guarded Phase 14-C supervised multi-rail smoke-test rehearsal "
+            "through fake local clients. Artifacts are written only under --output-dir. "
+            "This command does not load credentials, open a DB, initialize live clients, "
+            "write Todoist, write Calendar, create or send Gmail, or invoke OpenClaw."
+        ),
+    )
+    phase14c_dry_run_parser.add_argument("--output-dir", required=True)
+    _add_json_arg(phase14c_dry_run_parser)
+    phase14c_dry_run_parser.set_defaults(
+        func=_command_phase14c_supervised_smoke_dry_run
+    )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
     briefing_subparsers = briefing_parser.add_subparsers(dest="briefing_command", required=True)
@@ -662,6 +695,42 @@ def _command_phase14c_supervised_smoke_runbook(args: argparse.Namespace) -> int:
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _command_phase14c_supervised_smoke_dry_run(args: argparse.Namespace) -> int:
+    result = run_phase14c_supervised_smoke_dry_run_rehearsal(args.output_dir)
+    status = result.completion_report["status"]
+    report = _with_workflow_context(
+        {
+            "command": "phase14c supervised-smoke-dry-run",
+            "status": "completed" if status == "dry_run_rehearsal_completed" else status,
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": True,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "fake_clients_used": True,
+            "live_clients_called": False,
+            "output_dir": result.output_dir,
+            "artifact_paths": result.artifact_paths,
+            "completion_report": result.completion_report,
+        },
+        workflow_name="Phase 14-C supervised smoke dry-run rehearsal",
+        workflow_mode="repo-local dry-run / fake clients / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="safe_temp_output_dir",
+        output_file=result.output_dir,
+        safe_next_actions=(
+            "Review the dry-run artifacts and guardrail validation.",
+            "Live execution still requires a separate explicit supervised smoke-test initiation.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if status == "dry_run_rehearsal_completed" else 1
 
 
 def _command_briefing_preview(args: argparse.Namespace) -> int:

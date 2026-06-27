@@ -22,9 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #81:
-    `cba2f2adaf2c459eb72207e4449dc927efcb3955`
-  - latest merged PR: PR #81, final non-human handoff
+  - last validated main baseline after PR #82:
+    `7290c6649fe333ca4e7cdc3214b9a4683f2000bc`
+  - latest merged PR: PR #82, final non-human handoff status refresh
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -59,6 +59,13 @@ Key changes from v0.1:
   nested payloads under known fillable fields, dynamic cleaning flags,
   Watch Tower flags, `.agent/`, `CLAUDE.md`, and runtime/operator scaffolding
   flags. It does not record a decision or authorize live work.
+- Records the Phase 14-C supervised multi-rail smoke-test runbook as the next
+  bounded integration-learning step. Todoist, Google Calendar, Gmail, and
+  OpenClaw are acceptable low-blast-radius supervised smoke-test rails inside
+  [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+  The repo prep adds guardrails, credential-name-only preflight, an
+  injected-client execution path, CLI runbook discovery, and tests; it does
+  not run the live smoke test.
 - Records the long-run governance refinement that the completed bounded packet
   is the default PR/audit unit for safe inert repo-local work, human judgment
   conditions are explicit stop gates, and delegated repo-merge authority is
@@ -336,11 +343,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #81:
+As of this post-merge validation update after PR #82:
 
-- Last validated main baseline after PR #81:
-  `cba2f2adaf2c459eb72207e4449dc927efcb3955`
-- Latest merged PR: PR #81, final non-human handoff
+- Last validated main baseline after PR #82:
+  `7290c6649fe333ca4e7cdc3214b9a4683f2000bc`
+- Latest merged PR: PR #82, final non-human handoff status refresh
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -377,26 +384,30 @@ As of this post-merge validation update after PR #81:
 - PR #79 Claude Code audit: Pass
 - PR #80 Claude Code audit: Pass
 - PR #81 Claude Code audit: Pass
+- PR #82 audited head merged:
+  `9b7e5c21cdb1d958da8b5eaa5d406cd612e3c36a`
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
   codified in repo docs; Phase 14-C candidate decision-support docs are merged
-  on `main`
-- Current/next phase: candidate-selection process prepared; one future
-  Todoist candidate is recorded for candidate-review tracking only; the
-  Phase 14-C candidate decision gate records future approval requirements;
-  Phase 14-C live pilot remains blocked pending explicit candidate approval
-  and live authorization
-- Phase 14 live pilot: not started; no pilot authorized or run
-- Full test suite: 666 tests OK
-- ResourceWarning-sensitive suite: 666 tests OK
+  on `main`; the final non-human handoff is merged and status-refreshed
+  through PR #82.
+- Current/next phase: Phase 14-C supervised multi-rail smoke-test preparation.
+  Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
+  low-blast-radius supervised smoke-test rails inside the bounded runbook in
+  [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+- Phase 14-C supervised smoke test: prepared but not run; no real Todoist
+  task, Calendar event, Gmail email, or OpenClaw invocation has been performed
+  by repo prep.
+- Full test suite: 686 tests OK
+- ResourceWarning-sensitive suite: 686 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
 - Readiness reports `not_ready`
 - `inert_report_only=true`
 - `live_rails_activated=false`
-- All live rails disabled
+- Live smoke rails not activated during repo prep
 - No credentials loaded/read
 - No production DB active
 - No scheduler active
@@ -1277,7 +1288,8 @@ forensic bundle.
 
 ## 26. Phase 14 Dependency Inventory
 
-Do not start Phase 14-C live activation until these are designed and approved:
+Do not broaden beyond the bounded Phase 14-C supervised smoke-test runbook or
+start wider Phase 14-C live activation until these are designed and approved:
 
 - Production DB path/config, backup, restore test, integrity checks, migration
   policy.
@@ -1446,21 +1458,21 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #81:
+Last validated main baseline after PR #82:
 
-`cba2f2adaf2c459eb72207e4449dc927efcb3955`
+`7290c6649fe333ca4e7cdc3214b9a4683f2000bc`
 
 Current validated state:
 
-- Full suite: 666 tests OK
-- ResourceWarning-sensitive suite: 666 tests OK
+- Full suite: 686 tests OK
+- ResourceWarning-sensitive suite: 686 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
 - Readiness reports not_ready
 - inert_report_only true
 - live_rails_activated false
-- All live rails disabled
+- Supervised smoke rails not activated during repo prep
 - No credentials loaded/read
 - No production DB active
 - No scheduler active
@@ -1533,14 +1545,24 @@ Current validated state:
 - PR #79 weekend test readiness runbook is merged
 - PR #80 dry-run evidence bundle is merged
 - PR #81 final non-human handoff is merged
+- PR #82 final handoff status refresh is merged
+- Phase 14-C supervised smoke-test prep adds
+  [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md),
+  guarded source/tests, credential-name-only preflight, an injected-client
+  execution path, and a read-only CLI runbook surface. It does not perform the
+  live smoke test.
 - The final non-human handoff adds only inert source/test/docs handoff-report
   coverage and keeps Phase 14-C, live services, credentials, testing, and
   go/no-go launch approval blocked by separate human gates.
 
 Next human decision:
 
-Review whether to approve or reject the recorded candidate in a separate
-authorization packet, or decide that Phase 14-C remains blocked until a
-different candidate is created or validated.
+Decide whether to initiate the bounded Phase 14-C supervised smoke-test step
+from [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+That future initiation must remain limited to at most one marked Todoist task,
+one marked Calendar event, one marked Gmail test email to a controlled/self
+recipient, and one OpenClaw local/test/sandbox invocation.
 
-Do not authorize, activate, schedule, or run a live pilot from this packet.
+This PRD update does not run the smoke test, print or inspect credentials,
+activate scheduler/background behavior, activate production DB, implement
+dynamic cleaning, touch protected paths, or broaden OpenClaw runtime scope.

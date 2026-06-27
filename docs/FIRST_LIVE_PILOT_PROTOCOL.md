@@ -10,6 +10,22 @@ Phase 13F-D only defines this protocol. It does not select a pilot, execute a
 pilot, activate live rails, configure credentials, create production
 databases, start schedulers, call live APIs, run OpenClaw, or approve Phase 14.
 
+## Phase 14-C Supervised Smoke-Test Addendum
+
+The later Phase 14-C supervised smoke-test plan in
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
+is a narrow, manually supervised multi-rail smoke test rather than open-ended
+multi-rail automation. It may use Todoist, Google Calendar, Gmail, and
+OpenClaw as low-blast-radius test rails only inside the one-object-per-rail
+runbook after Chris explicitly initiates the live-test step.
+
+The older single-rail-first preference below remains useful for broader live
+expansion, but it should not over-block the bounded Phase 14-C smoke test.
+The Phase 14-C runbook still blocks scheduler/background behavior, production
+DB activation, dynamic cleaning, bulk writes, protected path access, broad
+OpenClaw runtime handoff, uncontrolled recipients/attendees, recurrence,
+Gmail attachments, and Gmail replies/forwards to real threads.
+
 ## Selection Criteria
 
 A first-live pilot candidate must be:

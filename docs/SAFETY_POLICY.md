@@ -59,9 +59,12 @@ approval for that exact scope:
 
 Codex/Fable must not:
 
-- send, draft, read, or mutate Gmail
-- write or mutate Todoist
-- write or mutate Google Calendar
+- send, draft, read, or mutate Gmail outside a currently approved bounded
+  supervised smoke-test step
+- write or mutate Todoist outside a currently approved bounded supervised
+  smoke-test step
+- write or mutate Google Calendar outside a currently approved bounded
+  supervised smoke-test step
 - write PersonalOS Markdown
 - load, read, print, or configure credentials
 - activate or mutate production DB paths
@@ -69,7 +72,8 @@ Codex/Fable must not:
 - install or modify LaunchAgents
 - write crontab entries
 - start daemons or background loops
-- call OpenClaw
+- call OpenClaw outside a currently approved bounded supervised smoke-test
+  step
 - call live external services
 - perform external writes
 - start Phase 14
@@ -123,6 +127,7 @@ Before any live-rail work, the repo must satisfy the applicable gates:
 - [LIVE_RAIL_ACTIVATION_POLICY.md](LIVE_RAIL_ACTIVATION_POLICY.md)
 - [ACTIVATION_CHECKLIST.md](ACTIVATION_CHECKLIST.md)
 - [FIRST_LIVE_PILOT_PROTOCOL.md](FIRST_LIVE_PILOT_PROTOCOL.md)
+- [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
 - [OPERATOR_HANDOFF_CONTRACT.md](OPERATOR_HANDOFF_CONTRACT.md)
 - [PRODUCTION_DB_POLICY.md](PRODUCTION_DB_POLICY.md)
 
@@ -130,6 +135,36 @@ These documents and readiness/status reports are policy and evidence surfaces.
 They do not authorize live rails, production DB activation, scheduler
 activation, OpenClaw runtime operation, credential loading, or external writes
 by themselves.
+
+## Phase 14-C Supervised Smoke-Test Boundary
+
+Todoist, Google Calendar, Gmail, and OpenClaw are acceptable low-blast-radius
+rails for the bounded Phase 14-C supervised smoke-test plan in
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+That plan may prepare and, after Chris explicitly initiates the live-test
+step, run at most:
+
+- one clearly marked Todoist test task
+- one clearly marked Google Calendar self test event
+- one clearly marked Gmail test email to a controlled/self recipient
+- one OpenClaw local/test/sandbox smoke invocation
+
+The test marker is
+`[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`.
+
+The supervised smoke-test boundary still blocks Calendar recurrence,
+uncontrolled Calendar attendees, Gmail uncontrolled recipients, Gmail
+attachments, Gmail forwarding, Gmail replies to existing real threads,
+scheduler/background behavior, production DB activation, dynamic cleaning,
+bulk writes, protected path access, broad OpenClaw runtime handoff, `.agent/`,
+`CLAUDE.md`, Watch Tower adoption, and broad runtime/operator scaffolding.
+
+Credential preflight may check that required environment/config entry names
+exist. It must not print, inspect, copy, commit, log, or summarize
+credential/token values.
+
+Repo prep for the smoke test does not run the live smoke test. The live-test
+step remains separate and manually initiated.
 
 ## Phase 13E-D / 13G Boundary
 

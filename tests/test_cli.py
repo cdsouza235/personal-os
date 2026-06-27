@@ -83,6 +83,7 @@ class OperatorCliArgumentAndPathSafetyTest(unittest.TestCase):
         self.assertIn("side-effects", result.stdout)
         self.assertIn("dashboard", result.stdout)
         self.assertIn("scheduler", result.stdout)
+        self.assertIn("phase14c", result.stdout)
 
     def test_scheduler_help_keeps_simulated_no_send_no_activation_wording(self) -> None:
         scheduler_result = _run_cli(["scheduler", "--help"])
@@ -358,6 +359,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Today View/status preview",
             "side-effect/idempotency ledger inspection",
             "simulated scheduler preview",
+            "Phase 14-C supervised smoke-test runbook",
         ):
             with self.subTest(workflow_name=workflow_name):
                 self.assertIn(f"- {workflow_name}", result.stdout)
@@ -395,8 +397,30 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(payload["operator_status"]["external_write_status"]["status"], "none")
         self.assertIn("ChatGPT synthesis import preview", workflow_names)
         self.assertIn("simulated scheduler preview", workflow_names)
+        self.assertIn("Phase 14-C supervised smoke-test runbook", workflow_names)
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
+
+    def test_phase14c_supervised_smoke_runbook_command_is_read_only(self) -> None:
+        result = _run_cli(["phase14c", "supervised-smoke-runbook", "--json"])
+
+        payload = json.loads(result.stdout)
+        runbook = payload["runbook"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c supervised-smoke-runbook")
+        self.assertEqual(payload["workflow_mode"], "repo-local runbook / no live clients")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertEqual(runbook["status"], "supervised_smoke_test_prepared_not_executed")
+        self.assertFalse(runbook["repo_prep_safety"]["todoist_task_created"])
+        self.assertFalse(runbook["repo_prep_safety"]["calendar_event_created"])
+        self.assertFalse(runbook["repo_prep_safety"]["gmail_email_created_or_sent"])
+        self.assertFalse(runbook["repo_prep_safety"]["openclaw_invoked"])
+        self.assertFalse(runbook["repo_prep_safety"]["credential_values_read"])
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -165,11 +165,18 @@ find . -path ./.git -prune -o \( -name "*.sqlite" -o -name "*.sqlite3" -o -name 
   long-run Codex/Fable packet rules.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and next phase.
 - [docs/CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md): repo workflow.
+- [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md):
+  bounded supervised smoke-test runbook for Todoist, Google Calendar, Gmail,
+  and OpenClaw.
 
 ## Stop Conditions
 
-- Do not start Phase 14.
-- Do not involve OpenClaw.
-- Do not touch live rails.
+- Do not run a Phase 14-C supervised smoke test unless Chris explicitly
+  initiates that live-test step in the current session and the scope matches
+  the bounded runbook.
+- Do not invoke OpenClaw except for a separately approved narrow
+  local/test/sandbox supervised smoke invocation.
+- Do not touch live rails outside the explicitly approved bounded supervised
+  smoke-test scope.
 - Do not touch protected runtime or personal paths.
 - Stop and ask Chris when requested work would cross these boundaries.

@@ -116,6 +116,16 @@ unwritten by default and live rails disabled.
 The final non-human handoff records the closure packet statuses, exact
 pending human gate checklist, and next-human-work plan while keeping the MVP
 not live-ready, live rails disabled, and every live/product gate unresolved.
+The Phase 14-C supervised multi-rail smoke-test runbook in
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
+is now the next integration-learning prep surface. It treats Todoist, Google
+Calendar, Gmail, and OpenClaw as acceptable low-blast-radius supervised smoke
+rails inside a bounded, manually initiated test: at most one marked Todoist
+task, one marked Calendar event, one marked Gmail test email to a
+controlled/self recipient, and one OpenClaw local/test/sandbox invocation.
+The repo prep adds guardrails, credential-name-only preflight, an
+injected-client execution path, CLI runbook discovery, and tests; it does not
+run the live smoke test.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -151,15 +161,21 @@ The dry-run evidence bundle artifact is
 [DRY_RUN_EVIDENCE_BUNDLE.md](DRY_RUN_EVIDENCE_BUNDLE.md).
 The final non-human handoff artifact is
 [FINAL_NONHUMAN_HANDOFF.md](FINAL_NONHUMAN_HANDOFF.md).
-Phase 14-A/B preparation must remain proposed-only and must not authorize,
-activate, schedule, or run a live pilot.
+The Phase 14-C supervised smoke-test runbook is
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+Phase 14-A/B historical preparation remains proposed-only. Current Phase 14-C
+movement is the bounded supervised smoke-test prep described above; no live
+smoke test has been run by repo prep.
 
 ## Future Blocked Work
 
-Phase 14-C live pilot work is future work and is blocked until Chris
-explicitly approves design, scope, readiness evidence, and the narrow live rail
-or pilot being considered. The recorded candidate-review tracking decision
-remains separate from candidate approval for execution and live activation.
+Phase 14-C supervised smoke-test execution is future work until Chris
+explicitly initiates the live-test step from
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+That future step is allowed to use Todoist, Google Calendar, Gmail, and
+OpenClaw as low-blast-radius supervised smoke rails only inside the bounded
+one-object-per-rail envelope. The recorded candidate-review tracking decision
+remains historical context and does not broaden the smoke-test envelope.
 The decision gate records evidence and wording that Chris should review before
 any future movement beyond candidate-review tracking only.
 The candidate decision-support artifact records review questions and an
@@ -362,6 +378,13 @@ Future Phase 14 should be structured as:
   Report-payload contract matrix tests cover missing validation payload
   fields, validation payload type drift, missing payload surfaces, and
   preflight checklist type drift.
+- Phase 14-C supervised multi-rail smoke-test preparation: guarded
+  source/test/docs/CLI runbook for one future manually initiated smoke test
+  across Todoist, Google Calendar, Gmail, and OpenClaw. It allows those rails
+  as low-blast-radius supervised smoke rails only inside the bounded runbook,
+  enforces one marked object/invocation per rail plus credential-name-only
+  preflight and no scheduler/production DB/dynamic cleaning/bulk/protected
+  path/broad OpenClaw scope, and does not run the live smoke test.
 
 ## Historical Boundary Reference
 

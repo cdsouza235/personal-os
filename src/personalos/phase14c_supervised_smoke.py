@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Protocol
+
+from personalos.path_safety import validate_demo_output_dir_path
 
 
 PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION = "personal_os_phase14c_supervised_smoke.v1"
 PHASE14C_SUPERVISED_SMOKE_STATUS = "supervised_smoke_test_prepared_not_executed"
 PHASE14C_SUPERVISED_SMOKE_DEFAULT_GENERATED_AT_UTC = "2026-06-26T18:00:00+00:00"
+PHASE14C_SUPERVISED_SMOKE_DRY_RUN_STATUS = "dry_run_rehearsal_completed"
+PHASE14C_SUPERVISED_SMOKE_DRY_RUN_DEFAULT_GENERATED_AT_UTC = (
+    "2026-06-27T04:00:00+00:00"
+)
 PHASE14C_SUPERVISED_SMOKE_MARKER = (
     "[Phase 14-C Test] Clean Kitchen Countertops and Stovetop"
 )
@@ -66,6 +74,46 @@ RAIL_REPORT_FIELDS: tuple[str, ...] = (
     "live_run_allowed_after_human_initiation",
 )
 
+DRY_RUN_REHEARSAL_ARTIFACT_NAMES: tuple[str, ...] = (
+    "request.json",
+    "validation.json",
+    "fake_client_results.json",
+    "completion_report.json",
+    "summary.md",
+)
+
+DRY_RUN_COMPLETION_REPORT_FIELDS: tuple[str, ...] = (
+    "schema_version",
+    "generated_at_utc",
+    "status",
+    "mode",
+    "test_marker",
+    "output_dir",
+    "artifact_names",
+    "request_summary",
+    "validation",
+    "fake_client_results",
+    "rail_operation_counts",
+    "safety_assertions",
+    "deviations",
+)
+
+DRY_RUN_SAFETY_ASSERTION_FIELDS: tuple[str, ...] = (
+    "live_run_executed",
+    "external_mutation",
+    "real_todoist_task_created",
+    "real_calendar_event_created",
+    "real_gmail_email_created_or_sent",
+    "real_openclaw_invoked",
+    "credential_values_read",
+    "credential_values_logged",
+    "production_db_active",
+    "scheduler_activated",
+    "protected_paths_touched",
+    "repo_files_written",
+    "writes_only_output_dir",
+)
+
 PROTECTED_PATH_MARKERS: tuple[str, ...] = (
     "PersonalOS",
     ".openclaw",
@@ -104,6 +152,20 @@ class Phase14CSupervisedSmokeClients:
     google_calendar: CalendarSmokeClient | None = None
     gmail: GmailSmokeClient | None = None
     openclaw: OpenClawSmokeClient | None = None
+
+
+@dataclass(frozen=True)
+class Phase14CSupervisedSmokeDryRunResult:
+    output_dir: str
+    completion_report: dict[str, Any]
+    artifact_paths: dict[str, str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "output_dir": self.output_dir,
+            "completion_report": self.completion_report,
+            "artifact_paths": self.artifact_paths,
+        }
 
 
 @dataclass(frozen=True)
@@ -180,6 +242,8 @@ def build_phase14c_supervised_smoke_runbook(
             "scheduler_background_loop": False,
             "production_db": False,
             "protected_path_access": False,
+            "fake_client_rehearsal_allowed": True,
+            "artifact_names": list(DRY_RUN_REHEARSAL_ARTIFACT_NAMES),
         },
         "live_run_boundaries": {
             "manual_foreground_invocation_only": True,
@@ -217,7 +281,13 @@ def build_phase14c_supervised_smoke_runbook(
             "repo_prep_runs_live_test": False,
             "future_live_test_must_be_started_by_chris": True,
             "live_execution_function": "execute_phase14c_supervised_smoke_request",
-            "cli_surface": "personalos phase14c supervised-smoke-runbook --json",
+            "runbook_cli_surface": (
+                "personalos phase14c supervised-smoke-runbook --json"
+            ),
+            "dry_run_rehearsal_cli_surface": (
+                "personalos phase14c supervised-smoke-dry-run "
+                "--output-dir <safe_temp_output_dir> --json"
+            ),
         },
         "readiness": {
             "status": "not_ready",
@@ -236,6 +306,80 @@ def build_phase14c_supervised_smoke_runbook(
             "protected_paths_touched": False,
         },
     }
+
+
+def run_phase14c_supervised_smoke_dry_run_rehearsal(
+    output_dir: str | Path,
+    *,
+    request: Mapping[str, Any] | None = None,
+    generated_at_utc: str = PHASE14C_SUPERVISED_SMOKE_DRY_RUN_DEFAULT_GENERATED_AT_UTC,
+) -> Phase14CSupervisedSmokeDryRunResult:
+    """Run the concrete fake-client dry-run rehearsal and write safe artifacts."""
+
+    output_path = validate_demo_output_dir_path(
+        output_dir,
+        path_label="phase14c smoke dry-run output_dir",
+    )
+    artifact_paths = _dry_run_artifact_paths(output_path)
+    completion_report_path = artifact_paths["completion_report.json"]
+    if completion_report_path.exists():
+        raise ValueError(
+            "phase14c smoke dry-run output_dir already contains completion_report.json; "
+            "choose a fresh safe directory"
+        )
+
+    output_path.mkdir(parents=True, exist_ok=True)
+    smoke_request = (
+        build_default_phase14c_supervised_smoke_request()
+        if request is None
+        else dict(request)
+    )
+    validation = validate_phase14c_supervised_smoke_request(smoke_request)
+    if not validation.accepted:
+        completion_report = _dry_run_completion_report(
+            output_path=output_path,
+            request=smoke_request,
+            validation=validation,
+            fake_client_results={},
+            generated_at_utc=generated_at_utc,
+            status="blocked",
+            deviations=("Smoke request failed dry-run validation.",),
+        )
+        _write_dry_run_artifacts(
+            artifact_paths=artifact_paths,
+            request=smoke_request,
+            validation=validation,
+            fake_client_results={},
+            completion_report=completion_report,
+        )
+        return Phase14CSupervisedSmokeDryRunResult(
+            output_dir=str(output_path),
+            completion_report=completion_report,
+            artifact_paths=_artifact_path_strings(artifact_paths),
+        )
+
+    fake_client_results = _run_fake_rehearsal_clients(validation)
+    completion_report = _dry_run_completion_report(
+        output_path=output_path,
+        request=smoke_request,
+        validation=validation,
+        fake_client_results=fake_client_results,
+        generated_at_utc=generated_at_utc,
+        status=PHASE14C_SUPERVISED_SMOKE_DRY_RUN_STATUS,
+        deviations=(),
+    )
+    _write_dry_run_artifacts(
+        artifact_paths=artifact_paths,
+        request=smoke_request,
+        validation=validation,
+        fake_client_results=fake_client_results,
+        completion_report=completion_report,
+    )
+    return Phase14CSupervisedSmokeDryRunResult(
+        output_dir=str(output_path),
+        completion_report=completion_report,
+        artifact_paths=_artifact_path_strings(artifact_paths),
+    )
 
 
 def build_default_phase14c_supervised_smoke_request(
@@ -492,9 +636,414 @@ def execute_phase14c_supervised_smoke_request(
         "external_mutation": True,
         "rail_operation_counts": _operation_counts(1),
         "planned_rail_operation_counts": _operation_counts(1),
-        "validation": validation.to_dict(),
+        "validation": _safe_dry_run_validation_artifact(validation),
         "rail_results": rail_results,
     }
+
+
+class _FakeDryRunTodoistClient:
+    def create_task(self, task: Mapping[str, Any]) -> Mapping[str, Any]:
+        return {
+            "status": "simulated_created",
+            "rail": "todoist",
+            "marked": _contains_marker(task.get("title")),
+            "external_mutation": False,
+            "network_called": False,
+            "credentials_read": False,
+            "payload_summary": {
+                "title": task.get("title"),
+                "recurrence": task.get("recurrence"),
+            },
+        }
+
+
+class _FakeDryRunCalendarClient:
+    def create_event(self, event: Mapping[str, Any]) -> Mapping[str, Any]:
+        return {
+            "status": "simulated_created",
+            "rail": "google_calendar",
+            "marked": _contains_marker(event.get("summary") or event.get("title")),
+            "external_mutation": False,
+            "network_called": False,
+            "credentials_read": False,
+            "payload_summary": {
+                "summary": event.get("summary") or event.get("title"),
+                "attendee_count": len(_string_list(event.get("attendees"))),
+                "recurrence": event.get("recurrence"),
+            },
+        }
+
+
+class _FakeDryRunGmailClient:
+    def create_or_send_email(self, email: Mapping[str, Any]) -> Mapping[str, Any]:
+        return {
+            "status": "simulated_draft_or_send",
+            "rail": "gmail",
+            "marked": _contains_marker(email.get("subject")),
+            "external_mutation": False,
+            "network_called": False,
+            "credentials_read": False,
+            "payload_summary": {
+                "subject": email.get("subject"),
+                "recipient_count": (
+                    len(_string_list(email.get("to")))
+                    + len(_string_list(email.get("cc")))
+                    + len(_string_list(email.get("bcc")))
+                ),
+                "attachment_count": len(_items(email, "attachments")),
+                "send_requested": email.get("send") is True,
+            },
+        }
+
+
+class _FakeDryRunOpenClawClient:
+    def invoke_smoke(self, invocation: Mapping[str, Any]) -> Mapping[str, Any]:
+        return {
+            "status": "simulated_invocation",
+            "rail": "openclaw",
+            "marked": _contains_marker(invocation.get("label")),
+            "external_mutation": False,
+            "network_called": False,
+            "credentials_read": False,
+            "payload_summary": {
+                "label": invocation.get("label"),
+                "mode": invocation.get("mode"),
+                "scope": invocation.get("scope"),
+                "allowed_path_count": len(_string_list(invocation.get("allowed_paths"))),
+            },
+        }
+
+
+def _run_fake_rehearsal_clients(
+    validation: SupervisedSmokeValidation,
+) -> dict[str, Any]:
+    normalized = validation.normalized_request
+    if normalized is None:
+        return {}
+    rails = normalized["rails"]
+    return {
+        "todoist": dict(
+            _FakeDryRunTodoistClient().create_task(rails["todoist"]["task"])
+        ),
+        "google_calendar": dict(
+            _FakeDryRunCalendarClient().create_event(
+                rails["google_calendar"]["event"]
+            )
+        ),
+        "gmail": dict(
+            _FakeDryRunGmailClient().create_or_send_email(rails["gmail"]["email"])
+        ),
+        "openclaw": dict(
+            _FakeDryRunOpenClawClient().invoke_smoke(
+                rails["openclaw"]["invocation"]
+            )
+        ),
+    }
+
+
+def _dry_run_completion_report(
+    *,
+    output_path: Path,
+    request: Mapping[str, Any],
+    validation: SupervisedSmokeValidation,
+    fake_client_results: Mapping[str, Any],
+    generated_at_utc: str,
+    status: str,
+    deviations: Sequence[str],
+) -> dict[str, Any]:
+    fake_result_count = sum(
+        1 for result in fake_client_results.values() if isinstance(result, Mapping)
+    )
+    return {
+        "schema_version": PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION,
+        "generated_at_utc": generated_at_utc,
+        "status": status,
+        "mode": DRY_RUN_MODE,
+        "test_marker": PHASE14C_SUPERVISED_SMOKE_MARKER,
+        "output_dir": str(output_path),
+        "artifact_names": list(DRY_RUN_REHEARSAL_ARTIFACT_NAMES),
+        "request_summary": {
+            "schema_version_matches": (
+                request.get("schema_version")
+                == PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION
+            ),
+            "mode": (
+                request.get("mode")
+                if request.get("mode") in ALLOWED_MODES
+                else "invalid_or_missing"
+            ),
+            "test_marker_present": request.get("test_marker")
+            == PHASE14C_SUPERVISED_SMOKE_MARKER,
+            "rail_operation_counts": (
+                validation.normalized_request.get("rail_operation_counts")
+                if validation.normalized_request is not None
+                else _operation_counts(0)
+            ),
+        },
+        "validation": _safe_dry_run_validation_artifact(validation),
+        "fake_client_results": dict(fake_client_results),
+        "rail_operation_counts": {
+            "fake_client_calls": fake_result_count,
+            "real_external_operations": 0,
+            "todoist_tasks": 0,
+            "calendar_events": 0,
+            "gmail_emails": 0,
+            "openclaw_invocations": 0,
+            "simulated_todoist_tasks": 1 if "todoist" in fake_client_results else 0,
+            "simulated_calendar_events": (
+                1 if "google_calendar" in fake_client_results else 0
+            ),
+            "simulated_gmail_emails": 1 if "gmail" in fake_client_results else 0,
+            "simulated_openclaw_invocations": (
+                1 if "openclaw" in fake_client_results else 0
+            ),
+        },
+        "safety_assertions": _dry_run_safety_assertions(output_path),
+        "deviations": list(deviations),
+    }
+
+
+def _dry_run_safety_assertions(output_path: Path) -> dict[str, bool]:
+    return {
+        "live_run_executed": False,
+        "external_mutation": False,
+        "real_todoist_task_created": False,
+        "real_calendar_event_created": False,
+        "real_gmail_email_created_or_sent": False,
+        "real_openclaw_invoked": False,
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "production_db_active": False,
+        "scheduler_activated": False,
+        "protected_paths_touched": False,
+        "repo_files_written": False,
+        "writes_only_output_dir": output_path.exists(),
+    }
+
+
+def _dry_run_artifact_paths(output_path: Path) -> dict[str, Path]:
+    return {name: output_path / name for name in DRY_RUN_REHEARSAL_ARTIFACT_NAMES}
+
+
+def _write_dry_run_artifacts(
+    *,
+    artifact_paths: Mapping[str, Path],
+    request: Mapping[str, Any],
+    validation: SupervisedSmokeValidation,
+    fake_client_results: Mapping[str, Any],
+    completion_report: Mapping[str, Any],
+) -> None:
+    _write_json(
+        artifact_paths["request.json"],
+        _safe_dry_run_request_artifact(request, validation),
+    )
+    _write_json(
+        artifact_paths["validation.json"],
+        _safe_dry_run_validation_artifact(validation),
+    )
+    _write_json(artifact_paths["fake_client_results.json"], fake_client_results)
+    _write_json(artifact_paths["completion_report.json"], completion_report)
+    artifact_paths["summary.md"].write_text(
+        _dry_run_summary_markdown(completion_report),
+        encoding="utf-8",
+    )
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.write_text(
+        json.dumps(payload, allow_nan=False, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _safe_dry_run_request_artifact(
+    request: Mapping[str, Any],
+    validation: SupervisedSmokeValidation,
+) -> dict[str, Any]:
+    normalized = validation.normalized_request
+    return {
+        "schema_version": PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION,
+        "source_schema_version_matches": (
+            request.get("schema_version") == PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION
+        ),
+        "mode": (
+            request.get("mode")
+            if request.get("mode") in ALLOWED_MODES
+            else "invalid_or_missing"
+        ),
+        "test_marker": (
+            PHASE14C_SUPERVISED_SMOKE_MARKER
+            if request.get("test_marker") == PHASE14C_SUPERVISED_SMOKE_MARKER
+            else None
+        ),
+        "test_marker_present": request.get("test_marker")
+        == PHASE14C_SUPERVISED_SMOKE_MARKER,
+        "live_run_requested": request.get("live_run_requested") is True,
+        "guardrail_validation_status": validation.status,
+        "rail_operation_counts": (
+            normalized["rail_operation_counts"]
+            if normalized is not None
+            else _request_item_count_summary(request)
+        ),
+        "rails": (
+            _safe_normalized_rail_summary(normalized)
+            if normalized is not None
+            else "not_normalized_request_blocked"
+        ),
+        "boundaries_remain_false": {
+            field: request.get("boundaries", {}).get(field) is False
+            if isinstance(request.get("boundaries"), Mapping)
+            else False
+            for field in BOUNDARY_FIELDS
+        },
+        "credential_values_read": False,
+        "credential_values_logged": False,
+    }
+
+
+def _safe_dry_run_validation_artifact(
+    validation: SupervisedSmokeValidation,
+) -> dict[str, Any]:
+    normalized = validation.normalized_request
+    return {
+        "accepted": validation.accepted,
+        "status": validation.status,
+        "reasons": list(validation.reasons),
+        "checked_config_entry_names": list(validation.checked_config_entry_names),
+        "missing_config_entry_names": list(validation.missing_config_entry_names),
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "normalized_request_summary": (
+            {
+                "mode": normalized["mode"],
+                "test_marker_present": normalized["test_marker"]
+                == PHASE14C_SUPERVISED_SMOKE_MARKER,
+                "live_run_requested": normalized["live_run_requested"],
+                "rail_operation_counts": normalized["rail_operation_counts"],
+                "rails": _safe_normalized_rail_summary(normalized),
+                "boundaries_remain_false": {
+                    field: normalized["boundaries"].get(field) is False
+                    for field in BOUNDARY_FIELDS
+                },
+            }
+            if normalized is not None
+            else None
+        ),
+    }
+
+
+def _safe_normalized_rail_summary(
+    normalized: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    rails = normalized["rails"]
+    todoist_task = rails["todoist"]["task"]
+    calendar_event = rails["google_calendar"]["event"]
+    gmail_email = rails["gmail"]["email"]
+    openclaw_invocation = rails["openclaw"]["invocation"]
+    return {
+        "todoist": {
+            "task_count": 1,
+            "title_contains_marker": _contains_marker(todoist_task.get("title")),
+            "recurrence_present": _has_recurrence(todoist_task),
+        },
+        "google_calendar": {
+            "event_count": 1,
+            "summary_contains_marker": _contains_marker(
+                calendar_event.get("summary") or calendar_event.get("title")
+            ),
+            "attendee_count": len(_string_list(calendar_event.get("attendees"))),
+            "self_attendee_required_by_api": (
+                calendar_event.get("self_attendee_required_by_api") is True
+            ),
+            "recurrence_present": _has_recurrence(calendar_event),
+        },
+        "gmail": {
+            "email_count": 1,
+            "subject_contains_marker": _contains_marker(gmail_email.get("subject")),
+            "to_count": len(_string_list(gmail_email.get("to"))),
+            "cc_count": len(_string_list(gmail_email.get("cc"))),
+            "bcc_count": len(_string_list(gmail_email.get("bcc"))),
+            "attachment_count": len(_items(gmail_email, "attachments")),
+            "send_requested": gmail_email.get("send") is True,
+            "create_draft_requested": gmail_email.get("create_draft") is True,
+            "thread_id_present": _optional_string(gmail_email.get("thread_id"))
+            is not None,
+            "reply_to_existing_thread": gmail_email.get("reply_to_existing_thread")
+            is True,
+            "forward_existing_thread": gmail_email.get("forward_existing_thread")
+            is True,
+        },
+        "openclaw": {
+            "invocation_count": 1,
+            "label_contains_marker": _contains_marker(openclaw_invocation.get("label")),
+            "mode": (
+                openclaw_invocation.get("mode")
+                if openclaw_invocation.get("mode") in OPENCLAW_ALLOWED_MODES
+                else "invalid_or_missing"
+            ),
+            "scope_is_single_supervised_smoke_invocation": openclaw_invocation.get(
+                "scope"
+            )
+            == "single_supervised_smoke_invocation",
+            "allowed_path_count": len(
+                _string_list(openclaw_invocation.get("allowed_paths"))
+            ),
+            "broad_runtime_handoff": openclaw_invocation.get("broad_runtime_handoff")
+            is True,
+        },
+    }
+
+
+def _request_item_count_summary(request: Mapping[str, Any]) -> dict[str, int]:
+    rails = request.get("rails")
+    if not isinstance(rails, Mapping):
+        return _operation_counts(0)
+    return {
+        "todoist_tasks": len(_items_if_mapping(rails.get("todoist"), "tasks")),
+        "calendar_events": len(
+            _items_if_mapping(rails.get("google_calendar"), "events")
+        ),
+        "gmail_emails": len(_items_if_mapping(rails.get("gmail"), "emails")),
+        "openclaw_invocations": len(
+            _items_if_mapping(rails.get("openclaw"), "invocations")
+        ),
+    }
+
+
+def _items_if_mapping(source: object, key: str) -> list[Mapping[str, Any]]:
+    if not isinstance(source, Mapping):
+        return []
+    return _items(source, key)
+
+
+def _artifact_path_strings(artifact_paths: Mapping[str, Path]) -> dict[str, str]:
+    return {name: str(path) for name, path in artifact_paths.items()}
+
+
+def _dry_run_summary_markdown(completion_report: Mapping[str, Any]) -> str:
+    safety = completion_report.get("safety_assertions")
+    safety_lines: list[str] = []
+    if isinstance(safety, Mapping):
+        safety_lines = [
+            f"- {field}: {str(safety.get(field)).lower()}"
+            for field in DRY_RUN_SAFETY_ASSERTION_FIELDS
+        ]
+    return "\n".join(
+        [
+            "# Phase 14-C Supervised Smoke Dry-Run Rehearsal",
+            "",
+            f"- status: {completion_report.get('status')}",
+            f"- mode: {completion_report.get('mode')}",
+            f"- test_marker: {completion_report.get('test_marker')}",
+            "- live_run_executed: false",
+            "- external_mutation: false",
+            "",
+            "## Safety Assertions",
+            *safety_lines,
+            "",
+        ]
+    )
 
 
 def _validate_todoist(todoist: object) -> tuple[str, ...]:

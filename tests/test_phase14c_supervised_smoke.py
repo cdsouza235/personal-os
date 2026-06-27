@@ -1,10 +1,16 @@
 import copy
 import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from personalos.phase14c_supervised_smoke import (
     BOUNDARY_FIELDS,
+    DRY_RUN_COMPLETION_REPORT_FIELDS,
+    DRY_RUN_REHEARSAL_ARTIFACT_NAMES,
+    DRY_RUN_SAFETY_ASSERTION_FIELDS,
     LIVE_RUN_MODE,
+    PHASE14C_SUPERVISED_SMOKE_DRY_RUN_STATUS,
     PHASE14C_SUPERVISED_SMOKE_MARKER,
     PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION,
     PHASE14C_SUPERVISED_SMOKE_STATUS,
@@ -15,6 +21,7 @@ from personalos.phase14c_supervised_smoke import (
     build_phase14c_credential_preflight_report,
     build_phase14c_supervised_smoke_runbook,
     execute_phase14c_supervised_smoke_request,
+    run_phase14c_supervised_smoke_dry_run_rehearsal,
     validate_phase14c_supervised_smoke_request,
 )
 
@@ -120,6 +127,112 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
         self.assertEqual(clients.google_calendar.calls, [])
         self.assertEqual(clients.gmail.calls, [])
         self.assertEqual(clients.openclaw.calls, [])
+
+    def test_dry_run_rehearsal_writes_redacted_safe_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "phase14c-smoke-rehearsal"
+
+            result = run_phase14c_supervised_smoke_dry_run_rehearsal(output_dir)
+
+            self.assertEqual(result.output_dir, str(output_dir.resolve(strict=False)))
+            self.assertEqual(
+                tuple(result.artifact_paths),
+                DRY_RUN_REHEARSAL_ARTIFACT_NAMES,
+            )
+            for path in result.artifact_paths.values():
+                self.assertTrue(Path(path).is_file(), path)
+
+            report = result.completion_report
+            self.assertEqual(tuple(report), DRY_RUN_COMPLETION_REPORT_FIELDS)
+            self.assertEqual(report["status"], PHASE14C_SUPERVISED_SMOKE_DRY_RUN_STATUS)
+            self.assertEqual(report["mode"], "dry_run")
+            self.assertTrue(report["validation"]["accepted"])
+            self.assertNotIn("normalized_request", report["validation"])
+            self.assertIn(
+                "normalized_request_summary",
+                report["validation"],
+            )
+            self.assertTrue(
+                all(
+                    report["validation"]["normalized_request_summary"][
+                        "boundaries_remain_false"
+                    ].values()
+                )
+            )
+            self.assertEqual(report["deviations"], [])
+            self.assertEqual(report["rail_operation_counts"]["fake_client_calls"], 4)
+            self.assertEqual(report["rail_operation_counts"]["real_external_operations"], 0)
+            self.assertEqual(report["rail_operation_counts"]["simulated_todoist_tasks"], 1)
+            self.assertEqual(
+                report["rail_operation_counts"]["simulated_calendar_events"],
+                1,
+            )
+            self.assertEqual(report["rail_operation_counts"]["simulated_gmail_emails"], 1)
+            self.assertEqual(
+                report["rail_operation_counts"]["simulated_openclaw_invocations"],
+                1,
+            )
+            for rail in ("todoist", "google_calendar", "gmail", "openclaw"):
+                with self.subTest(rail=rail):
+                    fake_result = report["fake_client_results"][rail]
+                    self.assertTrue(fake_result["marked"])
+                    self.assertFalse(fake_result["external_mutation"])
+                    self.assertFalse(fake_result["network_called"])
+                    self.assertFalse(fake_result["credentials_read"])
+
+            safety = report["safety_assertions"]
+            self.assertEqual(tuple(safety), DRY_RUN_SAFETY_ASSERTION_FIELDS)
+            for field in DRY_RUN_SAFETY_ASSERTION_FIELDS:
+                with self.subTest(field=field):
+                    expected = field == "writes_only_output_dir"
+                    self.assertIs(safety[field], expected)
+
+            request_artifact = _load_json(result.artifact_paths["request.json"])
+            self.assertEqual(request_artifact["rails"]["gmail"]["to_count"], 1)
+            self.assertNotIn("boundaries", request_artifact)
+            self.assertTrue(all(request_artifact["boundaries_remain_false"].values()))
+            for path in result.artifact_paths.values():
+                with self.subTest(path=path):
+                    self.assertNotIn(
+                        "self.phase14c.test@example.test",
+                        Path(path).read_text(encoding="utf-8"),
+                    )
+
+    def test_dry_run_rehearsal_blocks_unsafe_or_reused_output_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "phase14c-smoke-rehearsal"
+            run_phase14c_supervised_smoke_dry_run_rehearsal(output_dir)
+
+            with self.assertRaisesRegex(ValueError, "choose a fresh safe directory"):
+                run_phase14c_supervised_smoke_dry_run_rehearsal(output_dir)
+
+            with self.assertRaisesRegex(ValueError, "must not be inside the repository"):
+                run_phase14c_supervised_smoke_dry_run_rehearsal(
+                    Path(__file__).resolve().parents[1] / "phase14c-output"
+                )
+
+    def test_blocked_dry_run_rehearsal_artifacts_do_not_echo_unsafe_values(self) -> None:
+        unsafe = "secret-token-value-that-must-not-echo"
+        request = build_default_phase14c_supervised_smoke_request()
+        request["test_marker"] = unsafe
+        request["rails"]["todoist"]["tasks"][0]["title"] = unsafe
+        request["rails"]["gmail"]["emails"][0]["subject"] = unsafe
+        request["rails"]["gmail"]["emails"][0]["to"] = [unsafe]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "phase14c-blocked-rehearsal"
+
+            result = run_phase14c_supervised_smoke_dry_run_rehearsal(
+                output_dir,
+                request=request,
+            )
+
+            self.assertEqual(result.completion_report["status"], "blocked")
+            self.assertFalse(result.completion_report["validation"]["accepted"])
+            self.assertEqual(result.completion_report["fake_client_results"], {})
+            for path in result.artifact_paths.values():
+                with self.subTest(path=path):
+                    self.assertNotIn(unsafe, Path(path).read_text(encoding="utf-8"))
 
     def test_live_run_requires_request_approval_and_config_names(self) -> None:
         request = build_default_phase14c_supervised_smoke_request(mode=LIVE_RUN_MODE)
@@ -453,6 +566,11 @@ def _fake_clients() -> Phase14CSupervisedSmokeClients:
         gmail=_RecordingGmailClient(),
         openclaw=_RecordingOpenClawClient(),
     )
+
+
+def _load_json(path: str) -> dict[str, object]:
+    with Path(path).open(encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 if __name__ == "__main__":

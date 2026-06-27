@@ -17,9 +17,17 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "build_phase14c_credential_preflight_report",
             "validate_phase14c_supervised_smoke_request",
             "execute_phase14c_supervised_smoke_request",
+            "run_phase14c_supervised_smoke_dry_run_rehearsal",
             "personalos.cli phase14c supervised-smoke-runbook --json",
+            "personalos.cli phase14c supervised-smoke-dry-run --output-dir",
             "does not load credentials",
             "does not initialize live clients",
+            "fake-client dry-run rehearsal",
+            "request.json",
+            "validation.json",
+            "fake_client_results.json",
+            "completion_report.json",
+            "summary.md",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

@@ -2,7 +2,7 @@
 
 Status: Updated working draft for review
 Owner: Chris
-Updated: 2026-06-26
+Updated: 2026-06-27
 Development model: ChatGPT + Codex/Fable + OpenClaw
 Product: Personal OS
 Runtime host: Mac Mini
@@ -22,9 +22,10 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #82:
-    `7290c6649fe333ca4e7cdc3214b9a4683f2000bc`
-  - latest merged PR: PR #82, final non-human handoff status refresh
+  - last validated main baseline after PR #83:
+    `c97edaac193160c79daac730659c1fd00b44d842`
+  - latest merged PR: PR #83, Phase 14-C supervised multi-rail smoke-test
+    preparation
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -64,8 +65,9 @@ Key changes from v0.1:
   OpenClaw are acceptable low-blast-radius supervised smoke-test rails inside
   [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
   The repo prep adds guardrails, credential-name-only preflight, an
-  injected-client execution path, CLI runbook discovery, and tests; it does
-  not run the live smoke test.
+  injected-client execution path, CLI runbook discovery, a fake-client dry-run
+  rehearsal that writes redacted artifacts only under an explicit safe temp
+  output directory, and tests. It does not run the live smoke test.
 - Records the long-run governance refinement that the completed bounded packet
   is the default PR/audit unit for safe inert repo-local work, human judgment
   conditions are explicit stop gates, and delegated repo-merge authority is
@@ -343,11 +345,12 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #82:
+As of this post-merge validation update after PR #83:
 
-- Last validated main baseline after PR #82:
-  `7290c6649fe333ca4e7cdc3214b9a4683f2000bc`
-- Latest merged PR: PR #82, final non-human handoff status refresh
+- Last validated main baseline after PR #83:
+  `c97edaac193160c79daac730659c1fd00b44d842`
+- Latest merged PR: PR #83, Phase 14-C supervised multi-rail smoke-test
+  preparation
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -384,14 +387,17 @@ As of this post-merge validation update after PR #82:
 - PR #79 Claude Code audit: Pass
 - PR #80 Claude Code audit: Pass
 - PR #81 Claude Code audit: Pass
-- PR #82 audited head merged:
-  `9b7e5c21cdb1d958da8b5eaa5d406cd612e3c36a`
+- PR #83 audited head merged:
+  `58a79f525b17d4f5153c9ccfacbaabda8070f547`
+- PR #83 merge commit:
+  `c97edaac193160c79daac730659c1fd00b44d842`
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
   codified in repo docs; Phase 14-C candidate decision-support docs are merged
   on `main`; the final non-human handoff is merged and status-refreshed
-  through PR #82.
+  through PR #82; Phase 14-C supervised multi-rail smoke-test preparation is
+  merged through PR #83.
 - Current/next phase: Phase 14-C supervised multi-rail smoke-test preparation.
   Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
   low-blast-radius supervised smoke-test rails inside the bounded runbook in
@@ -399,6 +405,9 @@ As of this post-merge validation update after PR #82:
 - Phase 14-C supervised smoke test: prepared but not run; no real Todoist
   task, Calendar event, Gmail email, or OpenClaw invocation has been performed
   by repo prep.
+- Phase 14-C dry-run rehearsal: repo-local fake-client rehearsal surface is
+  being added for redacted safe-temp artifacts; it does not initialize live
+  clients or perform live actions.
 - Full test suite: 686 tests OK
 - ResourceWarning-sensitive suite: 686 tests OK
 - Hygiene clean
@@ -1312,82 +1321,37 @@ start wider Phase 14-C live activation until these are designed and approved:
 
 ### Completed Through Current Baseline
 
-Phases 1 through 14-A/B preparation are complete on the last validated main
-baseline listed in Section 6. Phase 14-A/B preparation is implemented on
-`main` as proposed-only design and fail-closed scaffolding. Pre-Phase-14-C
-candidate-selection preparation adds an inert process, blank template, and
-validator scaffolding for a later human decision.
+Phases 1 through Phase 14-C supervised multi-rail smoke-test preparation are
+complete on the last validated main baseline listed in Section 6. Phase 14-A/B
+preparation remains historical proposed-only design and fail-closed
+scaffolding. Pre-Phase-14-C candidate-selection preparation remains historical
+candidate-review context only.
 
 ### Current Recommended Phase
 
-Pre-Phase-14-C candidate decision-gate review.
+Phase 14-C supervised smoke-test dry-run rehearsal.
 
 Purpose:
 
-- record one future Todoist candidate for candidate-review tracking only
-- provide a blank fail-closed candidate template
-- validate candidate records as `decision_needed`, `blocked`, or
-  `proposed_only`
-- preserve an explicit Phase 14-C candidate decision gate in
-  [PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md)
-- preserve an explicit Phase 14-C candidate decision-support artifact in
-  [PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md)
-- preserve an inert Phase 14-C candidate decision-support validator/report in
-  `src/personalos/phase14c_candidate_decision_support.py`
-- keep candidate selection and candidate approval separate from live pilot
-  authorization
-- preserve no live rails, credentials, production DB, scheduler activation,
+- run the bounded one-object-per-rail request through deterministic fake
+  clients
+- write redacted `request.json`, `validation.json`, `fake_client_results.json`,
+  `completion_report.json`, and `summary.md` artifacts only under an explicit
+  safe temp output directory
+- preserve the Todoist, Google Calendar, Gmail, and OpenClaw one-operation
+  guardrails before any live smoke-test initiation
+- preserve no live clients, credentials, production DB, scheduler activation,
   external writes, or OpenClaw calls
 
 ### Not Yet Started
 
-Phase 14-C - first live pilot activation.
+Phase 14-C supervised live smoke-test execution.
 
-Phase 14-C requires a separate selected-candidate authorization packet and
-explicit Chris approval. The decision gate documents the required evidence and
-wording for that future decision; it does not itself authorize the decision.
-The candidate decision-support artifact documents review questions, failure
-modes, stop conditions, required future approval wording, and an unfilled
-false-default decision-record template only. The decision-support validator
-checks that this record remains unfilled/false by default and blocks unsafe
-filled records, including unknown schema fields and nested payloads under
-known fillable fields. Table-driven invariant coverage checks every fillable
-decision field, every required false field, and the allowed validation status
-set. Missing-field matrix coverage checks that absent required text defaults
-and absent required false fields fail closed as `decision_needed`. Blocked
-report coverage checks that unsafe input values are not echoed, deterministic
-timestamp coverage keeps default reports stable, and report shape coverage
-keeps the payload contract explicit. Blocked-reason sanitization keeps
-caller-supplied decision and drift values out of report JSON. Unknown schema
-key-name sanitization keeps caller-supplied unknown keys out of report JSON; it
-does not select approve, reject, or defer. The blocked report sanitization
-matrix locks representative non-echo cases for unknown schema,
-decision-selection, candidate-drift, and nested-fillable payload inputs.
-Strict readiness status coverage checks that non-exact `not_ready` variants
-block and do not echo caller-controlled readiness drift values.
-Required readiness status coverage checks that missing readiness status fails
-closed as `decision_needed`.
-Required unfilled decision-field coverage checks that missing fillable fields
-fail closed as `decision_needed`.
-Required-field drift non-echo matrix coverage checks every required text
-default drift value and every required false-field non-boolean value.
-Fillable and prohibited-field non-echo matrix coverage checks every fillable
-decision field value, every prohibited live/API field value, and every
-prohibited credential/secret field value.
-Report inert false-field matrix coverage checks top-level report false flags.
-Report inert true-field matrix coverage checks safe blocked/tracking/inert
-report true flags.
-Report-contract posture matrix coverage checks metadata drift, readiness
-payload drift, every safety posture field drift, and extra safety posture keys
-without echoing caller-controlled values in validator output.
-Report-payload contract hardening checks decision option, candidate tracking
-payload, decision-record template, validation payload fields/reasons,
-normalized record, and preflight checklist drift without echoing
-caller-controlled values in validator output.
-Report-payload contract matrix coverage checks missing validation payload
-fields, validation payload type drift, missing payload surfaces, and preflight
-checklist type drift without echoing caller-controlled values in validator
-output.
+Phase 14-C live smoke-test execution requires a separate current human
+initiation and must remain inside the bounded supervised smoke-test runbook
+before any live Todoist write, Calendar write, Gmail create/send, OpenClaw
+local/test/sandbox invocation, credential loading, production DB activation,
+scheduler/background behavior, or protected-path access.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1414,17 +1378,16 @@ V1 is acceptable only when:
 
 ## 29. Immediate Next Step
 
-The immediate human decision after this repo-local update is whether to use
-[PHASE_14C_DECISION_GATE.md](PHASE_14C_DECISION_GATE.md) for a later explicit
-review of the recorded Clean Kitchen Countertops and Stovetop candidate, or
-to reject/defer the candidate and keep Phase 14-C blocked.
-The related decision-support aid is
-[PHASE_14C_CANDIDATE_DECISION_SUPPORT.md](PHASE_14C_CANDIDATE_DECISION_SUPPORT.md).
+The immediate repo-local step is the Phase 14-C supervised smoke-test dry-run
+rehearsal in
+[PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+It uses deterministic fake clients and redacted safe-temp artifacts only.
 
-Phase 14-C remains blocked unless Chris later approves a separate
-selected-candidate authorization packet.
+Phase 14-C live smoke-test execution remains blocked unless Chris explicitly
+initiates that bounded supervised step in the current session.
 
-Codex/Fable must not turn Phase 14-A/B preparation into live activation.
+Codex/Fable must not turn Phase 14-A/B preparation, candidate-review history,
+or dry-run rehearsal into live activation.
 
 ## Appendix A - Fresh Chat Carryover Prompt
 
@@ -1458,9 +1421,9 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #82:
+Last validated main baseline after PR #83:
 
-`7290c6649fe333ca4e7cdc3214b9a4683f2000bc`
+`c97edaac193160c79daac730659c1fd00b44d842`
 
 Current validated state:
 
@@ -1546,11 +1509,13 @@ Current validated state:
 - PR #80 dry-run evidence bundle is merged
 - PR #81 final non-human handoff is merged
 - PR #82 final handoff status refresh is merged
+- PR #83 Phase 14-C supervised multi-rail smoke-test prep is merged
 - Phase 14-C supervised smoke-test prep adds
   [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md),
   guarded source/tests, credential-name-only preflight, an injected-client
-  execution path, and a read-only CLI runbook surface. It does not perform the
-  live smoke test.
+  execution path, a read-only CLI runbook surface, and a fake-client dry-run
+  rehearsal surface with redacted artifacts under an explicit safe temp output
+  directory. It does not perform the live smoke test.
 - The final non-human handoff adds only inert source/test/docs handoff-report
   coverage and keeps Phase 14-C, live services, credentials, testing, and
   go/no-go launch approval blocked by separate human gates.

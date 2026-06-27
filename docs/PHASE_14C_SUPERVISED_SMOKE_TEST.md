@@ -57,6 +57,12 @@ values. Rehearsal artifacts must report `live_run_executed=false`,
 DB, no scheduler activation, no protected paths touched, and writes only to
 the explicit output directory.
 
+Executor reports from `execute_phase14c_supervised_smoke_request` also use a
+redacted validation summary. Dry-run, blocked, and live-completed executor
+reports must not include a raw `normalized_request` payload or raw controlled
+test recipient. Direct in-memory validation may still retain normalized data
+for guardrail and injected-client execution logic.
+
 ## Test Marker
 
 Every object or invocation must include this marker:
@@ -200,6 +206,8 @@ This packet does not:
   under an explicit safe temp output directory.
 - Dry-run rehearsal artifacts are redacted and do not echo unsafe blocked
   request values.
+- Executor dry-run, blocked, and live-completed reports do not include raw
+  `normalized_request` payloads or raw controlled test recipients.
 - Dry-run rehearsal fake clients report no network calls, no credential reads,
   and no external mutation.
 - Dry-run rehearsal output directories must be fresh, temp-only, and outside

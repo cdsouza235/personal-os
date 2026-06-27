@@ -6,10 +6,10 @@ Last updated: 2026-06-27
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #83:
-  `c97edaac193160c79daac730659c1fd00b44d842`
-- Latest merged PR at that baseline: PR #83, Phase 14-C supervised
-  multi-rail smoke-test preparation
+- Last validated main baseline after PR #84:
+  `d5020dfe3c81a77ae51f0ccef5a21814fb530f69`
+- Latest merged PR at that baseline: PR #84, Phase 14-C smoke dry-run
+  rehearsal
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -47,7 +47,9 @@ Last updated: 2026-06-27
   Calendar, Gmail, and OpenClaw without running it; the Phase 14-C supervised
   smoke-test dry-run rehearsal is implemented as a repo-local fake-client
   surface with redacted artifacts written only under an explicit safe temp
-  output directory
+  output directory; Phase 14-C executor dry-run, blocked, and live-completed
+  reports now use redacted validation summaries instead of raw normalized
+  request payloads
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -80,11 +82,12 @@ Last updated: 2026-06-27
   non-human handoff report and validator, plus Phase 14-C supervised
   multi-rail smoke-test preparation with one-object-per-rail guardrails, plus
   Phase 14-C supervised smoke-test dry-run rehearsal with fake clients and
-  redacted safe-temp artifacts
+  redacted safe-temp artifacts, plus Phase 14-C executor report redaction
+  alignment
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
-  dry-run rehearsal and future live-test decision. Todoist, Google Calendar,
-  Gmail, and OpenClaw are acceptable low-blast-radius supervised smoke-test
-  rails inside the bounded runbook in
+  dry-run/report-surface review and future live-test decision. Todoist, Google
+  Calendar, Gmail, and OpenClaw are acceptable low-blast-radius supervised
+  smoke-test rails inside the bounded runbook in
   [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 - Phase 14-C supervised smoke test: prepared but not run; no real Todoist
   task, Calendar event, Gmail email, or OpenClaw invocation has been performed
@@ -92,20 +95,23 @@ Last updated: 2026-06-27
 - Phase 14-C dry-run rehearsal: fake-client CLI command prepared and verified;
   it does not initialize live clients, load credentials, open a DB, activate a
   scheduler, invoke OpenClaw, or perform external mutation.
+- Phase 14-C executor reports: dry-run, blocked, and live-completed reports
+  use redacted validation summaries and do not include raw `normalized_request`
+  payloads or raw controlled test recipients.
 
 ## Validated State
 
-- Full suite: 691 tests OK
-- ResourceWarning-sensitive suite: 691 tests OK
+- Full suite: 692 tests OK
+- ResourceWarning-sensitive suite: 692 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
 - Targeted Phase 14-C candidate decision-support validator suite: 76 tests OK
-- Targeted Phase 14-C supervised smoke-test suite: 18 tests OK
+- Targeted Phase 14-C supervised smoke-test suite: 19 tests OK
 - Targeted Phase 14-C supervised smoke-test docs suite: 4 tests OK
-- Targeted Phase 14-C supervised smoke dry-run source/docs/CLI suite: 64 tests
+- Targeted Phase 14-C supervised smoke dry-run source/docs/CLI suite: 65 tests
   OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK
@@ -264,8 +270,10 @@ Last updated: 2026-06-27
 - PR #83 Phase 14-C supervised multi-rail smoke-test prep: merged
 - PR #83 Claude Code audit: Pass
 - PR #83 post-merge validation: passed
-- Phase 14-C supervised smoke dry-run rehearsal: source/docs/CLI prep
-  validated
+- PR #84 Phase 14-C smoke dry-run rehearsal: merged
+- PR #84 Claude Code audit: Pass with notes; no required fixes
+- PR #84 post-merge validation: passed
+- Phase 14-C executor report redaction alignment: source/docs prep validated
 - PR #37 post-merge read-only CLI validation: passed
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -597,8 +605,10 @@ production runtime state.
 - PR #83: Prepare Phase 14-C supervised multi-rail smoke-test runbook,
   guardrails, credential-name-only preflight, injected-client execution path,
   and CLI runbook surface.
-- Current packet: Add Phase 14-C supervised smoke-test dry-run rehearsal with
-  fake clients, redacted safe-temp artifacts, and CLI evidence surface; no live
+- PR #84: Add Phase 14-C supervised smoke-test dry-run rehearsal with fake
+  clients, redacted safe-temp artifacts, and CLI evidence surface.
+- Phase 14-C executor report redaction alignment: redacts legacy dry-run,
+  blocked, and live-completed executor report validation payloads; no live
   smoke test run.
 
 ## Known Gaps

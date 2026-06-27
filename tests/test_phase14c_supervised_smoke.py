@@ -127,6 +127,7 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
         self.assertEqual(clients.google_calendar.calls, [])
         self.assertEqual(clients.gmail.calls, [])
         self.assertEqual(clients.openclaw.calls, [])
+        _assert_execution_validation_redacted(report)
 
     def test_dry_run_rehearsal_writes_redacted_safe_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -267,6 +268,7 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
             report["reasons"],
         )
         self.assertFalse(report["live_run_executed"])
+        _assert_execution_validation_redacted(report)
 
     def test_live_run_requires_all_injected_clients_before_any_call(self) -> None:
         request = build_default_phase14c_supervised_smoke_request(
@@ -287,6 +289,7 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
         self.assertIn("Missing injected client for gmail.", report["reasons"])
         self.assertIn("Missing injected client for openclaw.", report["reasons"])
         self.assertEqual(todoist.calls, [])
+        _assert_execution_validation_redacted(report)
 
     def test_live_run_invokes_each_injected_client_once(self) -> None:
         request = build_default_phase14c_supervised_smoke_request(
@@ -318,6 +321,22 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
             PHASE14C_SUPERVISED_SMOKE_MARKER,
             clients.openclaw.calls[0]["label"],
         )
+        _assert_execution_validation_redacted(report)
+
+    def test_executor_blocked_guardrail_report_does_not_echo_unsafe_values(self) -> None:
+        unsafe = "secret-token-value-that-must-not-echo"
+        request = build_default_phase14c_supervised_smoke_request()
+        request["test_marker"] = unsafe
+        request["rails"]["gmail"]["emails"][0]["to"] = [unsafe]
+
+        report = execute_phase14c_supervised_smoke_request(request)
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], "blocked")
+        self.assertFalse(report["validation"]["accepted"])
+        self.assertNotIn("normalized_request", report["validation"])
+        self.assertIsNone(report["validation"]["normalized_request_summary"])
+        self.assertNotIn(unsafe, serialized)
 
     def test_rejects_more_than_one_object_per_rail(self) -> None:
         cases = (
@@ -566,6 +585,23 @@ def _fake_clients() -> Phase14CSupervisedSmokeClients:
         gmail=_RecordingGmailClient(),
         openclaw=_RecordingOpenClawClient(),
     )
+
+
+def _assert_execution_validation_redacted(report: dict[str, object]) -> None:
+    serialized = json.dumps(report, sort_keys=True)
+    validation = report["validation"]
+    assert isinstance(validation, dict)
+    normalized_summary = validation.get("normalized_request_summary")
+    assert isinstance(normalized_summary, dict)
+
+    if "normalized_request" in validation:
+        raise AssertionError("execution report must not include raw normalized_request")
+    if "self.phase14c.test@example.test" in serialized:
+        raise AssertionError("execution report must not include raw test recipient")
+    if "rails" not in normalized_summary:
+        raise AssertionError("execution report should retain redacted rail summaries")
+    if not all(normalized_summary["boundaries_remain_false"].values()):
+        raise AssertionError("execution report should prove blocked boundaries stayed false")
 
 
 def _load_json(path: str) -> dict[str, object]:

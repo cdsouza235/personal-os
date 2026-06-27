@@ -583,7 +583,7 @@ def execute_phase14c_supervised_smoke_request(
             "external_mutation": False,
             "rail_operation_counts": _operation_counts(0),
             "planned_rail_operation_counts": _operation_counts(1),
-            "validation": validation.to_dict(),
+            "validation": _safe_validation_artifact(validation),
             "rail_results": {
                 rail: {"status": "would_execute_one_marked_test_operation"}
                 for rail in SMOKE_RAILS
@@ -636,7 +636,7 @@ def execute_phase14c_supervised_smoke_request(
         "external_mutation": True,
         "rail_operation_counts": _operation_counts(1),
         "planned_rail_operation_counts": _operation_counts(1),
-        "validation": _safe_dry_run_validation_artifact(validation),
+        "validation": _safe_validation_artifact(validation),
         "rail_results": rail_results,
     }
 
@@ -780,7 +780,7 @@ def _dry_run_completion_report(
                 else _operation_counts(0)
             ),
         },
-        "validation": _safe_dry_run_validation_artifact(validation),
+        "validation": _safe_validation_artifact(validation),
         "fake_client_results": dict(fake_client_results),
         "rail_operation_counts": {
             "fake_client_calls": fake_result_count,
@@ -839,7 +839,7 @@ def _write_dry_run_artifacts(
     )
     _write_json(
         artifact_paths["validation.json"],
-        _safe_dry_run_validation_artifact(validation),
+        _safe_validation_artifact(validation),
     )
     _write_json(artifact_paths["fake_client_results.json"], fake_client_results)
     _write_json(artifact_paths["completion_report.json"], completion_report)
@@ -902,7 +902,7 @@ def _safe_dry_run_request_artifact(
     }
 
 
-def _safe_dry_run_validation_artifact(
+def _safe_validation_artifact(
     validation: SupervisedSmokeValidation,
 ) -> dict[str, Any]:
     normalized = validation.normalized_request
@@ -1166,7 +1166,7 @@ def _execution_blocked(
         "live_run_executed": False,
         "external_mutation": False,
         "rail_operation_counts": _operation_counts(0),
-        "validation": validation.to_dict(),
+        "validation": _safe_validation_artifact(validation),
         "reasons": [reason, *extra_reasons],
         "rail_results": {},
     }

@@ -22,10 +22,9 @@ Key changes from v0.1:
 - Clarifies that the project is not starting from scratch.
 - Records the current repo baseline by pointing to `../STATUS.md` as the
   canonical snapshot:
-  - last validated main baseline after PR #85:
-    `bd93ae63338c7e5dd9c77a518bf4c223530c9846`
-  - latest merged PR: PR #85, Phase 14-C executor report redaction
-    alignment
+  - last validated main baseline after PR #86:
+    `9721ca38b6e63c979ddeb13f50258f2a6527c8e5`
+  - latest merged PR: PR #86, Phase 14-C request validation CLI
   - current post-merge validation is recorded in `../STATUS.md`
   - readiness remains `not_ready`
   - `inert_report_only=true`
@@ -68,8 +67,9 @@ Key changes from v0.1:
   injected-client execution path, CLI runbook discovery, a fake-client dry-run
   rehearsal that writes redacted artifacts only under an explicit safe temp
   output directory, redacted executor reports, a redacted request-validation
-  CLI for one explicit safe JSON request file, and tests. It does not run the
-  live smoke test.
+  CLI for one explicit safe JSON request file, a credential-name preflight CLI
+  that reports missing required names without reading values, and tests. It
+  does not run the live smoke test.
 - Records the long-run governance refinement that the completed bounded packet
   is the default PR/audit unit for safe inert repo-local work, human judgment
   conditions are explicit stop gates, and delegated repo-merge authority is
@@ -347,11 +347,11 @@ The canonical current snapshot is `../STATUS.md`. This PRD records the current
 product baseline, but `../STATUS.md` remains the source of truth for the latest
 post-merge validation.
 
-As of this post-merge validation update after PR #85:
+As of this post-merge validation update after PR #86:
 
-- Last validated main baseline after PR #85:
-  `bd93ae63338c7e5dd9c77a518bf4c223530c9846`
-- Latest merged PR: PR #85, Phase 14-C executor report redaction alignment
+- Last validated main baseline after PR #86:
+  `9721ca38b6e63c979ddeb13f50258f2a6527c8e5`
+- Latest merged PR: PR #86, Phase 14-C request validation CLI
 - PR #45 Claude Code audit: Pass
 - PR #47 Claude Code audit: Pass
 - PR #48 Claude Code audit: Pass
@@ -391,6 +391,7 @@ As of this post-merge validation update after PR #85:
 - PR #83 Claude Code audit: Pass
 - PR #84 Claude Code audit: Pass with notes; no required fixes
 - PR #85 Claude Code audit: Pass
+- PR #86 Claude Code audit: Pass
 - PR #83 audited head merged:
   `58a79f525b17d4f5153c9ccfacbaabda8070f547`
 - PR #83 merge commit:
@@ -403,6 +404,10 @@ As of this post-merge validation update after PR #85:
   `4d5c918beeec481d1f0d15c0a0266cbf51764b62`
 - PR #85 merge commit:
   `bd93ae63338c7e5dd9c77a518bf4c223530c9846`
+- PR #86 audited head merged:
+  `1d4ac86ba244a3f5e4a2379575885fe906567686`
+- PR #86 merge commit:
+  `9721ca38b6e63c979ddeb13f50258f2a6527c8e5`
 - Completed through: Phase 14-A/B preparation on `main`; pre-Phase-14-C
   candidate-selection preparation is implemented on `main` and post-merge
   validated; long-run repo workflow and Claude Code audit triage protocols are
@@ -412,11 +417,13 @@ As of this post-merge validation update after PR #85:
   merged through PR #83; Phase 14-C supervised smoke dry-run rehearsal is
   merged through PR #84; executor report redaction alignment is merged through
   PR #85; redacted request validation is implemented as a repo-local CLI
-  surface.
+  surface through PR #86; credential-name preflight is implemented as a
+  repo-local CLI surface.
 - Current/next phase: Phase 14-C supervised multi-rail smoke-test
-  request-validation/dry-run/report-surface review and future live-test
-  decision. Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
-  low-blast-radius supervised smoke-test rails inside the bounded runbook in
+  request-validation/credential-preflight/dry-run/report-surface review and
+  future live-test decision. Todoist, Google Calendar, Gmail, and OpenClaw are
+  acceptable low-blast-radius supervised smoke-test rails inside the bounded
+  runbook in
   [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 - Phase 14-C supervised smoke test: prepared but not run; no real Todoist
   task, Calendar event, Gmail email, or OpenClaw invocation has been performed
@@ -432,8 +439,13 @@ As of this post-merge validation update after PR #85:
   paths are rejected; no files are written, no DB is opened, no credentials are
   loaded, no live clients are initialized, no rails execute, and no external
   mutation occurs.
-- Full test suite: 697 tests OK
-- ResourceWarning-sensitive suite: 697 tests OK
+- Phase 14-C credential preflight CLI: required environment/config entry names
+  are checked without reading values; reports include missing required names,
+  counts, and booleans only; present names and values are omitted; no files are
+  written, no DB is opened, no credentials are loaded, no live clients are
+  initialized, no rails execute, and no external mutation occurs.
+- Full test suite: 699 tests OK
+- ResourceWarning-sensitive suite: 699 tests OK
 - Hygiene clean
 - No repo-local `var/`
 - No SQLite/DB artifacts outside `.git`
@@ -1353,14 +1365,15 @@ candidate-review context only.
 
 ### Current Recommended Phase
 
-Phase 14-C supervised smoke-test request-validation/report-surface review and
-future live-test decision.
+Phase 14-C supervised smoke-test request-validation, credential-preflight, and
+report-surface review before a future live-test decision.
 
 Purpose:
 
 - run the bounded one-object-per-rail request through deterministic fake
   clients
 - validate one explicit safe JSON request file with a redacted stdout report
+- check required config entry names without reading credential values
 - write redacted `request.json`, `validation.json`, `fake_client_results.json`,
   `completion_report.json`, and `summary.md` artifacts only under an explicit
   safe temp output directory
@@ -1368,7 +1381,8 @@ Purpose:
   guardrails before any live smoke-test initiation
 - keep dry-run, blocked, and live-completed executor reports redacted
 - preserve no live clients, credentials, production DB, scheduler activation,
-  file writes during request validation, external writes, or OpenClaw calls
+  file writes during request validation or credential preflight, external
+  writes, or OpenClaw calls
 
 ### Not Yet Started
 
@@ -1406,11 +1420,12 @@ V1 is acceptable only when:
 ## 29. Immediate Next Step
 
 The immediate repo-local step is Phase 14-C supervised smoke-test
-request-validation and dry-run rehearsal review in
+request-validation, credential-name preflight, and dry-run rehearsal review in
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 The request-validation surface reads one explicit safe JSON request file and
-prints a redacted report. The rehearsal uses deterministic fake clients and
-redacted safe-temp artifacts only.
+prints a redacted report. The credential preflight surface checks required
+environment/config entry names without reading values. The rehearsal uses
+deterministic fake clients and redacted safe-temp artifacts only.
 
 Phase 14-C live smoke-test execution remains blocked unless Chris explicitly
 initiates that bounded supervised step in the current session.
@@ -1450,14 +1465,14 @@ Repo work goes to Codex/Fable by default, not OpenClaw. OpenClaw should not
 handle repo implementation, PR review, merge, or validation unless explicitly
 chosen later for a narrow runtime/operator smoke test.
 
-Last validated main baseline after PR #85:
+Last validated main baseline after PR #86:
 
-`bd93ae63338c7e5dd9c77a518bf4c223530c9846`
+`9721ca38b6e63c979ddeb13f50258f2a6527c8e5`
 
 Current validated state:
 
-- Full suite: 697 tests OK
-- ResourceWarning-sensitive suite: 697 tests OK
+- Full suite: 699 tests OK
+- ResourceWarning-sensitive suite: 699 tests OK
 - Hygiene clean
 - No repo-local var/
 - No SQLite/DB artifacts outside .git
@@ -1541,6 +1556,7 @@ Current validated state:
 - PR #83 Phase 14-C supervised multi-rail smoke-test prep is merged
 - PR #84 Phase 14-C smoke dry-run rehearsal is merged
 - PR #85 Phase 14-C executor report redaction alignment is merged
+- PR #86 Phase 14-C request validation CLI is merged
 - Phase 14-C supervised smoke-test prep adds
   [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md),
   guarded source/tests, credential-name-only preflight, an injected-client
@@ -1548,8 +1564,9 @@ Current validated state:
   rehearsal surface with redacted artifacts under an explicit safe temp output
   directory. Executor dry-run, blocked, and live-completed reports use
   redacted validation summaries. The request-validation CLI validates one
-  explicit safe JSON request file with a redacted stdout report and does not
-  perform the live smoke test.
+  explicit safe JSON request file with a redacted stdout report. The
+  credential-preflight CLI checks required config entry names without reading
+  values. Neither surface performs the live smoke test.
 - The final non-human handoff adds only inert source/test/docs handoff-report
   coverage and keeps Phase 14-C, live services, credentials, testing, and
   go/no-go launch approval blocked by separate human gates.

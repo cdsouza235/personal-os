@@ -197,6 +197,8 @@ OpenClaw model strategy is documented in
 [OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md). It defines explicit
 Nemotron Super / GLM 5.2 model lanes without provider auto-escalation, hidden
 model choice, credential logging, or live model/API activation.
+The current remaining-rail connector/config inventory is recorded in
+[PHASE_14C_CONNECTIVITY_READINESS.md](PHASE_14C_CONNECTIVITY_READINESS.md).
 
 ## Phase 13E-D / 13G Boundary
 

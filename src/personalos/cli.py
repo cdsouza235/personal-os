@@ -17,6 +17,9 @@ from personalos.briefings import generate_no_send_briefing_preview, read_briefin
 from personalos.config import DEFAULT_TIMEZONE
 from personalos.dashboard import render_today_view_html_from_connection
 from personalos.operator_status import create_operator_status_report
+from personalos.openclaw_model_strategy import (
+    build_openclaw_model_provider_readiness_report,
+)
 from personalos.path_safety import (
     is_under_repo,
     is_under_temp,
@@ -225,6 +228,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local live-readiness report / no live clients / no execution",
         "local_effect": "reads one explicit safe JSON file and environment key names only",
         "output": "stdout redacted live-readiness JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C OpenClaw model readiness",
+        "safe_local_action": "Check model provider config names without executing",
+        "command": "personalos phase14c openclaw-model-readiness [--json]",
+        "mode": "repo-local model readiness / no provider call / no live client",
+        "local_effect": "reads environment key names only; no DB opened; no files written",
+        "output": "stdout model readiness JSON or human summary",
     },
 )
 
@@ -440,6 +451,23 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_live_readiness_parser)
     phase14c_live_readiness_parser.set_defaults(
         func=_command_phase14c_supervised_smoke_live_readiness
+    )
+
+    phase14c_model_readiness_parser = phase14c_subparsers.add_parser(
+        "openclaw-model-readiness",
+        help="Check Phase 14-C OpenClaw model provider readiness without a model call.",
+        description=(
+            "Check whether required OpenClaw model-provider config entry names exist "
+            "and print the deterministic Nemotron Super / GLM 5.2 smoke-lane plan. "
+            "This command reads environment key names only; it does not read "
+            "credential values, load credentials, open a DB, initialize a model "
+            "client, call a model provider, execute tools, invoke OpenClaw, or write "
+            "files."
+        ),
+    )
+    _add_json_arg(phase14c_model_readiness_parser)
+    phase14c_model_readiness_parser.set_defaults(
+        func=_command_phase14c_openclaw_model_readiness
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -1025,6 +1053,45 @@ def _command_phase14c_supervised_smoke_live_readiness(args: argparse.Namespace) 
             "Review the redacted live-readiness report.",
             "Do not paste or inspect credential values.",
             "Live execution still requires a separate explicit supervised smoke-test initiation.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_openclaw_model_readiness(args: argparse.Namespace) -> int:
+    readiness = build_openclaw_model_provider_readiness_report(
+        available_config_names=os.environ.keys(),
+        client_available=False,
+        client_type=None,
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c openclaw-model-readiness",
+            "status": readiness["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "openclaw_model_readiness": readiness,
+        },
+        workflow_name="Phase 14-C OpenClaw model readiness",
+        workflow_mode="repo-local model readiness / no provider call / no live client",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review missing model-provider config entry names only.",
+            "Do not paste or inspect credential values.",
+            "A future model smoke still requires an injected client and a separate "
+            "supervised smoke step.",
         ),
     )
     _emit_report(report, json_output=args.json)

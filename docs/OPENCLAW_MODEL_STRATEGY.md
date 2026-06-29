@@ -13,7 +13,19 @@ Source contract:
 - `src/personalos/openclaw_model_strategy.py`
 - `build_openclaw_model_strategy_config`
 - `build_openclaw_model_call_plan`
+- `build_openclaw_model_provider_readiness_report`
+- `run_openclaw_model_smoke_probe`
 - `sanitize_openclaw_model_run_metadata`
+
+CLI discovery:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c openclaw-model-readiness --json
+```
+
+That command checks model-provider config entry names only. It does not read
+credential values, load credentials, initialize a model client, call a model
+provider, execute tools, invoke OpenClaw, open a database, or write files.
 
 ## Model Aliases
 
@@ -68,13 +80,41 @@ Reasoning / high-complexity lane:
   success/failure, latency if safely available, token counts if safely
   available, and sanitized error code/category.
 
+## Provider Readiness
+
+Model-provider readiness reports required config names only by count and
+missing names:
+
+- `PERSONALOS_OPENCLAW_MODEL_PROVIDER`
+- `PERSONALOS_OPENCLAW_MODEL_API_KEY`
+- `PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL`
+- `PERSONALOS_OPENCLAW_GLM_5_2_MODEL`
+
+Reports must not print present config names, credential values, OAuth material,
+raw provider responses, full prompts, or environment dumps.
+
+If config names are missing, the smoke probe reports
+`openclaw_model_smoke_not_run_missing_provider_config`.
+
+If config names are present but no injected model client exists, the smoke
+probe reports `openclaw_model_smoke_not_run_missing_client`.
+
+If a future supervised operator path injects a configured model client, the
+smoke probe may make at most one Nemotron Super primary call and one GLM 5.2
+fallback call only after primary validation failure. The prompt is a short
+constant smoke probe and is not included in the report.
+
 ## Non-Goals
 
 This strategy does not:
 
 - add a complex autonomous router;
-- call Nemotron Super, GLM 5.2, OpenRouter, or any live provider;
+- construct a provider SDK client;
+- call Nemotron Super, GLM 5.2, OpenRouter, or any live provider without a
+  separately injected model smoke client;
 - inspect, print, copy, or store credentials;
+- print present config names;
+- log full prompts or raw provider responses;
 - broaden OpenClaw runtime handoff;
 - activate scheduler/background behavior;
 - activate production DB;
@@ -84,5 +124,6 @@ This strategy does not:
 
 `tests/test_openclaw_model_strategy.py` verifies the alias map, smoke and
 reasoning lane primary/fallback choices, configurable provider hints, routing
-constraints, max call counts, output-token caps, and safe metadata
+constraints, provider-readiness missing-name reports, max call counts,
+output-token caps, primary/fallback smoke-probe behavior, and safe metadata
 sanitization.

@@ -24,6 +24,9 @@ Source contract:
 - `validate_phase14c_supervised_smoke_request`
 - `execute_phase14c_supervised_smoke_request`
 - `run_phase14c_supervised_smoke_dry_run_rehearsal`
+- `src/personalos/openclaw_model_strategy.py`
+- `build_openclaw_model_provider_readiness_report`
+- `run_openclaw_model_smoke_probe`
 
 CLI discovery:
 
@@ -99,6 +102,18 @@ is always false and `live_run_executed=false`. It does not read credential
 values, load credentials, open a database, initialize live clients, create
 Todoist tasks, create Calendar events, create or send Gmail, invoke OpenClaw,
 write files, or perform external writes.
+
+OpenClaw model readiness:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c openclaw-model-readiness --json
+```
+
+That CLI command checks OpenClaw model-provider config entry names only and
+prints the deterministic Nemotron Super / GLM 5.2 smoke-lane plan. It does not
+read credential values, load credentials, initialize a model client, call a
+model provider, execute tools, invoke OpenClaw, open a database, or write
+files. It does not initialize a model client.
 
 Dry-run rehearsal:
 
@@ -190,12 +205,19 @@ OpenClaw now has a repo-local local/test/sandbox compatibility harness:
 smoke path for `phase14c_smoke_test`; it does not call protected OpenClaw
 runtime, access protected paths, activate scheduler/background behavior,
 activate production DB, perform external mutation, or broaden runtime handoff.
+The 2026-06-29 connectivity sprint ran that harness once and recorded
+`openclaw_local_harness_passed` with `mode=local_test_sandbox`.
 
 OpenClaw model lane strategy is documented in
 [OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md). The smoke lane uses
 Nemotron Super primary with GLM 5.2 fallback. The reasoning lane uses GLM 5.2
 primary with Nemotron Super fallback. Routing is explicit by lane/task type,
 with no hidden model choice or provider auto-escalation.
+Model-provider readiness reports use
+`openclaw_model_smoke_not_run_missing_provider_config`,
+`openclaw_model_smoke_not_run_missing_client`, or
+`openclaw_model_smoke_passed` and must not expose credential values, present
+config names, full prompts, or raw provider responses.
 
 ## Dry-Run Boundary
 
@@ -288,6 +310,14 @@ The preflight checks names only:
 - `PERSONALOS_PHASE14C_GMAIL_CREDENTIAL`
 - `PERSONALOS_PHASE14C_OPENCLAW_TEST_MODE`
 
+Model-provider readiness checks these additional names for a future injected
+OpenClaw model smoke client:
+
+- `PERSONALOS_OPENCLAW_MODEL_PROVIDER`
+- `PERSONALOS_OPENCLAW_MODEL_API_KEY`
+- `PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL`
+- `PERSONALOS_OPENCLAW_GLM_5_2_MODEL`
+
 Reports may include missing names. Reports must not include credential values,
 token contents, OAuth material, summaries of auth material, or present
 non-required environment names.
@@ -331,6 +361,9 @@ This packet does not:
   rescheduling.
 - The repo-local OpenClaw local/test/sandbox smoke harness returns safe
   metadata only and does not call OpenClaw runtime or mutate external state.
+- The OpenClaw model readiness CLI reports missing provider config names only,
+  does not report present config names, and does not call a provider or
+  initialize a model client.
 - The request-template report emits a one-object-per-rail template and records
   `template_only_not_authorization=true` and `ready_for_live_execution=false`.
 - The dry-run rehearsal writes `request.json`, `validation.json`,

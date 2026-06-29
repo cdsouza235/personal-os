@@ -31,8 +31,10 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "personalos.cli phase14c supervised-smoke-credential-preflight --json",
             "personalos.cli phase14c supervised-smoke-live-readiness --input-file",
             "personalos.cli phase14c supervised-smoke-dry-run --output-dir",
+            "personalos.cli phase14c openclaw-model-readiness --json",
             "does not load credentials",
             "does not initialize live clients",
+            "does not initialize a model client",
             "request-template report",
             "template_only_not_authorization",
             "redacted validation report",
@@ -60,6 +62,9 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "openclaw model lane strategy",
             "nemotron super primary with glm 5.2 fallback",
             "glm 5.2 primary with nemotron super fallback",
+            "openclaw_model_smoke_not_run_missing_provider_config",
+            "openclaw_model_smoke_not_run_missing_client",
+            "openclaw_model_smoke_passed",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -82,6 +87,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "1 invocation",
             "gmail_not_run_missing_sender_or_controlled_recipient",
             "phase14c_smoke_test",
+            "openclaw_local_harness_passed",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

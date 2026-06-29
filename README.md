@@ -35,6 +35,9 @@ Markdown documentation. The current project snapshot lives in
 - [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md):
   guarded supervised smoke-test runbook for Todoist, Google Calendar, Gmail,
   and OpenClaw.
+- [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md):
+  current connector/client/config inventory and mobile-continuity setup names
+  for the remaining Phase 14-C smoke rails.
 - [docs/OPENCLAW_MODEL_STRATEGY.md](docs/OPENCLAW_MODEL_STRATEGY.md):
   deterministic Nemotron Super / GLM 5.2 lane strategy for OpenClaw smoke and
   reasoning work.
@@ -67,7 +70,9 @@ low-blast-radius rails for the bounded Phase 14-C supervised smoke-test plan in
 [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md),
 but repo prep, runbook review, request validation, credential-name preflight,
 live-readiness reports, request-template generation, and the fake-client dry-run
-rehearsal do not perform additional live actions.
+rehearsal do not perform additional live actions. The current remaining-rail
+connector/config inventory is recorded in
+[docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md).
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

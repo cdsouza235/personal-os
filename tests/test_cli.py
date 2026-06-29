@@ -25,6 +25,11 @@ from personalos.composer import (
 from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
+from personalos.openclaw_model_strategy import (
+    OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+    OPENCLAW_MODEL_SMOKE_MISSING_CLIENT,
+    OPENCLAW_MODEL_SMOKE_MISSING_PROVIDER_CONFIG,
+)
 from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
     LIVE_RUN_MODE,
@@ -368,6 +373,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "simulated scheduler preview",
             "Phase 14-C supervised smoke-test runbook",
             "Phase 14-C supervised smoke dry-run rehearsal",
+            "Phase 14-C OpenClaw model readiness",
         ):
             with self.subTest(workflow_name=workflow_name):
                 self.assertIn(f"- {workflow_name}", result.stdout)
@@ -916,6 +922,84 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         )
         self.assertNotIn(unsafe, result.stdout)
         self.assertNotIn(unsafe, result.stderr)
+
+    def test_phase14c_openclaw_model_readiness_missing_config_names_only(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"PERSONALOS_OPENCLAW_MODEL_PROVIDER": "secret-provider-value"},
+            clear=True,
+        ):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "openclaw-model-readiness",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        readiness = payload["openclaw_model_readiness"]
+        provider_config = readiness["provider_config"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c openclaw-model-readiness")
+        self.assertEqual(payload["status"], OPENCLAW_MODEL_SMOKE_MISSING_PROVIDER_CONFIG)
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertEqual(provider_config["required_config_entry_count"], 4)
+        self.assertEqual(
+            provider_config["missing_config_entry_names"],
+            [
+                "PERSONALOS_OPENCLAW_MODEL_API_KEY",
+                "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
+                "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
+            ],
+        )
+        self.assertFalse(readiness["model_smoke_probe_executed"])
+        self.assertTrue(provider_config["reports_missing_names_only"])
+        self.assertFalse(provider_config["available_config_entry_names_reported"])
+        self.assertFalse(provider_config["credential_values_read"])
+        self.assertNotIn("secret-provider-value", result.stdout)
+        self.assertNotIn("PERSONALOS_OPENCLAW_MODEL_PROVIDER", result.stdout)
+
+    def test_phase14c_openclaw_model_readiness_complete_config_still_needs_client(
+        self,
+    ) -> None:
+        secret_environment = {
+            name: f"secret-model-value-for-{index}"
+            for index, name in enumerate(OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES)
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "openclaw-model-readiness",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        readiness = payload["openclaw_model_readiness"]
+        provider_config = readiness["provider_config"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["status"], OPENCLAW_MODEL_SMOKE_MISSING_CLIENT)
+        self.assertEqual(provider_config["missing_config_entry_names"], [])
+        self.assertFalse(provider_config["available_config_entry_names_reported"])
+        self.assertFalse(readiness["client"]["available"])
+        self.assertFalse(readiness["model_smoke_probe_executed"])
+        self.assertEqual(readiness["routing"]["primary_alias"], "nemotron_super")
+        self.assertEqual(readiness["routing"]["fallback_alias"], "glm_5_2")
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+        for present_name in OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES:
+            self.assertNotIn(present_name, result.stdout)
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

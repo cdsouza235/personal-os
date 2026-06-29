@@ -40,7 +40,7 @@ PHASE14C_TODOIST_DEFAULT_PROJECT = "Inbox/default"
 PHASE14C_TODOIST_ORIGINAL_DUE_DATE = "2026-06-29"
 PHASE14C_TODOIST_ADJUSTED_DUE_DATE = "2026-07-06"
 PHASE14C_OPENCLAW_SMOKE_NAME = "phase14c_smoke_test"
-PHASE14C_OPENCLAW_LOCAL_HARNESS_STATUS = "local_test_sandbox_smoke_completed"
+PHASE14C_OPENCLAW_LOCAL_HARNESS_STATUS = "openclaw_local_harness_passed"
 
 DRY_RUN_MODE = "dry_run"
 LIVE_RUN_MODE = "live_run"
@@ -429,10 +429,14 @@ def build_phase14c_supervised_live_smoke_status() -> dict[str, Any]:
                 "due_date_if_run_after_original": PHASE14C_TODOIST_ADJUSTED_DUE_DATE,
             },
             "openclaw": {
-                "status": "repo_local_harness_available",
+                "status": "openclaw_local_harness_passed",
                 "external_write_happened": False,
-                "reason": "openclaw_runtime_not_run_missing_local_test_sandbox_invocation",
+                "result": "openclaw_local_harness_passed",
                 "harness_function": "run_phase14c_openclaw_local_sandbox_smoke",
+                "invocation_name": PHASE14C_OPENCLAW_SMOKE_NAME,
+                "mode": "local_test_sandbox",
+                "protected_runtime_called": False,
+                "safe_metadata_only": True,
             },
         },
         "safety_assertions": {

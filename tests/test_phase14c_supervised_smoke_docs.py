@@ -32,6 +32,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "personalos.cli phase14c supervised-smoke-live-readiness --input-file",
             "personalos.cli phase14c supervised-smoke-dry-run --output-dir",
             "personalos.cli phase14c openclaw-model-readiness --json",
+            "personalos.cli phase14c todoist-inbox-smoke --json",
+            "personalos.cli phase14c openrouter-model-smoke --json",
             "does not load credentials",
             "does not initialize live clients",
             "does not initialize a model client",
@@ -65,6 +67,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "openclaw_model_smoke_not_run_missing_provider_config",
             "openclaw_model_smoke_not_run_missing_client",
             "openclaw_model_smoke_passed",
+            "todoist_not_run_missing_execute_live_flag",
+            "openclaw_model_smoke_not_run_missing_execute_live_flag",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

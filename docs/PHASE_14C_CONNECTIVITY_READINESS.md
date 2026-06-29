@@ -18,9 +18,9 @@ Baseline:
 | GitHub PR via `gh` | available | PR metadata query succeeded; `gh auth status` still reports invalid stored host tokens |
 | Google Calendar connector | available | bounded readback found exactly one matching event |
 | Gmail connector/client | missing | `gmail_not_run_missing_connector_or_client` |
-| Todoist connector/client | missing | `todoist_not_run_missing_client_or_connector` |
+| Todoist connector/client | repo-local gated client path prepared | `personalos phase14c todoist-inbox-smoke` defaults to no-execution/report-only; live path requires token config plus explicit approval |
 | OpenClaw local/test/sandbox harness | available and passed | `openclaw_local_harness_passed` |
-| OpenClaw model provider/client | missing | provider config names and injected client are missing |
+| OpenClaw model provider/client | repo-local OpenRouter gated client path prepared | `personalos phase14c openrouter-model-smoke` defaults to no-execution/report-only; live path requires OpenRouter config plus explicit approval |
 
 Safe Calendar account identity observed from the connector:
 
@@ -57,22 +57,40 @@ Gmail:
 
 Todoist:
 
-- Result: `todoist_not_run_missing_client_or_connector`.
+- Result: not run live in this packet.
 - No task was created.
+- Default gate status without live execution:
+  `todoist_not_run_missing_execute_live_flag`.
 - Required next-run setup name:
   - `PERSONALOS_PHASE14C_TODOIST_TOKEN`
+- Future live command, after separate explicit approval:
+  `personalos phase14c todoist-inbox-smoke --execute-live --approval-reference <ref> --json`
+- The live path creates at most one Inbox/default task, omits `project_id` for
+  Inbox/default, and does not set recurrence, subtasks, labels, comments,
+  attachments, edits, deletes, skip/push/bump behavior, or automatic
+  rescheduling.
 
 OpenClaw model smoke:
 
-- Result: `openclaw_model_smoke_not_run_missing_provider_config`.
+- Result: not run live in this packet.
 - No model provider call was made.
+- Default gate status is
+  `openclaw_model_smoke_not_run_missing_provider_config` when required config
+  names are missing, or
+  `openclaw_model_smoke_not_run_missing_execute_live_flag` when config names
+  are present but live execution is not explicitly requested.
 - Required next-run setup names:
   - `PERSONALOS_OPENCLAW_MODEL_PROVIDER`
   - `PERSONALOS_OPENCLAW_MODEL_API_KEY`
   - `PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL`
   - `PERSONALOS_OPENCLAW_GLM_5_2_MODEL`
-- A future run also needs an injected model smoke client; the repo does not
-  construct a provider SDK client.
+- Future live command, after separate explicit approval:
+  `personalos phase14c openrouter-model-smoke --execute-live --approval-reference <ref> --json`
+- The live path uses a stdlib HTTP OpenRouter client, calls Nemotron Super at
+  most once, and calls GLM 5.2 at most once only if the primary validation
+  fails. It does not use a provider SDK, log credential values, log full
+  prompts, log raw provider responses, execute tools, or invoke OpenClaw
+  runtime.
 
 Phase 14-C live-rail config preflight also reports these missing names:
 
@@ -118,6 +136,18 @@ OpenClaw model provider readiness:
 set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c openclaw-model-readiness --json
 ```
 
+Todoist no-execution gate:
+
+```bash
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c todoist-inbox-smoke --json
+```
+
+OpenRouter no-execution gate:
+
+```bash
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c openrouter-model-smoke --json
+```
+
 OpenClaw local/test/sandbox harness:
 
 ```bash
@@ -131,6 +161,7 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
 - `.env.local` is gitignored; `.env.example` contains placeholders only.
 - No Gmail email was drafted or sent.
 - No Todoist task was created.
+- No OpenRouter model provider call was made.
 - No duplicate Calendar event was created.
 - No protected path was accessed.
 - No scheduler, LaunchAgent, crontab, daemon, watcher, or background loop was

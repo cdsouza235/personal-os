@@ -169,6 +169,8 @@ def run_openclaw_model_smoke_probe(
     client: OpenClawModelSmokeClient | None = None,
     client_type: str | None = None,
     generated_at_utc: str = OPENCLAW_MODEL_READINESS_DEFAULT_GENERATED_AT_UTC,
+    credential_values_read: bool = False,
+    model_provider_called: bool = False,
 ) -> dict[str, Any]:
     """Run at most one primary and one fallback OpenClaw model smoke probe.
 
@@ -246,7 +248,10 @@ def run_openclaw_model_smoke_probe(
             (result for result in probe_results if result["validation_passed"] is True),
             probe_results[-1],
         ),
-        "safety_assertions": _model_smoke_safety_assertions(),
+        "safety_assertions": _model_smoke_safety_assertions(
+            credential_values_read=credential_values_read,
+            model_provider_called=model_provider_called,
+        ),
     }
 
 
@@ -433,11 +438,16 @@ def _safe_model_plan_summary(plan: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _model_smoke_safety_assertions() -> dict[str, bool]:
+def _model_smoke_safety_assertions(
+    *,
+    credential_values_read: bool = False,
+    model_provider_called: bool = False,
+) -> dict[str, bool]:
     return {
-        "credential_values_read": False,
+        "credential_values_read": credential_values_read,
         "credential_values_logged": False,
         "full_prompt_logged": False,
+        "model_provider_called": model_provider_called,
         "protected_paths_touched": False,
         "tool_execution": False,
         "scheduler_activated": False,

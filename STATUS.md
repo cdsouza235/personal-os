@@ -6,9 +6,9 @@ Last updated: 2026-06-29
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #91:
-  `36102bbf76c4a71d99b27f56a47c2821acf11823`
-- Latest merged PR at that baseline: PR #91, Phase 14-C connectivity readiness
+- Last validated main baseline after PR #92:
+  `bde2eea08e21b12e3e5c96fcc6ba27557ba08188`
+- Latest merged PR at that baseline: PR #92, Phase 14-C connectivity setup CLI
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -65,7 +65,11 @@ Last updated: 2026-06-29
   runtime handoff; a local `scripts/phase14c_connectivity_setup.sh` setup
   script, `.env.example` placeholder file, and names-only
   `phase14c connectivity-setup` CLI are prepared for Gmail, Todoist, and
-  OpenRouter setup without printing or committing credential values
+  OpenRouter setup without printing or committing credential values; repo-local
+  gated Todoist Inbox/default and OpenRouter model smoke commands are prepared
+  with no-execution/report-only defaults, explicit `--execute-live` gates, and
+  approval-reference requirements before any credential values are read or
+  external calls are made
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -109,7 +113,8 @@ Last updated: 2026-06-29
   harness pass, deterministic OpenClaw model strategy, OpenClaw model-provider
   readiness reporting, the Phase 14-C connectivity readiness inventory, and a
   local Gmail/Todoist/OpenRouter connectivity setup script plus names-only CLI
-  verifier
+  verifier, plus gated Todoist Inbox/default and OpenRouter model smoke client
+  commands that are not executed by default
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
   follow-through after the first live rail. Todoist, Google Calendar, Gmail,
   and OpenClaw are acceptable low-blast-radius supervised smoke-test rails
@@ -121,7 +126,8 @@ Last updated: 2026-06-29
   `memu6fhql6stl71auv05e1a6d0`; readback confirmed one matching event, no
   attendees, no recurrence, no attachments, no conference link, and default
   reminders disabled. No real Todoist task, Gmail email, or protected-runtime
-  OpenClaw invocation has been performed. The repo-local OpenClaw
+  OpenClaw invocation has been performed. No OpenRouter model-provider call has
+  been performed. The repo-local OpenClaw
   local/test/sandbox harness passed once with no protected runtime call or
   external mutation.
 - Broad live activation remains false; readiness remains `not_ready` and
@@ -169,7 +175,11 @@ Last updated: 2026-06-29
 - Phase 14-C Todoist readiness: defaults to Inbox/default, uses the next
   upcoming Monday when the original due date is stale, and blocks recurrence,
   subtasks, labels, comments, automatic edits/deletion, skip/push/bump, and
-  automatic rescheduling.
+  automatic rescheduling. The `phase14c todoist-inbox-smoke` CLI defaults to a
+  no-execution gate that reads config names only; live mode requires
+  `--execute-live`, an approval reference, and
+  `PERSONALOS_PHASE14C_TODOIST_TOKEN`, and may create at most one Inbox/default
+  task.
 - Phase 14-C OpenClaw readiness: includes a repo-local
   `run_phase14c_openclaw_local_sandbox_smoke` harness for
   `phase14c_smoke_test`; the harness passed once with
@@ -181,19 +191,25 @@ Last updated: 2026-06-29
   defines explicit Nemotron Super / GLM 5.2 lanes with no hidden model choice,
   provider auto-escalation, credential logging, or live model/API activation.
   The Phase 14-C model readiness CLI reports missing provider config names only
-  and does not initialize a model client or call a provider.
+  and does not initialize a model client or call a provider. The
+  `phase14c openrouter-model-smoke` CLI defaults to a no-execution gate that
+  reads config names only; live mode requires `--execute-live`, an approval
+  reference, and OpenRouter config values, and may call Nemotron Super at most
+  once plus GLM 5.2 at most once only if primary validation fails.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
-  records that Google Calendar connector reads are available, Gmail and Todoist
-  connector/client paths are missing, the OpenClaw local/test/sandbox harness
-  passed, OpenClaw model provider config/client setup is missing, and GitHub
-  branch push / PR metadata operations are available in this session despite
-  `gh auth status` reporting invalid stored host tokens.
+  records that Google Calendar connector reads are available, Gmail connector
+  execution remains unavailable in this Codex context, Todoist and OpenRouter
+  now have repo-local gated smoke client paths, the OpenClaw local/test/sandbox
+  harness passed, OpenClaw model provider config setup is still required for a
+  future live model smoke, and GitHub branch push / PR metadata operations are
+  available in this session despite `gh auth status` reporting invalid stored
+  host tokens.
 
 ## Validated State
 
-- Full suite: 728 tests OK
-- ResourceWarning-sensitive suite: 728 tests OK
+- Full suite: 739 tests OK
+- ResourceWarning-sensitive suite: 739 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -207,6 +223,7 @@ Last updated: 2026-06-29
   OK plus the targeted source/docs tests above
 - Targeted Phase 14-C connectivity setup/source/docs/CLI suite: 101 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
+- Targeted Phase 14-C gated live-smoke client/CLI/model suite: 78 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK
 - Targeted non-human closure plan suite: 11 tests OK

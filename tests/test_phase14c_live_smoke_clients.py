@@ -1,0 +1,200 @@
+import json
+import unittest
+from datetime import date
+
+from personalos.openclaw_model_strategy import (
+    OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+    OPENCLAW_MODEL_SMOKE_EXPECTED_TEXT,
+    OPENCLAW_MODEL_SMOKE_PASSED,
+    run_openclaw_model_smoke_probe,
+)
+from personalos.openrouter_model_smoke_client import OpenRouterModelSmokeClient
+from personalos.phase14c_todoist_live_smoke import (
+    PHASE14C_TODOIST_TASK_TITLE,
+    PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
+    TODOIST_SMOKE_NOT_RUN_MISSING_APPROVAL_REFERENCE,
+    TODOIST_SMOKE_NOT_RUN_MISSING_EXECUTE_FLAG,
+    TODOIST_SMOKE_PASSED,
+    build_phase14c_todoist_task_payload,
+    next_upcoming_monday,
+    run_phase14c_todoist_inbox_smoke,
+)
+
+
+class Phase14CTodoistLiveSmokeClientTest(unittest.TestCase):
+    def test_next_upcoming_monday_is_strictly_future(self) -> None:
+        self.assertEqual(
+            next_upcoming_monday(date(2026, 6, 29)),
+            date(2026, 7, 6),
+        )
+        self.assertEqual(
+            next_upcoming_monday(date(2026, 7, 1)),
+            date(2026, 7, 6),
+        )
+
+    def test_todoist_payload_is_inbox_default_one_task_only(self) -> None:
+        payload = build_phase14c_todoist_task_payload(due_date=date(2026, 7, 6))
+
+        self.assertEqual(payload["content"], PHASE14C_TODOIST_TASK_TITLE)
+        self.assertEqual(payload["due_date"], "2026-07-06")
+        self.assertNotIn("project_id", payload)
+        self.assertNotIn("labels", payload)
+        self.assertNotIn("description", payload)
+        self.assertNotIn("parent_id", payload)
+
+    def test_todoist_default_path_does_not_read_token_or_create_task(self) -> None:
+        report = run_phase14c_todoist_inbox_smoke(
+            available_config_names=(PHASE14C_TODOIST_TOKEN_CONFIG_NAME,),
+            source_date=date(2026, 6, 29),
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], TODOIST_SMOKE_NOT_RUN_MISSING_EXECUTE_FLAG)
+        self.assertFalse(report["todoist_task_created"])
+        self.assertEqual(report["call_limits"]["task_create_calls"], 0)
+        self.assertFalse(report["safety_assertions"]["credential_values_read"])
+        self.assertFalse(report["safety_assertions"]["live_client_initialized"])
+        self.assertNotIn(PHASE14C_TODOIST_TOKEN_CONFIG_NAME, serialized)
+
+    def test_todoist_live_path_requires_approval_before_token_use(self) -> None:
+        report = run_phase14c_todoist_inbox_smoke(
+            available_config_names=(PHASE14C_TODOIST_TOKEN_CONFIG_NAME,),
+            execute_live=True,
+            token="secret-token-value",
+            source_date=date(2026, 6, 29),
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(
+            report["status"],
+            TODOIST_SMOKE_NOT_RUN_MISSING_APPROVAL_REFERENCE,
+        )
+        self.assertFalse(report["todoist_task_created"])
+        self.assertEqual(report["call_limits"]["task_create_calls"], 0)
+        self.assertFalse(report["safety_assertions"]["credential_values_read"])
+        self.assertNotIn("secret-token-value", serialized)
+
+    def test_todoist_live_path_uses_injected_client_once_and_redacts_token(self) -> None:
+        client = _RecordingTodoistClient()
+
+        report = run_phase14c_todoist_inbox_smoke(
+            available_config_names=(PHASE14C_TODOIST_TOKEN_CONFIG_NAME,),
+            execute_live=True,
+            approval_reference="approved-phase14c-test",
+            token="secret-token-value",
+            client=client,
+            source_date=date(2026, 6, 29),
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], TODOIST_SMOKE_PASSED)
+        self.assertTrue(report["todoist_task_created"])
+        self.assertEqual(report["call_limits"]["task_create_calls"], 1)
+        self.assertEqual(len(client.payloads), 1)
+        self.assertEqual(client.payloads[0]["content"], PHASE14C_TODOIST_TASK_TITLE)
+        self.assertEqual(client.payloads[0]["due_date"], "2026-07-06")
+        self.assertNotIn("project_id", client.payloads[0])
+        self.assertTrue(report["safety_assertions"]["credential_values_read"])
+        self.assertTrue(report["safety_assertions"]["max_one_task_create"])
+        self.assertFalse(report["safety_assertions"]["recurrence_created"])
+        self.assertNotIn("secret-token-value", serialized)
+
+
+class Phase14COpenRouterModelSmokeClientTest(unittest.TestCase):
+    def test_openrouter_client_returns_safe_metadata_only(self) -> None:
+        client = OpenRouterModelSmokeClient(
+            api_key="secret-openrouter-key",
+            models_by_alias={"nemotron_super": "configured-model-id"},
+            opener=_FakeOpenRouterOpener(),
+        )
+
+        result = client.run_probe(
+            {
+                "model_alias": "nemotron_super",
+                "prompt": "short smoke prompt",
+                "max_output_tokens": 16,
+            }
+        )
+        serialized = json.dumps(result, sort_keys=True)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["provider_alias"], "openrouter")
+        self.assertEqual(result["response_text"], OPENCLAW_MODEL_SMOKE_EXPECTED_TEXT)
+        self.assertEqual(result["input_tokens"], 7)
+        self.assertEqual(result["output_tokens"], 5)
+        self.assertNotIn("secret-openrouter-key", serialized)
+        self.assertNotIn("configured-model-id", serialized)
+        self.assertNotIn("short smoke prompt", serialized)
+
+    def test_openrouter_smoke_probe_sets_live_safety_flags(self) -> None:
+        client = OpenRouterModelSmokeClient(
+            api_key="secret-openrouter-key",
+            models_by_alias={"nemotron_super": "configured-model-id"},
+            opener=_FakeOpenRouterOpener(),
+        )
+
+        report = run_openclaw_model_smoke_probe(
+            available_config_names=OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+            client=client,
+            client_type="openrouter_stdlib_http_client",
+            credential_values_read=True,
+            model_provider_called=True,
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], OPENCLAW_MODEL_SMOKE_PASSED)
+        self.assertEqual(report["call_limits"]["primary_calls"], 1)
+        self.assertEqual(report["call_limits"]["fallback_calls"], 0)
+        self.assertTrue(report["safety_assertions"]["credential_values_read"])
+        self.assertTrue(report["safety_assertions"]["model_provider_called"])
+        self.assertFalse(report["safety_assertions"]["full_prompt_logged"])
+        self.assertNotIn("secret-openrouter-key", serialized)
+        self.assertNotIn("configured-model-id", serialized)
+
+
+class _RecordingTodoistClient:
+    def __init__(self) -> None:
+        self.payloads: list[dict[str, object]] = []
+
+    def create_task(self, payload: dict[str, object]) -> dict[str, object]:
+        self.payloads.append(dict(payload))
+        return {
+            "id": "task-id-123",
+            "content": payload["content"],
+            "due": {"date": payload["due_date"]},
+            "url": "https://todoist.com/showTask?id=task-id-123",
+            "user_id": "dropped-user-id",
+        }
+
+
+class _FakeOpenRouterOpener:
+    def __call__(self, request: object, timeout: float) -> "_FakeHTTPResponse":
+        return _FakeHTTPResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": OPENCLAW_MODEL_SMOKE_EXPECTED_TEXT,
+                        }
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 7,
+                    "completion_tokens": 5,
+                },
+            }
+        )
+
+
+class _FakeHTTPResponse:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload = payload
+
+    def __enter__(self) -> "_FakeHTTPResponse":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return json.dumps(self._payload).encode("utf-8")

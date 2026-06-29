@@ -66,9 +66,13 @@ Todoist:
 - Future live command, after separate explicit approval:
   `personalos phase14c todoist-inbox-smoke --execute-live --approval-reference <ref> --json`
 - The live path creates at most one Inbox/default task, omits `project_id` for
-  Inbox/default, and does not set recurrence, subtasks, labels, comments,
-  attachments, edits, deletes, skip/push/bump behavior, or automatic
+  Inbox/default, sends `due_date` in `YYYY-MM-DD` form per Todoist API v1
+  `POST /api/v1/tasks`, and does not set recurrence, subtasks, labels,
+  comments, attachments, edits, deletes, skip/push/bump behavior, or automatic
   rescheduling.
+- If the task create call is attempted but the response cannot be validated,
+  the report uses `mutation_state=unconfirmed_after_task_create_attempt`
+  instead of asserting that no external mutation occurred.
 
 OpenClaw model smoke:
 

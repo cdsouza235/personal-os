@@ -14,6 +14,7 @@ from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
     TODOIST_SMOKE_NOT_RUN_MISSING_APPROVAL_REFERENCE,
     TODOIST_SMOKE_NOT_RUN_MISSING_EXECUTE_FLAG,
+    TODOIST_SMOKE_FAILED,
     TODOIST_SMOKE_PASSED,
     build_phase14c_todoist_task_payload,
     next_upcoming_monday,
@@ -51,6 +52,7 @@ class Phase14CTodoistLiveSmokeClientTest(unittest.TestCase):
 
         self.assertEqual(report["status"], TODOIST_SMOKE_NOT_RUN_MISSING_EXECUTE_FLAG)
         self.assertFalse(report["todoist_task_created"])
+        self.assertEqual(report["mutation_state"], "not_attempted")
         self.assertEqual(report["call_limits"]["task_create_calls"], 0)
         self.assertFalse(report["safety_assertions"]["credential_values_read"])
         self.assertFalse(report["safety_assertions"]["live_client_initialized"])
@@ -89,6 +91,7 @@ class Phase14CTodoistLiveSmokeClientTest(unittest.TestCase):
 
         self.assertEqual(report["status"], TODOIST_SMOKE_PASSED)
         self.assertTrue(report["todoist_task_created"])
+        self.assertEqual(report["mutation_state"], "confirmed_task_created")
         self.assertEqual(report["call_limits"]["task_create_calls"], 1)
         self.assertEqual(len(client.payloads), 1)
         self.assertEqual(client.payloads[0]["content"], PHASE14C_TODOIST_TASK_TITLE)
@@ -97,6 +100,34 @@ class Phase14CTodoistLiveSmokeClientTest(unittest.TestCase):
         self.assertTrue(report["safety_assertions"]["credential_values_read"])
         self.assertTrue(report["safety_assertions"]["max_one_task_create"])
         self.assertFalse(report["safety_assertions"]["recurrence_created"])
+        self.assertNotIn("secret-token-value", serialized)
+
+    def test_todoist_live_post_attempt_failure_reports_unconfirmed_mutation(
+        self,
+    ) -> None:
+        client = _FailingAfterAttemptTodoistClient()
+
+        report = run_phase14c_todoist_inbox_smoke(
+            available_config_names=(PHASE14C_TODOIST_TOKEN_CONFIG_NAME,),
+            execute_live=True,
+            approval_reference="approved-phase14c-test",
+            token="secret-token-value",
+            client=client,
+            source_date=date(2026, 6, 29),
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], TODOIST_SMOKE_FAILED)
+        self.assertIsNone(report["todoist_task_created"])
+        self.assertEqual(
+            report["mutation_state"],
+            "unconfirmed_after_task_create_attempt",
+        )
+        self.assertEqual(report["call_limits"]["task_create_calls"], 1)
+        self.assertEqual(len(client.payloads), 1)
+        self.assertIsNone(report["safety_assertions"]["external_mutation"])
+        self.assertIsNone(report["safety_assertions"]["todoist_task_created"])
+        self.assertTrue(report["safety_assertions"]["credential_values_read"])
         self.assertNotIn("secret-token-value", serialized)
 
 
@@ -165,6 +196,15 @@ class _RecordingTodoistClient:
             "url": "https://todoist.com/showTask?id=task-id-123",
             "user_id": "dropped-user-id",
         }
+
+
+class _FailingAfterAttemptTodoistClient:
+    def __init__(self) -> None:
+        self.payloads: list[dict[str, object]] = []
+
+    def create_task(self, payload: dict[str, object]) -> dict[str, object]:
+        self.payloads.append(dict(payload))
+        raise ValueError("response body was not a JSON object")
 
 
 class _FakeOpenRouterOpener:

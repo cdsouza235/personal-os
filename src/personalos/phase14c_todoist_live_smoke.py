@@ -108,9 +108,11 @@ def run_phase14c_todoist_inbox_smoke(
             "max_task_creates": 1,
             "task_create_calls": 0,
         },
+        "mutation_state": "not_attempted",
         "safety_assertions": _todoist_safety_assertions(
             credential_values_read=False,
             external_mutation=False,
+            todoist_task_created=False,
             live_client_initialized=False,
         ),
     }
@@ -141,6 +143,7 @@ def run_phase14c_todoist_inbox_smoke(
             "safety_assertions": _todoist_safety_assertions(
                 credential_values_read=True,
                 external_mutation=False,
+                todoist_task_created=False,
                 live_client_initialized=False,
             ),
         }
@@ -153,7 +156,8 @@ def run_phase14c_todoist_inbox_smoke(
         return {
             **base,
             "status": TODOIST_SMOKE_FAILED,
-            "todoist_task_created": False,
+            "todoist_task_created": None,
+            "mutation_state": "unconfirmed_after_task_create_attempt",
             "failure": _safe_failure(error),
             "call_limits": {
                 "max_task_creates": 1,
@@ -161,7 +165,8 @@ def run_phase14c_todoist_inbox_smoke(
             },
             "safety_assertions": _todoist_safety_assertions(
                 credential_values_read=True,
-                external_mutation=False,
+                external_mutation=None,
+                todoist_task_created=None,
                 live_client_initialized=True,
             ),
         }
@@ -171,6 +176,7 @@ def run_phase14c_todoist_inbox_smoke(
         "status": TODOIST_SMOKE_PASSED,
         "todoist_task_created": True,
         "external_mutation": True,
+        "mutation_state": "confirmed_task_created",
         "task_result": _sanitize_todoist_task_response(response),
         "call_limits": {
             "max_task_creates": 1,
@@ -180,6 +186,7 @@ def run_phase14c_todoist_inbox_smoke(
         "safety_assertions": _todoist_safety_assertions(
             credential_values_read=True,
             external_mutation=True,
+            todoist_task_created=True,
             live_client_initialized=True,
         ),
     }
@@ -241,9 +248,10 @@ def _sanitize_todoist_task_response(response: Mapping[str, Any]) -> dict[str, An
 def _todoist_safety_assertions(
     *,
     credential_values_read: bool,
-    external_mutation: bool,
+    external_mutation: bool | None,
+    todoist_task_created: bool | None,
     live_client_initialized: bool,
-) -> dict[str, bool]:
+) -> dict[str, bool | None]:
     return {
         "credential_values_read": credential_values_read,
         "credential_values_logged": False,
@@ -252,7 +260,7 @@ def _todoist_safety_assertions(
         "environment_dumped": False,
         "live_client_initialized": live_client_initialized,
         "external_mutation": external_mutation,
-        "todoist_task_created": external_mutation,
+        "todoist_task_created": todoist_task_created,
         "max_one_task_create": True,
         "recurrence_created": False,
         "subtasks_created": False,

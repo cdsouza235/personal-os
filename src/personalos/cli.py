@@ -1224,6 +1224,10 @@ def _command_phase14c_todoist_inbox_smoke(args: argparse.Namespace) -> int:
     )
     task_create_calls = int(smoke_report["call_limits"]["task_create_calls"])
     task_created = smoke_report.get("todoist_task_created") is True
+    mutation_state = smoke_report.get("mutation_state")
+    external_mutation: bool | None = task_created
+    if task_create_calls and mutation_state == "unconfirmed_after_task_create_attempt":
+        external_mutation = None
     credential_values_read = (
         smoke_report["safety_assertions"]["credential_values_read"] is True
     )
@@ -1233,7 +1237,7 @@ def _command_phase14c_todoist_inbox_smoke(args: argparse.Namespace) -> int:
             "command": "phase14c todoist-inbox-smoke",
             "status": status,
             "database_write": False,
-            "external_mutation": task_created,
+            "external_mutation": external_mutation,
             "external_writes": (
                 "todoist_task_created"
                 if task_created

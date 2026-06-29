@@ -69,6 +69,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "openclaw_model_smoke_passed",
             "todoist_not_run_missing_execute_live_flag",
             "openclaw_model_smoke_not_run_missing_execute_live_flag",
+            "mutation_state=unconfirmed_after_task_create_attempt",
+            "due_date",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

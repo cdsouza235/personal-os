@@ -83,6 +83,22 @@ Phase 14-C live-rail config preflight also reports these missing names:
 
 ## Mobile Continuity Commands
 
+Local setup script:
+
+```bash
+scripts/phase14c_connectivity_setup.sh
+```
+
+The script prompts for Gmail, Todoist, and OpenRouter setup values without
+echoing them, writes only `.env.local`, and leaves that file gitignored. It
+must not be committed or pasted into chat.
+
+Names-only setup verification:
+
+```bash
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c connectivity-setup --json
+```
+
 Repo readiness:
 
 ```bash
@@ -98,7 +114,7 @@ PYTHONPATH=src python3 -m personalos.cli phase14c supervised-smoke-credential-pr
 OpenClaw model provider readiness:
 
 ```bash
-PYTHONPATH=src python3 -m personalos.cli phase14c openclaw-model-readiness --json
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c openclaw-model-readiness --json
 ```
 
 OpenClaw local/test/sandbox harness:
@@ -111,6 +127,7 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
 
 - No credential values, tokens, OAuth material, or environment dumps were
   printed or committed.
+- `.env.local` is gitignored; `.env.example` contains placeholders only.
 - No Gmail email was drafted or sent.
 - No Todoist task was created.
 - No duplicate Calendar event was created.

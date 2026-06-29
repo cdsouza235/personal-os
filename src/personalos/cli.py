@@ -27,6 +27,9 @@ from personalos.path_safety import (
     validate_existing_sqlite_path,
     validate_output_file_path,
 )
+from personalos.phase14c_connectivity_setup import (
+    build_phase14c_connectivity_setup_report,
+)
 from personalos.phase14c_supervised_smoke import (
     ALLOWED_MODES,
     DRY_RUN_MODE,
@@ -165,6 +168,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "safe output directory"
         ),
         "output": "stdout completion JSON plus evidence bundle files",
+    },
+    {
+        "name": "Phase 14-C connectivity setup",
+        "safe_local_action": "Check Gmail, Todoist, and OpenRouter setup names",
+        "command": "personalos phase14c connectivity-setup [--json]",
+        "mode": "repo-local setup report / no values / no live clients",
+        "local_effect": "reads environment key names only; no DB opened; no files written",
+        "output": "stdout setup JSON or human summary",
     },
     {
         "name": "Phase 14-C supervised smoke-test runbook",
@@ -351,6 +362,22 @@ def build_parser() -> argparse.ArgumentParser:
         dest="phase14c_command",
         required=True,
     )
+    phase14c_connectivity_setup_parser = phase14c_subparsers.add_parser(
+        "connectivity-setup",
+        help="Check Phase 14-C Gmail, Todoist, and OpenRouter setup names.",
+        description=(
+            "Check whether the Phase 14-C Gmail, Todoist, and OpenRouter setup "
+            "config entry names exist in the environment. This command reads "
+            "environment key names only; it does not read credential values, load "
+            "credentials, open a DB, initialize live clients, write Todoist, create "
+            "or send Gmail, call a model provider, invoke OpenClaw, or write files."
+        ),
+    )
+    _add_json_arg(phase14c_connectivity_setup_parser)
+    phase14c_connectivity_setup_parser.set_defaults(
+        func=_command_phase14c_connectivity_setup
+    )
+
     phase14c_smoke_parser = phase14c_subparsers.add_parser(
         "supervised-smoke-runbook",
         help="Print the Phase 14-C supervised smoke-test runbook without live clients.",
@@ -809,6 +836,40 @@ def _command_readiness_status(args: argparse.Namespace) -> int:
         safe_next_actions=(
             "Review readiness blockers.",
             "Paste --json output back to ChatGPT for audit if needed.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_connectivity_setup(args: argparse.Namespace) -> int:
+    setup_report = build_phase14c_connectivity_setup_report(os.environ.keys())
+    report = _with_workflow_context(
+        {
+            "command": "phase14c connectivity-setup",
+            "status": setup_report["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "connectivity_setup": setup_report,
+        },
+        workflow_name="Phase 14-C connectivity setup",
+        workflow_mode="repo-local setup report / no values / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Run scripts/phase14c_connectivity_setup.sh locally to create .env.local.",
+            "Do not paste credential values into chat.",
+            "Source .env.local only for bounded verification commands.",
         ),
     )
     _emit_report(report, json_output=args.json)

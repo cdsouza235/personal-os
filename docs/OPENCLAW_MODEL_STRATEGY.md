@@ -90,6 +90,12 @@ missing names:
 - `PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL`
 - `PERSONALOS_OPENCLAW_GLM_5_2_MODEL`
 
+For OpenRouter setup, the current configured defaults are:
+
+- `PERSONALOS_OPENCLAW_MODEL_PROVIDER=openrouter`
+- `PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL=nvidia/nemotron-3-super-120b-a12b`
+- `PERSONALOS_OPENCLAW_GLM_5_2_MODEL=z-ai/glm-5.2`
+
 Reports must not print present config names, credential values, OAuth material,
 raw provider responses, full prompts, or environment dumps.
 

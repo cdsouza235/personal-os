@@ -115,6 +115,19 @@ read credential values, load credentials, initialize a model client, call a
 model provider, execute tools, invoke OpenClaw, open a database, or write
 files. It does not initialize a model client.
 
+Connectivity setup:
+
+```bash
+scripts/phase14c_connectivity_setup.sh
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c connectivity-setup --json
+```
+
+The setup script prompts locally and writes `.env.local`, which is gitignored.
+The `connectivity-setup` command reads environment key names only and reports
+missing names for Gmail, Todoist, and OpenRouter. It does not read credential
+values, initialize live clients, send Gmail, create Todoist tasks, call
+OpenRouter, invoke OpenClaw, or perform external writes.
+
 Dry-run rehearsal:
 
 ```bash

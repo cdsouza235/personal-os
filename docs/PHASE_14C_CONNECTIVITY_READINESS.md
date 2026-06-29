@@ -89,8 +89,9 @@ Local setup script:
 scripts/phase14c_connectivity_setup.sh
 ```
 
-The script prompts for Gmail, Todoist, and OpenRouter setup values without
-echoing them, writes only `.env.local`, and leaves that file gitignored. It
+The script refuses to overwrite an existing `.env.local`, prompts without
+echoing token/API-key values, writes through a temporary file before moving
+the completed file to `.env.local`, and leaves `.env.local` gitignored. It
 must not be committed or pasted into chat.
 
 Names-only setup verification:

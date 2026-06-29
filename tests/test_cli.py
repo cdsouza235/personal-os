@@ -461,6 +461,12 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(setup["env_file"]["path"], PHASE14C_CONNECTIVITY_SETUP_ENV_FILE)
         self.assertTrue(setup["env_file"]["gitignored"])
         self.assertFalse(setup["env_file"]["created_by_this_command"])
+        self.assertTrue(setup["setup_script"]["prompts_for_secret_values_without_echo"])
+        self.assertTrue(
+            setup["setup_script"]["plain_controlled_recipient_prompt_echoes_for_typo_check"]
+        )
+        self.assertTrue(setup["setup_script"]["writes_via_temp_file_before_final_move"])
+        self.assertTrue(setup["setup_script"]["refuses_to_overwrite_existing_env_file"])
         self.assertEqual(
             setup["rails"]["todoist"]["missing_config_entry_names"],
             [],
@@ -517,7 +523,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         for present_name in required_names:
             self.assertNotIn(present_name, result.stdout)
 
-    def test_phase14c_connectivity_setup_script_is_gitignored_no_echo_setup(self) -> None:
+    def test_phase14c_connectivity_setup_script_is_gitignored_safe_setup(self) -> None:
         script_path = REPO_ROOT / "scripts" / "phase14c_connectivity_setup.sh"
         script_text = script_path.read_text(encoding="utf-8")
         gitignore_text = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
@@ -525,6 +531,12 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn(".env", gitignore_text)
         self.assertIn(".env.*", gitignore_text)
         self.assertIn("read -r -s", script_text)
+        self.assertIn("tmp_env_file", script_text)
+        self.assertIn('if [[ -e "$env_file" ]]', script_text)
+        self.assertIn('mv "$tmp_env_file" "$env_file"', script_text)
+        self.assertIn("trap cleanup EXIT HUP INT TERM", script_text)
+        self.assertIn("trap - EXIT HUP INT TERM", script_text)
+        self.assertIn('prompt_plain \\', script_text)
         self.assertIn("chmod 600", script_text)
         self.assertIn(PHASE14C_CONNECTIVITY_SETUP_ENV_FILE, script_text)
         self.assertIn("PERSONALOS_OPENCLAW_MODEL_API_KEY", script_text)

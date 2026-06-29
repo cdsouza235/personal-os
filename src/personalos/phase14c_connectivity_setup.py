@@ -62,8 +62,11 @@ def build_phase14c_connectivity_setup_report(
         "missing_config_entry_names_by_rail": missing_by_rail,
         "setup_script": {
             "path": "scripts/phase14c_connectivity_setup.sh",
-            "prompts_for_values_without_echo": True,
+            "prompts_for_secret_values_without_echo": True,
+            "plain_controlled_recipient_prompt_echoes_for_typo_check": True,
             "writes_gitignored_env_file": True,
+            "writes_via_temp_file_before_final_move": True,
+            "refuses_to_overwrite_existing_env_file": True,
             "prints_values": False,
             "commits_values": False,
         },

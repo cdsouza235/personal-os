@@ -153,7 +153,9 @@ Last updated: 2026-06-29
   environment variables or credential values, and performs no DB/file/live
   client/external writes.
 - Phase 14-C connectivity setup CLI: `scripts/phase14c_connectivity_setup.sh`
-  prompts locally without echoing values and writes gitignored `.env.local`;
+  refuses to overwrite an existing `.env.local`, prompts locally without
+  echoing token/API-key values, writes through a temporary file before moving
+  the completed file to gitignored `.env.local`;
   `PYTHONPATH=src python3 -m personalos.cli phase14c connectivity-setup --json`
   checks Gmail, Todoist, OpenRouter, and Phase 14-C smoke config entry names
   only. The command does not read credential values, load credentials,

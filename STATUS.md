@@ -6,9 +6,9 @@ Last updated: 2026-06-29
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #90:
-  `16ad60e288d1c83049dbd28f210cb7824fd48ab2`
-- Latest merged PR at that baseline: PR #90, Phase 14-C Calendar smoke result
+- Last validated main baseline after PR #91:
+  `36102bbf76c4a71d99b27f56a47c2821acf11823`
+- Latest merged PR at that baseline: PR #91, Phase 14-C connectivity readiness
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -62,7 +62,10 @@ Last updated: 2026-06-29
   local/test/sandbox smoke harness, deterministic OpenClaw model lane strategy,
   connector/config inventory, and model-provider readiness CLI are prepared for
   the remaining bounded rails without exposing credentials or broadening
-  runtime handoff
+  runtime handoff; a local `scripts/phase14c_connectivity_setup.sh` setup
+  script, `.env.example` placeholder file, and names-only
+  `phase14c connectivity-setup` CLI are prepared for Gmail, Todoist, and
+  OpenRouter setup without printing or committing credential values
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -104,7 +107,9 @@ Last updated: 2026-06-29
   plus the recorded supervised Calendar smoke pass, Gmail self-send readiness,
   Todoist Inbox/default readiness, repo-local OpenClaw local/test/sandbox smoke
   harness pass, deterministic OpenClaw model strategy, OpenClaw model-provider
-  readiness reporting, and the Phase 14-C connectivity readiness inventory
+  readiness reporting, the Phase 14-C connectivity readiness inventory, and a
+  local Gmail/Todoist/OpenRouter connectivity setup script plus names-only CLI
+  verifier
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
   follow-through after the first live rail. Todoist, Google Calendar, Gmail,
   and OpenClaw are acceptable low-blast-radius supervised smoke-test rails
@@ -147,6 +152,15 @@ Last updated: 2026-06-29
   (`live_run_requested=false`, `approval_reference=null`), does not read
   environment variables or credential values, and performs no DB/file/live
   client/external writes.
+- Phase 14-C connectivity setup CLI: `scripts/phase14c_connectivity_setup.sh`
+  refuses to overwrite an existing `.env.local`, prompts locally without
+  echoing token/API-key values, writes through a temporary file before moving
+  the completed file to gitignored `.env.local`;
+  `PYTHONPATH=src python3 -m personalos.cli phase14c connectivity-setup --json`
+  checks Gmail, Todoist, OpenRouter, and Phase 14-C smoke config entry names
+  only. The command does not read credential values, load credentials,
+  initialize live clients, send Gmail, create Todoist tasks, call OpenRouter,
+  invoke OpenClaw, open a DB, or write files.
 - Phase 14-C Gmail self-send readiness: can use an injected authenticated
   sender identity or configured controlled recipient, masks sender/recipient in
   reports, and blocks with
@@ -178,8 +192,8 @@ Last updated: 2026-06-29
 
 ## Validated State
 
-- Full suite: 725 tests OK
-- ResourceWarning-sensitive suite: 725 tests OK
+- Full suite: 728 tests OK
+- ResourceWarning-sensitive suite: 728 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -191,6 +205,7 @@ Last updated: 2026-06-29
 - Targeted Phase 14-C supervised smoke request-validation/credential-preflight/
   live-readiness/request-template/dry-run source/docs/CLI suite: 53 CLI tests
   OK plus the targeted source/docs tests above
+- Targeted Phase 14-C connectivity setup/source/docs/CLI suite: 101 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK

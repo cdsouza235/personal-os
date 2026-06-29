@@ -73,6 +73,9 @@ live-readiness reports, request-template generation, and the fake-client dry-run
 rehearsal do not perform additional live actions. The current remaining-rail
 connector/config inventory is recorded in
 [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md).
+Use `scripts/phase14c_connectivity_setup.sh` and
+`personalos phase14c connectivity-setup --json` for local names-only setup
+verification without printing credential values.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

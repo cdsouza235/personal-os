@@ -30,6 +30,10 @@ from personalos.openclaw_model_strategy import (
     OPENCLAW_MODEL_SMOKE_MISSING_CLIENT,
     OPENCLAW_MODEL_SMOKE_MISSING_PROVIDER_CONFIG,
 )
+from personalos.phase14c_connectivity_setup import (
+    PHASE14C_CONNECTIVITY_SETUP_ENV_FILE,
+    PHASE14C_CONNECTIVITY_SETUP_ENTRY_NAMES,
+)
 from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
     LIVE_RUN_MODE,
@@ -371,6 +375,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Today View/status preview",
             "side-effect/idempotency ledger inspection",
             "simulated scheduler preview",
+            "Phase 14-C connectivity setup",
             "Phase 14-C supervised smoke-test runbook",
             "Phase 14-C supervised smoke dry-run rehearsal",
             "Phase 14-C OpenClaw model readiness",
@@ -411,6 +416,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(payload["operator_status"]["external_write_status"]["status"], "none")
         self.assertIn("ChatGPT synthesis import preview", workflow_names)
         self.assertIn("simulated scheduler preview", workflow_names)
+        self.assertIn("Phase 14-C connectivity setup", workflow_names)
         self.assertIn("Phase 14-C supervised smoke-test runbook", workflow_names)
         self.assertIn("Phase 14-C supervised smoke request template", workflow_names)
         self.assertIn("Phase 14-C supervised smoke dry-run rehearsal", workflow_names)
@@ -422,6 +428,120 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C supervised smoke live readiness", workflow_names)
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
+
+    def test_phase14c_connectivity_setup_missing_names_only(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "todoist-secret-value",
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter-secret-provider",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "connectivity-setup", "--json"])
+
+        payload = json.loads(result.stdout)
+        setup = payload["connectivity_setup"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c connectivity-setup")
+        self.assertEqual(payload["status"], "connectivity_config_names_missing")
+        self.assertEqual(
+            payload["workflow_mode"],
+            "repo-local setup report / no values / no live clients",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertEqual(setup["env_file"]["path"], PHASE14C_CONNECTIVITY_SETUP_ENV_FILE)
+        self.assertTrue(setup["env_file"]["gitignored"])
+        self.assertFalse(setup["env_file"]["created_by_this_command"])
+        self.assertTrue(setup["setup_script"]["prompts_for_secret_values_without_echo"])
+        self.assertTrue(
+            setup["setup_script"]["plain_controlled_recipient_prompt_echoes_for_typo_check"]
+        )
+        self.assertTrue(setup["setup_script"]["writes_via_temp_file_before_final_move"])
+        self.assertTrue(setup["setup_script"]["refuses_to_overwrite_existing_env_file"])
+        self.assertEqual(
+            setup["rails"]["todoist"]["missing_config_entry_names"],
+            [],
+        )
+        self.assertEqual(
+            setup["rails"]["gmail"]["missing_config_entry_names"],
+            [
+                "PERSONALOS_PHASE14C_GMAIL_CREDENTIAL",
+                "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
+            ],
+        )
+        self.assertEqual(
+            setup["rails"]["openrouter"]["missing_config_entry_names"],
+            [
+                "PERSONALOS_OPENCLAW_MODEL_API_KEY",
+                "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
+                "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
+            ],
+        )
+        self.assertFalse(setup["safety_assertions"]["credential_values_read"])
+        self.assertFalse(setup["safety_assertions"]["present_config_entry_names_reported"])
+        self.assertNotIn("todoist-secret-value", result.stdout)
+        self.assertNotIn("openrouter-secret-provider", result.stdout)
+        self.assertNotIn("PERSONALOS_PHASE14C_TODOIST_TOKEN", result.stdout)
+        self.assertNotIn("PERSONALOS_OPENCLAW_MODEL_PROVIDER", result.stdout)
+
+    def test_phase14c_connectivity_setup_complete_config_redacts_present_names(
+        self,
+    ) -> None:
+        required_names = {
+            name
+            for names in PHASE14C_CONNECTIVITY_SETUP_ENTRY_NAMES.values()
+            for name in names
+        }
+        secret_environment = {
+            name: f"secret-connectivity-value-{index}"
+            for index, name in enumerate(sorted(required_names))
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "connectivity-setup", "--json"])
+
+        payload = json.loads(result.stdout)
+        setup = payload["connectivity_setup"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["status"], "connectivity_config_names_present")
+        self.assertEqual(setup["missing_config_entry_names_by_rail"], {})
+        for rail in setup["rails"].values():
+            self.assertEqual(rail["status"], "config_names_present")
+            self.assertEqual(rail["missing_config_entry_names"], [])
+            self.assertFalse(rail["present_config_entry_names_reported"])
+            self.assertFalse(rail["credential_values_read"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+        for present_name in required_names:
+            self.assertNotIn(present_name, result.stdout)
+
+    def test_phase14c_connectivity_setup_script_is_gitignored_safe_setup(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "phase14c_connectivity_setup.sh"
+        script_text = script_path.read_text(encoding="utf-8")
+        gitignore_text = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+
+        self.assertIn(".env", gitignore_text)
+        self.assertIn(".env.*", gitignore_text)
+        self.assertIn("read -r -s", script_text)
+        self.assertIn("tmp_env_file", script_text)
+        self.assertIn('if [[ -e "$env_file" ]]', script_text)
+        self.assertIn('mv "$tmp_env_file" "$env_file"', script_text)
+        self.assertIn("trap cleanup EXIT HUP INT TERM", script_text)
+        self.assertIn("trap - EXIT HUP INT TERM", script_text)
+        self.assertIn('prompt_plain \\', script_text)
+        self.assertIn("chmod 600", script_text)
+        self.assertIn(PHASE14C_CONNECTIVITY_SETUP_ENV_FILE, script_text)
+        self.assertIn("PERSONALOS_OPENCLAW_MODEL_API_KEY", script_text)
+        self.assertNotIn("0123456789abcdef", script_text)
+        self.assertNotIn("sk-", script_text)
 
     def test_phase14c_supervised_smoke_runbook_command_is_read_only(self) -> None:
         result = _run_cli(["phase14c", "supervised-smoke-runbook", "--json"])

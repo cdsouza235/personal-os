@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -32,6 +33,14 @@ PHASE14C_SUPERVISED_SMOKE_MARKER = (
 PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT = (
     "self.phase14c.template@example.test"
 )
+PHASE14C_SUPERVISED_CALENDAR_EVENT_ID = "memu6fhql6stl71auv05e1a6d0"
+PHASE14C_SUPERVISED_CALENDAR_START = "2026-07-06T09:00:00-05:00"
+PHASE14C_SUPERVISED_CALENDAR_END = "2026-07-06T09:15:00-05:00"
+PHASE14C_TODOIST_DEFAULT_PROJECT = "Inbox/default"
+PHASE14C_TODOIST_ORIGINAL_DUE_DATE = "2026-06-29"
+PHASE14C_TODOIST_ADJUSTED_DUE_DATE = "2026-07-06"
+PHASE14C_OPENCLAW_SMOKE_NAME = "phase14c_smoke_test"
+PHASE14C_OPENCLAW_LOCAL_HARNESS_STATUS = "local_test_sandbox_smoke_completed"
 
 DRY_RUN_MODE = "dry_run"
 LIVE_RUN_MODE = "live_run"
@@ -72,6 +81,7 @@ RUNBOOK_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "guardrails",
     "credential_preflight",
     "manual_invocation",
+    "supervised_live_smoke_status",
     "readiness",
     "repo_prep_safety",
 )
@@ -353,6 +363,9 @@ def build_phase14c_supervised_smoke_runbook(
             "repo_prep_runs_live_test": False,
             "future_live_test_must_be_started_by_chris": True,
             "live_execution_function": "execute_phase14c_supervised_smoke_request",
+            "openclaw_local_test_sandbox_harness": (
+                "run_phase14c_openclaw_local_sandbox_smoke"
+            ),
             "runbook_cli_surface": (
                 "personalos phase14c supervised-smoke-runbook --json"
             ),
@@ -361,6 +374,7 @@ def build_phase14c_supervised_smoke_runbook(
                 "--output-dir <safe_temp_output_dir> --json"
             ),
         },
+        "supervised_live_smoke_status": build_phase14c_supervised_live_smoke_status(),
         "readiness": {
             "status": "not_ready",
             "inert_report_only": True,
@@ -376,6 +390,60 @@ def build_phase14c_supervised_smoke_runbook(
             "production_db_active": False,
             "scheduler_activated": False,
             "protected_paths_touched": False,
+        },
+    }
+
+
+def build_phase14c_supervised_live_smoke_status() -> dict[str, Any]:
+    """Report bounded live-smoke progress without promoting broad activation."""
+
+    return {
+        "readiness_status": "not_ready",
+        "broad_live_activation": False,
+        "calendar_external_write_happened": True,
+        "supervised_external_write_count": 1,
+        "rails": {
+            "google_calendar": {
+                "status": "passed",
+                "external_write_happened": True,
+                "object_id": PHASE14C_SUPERVISED_CALENDAR_EVENT_ID,
+                "title": PHASE14C_SUPERVISED_SMOKE_MARKER,
+                "start": PHASE14C_SUPERVISED_CALENDAR_START,
+                "end": PHASE14C_SUPERVISED_CALENDAR_END,
+                "attendee_count": 0,
+                "recurrence": False,
+                "attachments": False,
+                "conference_link": False,
+                "default_reminders": False,
+            },
+            "gmail": {
+                "status": "not_run",
+                "external_write_happened": False,
+                "reason": "gmail_not_run_missing_sender_or_controlled_recipient",
+            },
+            "todoist": {
+                "status": "not_run",
+                "external_write_happened": False,
+                "reason": "todoist_not_run_missing_client_or_connector",
+                "target_project": PHASE14C_TODOIST_DEFAULT_PROJECT,
+                "due_date_if_run_after_original": PHASE14C_TODOIST_ADJUSTED_DUE_DATE,
+            },
+            "openclaw": {
+                "status": "repo_local_harness_available",
+                "external_write_happened": False,
+                "reason": "openclaw_runtime_not_run_missing_local_test_sandbox_invocation",
+                "harness_function": "run_phase14c_openclaw_local_sandbox_smoke",
+            },
+        },
+        "safety_assertions": {
+            "readiness_status_changed_to_ready": False,
+            "broad_live_rails_activated": False,
+            "scheduler_activated": False,
+            "production_db_active": False,
+            "dynamic_cleaning_active": False,
+            "protected_paths_touched": False,
+            "broad_openclaw_runtime_handoff": False,
+            "credential_values_exposed": False,
         },
     }
 
@@ -461,6 +529,8 @@ def build_default_phase14c_supervised_smoke_request(
     gmail_send: bool = False,
     live_run_requested: bool = False,
     approval_reference: str | None = None,
+    todoist_project: str = PHASE14C_TODOIST_DEFAULT_PROJECT,
+    todoist_due_date: str = PHASE14C_TODOIST_ADJUSTED_DUE_DATE,
 ) -> dict[str, Any]:
     """Build the one-object-per-rail default smoke request payload."""
 
@@ -478,7 +548,16 @@ def build_default_phase14c_supervised_smoke_request(
                     {
                         "title": PHASE14C_SUPERVISED_SMOKE_MARKER,
                         "description": "Supervised Phase 14-C Todoist smoke test.",
+                        "project": todoist_project,
+                        "due_date": todoist_due_date,
                         "recurrence": None,
+                        "subtasks": [],
+                        "labels": [],
+                        "comments": [],
+                        "automatic_edits": False,
+                        "automatic_deletion": False,
+                        "skip_push_bump": False,
+                        "automatic_rescheduling": False,
                     }
                 ]
             },
@@ -513,16 +592,159 @@ def build_default_phase14c_supervised_smoke_request(
             "openclaw": {
                 "invocations": [
                     {
+                        "name": PHASE14C_OPENCLAW_SMOKE_NAME,
                         "label": PHASE14C_SUPERVISED_SMOKE_MARKER,
                         "mode": "local_test_sandbox",
                         "scope": "single_supervised_smoke_invocation",
                         "allowed_paths": [],
                         "broad_runtime_handoff": False,
+                        "production_operation": False,
+                        "scheduler_background": False,
+                        "external_mutation": False,
+                        "model_lane": "smoke",
                     }
                 ]
             },
         },
         "boundaries": {field: False for field in BOUNDARY_FIELDS},
+    }
+
+
+def build_phase14c_gmail_self_send_readiness_report(
+    *,
+    gmail_identity_client: Any | None = None,
+    configured_controlled_recipient: str | None = None,
+) -> dict[str, Any]:
+    """Resolve Gmail self-send readiness without reporting raw addresses."""
+
+    recipient = _optional_string(configured_controlled_recipient)
+    source = "configured_controlled_recipient" if recipient is not None else None
+    sender: str | None = None
+    if recipient is None:
+        sender = _resolve_authenticated_sender(gmail_identity_client)
+        recipient = sender
+        source = "authenticated_sender_identity" if sender is not None else None
+    elif gmail_identity_client is not None:
+        sender = _resolve_authenticated_sender(gmail_identity_client)
+
+    ready = recipient is not None
+    return {
+        "status": "ready_for_self_send" if ready else "blocked",
+        "reason": None if ready else "gmail_not_run_missing_sender_or_controlled_recipient",
+        "controlled_recipient_source": source,
+        "masked_sender": _mask_email(sender),
+        "masked_recipient": _mask_email(recipient),
+        "raw_sender_reported": False,
+        "raw_recipient_reported": False,
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "send_boundaries": {
+            "max_email_count": 1,
+            "self_send_or_configured_controlled_recipient_only": ready,
+            "cc_allowed": False,
+            "bcc_allowed": False,
+            "attachments_allowed": False,
+            "reply_to_existing_thread_allowed": False,
+            "forward_existing_thread_allowed": False,
+            "bulk_send_allowed": False,
+        },
+    }
+
+
+def build_phase14c_gmail_self_send_smoke_request(
+    *,
+    gmail_identity_client: Any | None = None,
+    configured_controlled_recipient: str | None = None,
+    mode: str = DRY_RUN_MODE,
+    live_run_requested: bool = False,
+    approval_reference: str | None = None,
+) -> dict[str, Any]:
+    """Build a Gmail self-send smoke request using an injected identity client."""
+
+    recipient = _optional_string(configured_controlled_recipient)
+    if recipient is None:
+        recipient = _resolve_authenticated_sender(gmail_identity_client)
+    if recipient is None:
+        raise ValueError("gmail_not_run_missing_sender_or_controlled_recipient")
+    return build_default_phase14c_supervised_smoke_request(
+        mode=mode,
+        controlled_test_recipient=recipient,
+        gmail_send=True,
+        live_run_requested=live_run_requested,
+        approval_reference=approval_reference,
+    )
+
+
+def resolve_phase14c_todoist_due_date(
+    *,
+    original_due_date: str = PHASE14C_TODOIST_ORIGINAL_DUE_DATE,
+    current_date: str = PHASE14C_TODOIST_ADJUSTED_DUE_DATE,
+) -> str:
+    """Return the original due date or the next Monday when it is stale."""
+
+    original = date.fromisoformat(original_due_date)
+    current = date.fromisoformat(current_date)
+    if original >= current:
+        return original.isoformat()
+    days_until_monday = (0 - current.weekday()) % 7
+    return (current + timedelta(days=days_until_monday)).isoformat()
+
+
+def run_phase14c_openclaw_local_sandbox_smoke(
+    invocation: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Run the repo-local OpenClaw compatibility smoke harness.
+
+    This is a foreground, no-op local/test/sandbox harness. It does not call the
+    protected OpenClaw runtime, read credentials, touch protected paths, start
+    background work, or mutate external state.
+    """
+
+    smoke_invocation = (
+        dict(invocation)
+        if invocation is not None
+        else dict(
+            build_default_phase14c_supervised_smoke_request()["rails"]["openclaw"][
+                "invocations"
+            ][0]
+        )
+    )
+    reasons = _validate_openclaw({"invocations": [smoke_invocation]})
+    if reasons:
+        return {
+            "status": "blocked",
+            "invocation_name": _safe_openclaw_invocation_name(smoke_invocation),
+            "mode": (
+                smoke_invocation.get("mode")
+                if smoke_invocation.get("mode") in OPENCLAW_ALLOWED_MODES
+                else "invalid_or_missing"
+            ),
+            "reasons": list(reasons),
+            "external_mutation": False,
+            "openclaw_runtime_called": False,
+            "protected_paths_touched": False,
+            "scheduler_activated": False,
+            "production_db_active": False,
+            "broad_runtime_handoff": False,
+            "credential_values_read": False,
+            "credential_values_logged": False,
+        }
+    return {
+        "status": PHASE14C_OPENCLAW_LOCAL_HARNESS_STATUS,
+        "invocation_name": PHASE14C_OPENCLAW_SMOKE_NAME,
+        "mode": smoke_invocation["mode"],
+        "scope": smoke_invocation["scope"],
+        "model_lane": smoke_invocation.get("model_lane", "smoke"),
+        "external_mutation": False,
+        "openclaw_runtime_called": False,
+        "repo_local_harness_invoked": True,
+        "protected_paths_touched": False,
+        "scheduler_activated": False,
+        "production_db_active": False,
+        "broad_runtime_handoff": False,
+        "credential_values_read": False,
+        "credential_values_logged": False,
+        "safe_metadata_only": True,
     }
 
 
@@ -1163,7 +1385,13 @@ def _safe_normalized_rail_summary(
         "todoist": {
             "task_count": 1,
             "title_contains_marker": _contains_marker(todoist_task.get("title")),
+            "project_is_inbox_default": todoist_task.get("project")
+            == PHASE14C_TODOIST_DEFAULT_PROJECT,
+            "due_date": todoist_task.get("due_date"),
             "recurrence_present": _has_recurrence(todoist_task),
+            "subtask_count": len(_items(todoist_task, "subtasks")),
+            "label_count": len(_string_list(todoist_task.get("labels"))),
+            "comment_count": len(_items(todoist_task, "comments")),
         },
         "google_calendar": {
             "event_count": 1,
@@ -1194,6 +1422,7 @@ def _safe_normalized_rail_summary(
         },
         "openclaw": {
             "invocation_count": 1,
+            "name": _safe_openclaw_invocation_name(openclaw_invocation),
             "label_contains_marker": _contains_marker(openclaw_invocation.get("label")),
             "mode": (
                 openclaw_invocation.get("mode")
@@ -1274,8 +1503,26 @@ def _validate_todoist(todoist: object) -> tuple[str, ...]:
     task = tasks[0]
     if not _contains_marker(task.get("title")):
         reasons.append("Todoist task title must include the required test marker.")
+    if _optional_string(task.get("project")) != PHASE14C_TODOIST_DEFAULT_PROJECT:
+        reasons.append("Todoist task project must be Inbox/default.")
+    if _optional_string(task.get("due_date")) is None:
+        reasons.append("Todoist task due_date is required.")
     if _has_recurrence(task):
         reasons.append("Todoist task recurrence is not allowed.")
+    if _items(task, "subtasks"):
+        reasons.append("Todoist subtasks are not allowed.")
+    if _string_list(task.get("labels")):
+        reasons.append("Todoist labels are not allowed.")
+    if _items(task, "comments"):
+        reasons.append("Todoist comments are not allowed.")
+    for flag in (
+        "automatic_edits",
+        "automatic_deletion",
+        "skip_push_bump",
+        "automatic_rescheduling",
+    ):
+        if task.get(flag) is not False:
+            reasons.append(f"Todoist {flag} must remain false.")
     return tuple(reasons)
 
 
@@ -1316,6 +1563,12 @@ def _validate_gmail(gmail: object, controlled_recipients: set[str]) -> tuple[str
     all_recipients.update(_string_list(email.get("bcc")))
     if not to_recipients:
         reasons.append("Gmail test email requires one controlled to recipient.")
+    if len(to_recipients) > 1:
+        reasons.append("Gmail test email must have exactly one to recipient.")
+    if _string_list(email.get("cc")):
+        reasons.append("Gmail cc recipients are not allowed.")
+    if _string_list(email.get("bcc")):
+        reasons.append("Gmail bcc recipients are not allowed.")
     if not all_recipients.issubset(controlled_recipients):
         reasons.append("Gmail recipients must be controlled test recipients only.")
     if _items(email, "attachments"):
@@ -1339,17 +1592,67 @@ def _validate_openclaw(openclaw: object) -> tuple[str, ...]:
     invocation = invocations[0]
     if not _contains_marker(invocation.get("label")):
         reasons.append("OpenClaw invocation label must include the required test marker.")
+    if _optional_string(invocation.get("name")) != PHASE14C_OPENCLAW_SMOKE_NAME:
+        reasons.append("OpenClaw invocation name must be phase14c_smoke_test.")
     if invocation.get("mode") not in OPENCLAW_ALLOWED_MODES:
         reasons.append("OpenClaw invocation must use local/test/sandbox mode.")
     if invocation.get("scope") != "single_supervised_smoke_invocation":
         reasons.append("OpenClaw scope must stay to one supervised smoke invocation.")
     if invocation.get("broad_runtime_handoff") is not False:
         reasons.append("OpenClaw broad runtime handoff is not allowed.")
+    if invocation.get("production_operation") is not False:
+        reasons.append("OpenClaw production operation is not allowed.")
+    if invocation.get("scheduler_background") is not False:
+        reasons.append("OpenClaw scheduler/background behavior is not allowed.")
+    if invocation.get("external_mutation") is not False:
+        reasons.append("OpenClaw external mutation is not allowed.")
     for path in _string_list(invocation.get("allowed_paths")):
         if any(marker in path for marker in PROTECTED_PATH_MARKERS):
             reasons.append("OpenClaw invocation must not include protected paths.")
             break
     return tuple(reasons)
+
+
+def _resolve_authenticated_sender(gmail_identity_client: Any | None) -> str | None:
+    if gmail_identity_client is None:
+        return None
+    for method_name in (
+        "get_authenticated_sender",
+        "get_sender_identity",
+        "get_profile",
+    ):
+        method = getattr(gmail_identity_client, method_name, None)
+        if callable(method):
+            return _extract_email_address(method())
+    return _extract_email_address(getattr(gmail_identity_client, "profile", None))
+
+
+def _extract_email_address(value: object) -> str | None:
+    if isinstance(value, str):
+        return _optional_string(value)
+    if not isinstance(value, Mapping):
+        return None
+    for key in ("email", "email_address", "address", "sender", "authenticated_sender"):
+        email = _optional_string(value.get(key))
+        if email is not None:
+            return email
+    return None
+
+
+def _mask_email(value: str | None) -> str | None:
+    email = _optional_string(value)
+    if email is None or "@" not in email:
+        return None
+    local, domain = email.split("@", 1)
+    first = local[:1] if local else "*"
+    return f"{first}***@{domain}"
+
+
+def _safe_openclaw_invocation_name(invocation: Mapping[str, Any]) -> str:
+    name = invocation.get("name")
+    if name == PHASE14C_OPENCLAW_SMOKE_NAME:
+        return PHASE14C_OPENCLAW_SMOKE_NAME
+    return "invalid_or_missing"
 
 
 def _validation(

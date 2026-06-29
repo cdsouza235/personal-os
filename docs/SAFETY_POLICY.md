@@ -13,7 +13,7 @@ The canonical current safety snapshot is [../STATUS.md](../STATUS.md).
 ## Current Required Posture
 
 Until Chris explicitly approves a later phase that changes these facts, the
-repo must report:
+repo-local readiness surface must report:
 
 - `readiness.status=not_ready`
 - `inert_report_only=true`
@@ -33,6 +33,12 @@ repo must report:
 - `calendar_touched=false`
 - `personalos_markdown_written=false`
 - `protected_paths_touched=false`
+
+Phase 14-C now also has a separate supervised smoke-test progress record:
+one bounded Google Calendar self event was created and read back successfully.
+That record does not change `readiness.status`, does not make Personal OS
+broadly live, and does not authorize another Calendar event outside a separate
+repair need or explicitly approved smoke step.
 
 STATUS.md must be updated whenever the validated safety posture changes.
 
@@ -153,8 +159,8 @@ The test marker is
 `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`.
 
 The supervised smoke-test boundary still blocks Calendar recurrence,
-uncontrolled Calendar attendees, Gmail uncontrolled recipients, Gmail
-attachments, Gmail forwarding, Gmail replies to existing real threads,
+uncontrolled Calendar attendees, Gmail uncontrolled recipients, Gmail CC/BCC,
+Gmail attachments, Gmail forwarding, Gmail replies to existing real threads,
 scheduler/background behavior, production DB activation, dynamic cleaning,
 bulk writes, protected path access, broad OpenClaw runtime handoff, `.agent/`,
 `CLAUDE.md`, Watch Tower adoption, and broad runtime/operator scaffolding.
@@ -176,6 +182,21 @@ credential-name preflight for one explicit safe JSON request file, but must
 report `ready_for_live_execution_in_this_cli=false` and `live_run_executed=false`.
 Repo-local dry-run rehearsal may use deterministic fake clients and write
 redacted artifacts only under an explicit safe temp output directory.
+
+Gmail self-send readiness may use an injected client/profile method to resolve
+the authenticated sender identity or a configured controlled recipient, but
+reports must mask raw sender/recipient values and must not print tokens,
+environment dumps, OAuth material, send-as settings, or credential values.
+Todoist smoke readiness defaults to Inbox/default and blocks recurrence,
+subtasks, labels, comments, automatic edits/deletion, skip/push/bump behavior,
+and automatic rescheduling. The repo-local OpenClaw local/test/sandbox harness
+is a no-op/status compatibility path only; it does not call protected OpenClaw
+runtime or perform external mutation.
+
+OpenClaw model strategy is documented in
+[OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md). It defines explicit
+Nemotron Super / GLM 5.2 model lanes without provider auto-escalation, hidden
+model choice, credential logging, or live model/API activation.
 
 ## Phase 13E-D / 13G Boundary
 

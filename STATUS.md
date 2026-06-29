@@ -1,14 +1,14 @@
 # Personal OS Status
 
-Last updated: 2026-06-27
+Last updated: 2026-06-29
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #88:
-  `ec8ac10126fd8202f4652ca7c889488f3c8ccc99`
-- Latest merged PR at that baseline: PR #88, Phase 14-C live-readiness CLI
+- Last validated main baseline after PR #89:
+  `7a06cdcb0140738ecd587e2817c067213d038d57`
+- Latest merged PR at that baseline: PR #89, Phase 14-C request-template CLI
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -55,7 +55,13 @@ Last updated: 2026-06-27
   without reading values and reports missing required names only; the Phase
   14-C live-readiness CLI composes request validation and credential-name
   preflight without executing live rails; the Phase 14-C request-template CLI
-  prints one bounded request template without live authorization or execution
+  prints one bounded request template without live authorization or execution;
+  the first supervised live-smoke rail has now passed for Google Calendar only
+  and is recorded separately from broad live activation; Gmail self-send
+  readiness, Todoist Inbox/default readiness, a repo-local OpenClaw
+  local/test/sandbox smoke harness, and deterministic OpenClaw model lane
+  strategy are prepared for the remaining bounded rails without exposing
+  credentials or broadening runtime handoff
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -93,16 +99,24 @@ Last updated: 2026-06-27
   redacted stdout reports, plus Phase 14-C supervised smoke-test
   credential-name preflight with missing-name-only reports, plus Phase 14-C
   supervised smoke-test live-readiness reports with no execution, plus Phase
-  14-C supervised smoke-test request-template reports with no authorization
+  14-C supervised smoke-test request-template reports with no authorization,
+  plus the recorded supervised Calendar smoke pass, Gmail self-send readiness,
+  Todoist Inbox/default readiness, repo-local OpenClaw local/test/sandbox smoke
+  harness, and deterministic OpenClaw model strategy
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
-  request-template/request-validation/credential-preflight/live-readiness/
-  dry-run/report-surface review and future live-test decision. Todoist, Google
-  Calendar, Gmail, and OpenClaw are acceptable low-blast-radius supervised
-  smoke-test rails inside the bounded runbook in
+  follow-through after the first live rail. Todoist, Google Calendar, Gmail,
+  and OpenClaw are acceptable low-blast-radius supervised smoke-test rails
+  inside the bounded runbook in
   [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md).
-- Phase 14-C supervised smoke test: prepared but not run; no real Todoist
-  task, Calendar event, Gmail email, or OpenClaw invocation has been performed
-  by repo prep.
+- Phase 14-C supervised smoke test: one Google Calendar event passed:
+  `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`,
+  Monday, 2026-07-06, 09:00-09:15 America/Chicago, event ID
+  `memu6fhql6stl71auv05e1a6d0`; readback confirmed one matching event, no
+  attendees, no recurrence, no attachments, no conference link, and default
+  reminders disabled. No real Todoist task, Gmail email, or protected-runtime
+  OpenClaw invocation has been performed.
+- Broad live activation remains false; readiness remains `not_ready` and
+  `inert_report_only=true`.
 - Phase 14-C dry-run rehearsal: fake-client CLI command prepared and verified;
   it does not initialize live clients, load credentials, open a DB, activate a
   scheduler, invoke OpenClaw, or perform external mutation.
@@ -129,21 +143,40 @@ Last updated: 2026-06-27
   (`live_run_requested=false`, `approval_reference=null`), does not read
   environment variables or credential values, and performs no DB/file/live
   client/external writes.
+- Phase 14-C Gmail self-send readiness: can use an injected authenticated
+  sender identity or configured controlled recipient, masks sender/recipient in
+  reports, and blocks with
+  `gmail_not_run_missing_sender_or_controlled_recipient` when neither is
+  safely available.
+- Phase 14-C Todoist readiness: defaults to Inbox/default, uses the next
+  upcoming Monday when the original due date is stale, and blocks recurrence,
+  subtasks, labels, comments, automatic edits/deletion, skip/push/bump, and
+  automatic rescheduling.
+- Phase 14-C OpenClaw readiness: includes a repo-local
+  `run_phase14c_openclaw_local_sandbox_smoke` harness for
+  `phase14c_smoke_test`; it reports safe metadata only and does not call the
+  protected OpenClaw runtime, access protected paths, activate scheduler/
+  background behavior, activate production DB, or perform external mutation.
+- OpenClaw model strategy: [docs/OPENCLAW_MODEL_STRATEGY.md](docs/OPENCLAW_MODEL_STRATEGY.md)
+  defines explicit Nemotron Super / GLM 5.2 lanes with no hidden model choice,
+  provider auto-escalation, credential logging, or live model/API activation.
 
 ## Validated State
 
-- Full suite: 705 tests OK
-- ResourceWarning-sensitive suite: 705 tests OK
+- Full suite: 719 tests OK
+- ResourceWarning-sensitive suite: 719 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
 - Targeted Phase 14-C decision-gate docs suite: 4 tests OK
 - Targeted Phase 14-C candidate decision-support docs suite: 5 tests OK
 - Targeted Phase 14-C candidate decision-support validator suite: 76 tests OK
-- Targeted Phase 14-C supervised smoke-test suite: 21 tests OK
+- Targeted Phase 14-C supervised smoke-test suite: 30 tests OK
 - Targeted Phase 14-C supervised smoke-test docs suite: 4 tests OK
 - Targeted Phase 14-C supervised smoke request-validation/credential-preflight/
-  live-readiness/request-template/dry-run source/docs/CLI suite: 78 tests OK
+  live-readiness/request-template/dry-run source/docs/CLI suite: 51 CLI tests
+  OK plus the targeted source/docs tests above
+- Targeted OpenClaw model strategy suite: 7 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK
 - Targeted non-human closure plan suite: 11 tests OK
@@ -180,6 +213,15 @@ Last updated: 2026-06-27
   covered with `template_only_not_authorization=true`,
   `ready_for_live_execution=false`, no environment read, no credential loading,
   no DB, no file writes, no OpenClaw runtime call, and no external mutation
+- Phase 14-C Calendar live-smoke readback/search: confirmed exactly one
+  matching event in the Monday, 2026-07-06 America/Chicago window, event ID
+  `memu6fhql6stl71auv05e1a6d0`; no duplicate Calendar event was created in
+  this packet
+- Phase 14-C OpenClaw local/test/sandbox harness: completed once with
+  `status=local_test_sandbox_smoke_completed`, `invocation_name=phase14c_smoke_test`,
+  `mode=local_test_sandbox`, no protected OpenClaw runtime call, no external
+  mutation, no protected path access, no scheduler activation, and no
+  production DB activation
 - PR #33 post-merge read-only CLI validation: passed
 - Phase 13E-D demo command: completed on merged `main`
 - Phase 13E-D demo evidence bundle: generated under a safe temporary output

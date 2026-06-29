@@ -13,6 +13,11 @@ Source contract:
 - `src/personalos/phase14c_supervised_smoke.py`
 - `build_phase14c_supervised_smoke_runbook`
 - `build_default_phase14c_supervised_smoke_request`
+- `build_phase14c_supervised_live_smoke_status`
+- `build_phase14c_gmail_self_send_readiness_report`
+- `build_phase14c_gmail_self_send_smoke_request`
+- `resolve_phase14c_todoist_due_date`
+- `run_phase14c_openclaw_local_sandbox_smoke`
 - `build_phase14c_supervised_smoke_request_template_report`
 - `build_phase14c_credential_preflight_report`
 - `build_phase14c_supervised_smoke_request_validation_report`
@@ -129,6 +134,18 @@ reports must not include a raw `normalized_request` payload or raw controlled
 test recipient. Direct in-memory validation may still retain normalized data
 for guardrail and injected-client execution logic.
 
+Calendar smoke result:
+
+- One supervised Google Calendar external write has already passed.
+- Event ID: `memu6fhql6stl71auv05e1a6d0`
+- Title: `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`
+- Time: Monday, 2026-07-06, 09:00-09:15 America/Chicago.
+- Readback confirmed one matching event, no attendees, no recurrence, no
+  attachments, no conference link, and default reminders disabled.
+- This does not change `readiness.status`, does not activate broad live rails,
+  and does not authorize another Calendar event unless a separate repair need
+  is identified.
+
 ## Test Marker
 
 Every object or invocation must include this marker:
@@ -153,6 +170,32 @@ initiates the live-test step:
 
 These rails are not categorically blocked for this supervised smoke plan. They
 are allowed only inside this bounded manually supervised test envelope.
+
+Gmail self-send readiness may use an injected client/profile method to discover
+the authenticated sender identity safely, or it may use
+`PHASE14C_GMAIL_CONTROLLED_RECIPIENT` when a controlled recipient is configured.
+Reports must mask sender and recipient values and must not print tokens,
+environment dumps, OAuth material, send-as settings, or credential values. If
+the authenticated sender cannot be safely determined and no controlled
+recipient is configured, the Gmail rail remains blocked with
+`gmail_not_run_missing_sender_or_controlled_recipient`.
+
+Todoist defaults to Inbox/default. The smoke request uses no recurrence,
+subtasks, labels, comments, automatic edits, automatic deletion,
+skip/push/bump behavior, or automatic rescheduling. If the original planned
+due date is stale, the due date resolves to the next upcoming Monday.
+
+OpenClaw now has a repo-local local/test/sandbox compatibility harness:
+`run_phase14c_openclaw_local_sandbox_smoke`. That harness is a no-op/status
+smoke path for `phase14c_smoke_test`; it does not call protected OpenClaw
+runtime, access protected paths, activate scheduler/background behavior,
+activate production DB, perform external mutation, or broaden runtime handoff.
+
+OpenClaw model lane strategy is documented in
+[OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md). The smoke lane uses
+Nemotron Super primary with GLM 5.2 fallback. The reasoning lane uses GLM 5.2
+primary with Nemotron Super fallback. Routing is explicit by lane/task type,
+with no hidden model choice or provider auto-escalation.
 
 ## Dry-Run Boundary
 
@@ -218,6 +261,7 @@ The validator enforces:
   requires a self attendee.
 - No Calendar recurrence.
 - No Gmail to uncontrolled recipients.
+- No Gmail CC or BCC.
 - No Gmail attachments.
 - No Gmail forwarding.
 - No Gmail reply to an existing real thread.
@@ -229,6 +273,9 @@ The validator enforces:
 - No broad OpenClaw runtime handoff.
 - OpenClaw mode must be local/test/sandbox.
 - OpenClaw scope must remain one supervised smoke invocation.
+- OpenClaw invocation name must be `phase14c_smoke_test`.
+- OpenClaw production operation, scheduler/background behavior, and external
+  mutation must remain false.
 
 Guardrail failures block the request before any client can be called.
 
@@ -249,9 +296,9 @@ non-required environment names.
 
 This packet does not:
 
-- Run the actual live smoke test.
+- Run broad live activation.
+- Create another Calendar event unless a separate repair need is identified.
 - Create a real Todoist task.
-- Create a real Calendar event.
 - Create or send a real Gmail email.
 - Invoke OpenClaw against real/protected/runtime targets.
 - Print, inspect, copy, commit, or expose credentials/tokens.
@@ -272,9 +319,18 @@ This packet does not:
 `tests/test_phase14c_supervised_smoke.py` verifies:
 
 - The runbook records all four supervised smoke rails and repo-prep safety
-  assertions.
+  assertions, and records the passed supervised Calendar smoke event separately
+  from broad live activation.
 - The default dry-run request validates without credentials and does not call
   clients.
+- Gmail self-send readiness resolves an injected authenticated sender identity
+  or configured controlled recipient while masking raw values in reports.
+- Todoist defaults to Inbox/default, resolves stale due dates to the next
+  upcoming Monday, and blocks recurrence, subtasks, labels, comments,
+  automatic edits/deletion, skip/push/bump behavior, and automatic
+  rescheduling.
+- The repo-local OpenClaw local/test/sandbox smoke harness returns safe
+  metadata only and does not call OpenClaw runtime or mutate external state.
 - The request-template report emits a one-object-per-rail template and records
   `template_only_not_authorization=true` and `ready_for_live_execution=false`.
 - The dry-run rehearsal writes `request.json`, `validation.json`,
@@ -310,11 +366,12 @@ This packet does not:
   objects.
 - Every rail requires the test marker.
 - Calendar attendees and recurrence are blocked outside the self-only rule.
-- Gmail uncontrolled recipients, attachments, existing-thread replies, and
-  forwarding are blocked.
+- Gmail uncontrolled recipients, CC, BCC, attachments, existing-thread replies,
+  and forwarding are blocked.
 - Scheduler/background, production DB, dynamic cleaning, bulk-write,
   protected-path, and broad OpenClaw boundary flags are blocked.
-- OpenClaw production mode, broad scope, broad handoff, and protected paths are
+- OpenClaw production mode, broad scope, broad handoff, production operation,
+  scheduler/background behavior, external mutation, and protected paths are
   blocked.
 - Blocked validation output does not echo caller-controlled unsafe values.
 
@@ -348,5 +405,7 @@ Repo prep keeps:
 
 That status means the repo has prepared a guarded supervised smoke-test path
 plus request-template, redacted request-validation, credential-preflight,
-live-readiness, and fake-client dry-run rehearsal surfaces but has not run the
-live smoke test yet.
+live-readiness, fake-client dry-run rehearsal, Gmail self-send readiness,
+Todoist Inbox/default readiness, and a repo-local OpenClaw local/test/sandbox
+smoke harness. It also records that one supervised Calendar smoke event passed
+while broad live activation remains false and readiness remains not ready.

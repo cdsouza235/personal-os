@@ -118,20 +118,24 @@ pending human gate checklist, and next-human-work plan while keeping the MVP
 not live-ready, live rails disabled, and every live/product gate unresolved.
 The Phase 14-C supervised multi-rail smoke-test runbook in
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
-is now the next integration-learning prep surface. It treats Todoist, Google
-Calendar, Gmail, and OpenClaw as acceptable low-blast-radius supervised smoke
-rails inside a bounded, manually initiated test: at most one marked Todoist
-task, one marked Calendar event, one marked Gmail test email to a
-controlled/self recipient, and one OpenClaw local/test/sandbox invocation.
-The repo prep adds guardrails, credential-name-only preflight, an
-injected-client execution path, CLI runbook discovery, a fake-client dry-run
-rehearsal that writes redacted artifacts under an explicit safe temp output
-directory, redacted executor report validation summaries, a redacted
-request-validation CLI for one explicit safe JSON request file, a
+is now the integration-learning surface for the bounded smoke loop. It treats
+Todoist, Google Calendar, Gmail, and OpenClaw as acceptable low-blast-radius
+supervised smoke rails inside a bounded, manually initiated test: at most one
+marked Todoist task, one marked Calendar event, one marked Gmail test email to
+a controlled/self recipient, and one OpenClaw local/test/sandbox invocation.
+One Google Calendar smoke event has passed and is recorded separately from
+broad live activation. The repo prep adds guardrails, credential-name-only
+preflight, an injected-client execution path, CLI runbook discovery, a
+fake-client dry-run rehearsal that writes redacted artifacts under an explicit
+safe temp output directory, redacted executor report validation summaries, a
+redacted request-validation CLI for one explicit safe JSON request file, a
 credential-name preflight CLI that reports missing required names without
 reading values, a live-readiness CLI that composes those checks without
 executing, a request-template CLI that prints one bounded template without
-authorization, and tests; it does not run the live smoke test.
+authorization, Gmail self-send readiness, Todoist Inbox/default readiness, a
+repo-local OpenClaw local/test/sandbox smoke harness, deterministic OpenClaw
+model strategy in [OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md),
+and tests.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -170,15 +174,15 @@ The final non-human handoff artifact is
 The Phase 14-C supervised smoke-test runbook is
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 Phase 14-A/B historical preparation remains proposed-only. Current Phase 14-C
-movement is the bounded supervised smoke-test request-validation,
-credential-preflight, live-readiness, request-template, dry-run, and
-report-surface prep
-described above; no live smoke test has been run by repo prep.
+movement is the bounded supervised smoke-test follow-through described above:
+Calendar passed, broad activation remains false, readiness remains not ready,
+and Gmail/Todoist/OpenClaw remain bounded to one-operation supervised smoke
+steps.
 
 ## Future Blocked Work
 
-Phase 14-C supervised smoke-test execution is future work until Chris
-explicitly initiates the live-test step from
+Additional Phase 14-C supervised smoke-test execution is future work until
+Chris explicitly initiates the live-test step from
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 That future step is allowed to use Todoist, Google Calendar, Gmail, and
 OpenClaw as low-blast-radius supervised smoke rails only inside the bounded

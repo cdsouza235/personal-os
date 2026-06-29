@@ -9,6 +9,7 @@ import unittest
 from unittest import mock
 from collections.abc import Iterator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
+from datetime import date
 from pathlib import Path
 
 from personalos import cli
@@ -34,6 +35,7 @@ from personalos.phase14c_connectivity_setup import (
     PHASE14C_CONNECTIVITY_SETUP_ENV_FILE,
     PHASE14C_CONNECTIVITY_SETUP_ENTRY_NAMES,
 )
+from personalos.phase14c_todoist_live_smoke import next_upcoming_monday
 from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
     LIVE_RUN_MODE,
@@ -378,7 +380,9 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C connectivity setup",
             "Phase 14-C supervised smoke-test runbook",
             "Phase 14-C supervised smoke dry-run rehearsal",
+            "Phase 14-C Todoist Inbox/default smoke gate",
             "Phase 14-C OpenClaw model readiness",
+            "Phase 14-C OpenRouter model smoke gate",
         ):
             with self.subTest(workflow_name=workflow_name):
                 self.assertIn(f"- {workflow_name}", result.stdout)
@@ -426,8 +430,10 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             workflow_names,
         )
         self.assertIn("Phase 14-C supervised smoke live readiness", workflow_names)
+        self.assertIn("Phase 14-C Todoist Inbox/default smoke gate", workflow_names)
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
+        self.assertIn("Phase 14-C OpenRouter model smoke gate", workflow_names)
 
     def test_phase14c_connectivity_setup_missing_names_only(self) -> None:
         secret_environment = {
@@ -467,6 +473,14 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         )
         self.assertTrue(setup["setup_script"]["writes_via_temp_file_before_final_move"])
         self.assertTrue(setup["setup_script"]["refuses_to_overwrite_existing_env_file"])
+        self.assertIn(
+            "todoist-inbox-smoke --json",
+            " ".join(setup["verification_commands"]),
+        )
+        self.assertIn(
+            "openrouter-model-smoke --json",
+            " ".join(setup["verification_commands"]),
+        )
         self.assertEqual(
             setup["rails"]["todoist"]["missing_config_entry_names"],
             [],
@@ -1116,10 +1130,150 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(readiness["model_smoke_probe_executed"])
         self.assertEqual(readiness["routing"]["primary_alias"], "nemotron_super")
         self.assertEqual(readiness["routing"]["fallback_alias"], "glm_5_2")
-        for secret_value in secret_environment.values():
+        for secret_value in (
+            secret_environment["PERSONALOS_OPENCLAW_MODEL_API_KEY"],
+            secret_environment["PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL"],
+            secret_environment["PERSONALOS_OPENCLAW_GLM_5_2_MODEL"],
+        ):
             self.assertNotIn(secret_value, result.stdout)
         for present_name in OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES:
             self.assertNotIn(present_name, result.stdout)
+
+    def test_phase14c_todoist_inbox_smoke_default_is_no_execute_gate(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "todoist-inbox-smoke", "--json"])
+
+        payload = json.loads(result.stdout)
+        smoke = payload["todoist_smoke"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c todoist-inbox-smoke")
+        self.assertEqual(payload["status"], "todoist_not_run_missing_execute_live_flag")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(smoke["todoist_task_created"])
+        self.assertEqual(smoke["call_limits"]["task_create_calls"], 0)
+        self.assertEqual(
+            smoke["due_date"],
+            next_upcoming_monday(date.today()).isoformat(),
+        )
+        self.assertTrue(
+            smoke["task_payload_summary"]["project_id_omitted_for_inbox_default"]
+        )
+        self.assertNotIn("secret-todoist-token", result.stdout)
+        self.assertNotIn("PERSONALOS_PHASE14C_TODOIST_TOKEN", result.stdout)
+
+    def test_phase14c_todoist_inbox_smoke_execute_requires_approval_first(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "todoist-inbox-smoke",
+                    "--execute-live",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        smoke = payload["todoist_smoke"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(payload["status"], "todoist_not_run_missing_approval_reference")
+        self.assertFalse(smoke["todoist_task_created"])
+        self.assertEqual(smoke["call_limits"]["task_create_calls"], 0)
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertNotIn("secret-todoist-token", result.stdout)
+        self.assertNotIn("PERSONALOS_PHASE14C_TODOIST_TOKEN", result.stdout)
+
+    def test_phase14c_openrouter_model_smoke_default_is_no_provider_call(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-model",
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-model",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "openrouter-model-smoke", "--json"])
+
+        payload = json.loads(result.stdout)
+        smoke = payload["openrouter_model_smoke"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c openrouter-model-smoke")
+        self.assertEqual(
+            payload["status"],
+            "openclaw_model_smoke_not_run_missing_execute_live_flag",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertFalse(smoke["model_smoke_probe_executed"])
+        self.assertTrue(smoke["client"]["available"])
+        for secret_value in (
+            secret_environment["PERSONALOS_OPENCLAW_MODEL_API_KEY"],
+            secret_environment["PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL"],
+            secret_environment["PERSONALOS_OPENCLAW_GLM_5_2_MODEL"],
+        ):
+            self.assertNotIn(secret_value, result.stdout)
+        for present_name in OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES:
+            self.assertNotIn(present_name, result.stdout)
+
+    def test_phase14c_openrouter_model_smoke_execute_requires_approval_first(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-model",
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-model",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "openrouter-model-smoke",
+                    "--execute-live",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        smoke = payload["openrouter_model_smoke"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(
+            payload["status"],
+            "openclaw_model_smoke_not_run_missing_approval_reference",
+        )
+        self.assertFalse(smoke["model_smoke_probe_executed"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_model_provider_call"])
+        for secret_value in (
+            secret_environment["PERSONALOS_OPENCLAW_MODEL_API_KEY"],
+            secret_environment["PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL"],
+            secret_environment["PERSONALOS_OPENCLAW_GLM_5_2_MODEL"],
+        ):
+            self.assertNotIn(secret_value, result.stdout)
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

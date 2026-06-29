@@ -86,6 +86,16 @@ def build_phase14c_connectivity_setup_report(
                 "PYTHONPATH=src python3 -m personalos.cli phase14c "
                 "openclaw-model-readiness --json"
             ),
+            (
+                "set -a; source .env.local; set +a; "
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "todoist-inbox-smoke --json"
+            ),
+            (
+                "set -a; source .env.local; set +a; "
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "openrouter-model-smoke --json"
+            ),
         ],
         "safety_assertions": {
             "credential_values_read": False,

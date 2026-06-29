@@ -1,9 +1,9 @@
 # OpenClaw Model Strategy
 
 This document defines the deterministic model strategy for Phase 14-C
-OpenClaw smoke and planning work. It is a configuration and policy surface; it
-does not call any provider, load credentials, invoke OpenClaw runtime, or
-activate live model/API behavior.
+OpenClaw smoke and planning work. The strategy and readiness surfaces are
+configuration and policy surfaces; they do not call any provider, load
+credentials, invoke OpenClaw runtime, or activate live model/API behavior.
 
 This strategy supports the bounded smoke envelope in
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
@@ -16,6 +16,7 @@ Source contract:
 - `build_openclaw_model_provider_readiness_report`
 - `run_openclaw_model_smoke_probe`
 - `sanitize_openclaw_model_run_metadata`
+- `src/personalos/openrouter_model_smoke_client.py`
 
 CLI discovery:
 
@@ -26,6 +27,19 @@ PYTHONPATH=src python3 -m personalos.cli phase14c openclaw-model-readiness --jso
 That command checks model-provider config entry names only. It does not read
 credential values, load credentials, initialize a model client, call a model
 provider, execute tools, invoke OpenClaw, open a database, or write files.
+
+Gated OpenRouter smoke command:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c openrouter-model-smoke --json
+```
+
+The default command is report-only and reads environment key names only. It
+does not read credential values, initialize a model client, call OpenRouter,
+execute tools, invoke OpenClaw, open a database, write files, or activate a
+scheduler. A future supervised smoke run must add
+`--execute-live --approval-reference <ref>` after config is present and
+separate explicit approval has been recorded.
 
 ## Model Aliases
 
@@ -105,9 +119,10 @@ If config names are missing, the smoke probe reports
 If config names are present but no injected model client exists, the smoke
 probe reports `openclaw_model_smoke_not_run_missing_client`.
 
-If a future supervised operator path injects a configured model client, the
-smoke probe may make at most one Nemotron Super primary call and one GLM 5.2
-fallback call only after primary validation failure. The prompt is a short
+If a future supervised operator path injects a configured model client, or the
+gated `openrouter-model-smoke --execute-live` command is separately approved,
+the smoke probe may make at most one Nemotron Super primary call and one GLM
+5.2 fallback call only after primary validation failure. The prompt is a short
 constant smoke probe and is not included in the report.
 
 ## Non-Goals
@@ -117,7 +132,8 @@ This strategy does not:
 - add a complex autonomous router;
 - construct a provider SDK client;
 - call Nemotron Super, GLM 5.2, OpenRouter, or any live provider without a
-  separately injected model smoke client;
+  separately injected model smoke client or the explicitly approved
+  `openrouter-model-smoke --execute-live` gate;
 - inspect, print, copy, or store credentials;
 - print present config names;
 - log full prompts or raw provider responses;

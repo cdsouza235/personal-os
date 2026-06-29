@@ -18,7 +18,9 @@ from personalos.config import DEFAULT_TIMEZONE
 from personalos.dashboard import render_today_view_html_from_connection
 from personalos.operator_status import create_operator_status_report
 from personalos.openclaw_model_strategy import (
+    OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
     build_openclaw_model_provider_readiness_report,
+    run_openclaw_model_smoke_probe,
 )
 from personalos.path_safety import (
     is_under_repo,
@@ -38,6 +40,10 @@ from personalos.phase14c_supervised_smoke import (
     build_phase14c_supervised_smoke_runbook,
     build_phase14c_supervised_smoke_request_validation_report,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
+)
+from personalos.phase14c_todoist_live_smoke import (
+    PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
+    run_phase14c_todoist_inbox_smoke,
 )
 from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
@@ -241,12 +247,40 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "output": "stdout redacted live-readiness JSON or human summary",
     },
     {
+        "name": "Phase 14-C Todoist Inbox/default smoke gate",
+        "safe_local_action": "Check the one-task Todoist smoke command without executing",
+        "command": (
+            "personalos phase14c todoist-inbox-smoke "
+            "[--execute-live --approval-reference <ref>] [--json]"
+        ),
+        "mode": "default report-only; explicit bounded live write only with flags",
+        "local_effect": (
+            "default reads environment key names only; live mode may create exactly "
+            "one Inbox/default task and writes no local files or DB rows"
+        ),
+        "output": "stdout Todoist smoke JSON or human summary",
+    },
+    {
         "name": "Phase 14-C OpenClaw model readiness",
         "safe_local_action": "Check model provider config names without executing",
         "command": "personalos phase14c openclaw-model-readiness [--json]",
         "mode": "repo-local model readiness / no provider call / no live client",
         "local_effect": "reads environment key names only; no DB opened; no files written",
         "output": "stdout model readiness JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C OpenRouter model smoke gate",
+        "safe_local_action": "Check the OpenRouter smoke command without executing",
+        "command": (
+            "personalos phase14c openrouter-model-smoke "
+            "[--execute-live --approval-reference <ref>] [--json]"
+        ),
+        "mode": "default report-only; explicit bounded model call only with flags",
+        "local_effect": (
+            "default reads environment key names only; live mode may call one "
+            "primary model and one fallback only if validation fails"
+        ),
+        "output": "stdout OpenRouter model smoke JSON or human summary",
     },
 )
 
@@ -480,6 +514,31 @@ def build_parser() -> argparse.ArgumentParser:
         func=_command_phase14c_supervised_smoke_live_readiness
     )
 
+    phase14c_todoist_smoke_parser = phase14c_subparsers.add_parser(
+        "todoist-inbox-smoke",
+        help="Gate or run one bounded Phase 14-C Todoist Inbox/default smoke task.",
+        description=(
+            "By default this command is report-only and reads environment key names "
+            "only. With --execute-live and --approval-reference, it may load the "
+            "Todoist token and create exactly one Inbox/default task with no "
+            "recurrence, subtasks, labels, comments, attachments, edits, deletes, "
+            "rescheduling, DB writes, scheduler activation, or protected path access."
+        ),
+    )
+    phase14c_todoist_smoke_parser.add_argument(
+        "--execute-live",
+        action="store_true",
+        help="Explicitly run the one-task Todoist smoke write.",
+    )
+    phase14c_todoist_smoke_parser.add_argument(
+        "--approval-reference",
+        help="Required for --execute-live; not printed as a raw value.",
+    )
+    _add_json_arg(phase14c_todoist_smoke_parser)
+    phase14c_todoist_smoke_parser.set_defaults(
+        func=_command_phase14c_todoist_inbox_smoke
+    )
+
     phase14c_model_readiness_parser = phase14c_subparsers.add_parser(
         "openclaw-model-readiness",
         help="Check Phase 14-C OpenClaw model provider readiness without a model call.",
@@ -495,6 +554,32 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_model_readiness_parser)
     phase14c_model_readiness_parser.set_defaults(
         func=_command_phase14c_openclaw_model_readiness
+    )
+
+    phase14c_openrouter_smoke_parser = phase14c_subparsers.add_parser(
+        "openrouter-model-smoke",
+        help="Gate or run one bounded Phase 14-C OpenRouter model smoke probe.",
+        description=(
+            "By default this command is report-only and reads environment key names "
+            "only. With --execute-live and --approval-reference, it may load the "
+            "OpenRouter API key and configured model IDs, call Nemotron Super once, "
+            "and call GLM 5.2 at most once only if validation fails. It does not "
+            "execute tools, invoke OpenClaw runtime, open a DB, write files, activate "
+            "a scheduler, or touch protected paths."
+        ),
+    )
+    phase14c_openrouter_smoke_parser.add_argument(
+        "--execute-live",
+        action="store_true",
+        help="Explicitly run the bounded OpenRouter smoke probe.",
+    )
+    phase14c_openrouter_smoke_parser.add_argument(
+        "--approval-reference",
+        help="Required for --execute-live; not printed as a raw value.",
+    )
+    _add_json_arg(phase14c_openrouter_smoke_parser)
+    phase14c_openrouter_smoke_parser.set_defaults(
+        func=_command_phase14c_openrouter_model_smoke
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -1120,6 +1205,91 @@ def _command_phase14c_supervised_smoke_live_readiness(args: argparse.Namespace) 
     return 0
 
 
+def _command_phase14c_todoist_inbox_smoke(args: argparse.Namespace) -> int:
+    config_names = tuple(os.environ.keys())
+    approval_present = _has_text(args.approval_reference)
+    token_value = None
+    if (
+        args.execute_live
+        and approval_present
+        and PHASE14C_TODOIST_TOKEN_CONFIG_NAME in config_names
+    ):
+        token_value = os.environ.get(PHASE14C_TODOIST_TOKEN_CONFIG_NAME)
+
+    smoke_report = run_phase14c_todoist_inbox_smoke(
+        available_config_names=config_names,
+        execute_live=args.execute_live,
+        approval_reference=args.approval_reference,
+        token=token_value,
+    )
+    task_create_calls = int(smoke_report["call_limits"]["task_create_calls"])
+    task_created = smoke_report.get("todoist_task_created") is True
+    mutation_state = smoke_report.get("mutation_state")
+    external_mutation: bool | None = task_created
+    if task_create_calls and mutation_state == "unconfirmed_after_task_create_attempt":
+        external_mutation = None
+    credential_values_read = (
+        smoke_report["safety_assertions"]["credential_values_read"] is True
+    )
+    status = str(smoke_report["status"])
+    report = _with_workflow_context(
+        {
+            "command": "phase14c todoist-inbox-smoke",
+            "status": status,
+            "database_write": False,
+            "external_mutation": external_mutation,
+            "external_writes": (
+                "todoist_task_created"
+                if task_created
+                else (
+                    "todoist_task_create_attempted"
+                    if task_create_calls
+                    else "none"
+                )
+            ),
+            "file_write": False,
+            "no_external_writes": not task_create_calls,
+            "no_credentials_loaded": not credential_values_read,
+            "no_credential_values_read": not credential_values_read,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": not (
+                smoke_report["safety_assertions"]["live_client_initialized"] is True
+            ),
+            "no_live_rails_activated": not task_create_calls,
+            "credentials": (
+                "loaded_for_bounded_phase14c_todoist_smoke"
+                if credential_values_read
+                else "not_loaded"
+            ),
+            "todoist_smoke": smoke_report,
+        },
+        workflow_name="Phase 14-C Todoist Inbox/default smoke",
+        workflow_mode=(
+            "bounded live Todoist smoke"
+            if task_create_calls
+            else "repo-local Todoist smoke gate / no live execution"
+        ),
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the Todoist smoke status.",
+            "Do not rerun --execute-live after a task has been created.",
+            "Do not paste or inspect Todoist token values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return (
+        0
+        if (
+            not args.execute_live
+            or status == "todoist_inbox_default_task_smoke_passed"
+        )
+        else 1
+    )
+
+
 def _command_phase14c_openclaw_model_readiness(args: argparse.Namespace) -> int:
     readiness = build_openclaw_model_provider_readiness_report(
         available_config_names=os.environ.keys(),
@@ -1157,6 +1327,142 @@ def _command_phase14c_openclaw_model_readiness(args: argparse.Namespace) -> int:
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _command_phase14c_openrouter_model_smoke(args: argparse.Namespace) -> int:
+    config_names = tuple(os.environ.keys())
+    readiness = build_openclaw_model_provider_readiness_report(
+        available_config_names=config_names,
+        client_available=True,
+        client_type="openrouter_stdlib_http_client",
+    )
+    approval_present = _has_text(args.approval_reference)
+    credential_values_read = False
+    model_provider_called = False
+    status = readiness["status"]
+    openrouter_report = {
+        **readiness,
+        "live_execution_requested": args.execute_live,
+        "approval_reference_present": approval_present,
+    }
+
+    if not args.execute_live:
+        if status == "openclaw_model_smoke_ready_for_injected_client_probe":
+            status = "openclaw_model_smoke_not_run_missing_execute_live_flag"
+            openrouter_report["status"] = status
+            openrouter_report["reason"] = "execute_live_flag_missing"
+    elif not approval_present:
+        status = "openclaw_model_smoke_not_run_missing_approval_reference"
+        openrouter_report["status"] = status
+        openrouter_report["reason"] = "approval_reference_missing"
+    elif readiness["provider_config"]["missing_config_entry_names"]:
+        status = readiness["status"]
+    else:
+        env_values = _openrouter_env_values()
+        credential_values_read = True
+        missing_value_count = sum(
+            1 for value in env_values.values() if not _has_text(value)
+        )
+        if missing_value_count:
+            status = "openclaw_model_smoke_not_run_missing_provider_config"
+            openrouter_report = {
+                **openrouter_report,
+                "status": status,
+                "reason": "model_provider_config_value_missing",
+                "missing_config_value_count": missing_value_count,
+                "safety_assertions": {
+                    **dict(openrouter_report["safety_assertions"]),
+                    "credential_values_read": True,
+                    "credential_values_logged": False,
+                    "model_provider_called": False,
+                },
+            }
+        elif env_values["provider"].strip().lower() != "openrouter":
+            status = "openclaw_model_smoke_not_run_missing_client"
+            openrouter_report = {
+                **openrouter_report,
+                "status": status,
+                "reason": "configured_provider_is_not_openrouter",
+                "client": {
+                    "available": False,
+                    "type": None,
+                },
+                "safety_assertions": {
+                    **dict(openrouter_report["safety_assertions"]),
+                    "credential_values_read": True,
+                    "credential_values_logged": False,
+                    "model_provider_called": False,
+                },
+            }
+        else:
+            from personalos.openrouter_model_smoke_client import (
+                OpenRouterModelSmokeClient,
+            )
+
+            client = OpenRouterModelSmokeClient(
+                api_key=env_values["api_key"],
+                models_by_alias={
+                    "nemotron_super": env_values["nemotron_super_model"],
+                    "glm_5_2": env_values["glm_5_2_model"],
+                },
+            )
+            openrouter_report = run_openclaw_model_smoke_probe(
+                available_config_names=OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+                client=client,
+                client_type="openrouter_stdlib_http_client",
+                credential_values_read=True,
+                model_provider_called=True,
+            )
+            model_provider_called = True
+            status = openrouter_report["status"]
+
+    report = _with_workflow_context(
+        {
+            "command": "phase14c openrouter-model-smoke",
+            "status": status,
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": not credential_values_read,
+            "no_credential_values_read": not credential_values_read,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": not model_provider_called,
+            "no_live_rails_activated": not model_provider_called,
+            "no_model_provider_call": not model_provider_called,
+            "credentials": (
+                "loaded_for_bounded_phase14c_openrouter_model_smoke"
+                if credential_values_read
+                else "not_loaded"
+            ),
+            "openrouter_model_smoke": openrouter_report,
+        },
+        workflow_name="Phase 14-C OpenRouter model smoke",
+        workflow_mode=(
+            "bounded live OpenRouter model smoke"
+            if model_provider_called
+            else "repo-local OpenRouter model smoke gate / no provider call"
+        ),
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the OpenRouter model smoke status.",
+            "Do not paste or inspect OpenRouter API key values.",
+            "Do not rerun --execute-live after a successful model smoke unless explicitly authorized.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return (
+        0
+        if (
+            not args.execute_live
+            or status == "openclaw_model_smoke_passed"
+        )
+        else 1
+    )
 
 
 def _phase14c_safe_credential_preflight_report(
@@ -1247,6 +1553,25 @@ def _phase14c_validation_report_missing_names_only(
     )
     safe_report["validation"] = validation
     return safe_report
+
+
+def _openrouter_env_values() -> dict[str, str]:
+    return {
+        "provider": os.environ.get("PERSONALOS_OPENCLAW_MODEL_PROVIDER", ""),
+        "api_key": os.environ.get("PERSONALOS_OPENCLAW_MODEL_API_KEY", ""),
+        "nemotron_super_model": os.environ.get(
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
+            "",
+        ),
+        "glm_5_2_model": os.environ.get(
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
+            "",
+        ),
+    }
+
+
+def _has_text(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
 def _command_briefing_preview(args: argparse.Namespace) -> int:
@@ -1635,9 +1960,9 @@ def _with_workflow_context(
         "database_target": database_target,
         "local_sqlite_read": local_sqlite_read,
         "local_sqlite_changed": local_sqlite_changed,
-        "external_writes": "none",
-        "credentials": "not_loaded",
-        "production_db_active": False,
+        "external_writes": report.get("external_writes", "none"),
+        "credentials": report.get("credentials", "not_loaded"),
+        "production_db_active": report.get("production_db_active", False),
         "output_target": _output_target_report(output_kind, output_file=output_file),
         "safe_next_actions": list(safe_next_actions),
     }

@@ -115,6 +115,56 @@ read credential values, load credentials, initialize a model client, call a
 model provider, execute tools, invoke OpenClaw, open a database, or write
 files. It does not initialize a model client.
 
+Todoist Inbox/default smoke gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c todoist-inbox-smoke --json
+```
+
+That default command is report-only. It reads environment key names only,
+checks the one-task smoke shape, reports the next upcoming Monday due date,
+and does not read the Todoist token, initialize a live client, create a task,
+open a database, write files, activate a scheduler, or touch protected paths.
+Without `--execute-live`, it reports
+`todoist_not_run_missing_execute_live_flag`.
+
+A future supervised live Todoist smoke, after credentials are configured and a
+separate explicit approval is present, uses the same command with
+`--execute-live --approval-reference <ref>`. That path may load
+`PERSONALOS_PHASE14C_TODOIST_TOKEN` and create exactly one Inbox/default task
+with title `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`. It does
+not set `project_id`, so the task is created in Inbox/default. It sends
+`due_date` in `YYYY-MM-DD` form, matching Todoist API v1 `POST /api/v1/tasks`
+request fields. It does not set recurrence, subtasks, labels, comments,
+attachments, edits, deletes, skip/push/bump behavior, or automatic
+rescheduling.
+
+If the Todoist create request is attempted but the client cannot validate the
+response, the report uses
+`mutation_state=unconfirmed_after_task_create_attempt` and does not assert
+`external_mutation=false` or `todoist_task_created=false`.
+
+OpenRouter model smoke gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c openrouter-model-smoke --json
+```
+
+That default command is report-only. It reads environment key names only and
+does not read the OpenRouter API key, initialize a live client, call a model
+provider, execute tools, invoke OpenClaw, open a database, write files,
+activate a scheduler, or touch protected paths.
+When config names are present but `--execute-live` is omitted, it reports
+`openclaw_model_smoke_not_run_missing_execute_live_flag`.
+
+A future supervised live model smoke, after credentials are configured and a
+separate explicit approval is present, uses the same command with
+`--execute-live --approval-reference <ref>`. That path may load
+`PERSONALOS_OPENCLAW_MODEL_API_KEY` and configured model IDs, call Nemotron
+Super at most once, and call GLM 5.2 at most once only if the primary response
+fails validation. It does not log credential values, full prompts, raw
+provider responses, or configured model IDs.
+
 Connectivity setup:
 
 ```bash
@@ -213,7 +263,9 @@ recipient is configured, the Gmail rail remains blocked with
 Todoist defaults to Inbox/default. The smoke request uses no recurrence,
 subtasks, labels, comments, automatic edits, automatic deletion,
 skip/push/bump behavior, or automatic rescheduling. If the original planned
-due date is stale, the due date resolves to the next upcoming Monday.
+due date is stale, the due date resolves to the next upcoming Monday. The
+bounded live command omits `project_id` and sends `due_date` for the full-day
+due date.
 
 OpenClaw now has a repo-local local/test/sandbox compatibility harness:
 `run_phase14c_openclaw_local_sandbox_smoke`. That harness is a no-op/status
@@ -455,5 +507,8 @@ That status means the repo has prepared a guarded supervised smoke-test path
 plus request-template, redacted request-validation, credential-preflight,
 live-readiness, fake-client dry-run rehearsal, Gmail self-send readiness,
 Todoist Inbox/default readiness, and a repo-local OpenClaw local/test/sandbox
-smoke harness. It also records that one supervised Calendar smoke event passed
-while broad live activation remains false and readiness remains not ready.
+smoke harness. It also includes explicit Todoist Inbox/default and OpenRouter
+model smoke gate commands whose default mode is no-execution/report-only and
+whose live modes require separate explicit approval. It also records that one
+supervised Calendar smoke event passed while broad live activation remains
+false and readiness remains not ready.

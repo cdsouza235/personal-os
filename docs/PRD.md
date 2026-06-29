@@ -1383,9 +1383,12 @@ candidate-review context only.
 
 ### Current Recommended Phase
 
-Phase 14-C supervised smoke-test request-template, request-validation,
-credential-preflight, live-readiness, and report-surface review before a future
-live-test decision.
+Phase 14-C supervised smoke-test follow-through after the first bounded live
+rail. One Google Calendar smoke event has passed; Gmail, Todoist, and OpenClaw
+runtime remain unrun. The current repo work is to preserve the Calendar result,
+advance self-send Gmail readiness, Inbox/default Todoist readiness, a concrete
+OpenClaw local/test/sandbox smoke harness, and deterministic OpenClaw model
+lane strategy while broad live activation remains false.
 
 Purpose:
 
@@ -1402,6 +1405,16 @@ Purpose:
 - preserve the Todoist, Google Calendar, Gmail, and OpenClaw one-operation
   guardrails before any live smoke-test initiation
 - keep dry-run, blocked, and live-completed executor reports redacted
+- record that the Calendar rail passed without changing readiness to ready
+- use Gmail self-send by default through an injected authenticated sender
+  identity or configured controlled recipient, with masked reports only
+- default Todoist to Inbox/default and use the next upcoming Monday when the
+  original due date is stale
+- provide a repo-local OpenClaw local/test/sandbox smoke harness that does not
+  call protected runtime or mutate external state
+- define explicit OpenClaw model lanes: Nemotron Super primary / GLM 5.2
+  fallback for smoke, and GLM 5.2 primary / Nemotron Super fallback for
+  reasoning
 - preserve no live clients, credentials, production DB, scheduler activation,
   file writes during request-template generation, request validation,
   credential preflight, or live-readiness checks, external writes, or OpenClaw
@@ -1409,13 +1422,15 @@ Purpose:
 
 ### Not Yet Started
 
-Phase 14-C supervised live smoke-test execution.
+Phase 14-C Gmail, Todoist, and protected-runtime OpenClaw supervised live
+smoke-test execution.
 
-Phase 14-C live smoke-test execution requires a separate current human
-initiation and must remain inside the bounded supervised smoke-test runbook
-before any live Todoist write, Calendar write, Gmail create/send, OpenClaw
-local/test/sandbox invocation, credential loading, production DB activation,
-scheduler/background behavior, or protected-path access.
+Additional Phase 14-C live smoke-test execution requires a separate current
+human initiation and must remain inside the bounded supervised smoke-test
+runbook before any live Todoist write, additional Calendar write, Gmail
+create/send, protected-runtime OpenClaw invocation, credential loading,
+production DB activation, scheduler/background behavior, or protected-path
+access.
 
 ## 28. V1 Acceptance Criteria
 
@@ -1442,9 +1457,8 @@ V1 is acceptable only when:
 
 ## 29. Immediate Next Step
 
-The immediate repo-local step is Phase 14-C supervised smoke-test
-request-template generation, request-validation, credential-name preflight,
-live-readiness, and dry-run rehearsal review in
+The immediate repo-local step is Phase 14-C supervised smoke-test follow-through
+in
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 The request-template surface prints one bounded template without authorization.
 The request-validation surface reads one explicit safe JSON request file and
@@ -1452,9 +1466,13 @@ prints a redacted report. The credential preflight surface checks required
 environment/config entry names without reading values. The live-readiness
 surface composes those checks without executing. The rehearsal uses
 deterministic fake clients and redacted safe-temp artifacts only.
+The current follow-through also records the passed Calendar event, prepares
+Gmail self-send, Todoist Inbox/default, and a repo-local OpenClaw
+local/test/sandbox harness, and links the deterministic Nemotron Super / GLM
+5.2 strategy in [OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md).
 
-Phase 14-C live smoke-test execution remains blocked unless Chris explicitly
-initiates that bounded supervised step in the current session.
+Further Phase 14-C live smoke-test execution remains blocked unless Chris
+explicitly initiates that bounded supervised step in the current session.
 
 Codex/Fable must not turn Phase 14-A/B preparation, candidate-review history,
 or dry-run rehearsal into live activation.

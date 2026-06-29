@@ -17,6 +17,8 @@ from personalos.phase14c_supervised_smoke import (
     PHASE14C_SUPERVISED_SMOKE_STATUS,
     PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT,
     PHASE14C_SUPERVISED_SMOKE_TEMPLATE_STATUS,
+    PHASE14C_TODOIST_ADJUSTED_DUE_DATE,
+    PHASE14C_TODOIST_DEFAULT_PROJECT,
     REQUEST_TEMPLATE_REPORT_FIELDS,
     REQUEST_TEMPLATE_SAFETY_ASSERTION_FIELDS,
     REQUEST_VALIDATION_REPORT_FIELDS,
@@ -25,11 +27,16 @@ from personalos.phase14c_supervised_smoke import (
     RUNBOOK_TOP_LEVEL_FIELDS,
     Phase14CSupervisedSmokeClients,
     build_default_phase14c_supervised_smoke_request,
+    build_phase14c_gmail_self_send_readiness_report,
+    build_phase14c_gmail_self_send_smoke_request,
     build_phase14c_credential_preflight_report,
+    build_phase14c_supervised_live_smoke_status,
     build_phase14c_supervised_smoke_runbook,
     build_phase14c_supervised_smoke_request_template_report,
     build_phase14c_supervised_smoke_request_validation_report,
     execute_phase14c_supervised_smoke_request,
+    resolve_phase14c_todoist_due_date,
+    run_phase14c_openclaw_local_sandbox_smoke,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
     validate_phase14c_supervised_smoke_request,
 )
@@ -68,6 +75,21 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
         self.assertFalse(runbook["repo_prep_safety"]["gmail_email_created_or_sent"])
         self.assertFalse(runbook["repo_prep_safety"]["openclaw_invoked"])
         self.assertFalse(runbook["repo_prep_safety"]["credential_values_read"])
+        smoke_status = runbook["supervised_live_smoke_status"]
+        self.assertEqual(smoke_status["readiness_status"], "not_ready")
+        self.assertFalse(smoke_status["broad_live_activation"])
+        self.assertTrue(smoke_status["calendar_external_write_happened"])
+        self.assertEqual(smoke_status["supervised_external_write_count"], 1)
+        self.assertEqual(smoke_status["rails"]["google_calendar"]["status"], "passed")
+        self.assertEqual(smoke_status["rails"]["gmail"]["status"], "not_run")
+        self.assertEqual(
+            smoke_status["rails"]["todoist"]["target_project"],
+            PHASE14C_TODOIST_DEFAULT_PROJECT,
+        )
+        self.assertEqual(
+            smoke_status["rails"]["openclaw"]["harness_function"],
+            "run_phase14c_openclaw_local_sandbox_smoke",
+        )
 
     def test_default_dry_run_request_validates_without_credentials(self) -> None:
         request = build_default_phase14c_supervised_smoke_request()
@@ -90,6 +112,36 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
                 "gmail_emails": 1,
                 "openclaw_invocations": 1,
             },
+        )
+        task = validation.normalized_request["rails"]["todoist"]["task"]
+        self.assertEqual(task["project"], PHASE14C_TODOIST_DEFAULT_PROJECT)
+        self.assertEqual(task["due_date"], PHASE14C_TODOIST_ADJUSTED_DUE_DATE)
+        self.assertEqual(task["subtasks"], [])
+        self.assertEqual(task["labels"], [])
+        invocation = validation.normalized_request["rails"]["openclaw"]["invocation"]
+        self.assertEqual(invocation["name"], "phase14c_smoke_test")
+        self.assertFalse(invocation["external_mutation"])
+
+    def test_supervised_live_smoke_status_records_calendar_pass_without_activation(
+        self,
+    ) -> None:
+        status = build_phase14c_supervised_live_smoke_status()
+
+        self.assertEqual(status["readiness_status"], "not_ready")
+        self.assertFalse(status["broad_live_activation"])
+        self.assertTrue(status["rails"]["google_calendar"]["external_write_happened"])
+        self.assertEqual(
+            status["rails"]["google_calendar"]["object_id"],
+            "memu6fhql6stl71auv05e1a6d0",
+        )
+        self.assertFalse(status["rails"]["gmail"]["external_write_happened"])
+        self.assertFalse(status["rails"]["todoist"]["external_write_happened"])
+        self.assertFalse(status["rails"]["openclaw"]["external_write_happened"])
+        self.assertTrue(
+            all(
+                value is False
+                for value in status["safety_assertions"].values()
+            )
         )
 
     def test_request_template_report_builds_dry_run_template_without_authorization(
@@ -362,6 +414,86 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
             validation.reasons,
         )
 
+    def test_gmail_self_send_readiness_uses_injected_identity_and_masks_values(
+        self,
+    ) -> None:
+        client = _GmailIdentityClient("private.phase14c@example.test")
+
+        report = build_phase14c_gmail_self_send_readiness_report(
+            gmail_identity_client=client
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], "ready_for_self_send")
+        self.assertEqual(
+            report["controlled_recipient_source"],
+            "authenticated_sender_identity",
+        )
+        self.assertEqual(report["masked_recipient"], "p***@example.test")
+        self.assertFalse(report["raw_recipient_reported"])
+        self.assertNotIn("private.phase14c@example.test", serialized)
+        self.assertFalse(report["send_boundaries"]["cc_allowed"])
+        self.assertFalse(report["send_boundaries"]["bulk_send_allowed"])
+
+    def test_gmail_self_send_request_defaults_to_sender_as_controlled_recipient(
+        self,
+    ) -> None:
+        request = build_phase14c_gmail_self_send_smoke_request(
+            gmail_identity_client=_GmailIdentityClient("private.phase14c@example.test")
+        )
+        email = request["rails"]["gmail"]["emails"][0]
+
+        self.assertEqual(request["controlled_test_recipients"], [email["to"][0]])
+        self.assertEqual(email["to"], ["private.phase14c@example.test"])
+        self.assertTrue(email["send"])
+        self.assertFalse(email["create_draft"])
+        self.assertTrue(validate_phase14c_supervised_smoke_request(request).accepted)
+
+    def test_gmail_self_send_blocks_when_sender_and_configured_recipient_missing(
+        self,
+    ) -> None:
+        report = build_phase14c_gmail_self_send_readiness_report()
+
+        self.assertEqual(report["status"], "blocked")
+        self.assertEqual(
+            report["reason"], "gmail_not_run_missing_sender_or_controlled_recipient"
+        )
+        with self.assertRaisesRegex(
+            ValueError, "gmail_not_run_missing_sender_or_controlled_recipient"
+        ):
+            build_phase14c_gmail_self_send_smoke_request()
+
+    def test_todoist_due_date_uses_next_monday_when_original_is_past(self) -> None:
+        self.assertEqual(
+            resolve_phase14c_todoist_due_date(
+                original_due_date="2026-06-29",
+                current_date="2026-06-30",
+            ),
+            "2026-07-06",
+        )
+        self.assertEqual(
+            resolve_phase14c_todoist_due_date(
+                original_due_date="2026-07-06",
+                current_date="2026-06-30",
+            ),
+            "2026-07-06",
+        )
+
+    def test_openclaw_repo_local_harness_runs_without_runtime_or_external_mutation(
+        self,
+    ) -> None:
+        result = run_phase14c_openclaw_local_sandbox_smoke()
+
+        self.assertEqual(result["status"], "local_test_sandbox_smoke_completed")
+        self.assertEqual(result["invocation_name"], "phase14c_smoke_test")
+        self.assertEqual(result["mode"], "local_test_sandbox")
+        self.assertFalse(result["external_mutation"])
+        self.assertFalse(result["openclaw_runtime_called"])
+        self.assertFalse(result["protected_paths_touched"])
+        self.assertFalse(result["scheduler_activated"])
+        self.assertFalse(result["production_db_active"])
+        self.assertFalse(result["broad_runtime_handoff"])
+
     def test_live_run_requires_executor_approval_flag(self) -> None:
         request = build_default_phase14c_supervised_smoke_request(
             mode=LIVE_RUN_MODE,
@@ -614,12 +746,20 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
         invocation = request["rails"]["openclaw"]["invocations"][0]
         invocation["mode"] = "production"
         invocation["scope"] = "operate_personal_os"
+        invocation["name"] = "operate_personal_os"
         invocation["broad_runtime_handoff"] = True
+        invocation["production_operation"] = True
+        invocation["scheduler_background"] = True
+        invocation["external_mutation"] = True
         invocation["allowed_paths"] = ["/Users/coldstake/.openclaw/runtime"]
 
         validation = validate_phase14c_supervised_smoke_request(request)
 
         self.assertFalse(validation.accepted)
+        self.assertIn(
+            "OpenClaw invocation name must be phase14c_smoke_test.",
+            validation.reasons,
+        )
         self.assertIn(
             "OpenClaw invocation must use local/test/sandbox mode.",
             validation.reasons,
@@ -633,8 +773,50 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
             validation.reasons,
         )
         self.assertIn(
+            "OpenClaw production operation is not allowed.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "OpenClaw scheduler/background behavior is not allowed.",
+            validation.reasons,
+        )
+        self.assertIn(
+            "OpenClaw external mutation is not allowed.",
+            validation.reasons,
+        )
+        self.assertIn(
             "OpenClaw invocation must not include protected paths.",
             validation.reasons,
+        )
+
+    def test_rejects_todoist_subtasks_labels_comments_and_automatic_mutation(
+        self,
+    ) -> None:
+        request = build_default_phase14c_supervised_smoke_request()
+        task = request["rails"]["todoist"]["tasks"][0]
+        task["subtasks"] = [{"title": "Subtask"}]
+        task["labels"] = ["phase14c"]
+        task["comments"] = [{"body": "comment"}]
+        task["automatic_edits"] = True
+        task["automatic_deletion"] = True
+        task["skip_push_bump"] = True
+        task["automatic_rescheduling"] = True
+
+        validation = validate_phase14c_supervised_smoke_request(request)
+
+        self.assertFalse(validation.accepted)
+        self.assertIn("Todoist subtasks are not allowed.", validation.reasons)
+        self.assertIn("Todoist labels are not allowed.", validation.reasons)
+        self.assertIn("Todoist comments are not allowed.", validation.reasons)
+        self.assertIn(
+            "Todoist automatic_edits must remain false.", validation.reasons
+        )
+        self.assertIn(
+            "Todoist automatic_deletion must remain false.", validation.reasons
+        )
+        self.assertIn("Todoist skip_push_bump must remain false.", validation.reasons)
+        self.assertIn(
+            "Todoist automatic_rescheduling must remain false.", validation.reasons
         )
 
     def test_blocked_validation_does_not_echo_unsafe_values(self) -> None:
@@ -689,6 +871,14 @@ class _RecordingOpenClawClient:
     def invoke_smoke(self, invocation):
         self.calls.append(copy.deepcopy(dict(invocation)))
         return {"status": "completed", "invocation_id": "openclaw-test-id"}
+
+
+class _GmailIdentityClient:
+    def __init__(self, email: str) -> None:
+        self.email = email
+
+    def get_authenticated_sender(self):
+        return {"email": self.email}
 
 
 def _fake_clients() -> Phase14CSupervisedSmokeClients:

@@ -35,6 +35,9 @@ Markdown documentation. The current project snapshot lives in
 - [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md):
   guarded supervised smoke-test runbook for Todoist, Google Calendar, Gmail,
   and OpenClaw.
+- [docs/OPENCLAW_MODEL_STRATEGY.md](docs/OPENCLAW_MODEL_STRATEGY.md):
+  deterministic Nemotron Super / GLM 5.2 lane strategy for OpenClaw smoke and
+  reasoning work.
 - [docs/AGENT_WORK_PACKET_PROTOCOL.md](docs/AGENT_WORK_PACKET_PROTOCOL.md):
   long-run Codex/Fable work packet protocol.
 - [docs/ROADMAP.md](docs/ROADMAP.md): phase history and current/next phase.
@@ -57,13 +60,14 @@ Markdown documentation. The current project snapshot lives in
 
 ## Safety Boundary
 
-Personal OS is currently not live and no smoke test has been run. Todoist,
-Google Calendar, Gmail, and OpenClaw are acceptable low-blast-radius rails for
-the bounded Phase 14-C supervised smoke-test plan in
+Personal OS is currently not broadly live. One bounded supervised Calendar
+smoke event has passed, while Gmail, Todoist, and OpenClaw runtime remain
+unrun. Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
+low-blast-radius rails for the bounded Phase 14-C supervised smoke-test plan in
 [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md),
 but repo prep, runbook review, request validation, credential-name preflight,
 live-readiness reports, request-template generation, and the fake-client dry-run
-rehearsal do not perform those live actions.
+rehearsal do not perform additional live actions.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

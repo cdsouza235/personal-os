@@ -14,6 +14,11 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "src/personalos/phase14c_supervised_smoke.py",
             "build_phase14c_supervised_smoke_runbook",
             "build_default_phase14c_supervised_smoke_request",
+            "build_phase14c_supervised_live_smoke_status",
+            "build_phase14c_gmail_self_send_readiness_report",
+            "build_phase14c_gmail_self_send_smoke_request",
+            "resolve_phase14c_todoist_due_date",
+            "run_phase14c_openclaw_local_sandbox_smoke",
             "build_phase14c_supervised_smoke_request_template_report",
             "build_phase14c_credential_preflight_report",
             "build_phase14c_supervised_smoke_request_validation_report",
@@ -47,6 +52,14 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "executor reports",
             "must not include a raw `normalized_request` payload",
             "direct in-memory validation may still retain normalized data",
+            "one supervised google calendar external write has already passed",
+            "memu6fhql6stl71auv05e1a6d0",
+            "gmail self-send readiness",
+            "todoist defaults to inbox/default",
+            "run_phase14c_openclaw_local_sandbox_smoke",
+            "openclaw model lane strategy",
+            "nemotron super primary with glm 5.2 fallback",
+            "glm 5.2 primary with nemotron super fallback",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -67,6 +80,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "1 event",
             "1 email",
             "1 invocation",
+            "gmail_not_run_missing_sender_or_controlled_recipient",
+            "phase14c_smoke_test",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -84,6 +99,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "no calendar attendees/invites except the self test identity",
             "no calendar recurrence",
             "no gmail to uncontrolled recipients",
+            "no gmail cc or bcc",
             "no gmail attachments",
             "no gmail forwarding",
             "no gmail reply to an existing real thread",
@@ -95,6 +111,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "no broad openclaw runtime handoff",
             "reports may include missing names",
             "reports must not include credential values",
+            "openclaw invocation name must be `phase14c_smoke_test`",
+            "openclaw production operation, scheduler/background behavior, and external mutation must remain false",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -109,6 +127,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             REPO_ROOT / "docs" / "ROADMAP.md",
             REPO_ROOT / "docs" / "SAFETY_POLICY.md",
             REPO_ROOT / "docs" / "LIVE_RAIL_ACTIVATION_POLICY.md",
+            REPO_ROOT / "docs" / "OPENCLAW_MODEL_STRATEGY.md",
         )
 
         for path in related_docs:

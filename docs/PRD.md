@@ -1468,8 +1468,10 @@ surface composes those checks without executing. The rehearsal uses
 deterministic fake clients and redacted safe-temp artifacts only.
 The current follow-through also records the passed Calendar event, prepares
 Gmail self-send, Todoist Inbox/default, and a repo-local OpenClaw
-local/test/sandbox harness, and links the deterministic Nemotron Super / GLM
-5.2 strategy in [OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md).
+local/test/sandbox harness, records the current connector/config inventory in
+[PHASE_14C_CONNECTIVITY_READINESS.md](PHASE_14C_CONNECTIVITY_READINESS.md),
+and links the deterministic Nemotron Super / GLM 5.2 strategy in
+[OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md).
 
 Further Phase 14-C live smoke-test execution remains blocked unless Chris
 explicitly initiates that bounded supervised step in the current session.

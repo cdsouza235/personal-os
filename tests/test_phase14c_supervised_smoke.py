@@ -90,6 +90,11 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
             smoke_status["rails"]["openclaw"]["harness_function"],
             "run_phase14c_openclaw_local_sandbox_smoke",
         )
+        self.assertEqual(
+            smoke_status["rails"]["openclaw"]["status"],
+            "openclaw_local_harness_passed",
+        )
+        self.assertFalse(smoke_status["rails"]["openclaw"]["protected_runtime_called"])
 
     def test_default_dry_run_request_validates_without_credentials(self) -> None:
         request = build_default_phase14c_supervised_smoke_request()
@@ -137,6 +142,10 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
         self.assertFalse(status["rails"]["gmail"]["external_write_happened"])
         self.assertFalse(status["rails"]["todoist"]["external_write_happened"])
         self.assertFalse(status["rails"]["openclaw"]["external_write_happened"])
+        self.assertEqual(
+            status["rails"]["openclaw"]["result"],
+            "openclaw_local_harness_passed",
+        )
         self.assertTrue(
             all(
                 value is False
@@ -484,7 +493,7 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
     ) -> None:
         result = run_phase14c_openclaw_local_sandbox_smoke()
 
-        self.assertEqual(result["status"], "local_test_sandbox_smoke_completed")
+        self.assertEqual(result["status"], "openclaw_local_harness_passed")
         self.assertEqual(result["invocation_name"], "phase14c_smoke_test")
         self.assertEqual(result["mode"], "local_test_sandbox")
         self.assertFalse(result["external_mutation"])

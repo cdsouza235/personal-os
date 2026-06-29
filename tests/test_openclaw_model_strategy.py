@@ -4,10 +4,17 @@ from pathlib import Path
 
 from personalos.openclaw_model_strategy import (
     OPENCLAW_MODEL_STRATEGY_SCHEMA_VERSION,
+    OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+    OPENCLAW_MODEL_SMOKE_EXPECTED_TEXT,
+    OPENCLAW_MODEL_SMOKE_MISSING_CLIENT,
+    OPENCLAW_MODEL_SMOKE_MISSING_PROVIDER_CONFIG,
+    OPENCLAW_MODEL_SMOKE_PASSED,
     REASONING_LANE,
     SMOKE_LANE,
     build_openclaw_model_call_plan,
+    build_openclaw_model_provider_readiness_report,
     build_openclaw_model_strategy_config,
+    run_openclaw_model_smoke_probe,
     sanitize_openclaw_model_run_metadata,
 )
 
@@ -119,6 +126,87 @@ class OpenClawModelStrategyTest(unittest.TestCase):
         self.assertNotIn("secret-token-value", serialized)
         self.assertNotIn("raw model payload", serialized)
 
+    def test_model_readiness_reports_missing_config_names_only(self) -> None:
+        report = build_openclaw_model_provider_readiness_report(
+            available_config_names={
+                "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "secret-provider-value"
+            }
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], OPENCLAW_MODEL_SMOKE_MISSING_PROVIDER_CONFIG)
+        self.assertEqual(
+            report["provider_config"]["missing_config_entry_names"],
+            [
+                "PERSONALOS_OPENCLAW_MODEL_API_KEY",
+                "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
+                "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
+            ],
+        )
+        self.assertFalse(report["model_smoke_probe_executed"])
+        self.assertTrue(report["provider_config"]["reports_missing_names_only"])
+        self.assertFalse(report["provider_config"]["available_config_entry_names_reported"])
+        self.assertFalse(report["provider_config"]["credential_values_read"])
+        self.assertNotIn("secret-provider-value", serialized)
+        self.assertNotIn("PERSONALOS_OPENCLAW_MODEL_PROVIDER", serialized)
+
+    def test_model_readiness_blocks_without_injected_client(self) -> None:
+        report = build_openclaw_model_provider_readiness_report(
+            available_config_names=OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES
+        )
+
+        self.assertEqual(report["status"], OPENCLAW_MODEL_SMOKE_MISSING_CLIENT)
+        self.assertFalse(report["client"]["available"])
+        self.assertEqual(report["provider_config"]["missing_config_entry_names"], [])
+        self.assertFalse(report["model_smoke_probe_executed"])
+        self.assertEqual(report["routing"]["primary_alias"], "nemotron_super")
+        self.assertEqual(report["routing"]["fallback_alias"], "glm_5_2")
+
+    def test_model_smoke_probe_uses_primary_when_validation_passes(self) -> None:
+        client = _RecordingModelSmokeClient(
+            [{"success": True, "response_text": OPENCLAW_MODEL_SMOKE_EXPECTED_TEXT}]
+        )
+
+        report = run_openclaw_model_smoke_probe(
+            available_config_names=OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+            client=client,
+            client_type="fake_test_model_client",
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], OPENCLAW_MODEL_SMOKE_PASSED)
+        self.assertTrue(report["model_smoke_probe_executed"])
+        self.assertEqual(report["call_limits"]["primary_calls"], 1)
+        self.assertEqual(report["call_limits"]["fallback_calls"], 0)
+        self.assertEqual(len(client.requests), 1)
+        self.assertEqual(client.requests[0]["model_alias"], "nemotron_super")
+        self.assertNotIn("Personal OS Phase 14-C model smoke probe", serialized)
+
+    def test_model_smoke_probe_uses_fallback_only_after_primary_validation_failure(
+        self,
+    ) -> None:
+        client = _RecordingModelSmokeClient(
+            [
+                {"success": True, "response_text": "malformed"},
+                {"success": True, "response_text": OPENCLAW_MODEL_SMOKE_EXPECTED_TEXT},
+            ]
+        )
+
+        report = run_openclaw_model_smoke_probe(
+            available_config_names=OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+            client=client,
+        )
+
+        self.assertEqual(report["status"], OPENCLAW_MODEL_SMOKE_PASSED)
+        self.assertEqual(report["call_limits"]["primary_calls"], 1)
+        self.assertEqual(report["call_limits"]["fallback_calls"], 1)
+        self.assertEqual([request["model_alias"] for request in client.requests], [
+            "nemotron_super",
+            "glm_5_2",
+        ])
+        self.assertFalse(report["probe_results"][0]["validation_passed"])
+        self.assertTrue(report["probe_results"][1]["validation_passed"])
+
     def test_model_strategy_doc_records_aliases_lanes_and_boundaries(self) -> None:
         text = " ".join(MODEL_STRATEGY_DOC.read_text(encoding="utf-8").lower().split())
 
@@ -139,6 +227,18 @@ class OpenClawModelStrategyTest(unittest.TestCase):
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
+
+
+class _RecordingModelSmokeClient:
+    def __init__(self, responses: list[dict[str, object]]) -> None:
+        self.responses = list(responses)
+        self.requests: list[dict[str, object]] = []
+
+    def run_probe(self, request: dict[str, object]) -> dict[str, object]:
+        self.requests.append(dict(request))
+        if not self.responses:
+            return {"success": False, "failure_category": "missing_fake_response"}
+        return dict(self.responses.pop(0))
 
 
 if __name__ == "__main__":

@@ -135,7 +135,9 @@ executing, a request-template CLI that prints one bounded template without
 authorization, Gmail self-send readiness, Todoist Inbox/default readiness, a
 repo-local OpenClaw local/test/sandbox smoke harness, deterministic OpenClaw
 model strategy in [OPENCLAW_MODEL_STRATEGY.md](OPENCLAW_MODEL_STRATEGY.md),
-and tests.
+the current connector/config inventory in
+[PHASE_14C_CONNECTIVITY_READINESS.md](PHASE_14C_CONNECTIVITY_READINESS.md),
+an OpenClaw model-provider readiness CLI, and tests.
 Long-run governance now treats the completed bounded packet as the default
 PR/audit unit for safe inert repo-local work, so Codex/Fable should bundle
 adjacent safe substeps rather than stop after every micro-invariant. Human
@@ -175,9 +177,9 @@ The Phase 14-C supervised smoke-test runbook is
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md).
 Phase 14-A/B historical preparation remains proposed-only. Current Phase 14-C
 movement is the bounded supervised smoke-test follow-through described above:
-Calendar passed, broad activation remains false, readiness remains not ready,
-and Gmail/Todoist/OpenClaw remain bounded to one-operation supervised smoke
-steps.
+Calendar passed, the repo-local OpenClaw local/test/sandbox harness passed,
+broad activation remains false, readiness remains not ready, and
+Gmail/Todoist/OpenClaw remain bounded to one-operation supervised smoke steps.
 
 ## Future Blocked Work
 

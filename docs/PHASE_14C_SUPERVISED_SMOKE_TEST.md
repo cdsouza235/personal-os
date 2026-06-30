@@ -144,6 +144,32 @@ response, the report uses
 `mutation_state=unconfirmed_after_task_create_attempt` and does not assert
 `external_mutation=false` or `todoist_task_created=false`.
 
+Gmail SMTP self-send smoke gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c gmail-smtp-smoke --json
+```
+
+That default command is report-only. It reads environment key names only,
+checks the one-email smoke shape, masks sender/recipient addresses, and does
+not read the Gmail app password, initialize SMTP, send Gmail, open a database,
+write files, activate a scheduler, or touch protected paths. Without
+`--execute-live`, it reports `gmail_not_run_missing_execute_live_flag`.
+
+A future supervised live Gmail SMTP smoke, after credentials are configured
+and a separate explicit approval is present, uses the same command with
+`--execute-live --approval-reference <ref>`. That path may load
+`PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS`,
+`PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD`, and
+`PHASE14C_GMAIL_CONTROLLED_RECIPIENT`, then send exactly one clearly marked
+test email with subject `[Phase 14-C Test] Clean Kitchen Countertops and
+Stovetop`. It does not create CC, BCC, attachments, forwarding,
+existing-thread replies, local DB writes, scheduler/background behavior,
+protected-path access, or broad Gmail automation. If the SMTP send is attempted
+but the client cannot confirm the result, the report uses
+`mutation_state=unconfirmed_after_send_attempt` and does not assert
+`external_mutation=false` or `gmail_email_sent=false`.
+
 OpenRouter model smoke gate:
 
 ```bash
@@ -172,13 +198,16 @@ scripts/phase14c_connectivity_setup.sh
 set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c connectivity-setup --json
 ```
 
-The setup script prompts locally, refuses to overwrite an existing
-`.env.local`, writes through a temporary file before moving the completed file
-to `.env.local`, and keeps token/API-key prompts hidden. `.env.local` is
-gitignored. The `connectivity-setup` command reads environment key names only
-and reports missing names for Gmail, Todoist, and OpenRouter. It does not read
-credential values, initialize live clients, send Gmail, create Todoist tasks,
-call OpenRouter, invoke OpenClaw, or perform external writes.
+The setup script prompts locally for Gmail SMTP address, Gmail app password,
+controlled Gmail recipient, Todoist token, Google Calendar credential label,
+OpenClaw local/test/sandbox mode, OpenRouter provider, OpenRouter API key, and
+model IDs. It refuses to overwrite an existing `.env.local`, writes through a
+temporary file before moving the completed file to `.env.local`, and keeps app
+password/token/API-key prompts hidden. `.env.local` is gitignored. The
+`connectivity-setup` command reads environment key names only and reports
+missing names for Gmail, Todoist, and OpenRouter. It does not read credential
+values, initialize live clients, send Gmail, create Todoist tasks, call
+OpenRouter, invoke OpenClaw, or perform external writes.
 
 Dry-run rehearsal:
 
@@ -372,6 +401,9 @@ Guardrail failures block the request before any client can be called.
 
 The preflight checks names only:
 
+- `PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS`
+- `PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD`
+- `PHASE14C_GMAIL_CONTROLLED_RECIPIENT`
 - `PERSONALOS_PHASE14C_TODOIST_TOKEN`
 - `PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL`
 - `PERSONALOS_PHASE14C_GMAIL_CREDENTIAL`

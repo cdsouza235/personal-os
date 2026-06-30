@@ -76,7 +76,8 @@ connector/config inventory is recorded in
 Use `scripts/phase14c_connectivity_setup.sh` and
 `personalos phase14c connectivity-setup --json` for local names-only setup
 verification without printing credential values. The repo also has
-`personalos phase14c todoist-inbox-smoke --json` and
+`personalos phase14c gmail-smtp-smoke --json`,
+`personalos phase14c todoist-inbox-smoke --json`, and
 `personalos phase14c openrouter-model-smoke --json` gate commands whose
 default mode is no-execution/report-only; their live modes require explicit
 `--execute-live` flags, approval references, configured credentials, and the

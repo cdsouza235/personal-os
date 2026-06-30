@@ -1,4 +1,5 @@
 import json
+import smtplib
 import unittest
 from datetime import date
 
@@ -9,6 +10,19 @@ from personalos.openclaw_model_strategy import (
     run_openclaw_model_smoke_probe,
 )
 from personalos.openrouter_model_smoke_client import OpenRouterModelSmokeClient
+from personalos.phase14c_gmail_live_smoke import (
+    GMAIL_SMOKE_FAILED,
+    GMAIL_SMOKE_NOT_RUN_MISSING_APPROVAL_REFERENCE,
+    GMAIL_SMOKE_NOT_RUN_MISSING_EXECUTE_FLAG,
+    GMAIL_SMOKE_PASSED,
+    PHASE14C_GMAIL_APP_PASSWORD_CONFIG_NAME,
+    PHASE14C_GMAIL_CONTROLLED_RECIPIENT_CONFIG_NAME,
+    PHASE14C_GMAIL_SMOKE_SUBJECT,
+    PHASE14C_GMAIL_SMTP_ADDRESS_CONFIG_NAME,
+    PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+    build_phase14c_gmail_email_payload,
+    run_phase14c_gmail_smtp_smoke,
+)
 from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TASK_TITLE,
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
@@ -20,6 +34,137 @@ from personalos.phase14c_todoist_live_smoke import (
     next_upcoming_monday,
     run_phase14c_todoist_inbox_smoke,
 )
+
+
+class Phase14CGmailLiveSmokeClientTest(unittest.TestCase):
+    def test_gmail_payload_is_one_controlled_email_only(self) -> None:
+        payload = build_phase14c_gmail_email_payload(
+            sender_email="chris@example.com",
+            recipient_email="chris@example.com",
+        )
+
+        self.assertEqual(payload["from"], "chris@example.com")
+        self.assertEqual(payload["to"], "chris@example.com")
+        self.assertEqual(payload["subject"], PHASE14C_GMAIL_SMOKE_SUBJECT)
+        self.assertIn("bounded Phase 14-C supervised Gmail", payload["body"])
+        self.assertEqual(payload["cc"], [])
+        self.assertEqual(payload["bcc"], [])
+        self.assertEqual(payload["attachments"], [])
+        self.assertIsNone(payload["thread_id"])
+        self.assertFalse(payload["reply_to_existing_thread"])
+        self.assertFalse(payload["forward_existing_thread"])
+
+    def test_gmail_default_path_does_not_read_password_or_send(self) -> None:
+        report = run_phase14c_gmail_smtp_smoke(
+            available_config_names=PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+            sender_email="chris@example.com",
+            app_password="secret-app-password",
+            controlled_recipient="chris@example.com",
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], GMAIL_SMOKE_NOT_RUN_MISSING_EXECUTE_FLAG)
+        self.assertFalse(report["gmail_email_sent"])
+        self.assertEqual(report["mutation_state"], "not_attempted")
+        self.assertEqual(report["call_limits"]["email_send_calls"], 0)
+        self.assertFalse(report["safety_assertions"]["credential_values_read"])
+        self.assertFalse(report["safety_assertions"]["live_client_initialized"])
+        self.assertNotIn("secret-app-password", serialized)
+        self.assertNotIn("chris@example.com", serialized)
+        self.assertIn("c***@example.com", serialized)
+
+    def test_gmail_live_path_requires_approval_before_password_use(self) -> None:
+        report = run_phase14c_gmail_smtp_smoke(
+            available_config_names=PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+            execute_live=True,
+            sender_email="chris@example.com",
+            app_password="secret-app-password",
+            controlled_recipient="chris@example.com",
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(
+            report["status"],
+            GMAIL_SMOKE_NOT_RUN_MISSING_APPROVAL_REFERENCE,
+        )
+        self.assertFalse(report["gmail_email_sent"])
+        self.assertEqual(report["call_limits"]["email_send_calls"], 0)
+        self.assertFalse(report["safety_assertions"]["credential_values_read"])
+        self.assertNotIn("secret-app-password", serialized)
+
+    def test_gmail_live_path_uses_injected_client_once_and_redacts_password(
+        self,
+    ) -> None:
+        client = _RecordingGmailSmtpClient()
+
+        report = run_phase14c_gmail_smtp_smoke(
+            available_config_names=PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+            execute_live=True,
+            approval_reference="approved-phase14c-test",
+            sender_email="chris@example.com",
+            app_password="secret-app-password",
+            controlled_recipient="chris@example.com",
+            client=client,
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], GMAIL_SMOKE_PASSED)
+        self.assertTrue(report["gmail_email_sent"])
+        self.assertEqual(report["mutation_state"], "confirmed_email_sent")
+        self.assertEqual(report["call_limits"]["email_send_calls"], 1)
+        self.assertEqual(len(client.payloads), 1)
+        self.assertEqual(client.payloads[0]["to"], "chris@example.com")
+        self.assertTrue(report["safety_assertions"]["credential_values_read"])
+        self.assertTrue(report["safety_assertions"]["max_one_email_send"])
+        self.assertFalse(report["safety_assertions"]["cc_created"])
+        self.assertFalse(report["safety_assertions"]["attachments_created"])
+        self.assertNotIn("secret-app-password", serialized)
+        self.assertNotIn("chris@example.com", serialized)
+
+    def test_gmail_send_attempt_failure_reports_unconfirmed_mutation(self) -> None:
+        client = _FailingAfterAttemptGmailSmtpClient()
+
+        report = run_phase14c_gmail_smtp_smoke(
+            available_config_names=PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+            execute_live=True,
+            approval_reference="approved-phase14c-test",
+            sender_email="chris@example.com",
+            app_password="secret-app-password",
+            controlled_recipient="chris@example.com",
+            client=client,
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], GMAIL_SMOKE_FAILED)
+        self.assertIsNone(report["gmail_email_sent"])
+        self.assertEqual(report["mutation_state"], "unconfirmed_after_send_attempt")
+        self.assertEqual(report["call_limits"]["email_send_calls"], 1)
+        self.assertEqual(len(client.payloads), 1)
+        self.assertIsNone(report["safety_assertions"]["external_mutation"])
+        self.assertIsNone(report["safety_assertions"]["gmail_email_sent"])
+        self.assertTrue(report["safety_assertions"]["credential_values_read"])
+        self.assertEqual(report["failure"]["type"], "SMTPRecipientsRefused")
+        self.assertEqual(
+            report["failure"]["message"],
+            "Gmail SMTP send attempt failed; details redacted.",
+        )
+        self.assertNotIn("secret-app-password", serialized)
+        self.assertNotIn("chris@example.com", serialized)
+
+    def test_gmail_missing_names_are_reported_without_present_name_echo(self) -> None:
+        report = run_phase14c_gmail_smtp_smoke(
+            available_config_names=(PHASE14C_GMAIL_SMTP_ADDRESS_CONFIG_NAME,),
+        )
+        preflight = report["config_preflight"]
+
+        self.assertEqual(
+            preflight["missing_config_entry_names"],
+            [
+                PHASE14C_GMAIL_APP_PASSWORD_CONFIG_NAME,
+                PHASE14C_GMAIL_CONTROLLED_RECIPIENT_CONFIG_NAME,
+            ],
+        )
+        self.assertFalse(preflight["available_config_entry_names_reported"])
 
 
 class Phase14CTodoistLiveSmokeClientTest(unittest.TestCase):
@@ -205,6 +350,31 @@ class _FailingAfterAttemptTodoistClient:
     def create_task(self, payload: dict[str, object]) -> dict[str, object]:
         self.payloads.append(dict(payload))
         raise ValueError("response body was not a JSON object")
+
+
+class _RecordingGmailSmtpClient:
+    def __init__(self) -> None:
+        self.payloads: list[dict[str, object]] = []
+
+    def send_email(self, payload: dict[str, object]) -> dict[str, object]:
+        self.payloads.append(dict(payload))
+        return {
+            "provider": "gmail_smtp",
+            "message_accepted": True,
+            "message_id": "gmail-smoke-message-id",
+            "raw_recipient": payload["to"],
+        }
+
+
+class _FailingAfterAttemptGmailSmtpClient:
+    def __init__(self) -> None:
+        self.payloads: list[dict[str, object]] = []
+
+    def send_email(self, payload: dict[str, object]) -> dict[str, object]:
+        self.payloads.append(dict(payload))
+        raise smtplib.SMTPRecipientsRefused(
+            {"chris@example.com": (550, b"bad recipient chris@example.com")}
+        )
 
 
 class _FakeOpenRouterOpener:

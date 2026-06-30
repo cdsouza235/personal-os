@@ -35,6 +35,9 @@ from personalos.phase14c_connectivity_setup import (
     PHASE14C_CONNECTIVITY_SETUP_ENV_FILE,
     PHASE14C_CONNECTIVITY_SETUP_ENTRY_NAMES,
 )
+from personalos.phase14c_gmail_live_smoke import (
+    PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+)
 from personalos.phase14c_todoist_live_smoke import next_upcoming_monday
 from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
@@ -430,6 +433,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             workflow_names,
         )
         self.assertIn("Phase 14-C supervised smoke live readiness", workflow_names)
+        self.assertIn("Phase 14-C Gmail SMTP self-send smoke gate", workflow_names)
         self.assertIn("Phase 14-C Todoist Inbox/default smoke gate", workflow_names)
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
@@ -474,6 +478,10 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(setup["setup_script"]["writes_via_temp_file_before_final_move"])
         self.assertTrue(setup["setup_script"]["refuses_to_overwrite_existing_env_file"])
         self.assertIn(
+            "gmail-smtp-smoke --json",
+            " ".join(setup["verification_commands"]),
+        )
+        self.assertIn(
             "todoist-inbox-smoke --json",
             " ".join(setup["verification_commands"]),
         )
@@ -488,7 +496,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(
             setup["rails"]["gmail"]["missing_config_entry_names"],
             [
-                "PERSONALOS_PHASE14C_GMAIL_CREDENTIAL",
+                "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS",
+                "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD",
                 "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
             ],
         )
@@ -553,6 +562,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn('prompt_plain \\', script_text)
         self.assertIn("chmod 600", script_text)
         self.assertIn(PHASE14C_CONNECTIVITY_SETUP_ENV_FILE, script_text)
+        self.assertIn("PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS", script_text)
+        self.assertIn("PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD", script_text)
         self.assertIn("PERSONALOS_OPENCLAW_MODEL_API_KEY", script_text)
         self.assertNotIn("0123456789abcdef", script_text)
         self.assertNotIn("sk-", script_text)
@@ -885,12 +896,18 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(payload["no_credential_values_logged"])
         self.assertTrue(payload["no_live_clients_initialized"])
         self.assertTrue(payload["no_live_rails_activated"])
-        self.assertEqual(preflight["required_config_entry_count"], 4)
+        self.assertEqual(
+            preflight["required_config_entry_count"],
+            len(REQUIRED_CONFIG_ENTRY_NAMES),
+        )
         self.assertEqual(
             preflight["missing_config_entry_names"],
             [
                 "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL",
                 "PERSONALOS_PHASE14C_GMAIL_CREDENTIAL",
+                "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS",
+                "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD",
+                "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
                 "PERSONALOS_PHASE14C_OPENCLAW_TEST_MODE",
             ],
         )
@@ -1138,6 +1155,68 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             self.assertNotIn(secret_value, result.stdout)
         for present_name in OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES:
             self.assertNotIn(present_name, result.stdout)
+
+    def test_phase14c_gmail_smtp_smoke_default_is_no_send_gate(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS": "chris@example.com",
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD": "secret-gmail-app-password",
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT": "chris@example.com",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "gmail-smtp-smoke", "--json"])
+
+        payload = json.loads(result.stdout)
+        smoke = payload["gmail_smoke"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c gmail-smtp-smoke")
+        self.assertEqual(payload["status"], "gmail_not_run_missing_execute_live_flag")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertFalse(payload["local_sqlite_read"])
+        self.assertFalse(payload["local_sqlite_changed"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(smoke["gmail_email_sent"])
+        self.assertEqual(smoke["mutation_state"], "not_attempted")
+        self.assertEqual(smoke["call_limits"]["email_send_calls"], 0)
+        self.assertIsNone(smoke["sender_masked"])
+        self.assertIsNone(smoke["recipient_masked"])
+        self.assertNotIn("secret-gmail-app-password", result.stdout)
+        self.assertNotIn("chris@example.com", result.stdout)
+        for present_name in PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES:
+            self.assertNotIn(present_name, result.stdout)
+
+    def test_phase14c_gmail_smtp_smoke_execute_requires_approval_first(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS": "chris@example.com",
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD": "secret-gmail-app-password",
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT": "chris@example.com",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "gmail-smtp-smoke",
+                    "--execute-live",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        smoke = payload["gmail_smoke"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(payload["status"], "gmail_not_run_missing_approval_reference")
+        self.assertFalse(smoke["gmail_email_sent"])
+        self.assertEqual(smoke["call_limits"]["email_send_calls"], 0)
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertNotIn("secret-gmail-app-password", result.stdout)
+        self.assertNotIn("chris@example.com", result.stdout)
 
     def test_phase14c_todoist_inbox_smoke_default_is_no_execute_gate(self) -> None:
         secret_environment = {

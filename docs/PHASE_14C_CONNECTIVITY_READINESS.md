@@ -17,7 +17,7 @@ Baseline:
 | Git repo read/write | available | local clean `main`; `origin/HEAD` matches baseline; branch push succeeded |
 | GitHub PR via `gh` | available | PR metadata query succeeded; `gh auth status` still reports invalid stored host tokens |
 | Google Calendar connector | available | bounded readback found exactly one matching event |
-| Gmail connector/client | missing | `gmail_not_run_missing_connector_or_client` |
+| Gmail connector/client | repo-local gated SMTP client path prepared | `personalos phase14c gmail-smtp-smoke` defaults to no-execution/report-only; live path requires Gmail SMTP app-password config plus explicit approval |
 | Todoist connector/client | repo-local gated client path prepared | `personalos phase14c todoist-inbox-smoke` defaults to no-execution/report-only; live path requires token config plus explicit approval |
 | OpenClaw local/test/sandbox harness | available and passed | `openclaw_local_harness_passed` |
 | OpenClaw model provider/client | repo-local OpenRouter gated client path prepared | `personalos phase14c openrouter-model-smoke` defaults to no-execution/report-only; live path requires OpenRouter config plus explicit approval |
@@ -49,11 +49,24 @@ OpenClaw local/test/sandbox:
 
 Gmail:
 
-- Result: `gmail_not_run_missing_connector_or_client`.
+- Result: SMTP app-password path prepared; not run live in this packet.
 - No email was drafted or sent.
 - Required next-run setup names:
-  - `PERSONALOS_PHASE14C_GMAIL_CREDENTIAL`
+  - `PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS`
+  - `PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD`
   - `PHASE14C_GMAIL_CONTROLLED_RECIPIENT`
+- Default gate status without live execution:
+  `gmail_not_run_missing_execute_live_flag`.
+- Future live command, after separate explicit approval:
+  `personalos phase14c gmail-smtp-smoke --execute-live --approval-reference <ref> --json`
+- The live path sends at most one clearly marked Gmail SMTP test email. It
+  masks sender and recipient in reports and does not create CC, BCC,
+  attachments, forwarding, replies to existing threads, local DB writes,
+  scheduler/background behavior, protected-path access, or broad Gmail
+  automation.
+- If the SMTP send call is attempted but the response cannot be confirmed, the
+  report uses `mutation_state=unconfirmed_after_send_attempt` instead of
+  asserting that no external mutation occurred.
 
 Todoist:
 
@@ -101,6 +114,9 @@ Phase 14-C live-rail config preflight also reports these missing names:
 - `PERSONALOS_PHASE14C_TODOIST_TOKEN`
 - `PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL`
 - `PERSONALOS_PHASE14C_GMAIL_CREDENTIAL`
+- `PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS`
+- `PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD`
+- `PHASE14C_GMAIL_CONTROLLED_RECIPIENT`
 - `PERSONALOS_PHASE14C_OPENCLAW_TEST_MODE`
 
 ## Mobile Continuity Commands
@@ -112,9 +128,9 @@ scripts/phase14c_connectivity_setup.sh
 ```
 
 The script refuses to overwrite an existing `.env.local`, prompts without
-echoing token/API-key values, writes through a temporary file before moving
-the completed file to `.env.local`, and leaves `.env.local` gitignored. It
-must not be committed or pasted into chat.
+echoing Gmail app password, token, or API-key values, writes through a
+temporary file before moving the completed file to `.env.local`, and leaves
+`.env.local` gitignored. It must not be committed or pasted into chat.
 
 Names-only setup verification:
 
@@ -144,6 +160,12 @@ Todoist no-execution gate:
 
 ```bash
 set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c todoist-inbox-smoke --json
+```
+
+Gmail SMTP no-execution gate:
+
+```bash
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c gmail-smtp-smoke --json
 ```
 
 OpenRouter no-execution gate:

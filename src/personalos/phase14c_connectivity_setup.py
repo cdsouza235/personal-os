@@ -8,6 +8,9 @@ from typing import Any
 from personalos.openclaw_model_strategy import (
     OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
 )
+from personalos.phase14c_gmail_live_smoke import (
+    PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+)
 from personalos.phase14c_supervised_smoke import REQUIRED_CONFIG_ENTRY_NAMES
 
 
@@ -18,10 +21,7 @@ PHASE14C_CONNECTIVITY_SETUP_SCHEMA_VERSION = (
 PHASE14C_CONNECTIVITY_SETUP_ENV_FILE = ".env.local"
 
 PHASE14C_CONNECTIVITY_SETUP_ENTRY_NAMES: dict[str, tuple[str, ...]] = {
-    "gmail": (
-        "PERSONALOS_PHASE14C_GMAIL_CREDENTIAL",
-        "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
-    ),
+    "gmail": PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
     "todoist": (
         "PERSONALOS_PHASE14C_TODOIST_TOKEN",
     ),
@@ -85,6 +85,11 @@ def build_phase14c_connectivity_setup_report(
                 "set -a; source .env.local; set +a; "
                 "PYTHONPATH=src python3 -m personalos.cli phase14c "
                 "openclaw-model-readiness --json"
+            ),
+            (
+                "set -a; source .env.local; set +a; "
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "gmail-smtp-smoke --json"
             ),
             (
                 "set -a; source .env.local; set +a; "

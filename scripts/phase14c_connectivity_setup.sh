@@ -79,14 +79,22 @@ umask 077
 : > "$tmp_env_file"
 chmod 600 "$tmp_env_file"
 
+prompt_plain \
+  "Gmail SMTP address for the self-send smoke" \
+  "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS"
+
+prompt_secret \
+  "Gmail app password" \
+  "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD"
+
+prompt_plain \
+  "Controlled Gmail recipient for the self-send smoke (use the same Gmail address by default)" \
+  "PHASE14C_GMAIL_CONTROLLED_RECIPIENT"
+
 prompt_plain_default \
   "Gmail credential label or connector label" \
   "PERSONALOS_PHASE14C_GMAIL_CREDENTIAL" \
-  "gmail_connector"
-
-prompt_plain \
-  "Controlled Gmail recipient for the self-send smoke" \
-  "PHASE14C_GMAIL_CONTROLLED_RECIPIENT"
+  "gmail_smtp_app_password"
 
 prompt_secret \
   "Todoist API token" \

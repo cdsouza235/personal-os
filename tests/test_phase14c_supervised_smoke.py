@@ -218,7 +218,12 @@ class Phase14CSupervisedSmokeTest(unittest.TestCase):
 
         self.assertEqual(
             report["missing_config_entry_names"],
-            ["PERSONALOS_PHASE14C_OPENCLAW_TEST_MODE"],
+            [
+                "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS",
+                "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD",
+                "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
+                "PERSONALOS_PHASE14C_OPENCLAW_TEST_MODE",
+            ],
         )
         self.assertTrue(report["reports_missing_names_only"])
         self.assertFalse(report["credential_values_read"])

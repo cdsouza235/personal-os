@@ -97,7 +97,7 @@ EXECUTION_MODES: tuple[ExecutionMode, ...] = (
 )
 
 DEFAULT_LIVE_RAIL_REASONS: dict[LiveRail, str] = {
-    LiveRail.GMAIL: "Gmail live draft/send rail is disabled; no Gmail client or credential loading is implemented.",
+    LiveRail.GMAIL: "Gmail live draft/send rail is disabled by default; bounded SMTP smoke still requires explicit live approval and credential loading.",
     LiveRail.TODOIST: "Todoist live write rail is disabled; only dev/test fake or preview paths exist.",
     LiveRail.GOOGLE_CALENDAR: "Google Calendar live write rail is disabled; only dev/test fake or preview paths exist.",
     LiveRail.PERSONALOS_MARKDOWN: "PersonalOS Markdown live write rail is disabled; protected paths remain off limits.",

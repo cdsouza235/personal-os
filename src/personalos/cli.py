@@ -41,6 +41,10 @@ from personalos.phase14c_supervised_smoke import (
     build_phase14c_supervised_smoke_request_validation_report,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
 )
+from personalos.phase14c_gmail_live_smoke import (
+    PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+    run_phase14c_gmail_smtp_smoke,
+)
 from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
     run_phase14c_todoist_inbox_smoke,
@@ -245,6 +249,20 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local live-readiness report / no live clients / no execution",
         "local_effect": "reads one explicit safe JSON file and environment key names only",
         "output": "stdout redacted live-readiness JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C Gmail SMTP self-send smoke gate",
+        "safe_local_action": "Check the one-email Gmail SMTP smoke command without executing",
+        "command": (
+            "personalos phase14c gmail-smtp-smoke "
+            "[--execute-live --approval-reference <ref>] [--json]"
+        ),
+        "mode": "default report-only; explicit bounded live send only with flags",
+        "local_effect": (
+            "default reads environment key names only; live mode may send exactly "
+            "one controlled Gmail SMTP test email and writes no local files or DB rows"
+        ),
+        "output": "stdout Gmail SMTP smoke JSON or human summary",
     },
     {
         "name": "Phase 14-C Todoist Inbox/default smoke gate",
@@ -512,6 +530,32 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_live_readiness_parser)
     phase14c_live_readiness_parser.set_defaults(
         func=_command_phase14c_supervised_smoke_live_readiness
+    )
+
+    phase14c_gmail_smoke_parser = phase14c_subparsers.add_parser(
+        "gmail-smtp-smoke",
+        help="Gate or run one bounded Phase 14-C Gmail SMTP self-send email.",
+        description=(
+            "By default this command is report-only and reads environment key names "
+            "only. With --execute-live and --approval-reference, it may load the "
+            "Gmail SMTP address, app password, and controlled recipient, then send "
+            "exactly one clearly marked test email with no CC, BCC, attachments, "
+            "forwarding, thread reply, DB write, scheduler activation, or protected "
+            "path access."
+        ),
+    )
+    phase14c_gmail_smoke_parser.add_argument(
+        "--execute-live",
+        action="store_true",
+        help="Explicitly run the one-email Gmail SMTP smoke send.",
+    )
+    phase14c_gmail_smoke_parser.add_argument(
+        "--approval-reference",
+        help="Required for --execute-live; not printed as a raw value.",
+    )
+    _add_json_arg(phase14c_gmail_smoke_parser)
+    phase14c_gmail_smoke_parser.set_defaults(
+        func=_command_phase14c_gmail_smtp_smoke
     )
 
     phase14c_todoist_smoke_parser = phase14c_subparsers.add_parser(
@@ -1205,6 +1249,93 @@ def _command_phase14c_supervised_smoke_live_readiness(args: argparse.Namespace) 
     return 0
 
 
+def _command_phase14c_gmail_smtp_smoke(args: argparse.Namespace) -> int:
+    config_names = tuple(os.environ.keys())
+    approval_present = _has_text(args.approval_reference)
+    env_values: dict[str, str] | None = None
+    if (
+        args.execute_live
+        and approval_present
+        and all(name in config_names for name in PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES)
+    ):
+        env_values = _gmail_smtp_env_values()
+
+    smoke_report = run_phase14c_gmail_smtp_smoke(
+        available_config_names=config_names,
+        execute_live=args.execute_live,
+        approval_reference=args.approval_reference,
+        sender_email=env_values["sender_email"] if env_values else None,
+        app_password=env_values["app_password"] if env_values else None,
+        controlled_recipient=env_values["controlled_recipient"] if env_values else None,
+    )
+    email_send_calls = int(smoke_report["call_limits"]["email_send_calls"])
+    email_sent = smoke_report.get("gmail_email_sent") is True
+    mutation_state = smoke_report.get("mutation_state")
+    external_mutation: bool | None = email_sent
+    if email_send_calls and mutation_state == "unconfirmed_after_send_attempt":
+        external_mutation = None
+    credential_values_read = (
+        smoke_report["safety_assertions"]["credential_values_read"] is True
+    )
+    status = str(smoke_report["status"])
+    report = _with_workflow_context(
+        {
+            "command": "phase14c gmail-smtp-smoke",
+            "status": status,
+            "database_write": False,
+            "external_mutation": external_mutation,
+            "external_writes": (
+                "gmail_email_sent"
+                if email_sent
+                else (
+                    "gmail_email_send_attempted"
+                    if email_send_calls
+                    else "none"
+                )
+            ),
+            "file_write": False,
+            "no_external_writes": not email_send_calls,
+            "no_credentials_loaded": not credential_values_read,
+            "no_credential_values_read": not credential_values_read,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": not (
+                smoke_report["safety_assertions"]["live_client_initialized"] is True
+            ),
+            "no_live_rails_activated": not email_send_calls,
+            "credentials": (
+                "loaded_for_bounded_phase14c_gmail_smtp_smoke"
+                if credential_values_read
+                else "not_loaded"
+            ),
+            "gmail_smoke": smoke_report,
+        },
+        workflow_name="Phase 14-C Gmail SMTP self-send smoke",
+        workflow_mode=(
+            "bounded live Gmail SMTP smoke"
+            if email_send_calls
+            else "repo-local Gmail SMTP smoke gate / no live execution"
+        ),
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the Gmail SMTP smoke status.",
+            "Do not rerun --execute-live after an email has been sent.",
+            "Do not paste or inspect Gmail app password values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return (
+        0
+        if (
+            not args.execute_live
+            or status == "gmail_self_send_smoke_passed"
+        )
+        else 1
+    )
+
+
 def _command_phase14c_todoist_inbox_smoke(args: argparse.Namespace) -> int:
     config_names = tuple(os.environ.keys())
     approval_present = _has_text(args.approval_reference)
@@ -1565,6 +1696,17 @@ def _openrouter_env_values() -> dict[str, str]:
         ),
         "glm_5_2_model": os.environ.get(
             "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
+            "",
+        ),
+    }
+
+
+def _gmail_smtp_env_values() -> dict[str, str]:
+    return {
+        "sender_email": os.environ.get("PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS", ""),
+        "app_password": os.environ.get("PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD", ""),
+        "controlled_recipient": os.environ.get(
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
             "",
         ),
     }

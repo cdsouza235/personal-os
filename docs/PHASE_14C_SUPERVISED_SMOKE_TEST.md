@@ -255,6 +255,33 @@ Calendar smoke result:
   and does not authorize another Calendar event unless a separate repair need
   is identified.
 
+Remaining-rail live smoke result:
+
+- Approval reference:
+  `phase14c-2026-06-30-connectivity-live-smoke`.
+- Gmail SMTP self-send passed with `gmail_self_send_smoke_passed`.
+- Gmail sent exactly one controlled test email from masked sender
+  `c***@gmail.com` to masked recipient `c***@gmail.com`, subject
+  `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`.
+- Gmail used no CC, BCC, attachments, forwarding, or existing-thread reply.
+- Todoist Inbox/default made exactly one create attempt for
+  `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`, due
+  2026-07-06.
+- Todoist returned `todoist_inbox_default_task_smoke_failed` with
+  `mutation_state=unconfirmed_after_task_create_attempt`, so the repo does not
+  assert whether the task exists. Do not rerun Todoist without a manual
+  Todoist check or a new explicit duplicate-risk approval.
+- OpenRouter model smoke called Nemotron Super once, then GLM 5.2 once after
+  primary validation failed.
+- OpenRouter returned `openclaw_model_smoke_validation_failed`; both attempts
+  reported sanitized `transport_or_parse_error` metadata only. Do not rerun the
+  OpenRouter smoke for this evidence packet because the approved
+  primary/fallback call budget is exhausted.
+- No credential values, raw provider responses, full prompts, environment
+  dumps, database writes, scheduler/background activation, production DB
+  activation, protected-path access, broad OpenClaw handoff, or protected
+  OpenClaw runtime invocation occurred.
+
 ## Test Marker
 
 Every object or invocation must include this marker:
@@ -312,8 +339,10 @@ with no hidden model choice or provider auto-escalation.
 Model-provider readiness reports use
 `openclaw_model_smoke_not_run_missing_provider_config`,
 `openclaw_model_smoke_not_run_missing_client`, or
-`openclaw_model_smoke_passed` and must not expose credential values, present
-config names, full prompts, or raw provider responses.
+`openclaw_model_smoke_passed`. A bounded live provider attempt can also return
+`openclaw_model_smoke_validation_failed` after the allowed primary/fallback
+budget is exhausted. Reports must not expose credential values, present config
+names, full prompts, or raw provider responses.
 
 ## Dry-Run Boundary
 
@@ -423,12 +452,14 @@ non-required environment names.
 
 ## Non-Goals
 
-This packet does not:
+This runbook and repo prep do not by themselves:
 
 - Run broad live activation.
 - Create another Calendar event unless a separate repair need is identified.
-- Create a real Todoist task.
-- Create or send a real Gmail email.
+- Create or retry a real Todoist task outside a separately approved bounded
+  live smoke command.
+- Create or send a real Gmail email outside a separately approved bounded live
+  smoke command.
 - Invoke OpenClaw against real/protected/runtime targets.
 - Print, inspect, copy, commit, or expose credentials/tokens.
 - Send Gmail to uncontrolled recipients.
@@ -542,5 +573,8 @@ Todoist Inbox/default readiness, and a repo-local OpenClaw local/test/sandbox
 smoke harness. It also includes explicit Todoist Inbox/default and OpenRouter
 model smoke gate commands whose default mode is no-execution/report-only and
 whose live modes require separate explicit approval. It also records that one
-supervised Calendar smoke event passed while broad live activation remains
-false and readiness remains not ready.
+supervised Calendar smoke event passed; one controlled Gmail SMTP self-send
+passed; one Todoist Inbox/default create attempt is unconfirmed after the
+request; and one OpenRouter primary/fallback model smoke failed validation
+with sanitized transport/parse metadata. Broad live activation remains false
+and readiness remains not ready.

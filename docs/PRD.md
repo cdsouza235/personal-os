@@ -1383,12 +1383,15 @@ candidate-review context only.
 
 ### Current Recommended Phase
 
-Phase 14-C supervised smoke-test follow-through after the first bounded live
-rail. One Google Calendar smoke event has passed; Gmail, Todoist, and OpenClaw
-runtime remain unrun. The current repo work is to preserve the Calendar result,
-advance self-send Gmail readiness, Inbox/default Todoist readiness, a concrete
-OpenClaw local/test/sandbox smoke harness, and deterministic OpenClaw model
-lane strategy while broad live activation remains false.
+Phase 14-C supervised smoke-test evidence review after the first
+remaining-rail live run. One Google Calendar smoke event has passed; one Gmail
+SMTP self-send has passed; one Todoist Inbox/default create attempt is
+unconfirmed after the request; one OpenRouter model smoke used the allowed
+Nemotron Super primary and GLM 5.2 fallback call budget but failed validation
+with sanitized transport/parse metadata; and protected OpenClaw runtime remains
+unrun. The current repo work is to preserve those rail results, the repo-local
+OpenClaw local/test/sandbox harness, and deterministic OpenClaw model lane
+strategy while broad live activation remains false.
 
 Purpose:
 
@@ -1418,19 +1421,19 @@ Purpose:
 - preserve no live clients, credentials, production DB, scheduler activation,
   file writes during request-template generation, request validation,
   credential preflight, or live-readiness checks, external writes, or OpenClaw
-  calls
+  runtime calls
 
 ### Not Yet Started
 
-Phase 14-C Gmail, Todoist, and protected-runtime OpenClaw supervised live
-smoke-test execution.
+Protected-runtime OpenClaw supervised live smoke-test execution.
 
 Additional Phase 14-C live smoke-test execution requires a separate current
 human initiation and must remain inside the bounded supervised smoke-test
 runbook before any live Todoist write, additional Calendar write, Gmail
-create/send, protected-runtime OpenClaw invocation, credential loading,
-production DB activation, scheduler/background behavior, or protected-path
-access.
+create/send, model-provider call, protected-runtime OpenClaw invocation,
+credential loading, production DB activation, scheduler/background behavior, or
+protected-path access. The 2026-06-30 Todoist result must not be retried
+without a manual Todoist check or a new explicit duplicate-risk approval.
 
 ## 28. V1 Acceptance Criteria
 

@@ -64,8 +64,11 @@ Markdown documentation. The current project snapshot lives in
 ## Safety Boundary
 
 Personal OS is currently not broadly live. One bounded supervised Calendar
-smoke event has passed, while Gmail, Todoist, and OpenClaw runtime remain
-unrun. Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
+smoke event has passed; one bounded Gmail SMTP self-send has passed; one
+Todoist Inbox/default create attempt is unconfirmed after the request; and one
+OpenRouter model smoke used its allowed primary/fallback call budget but failed
+validation with sanitized transport/parse metadata. Protected OpenClaw runtime
+remains unrun. Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
 low-blast-radius rails for the bounded Phase 14-C supervised smoke-test plan in
 [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md),
 but repo prep, runbook review, request validation, credential-name preflight,

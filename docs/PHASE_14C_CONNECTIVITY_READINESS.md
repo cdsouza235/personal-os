@@ -1,14 +1,16 @@
 # Phase 14-C Connectivity Readiness
 
-Date: 2026-06-29
+Date: 2026-06-30
 
 Baseline:
 
-- `main` at `16ad60e288d1c83049dbd28f210cb7824fd48ab2`
-- PR #90 already merged
+- `main` at `b534ca34c9ea17a61d0430e0fea5b8c24739ebc9`
+- PR #94 already merged
 - Google Calendar smoke event already exists:
   `memu6fhql6stl71auv05e1a6d0`
-- Calendar duplicate creation is not authorized by this packet
+- Calendar duplicate creation was not authorized or performed by this packet
+- Live approval reference:
+  `phase14c-2026-06-30-connectivity-live-smoke`
 
 ## Capability Inventory
 
@@ -17,10 +19,10 @@ Baseline:
 | Git repo read/write | available | local clean `main`; `origin/HEAD` matches baseline; branch push succeeded |
 | GitHub PR via `gh` | available | PR metadata query succeeded; `gh auth status` still reports invalid stored host tokens |
 | Google Calendar connector | available | bounded readback found exactly one matching event |
-| Gmail connector/client | repo-local gated SMTP client path prepared | `personalos phase14c gmail-smtp-smoke` defaults to no-execution/report-only; live path requires Gmail SMTP app-password config plus explicit approval |
-| Todoist connector/client | repo-local gated client path prepared | `personalos phase14c todoist-inbox-smoke` defaults to no-execution/report-only; live path requires token config plus explicit approval |
+| Gmail connector/client | available; bounded live smoke passed | `personalos phase14c gmail-smtp-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json` sent one controlled Gmail SMTP test email |
+| Todoist connector/client | available; bounded live create attempt unconfirmed | `personalos phase14c todoist-inbox-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json` made one Inbox/default create attempt and could not validate the response |
 | OpenClaw local/test/sandbox harness | available and passed | `openclaw_local_harness_passed` |
-| OpenClaw model provider/client | repo-local OpenRouter gated client path prepared | `personalos phase14c openrouter-model-smoke` defaults to no-execution/report-only; live path requires OpenRouter config plus explicit approval |
+| OpenClaw model provider/client | available; bounded OpenRouter smoke failed validation | `personalos phase14c openrouter-model-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json` called Nemotron Super once and GLM 5.2 once; both attempts reported sanitized `transport_or_parse_error` |
 
 Safe Calendar account identity observed from the connector:
 
@@ -28,12 +30,56 @@ Safe Calendar account identity observed from the connector:
 
 ## Rails Run
 
+Gmail SMTP self-send:
+
+- Result: `gmail_self_send_smoke_passed`.
+- One controlled Gmail SMTP email was accepted by Gmail.
+- Sender masked: `c***@gmail.com`.
+- Recipient masked: `c***@gmail.com`.
+- Subject: `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`.
+- Call budget: `email_send_calls=1`, `max_email_sends=1`.
+- No CC, BCC, attachments, forwarding, or existing-thread reply.
+- No database write, file write, scheduler activation, production DB
+  activation, protected-path access, or broad Gmail automation occurred.
+
+Todoist Inbox/default:
+
+- Result: `todoist_inbox_default_task_smoke_failed`.
+- Mutation state:
+  `unconfirmed_after_task_create_attempt`.
+- One Inbox/default task-create request was attempted.
+- Title: `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`.
+- Due date: 2026-07-06.
+- Call budget: `task_create_calls=1`, `max_task_creates=1`.
+- The response could not be validated, so the report intentionally does not
+  assert that a task was created or not created.
+- Do not rerun this rail without a manual Todoist check or a new explicit
+  duplicate-risk approval.
+- No recurrence, subtasks, labels, comments, attachments, automatic edits,
+  deletes, skip/push/bump behavior, or automatic rescheduling were requested.
+- No database write, file write, scheduler activation, production DB
+  activation, or protected-path access occurred.
+
 Google Calendar:
 
 - No new event was created.
 - The existing event was read back by ID and by a bounded July 6, 2026
   search window.
 - The search returned exactly one matching event.
+
+OpenRouter model smoke:
+
+- Result: `openclaw_model_smoke_validation_failed`.
+- Primary smoke lane call: `nemotron_super`, one call.
+- Fallback smoke lane call: `glm_5_2`, one call, only after primary validation
+  failed.
+- Call budget: `primary_calls=1`, `fallback_calls=1`,
+  `max_primary_calls=1`, `max_fallback_calls=1`.
+- Both attempts reported sanitized `transport_or_parse_error` metadata.
+- No raw provider response, full prompt, configured model ID, or credential
+  value was logged or recorded.
+- No tool execution, OpenClaw runtime call, protected-path access, scheduler
+  activation, production DB activation, or external mutation occurred.
 
 OpenClaw local/test/sandbox:
 
@@ -47,77 +93,17 @@ OpenClaw local/test/sandbox:
 
 ## Rails Not Run
 
-Gmail:
+Protected-runtime OpenClaw:
 
-- Result: SMTP app-password path prepared; not run live in this packet.
-- No email was drafted or sent.
-- Required next-run setup names:
-  - `PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS`
-  - `PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD`
-  - `PHASE14C_GMAIL_CONTROLLED_RECIPIENT`
-- Default gate status without live execution:
-  `gmail_not_run_missing_execute_live_flag`.
-- Future live command, after separate explicit approval:
-  `personalos phase14c gmail-smtp-smoke --execute-live --approval-reference <ref> --json`
-- The live path sends at most one clearly marked Gmail SMTP test email. It
-  masks sender and recipient in reports and does not create CC, BCC,
-  attachments, forwarding, replies to existing threads, local DB writes,
-  scheduler/background behavior, protected-path access, or broad Gmail
-  automation.
-- If the SMTP send call is attempted but the response cannot be confirmed, the
-  report uses `mutation_state=unconfirmed_after_send_attempt` instead of
-  asserting that no external mutation occurred.
+- Result: not run.
+- No protected OpenClaw runtime invocation occurred.
+- The only OpenClaw rail execution remains the repo-local
+  local/test/sandbox harness described above.
 
-Todoist:
+Calendar duplicate write:
 
-- Result: not run live in this packet.
-- No task was created.
-- Default gate status without live execution:
-  `todoist_not_run_missing_execute_live_flag`.
-- Required next-run setup name:
-  - `PERSONALOS_PHASE14C_TODOIST_TOKEN`
-- Future live command, after separate explicit approval:
-  `personalos phase14c todoist-inbox-smoke --execute-live --approval-reference <ref> --json`
-- The live path creates at most one Inbox/default task, omits `project_id` for
-  Inbox/default, sends `due_date` in `YYYY-MM-DD` form per Todoist API v1
-  `POST /api/v1/tasks`, and does not set recurrence, subtasks, labels,
-  comments, attachments, edits, deletes, skip/push/bump behavior, or automatic
-  rescheduling.
-- If the task create call is attempted but the response cannot be validated,
-  the report uses `mutation_state=unconfirmed_after_task_create_attempt`
-  instead of asserting that no external mutation occurred.
-
-OpenClaw model smoke:
-
-- Result: not run live in this packet.
-- No model provider call was made.
-- Default gate status is
-  `openclaw_model_smoke_not_run_missing_provider_config` when required config
-  names are missing, or
-  `openclaw_model_smoke_not_run_missing_execute_live_flag` when config names
-  are present but live execution is not explicitly requested.
-- Required next-run setup names:
-  - `PERSONALOS_OPENCLAW_MODEL_PROVIDER`
-  - `PERSONALOS_OPENCLAW_MODEL_API_KEY`
-  - `PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL`
-  - `PERSONALOS_OPENCLAW_GLM_5_2_MODEL`
-- Future live command, after separate explicit approval:
-  `personalos phase14c openrouter-model-smoke --execute-live --approval-reference <ref> --json`
-- The live path uses a stdlib HTTP OpenRouter client, calls Nemotron Super at
-  most once, and calls GLM 5.2 at most once only if the primary validation
-  fails. It does not use a provider SDK, log credential values, log full
-  prompts, log raw provider responses, execute tools, or invoke OpenClaw
-  runtime.
-
-Phase 14-C live-rail config preflight also reports these missing names:
-
-- `PERSONALOS_PHASE14C_TODOIST_TOKEN`
-- `PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL`
-- `PERSONALOS_PHASE14C_GMAIL_CREDENTIAL`
-- `PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS`
-- `PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD`
-- `PHASE14C_GMAIL_CONTROLLED_RECIPIENT`
-- `PERSONALOS_PHASE14C_OPENCLAW_TEST_MODE`
+- Result: not run.
+- No duplicate Calendar event was created.
 
 ## Mobile Continuity Commands
 
@@ -174,6 +160,18 @@ OpenRouter no-execution gate:
 set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c openrouter-model-smoke --json
 ```
 
+Live commands already used once for this evidence packet:
+
+```bash
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c gmail-smtp-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c todoist-inbox-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json
+set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c openrouter-model-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json
+```
+
+Do not rerun any of those three live commands for this evidence packet.
+Gmail already passed, Todoist has an unconfirmed create-attempt result, and
+OpenRouter already exhausted the allowed primary/fallback call budget.
+
 OpenClaw local/test/sandbox harness:
 
 ```bash
@@ -182,12 +180,18 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
 
 ## Safety Assertions
 
+- Credential values were read only by the three explicitly approved bounded
+  live commands that required them.
 - No credential values, tokens, OAuth material, or environment dumps were
-  printed or committed.
+  printed, copied, logged, summarized, or committed.
 - `.env.local` is gitignored; `.env.example` contains placeholders only.
-- No Gmail email was drafted or sent.
-- No Todoist task was created.
-- No OpenRouter model provider call was made.
+- Exactly one Gmail email was sent and accepted by Gmail SMTP.
+- Exactly one Todoist task-create request was attempted; task creation remains
+  unconfirmed and must not be retried without manual review or explicit
+  duplicate-risk approval.
+- Exactly one OpenRouter Nemotron Super primary call and one GLM 5.2 fallback
+  call were made; both failed validation with sanitized transport/parse
+  metadata.
 - No duplicate Calendar event was created.
 - No protected path was accessed.
 - No scheduler, LaunchAgent, crontab, daemon, watcher, or background loop was

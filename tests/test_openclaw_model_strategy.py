@@ -207,6 +207,47 @@ class OpenClawModelStrategyTest(unittest.TestCase):
         self.assertFalse(report["probe_results"][0]["validation_passed"])
         self.assertTrue(report["probe_results"][1]["validation_passed"])
 
+    def test_model_smoke_probe_keeps_safe_failure_diagnostics(self) -> None:
+        client = _RecordingModelSmokeClient(
+            [
+                {
+                    "success": False,
+                    "failure_category": "http_error",
+                    "error_kind": "HTTPError",
+                    "http_status": 401,
+                    "response_text": "unsafe response text",
+                },
+                {
+                    "success": False,
+                    "failure_category": "transport_or_parse_error",
+                    "error_kind": "SSLCertVerificationError",
+                    "raw_error": "unsafe raw error",
+                },
+            ]
+        )
+
+        report = run_openclaw_model_smoke_probe(
+            available_config_names=OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+            client=client,
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], "openclaw_model_smoke_validation_failed")
+        self.assertEqual(report["call_limits"]["primary_calls"], 1)
+        self.assertEqual(report["call_limits"]["fallback_calls"], 1)
+        primary_metadata = report["probe_results"][0]["metadata"]
+        fallback_metadata = report["probe_results"][1]["metadata"]
+        self.assertEqual(primary_metadata["failure_category"], "http_error")
+        self.assertEqual(primary_metadata["error_kind"], "HTTPError")
+        self.assertEqual(primary_metadata["http_status"], 401)
+        self.assertEqual(
+            fallback_metadata["failure_category"],
+            "transport_or_parse_error",
+        )
+        self.assertEqual(fallback_metadata["error_kind"], "SSLCertVerificationError")
+        self.assertNotIn("unsafe response text", serialized)
+        self.assertNotIn("unsafe raw error", serialized)
+
     def test_model_strategy_doc_records_aliases_lanes_and_boundaries(self) -> None:
         text = " ".join(MODEL_STRATEGY_DOC.read_text(encoding="utf-8").lower().split())
 
@@ -222,6 +263,9 @@ class OpenClawModelStrategyTest(unittest.TestCase):
             "max one primary call and one fallback call per smoke probe",
             "full prompts must not be logged",
             "credential values must not be logged",
+            "error_kind",
+            "http_status",
+            "phase14c live-smoke-diagnostics --json",
             "call nemotron super, glm 5.2, openrouter, or any live provider",
         )
         for phrase in required_phrases:

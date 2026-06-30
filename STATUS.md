@@ -6,10 +6,10 @@ Last updated: 2026-06-30
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #94:
-  `b534ca34c9ea17a61d0430e0fea5b8c24739ebc9`
-- Latest merged PR at that baseline: PR #94, Phase 14-C gated Gmail SMTP
-  self-send smoke
+- Last validated main baseline after PR #95:
+  `87168fdc1e3661ff8749655cfe3343ba73d14991`
+- Latest merged PR at that baseline: PR #95, Phase 14-C live-smoke evidence
+  packet
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -75,7 +75,9 @@ Last updated: 2026-06-30
   Todoist Inbox/default task-create attempt whose result is unconfirmed, and
   made one OpenRouter Nemotron Super primary call plus one GLM 5.2 fallback
   call that both failed validation with sanitized transport/parse failure
-  metadata
+  metadata; a repo-local `phase14c live-smoke-diagnostics` command now
+  prepares the Todoist manual outcome check and future OpenRouter safe
+  diagnostic fields without reading credentials or making live calls
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -121,7 +123,9 @@ Last updated: 2026-06-30
   local Gmail SMTP/Todoist/OpenRouter connectivity setup script plus names-only
   CLI verifier, plus gated Gmail SMTP self-send, Todoist Inbox/default, and
   OpenRouter model smoke client commands that are not executed by default, plus
-  the 2026-06-30 bounded Gmail/Todoist/OpenRouter live-smoke evidence packet
+  the 2026-06-30 bounded Gmail/Todoist/OpenRouter live-smoke evidence packet,
+  plus a no-live follow-up diagnostic command for Todoist manual outcome
+  confirmation and OpenRouter safe failure metadata
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
   evidence review and follow-up after the first remaining-rail live run.
   Todoist, Google Calendar, Gmail, and OpenClaw remain acceptable
@@ -210,7 +214,9 @@ Last updated: 2026-06-30
   was `todoist_inbox_default_task_smoke_failed` with
   `mutation_state=unconfirmed_after_task_create_attempt`. Do not rerun this
   rail without a manual Todoist check or a new explicit duplicate-risk
-  approval.
+  approval. The `phase14c live-smoke-diagnostics` CLI reports the exact manual
+  Todoist outcome check without reading credentials, initializing a client, or
+  contacting Todoist.
 - Phase 14-C OpenClaw readiness: includes a repo-local
   `run_phase14c_openclaw_local_sandbox_smoke` harness for
   `phase14c_smoke_test`; the harness passed once with
@@ -234,6 +240,11 @@ Last updated: 2026-06-30
   prompt, raw provider response, tool execution, OpenClaw runtime call,
   protected-path access, scheduler activation, production DB activation, or
   external mutation.
+- Phase 14-C live-smoke diagnostics: `phase14c live-smoke-diagnostics` is a
+  no-live, no-env, no-credential report that records the manual Todoist check
+  required before any Todoist retry and the new safe OpenRouter diagnostic
+  fields (`error_kind`, `http_status`) available for a future separately
+  approved model smoke.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -247,8 +258,8 @@ Last updated: 2026-06-30
 
 ## Validated State
 
-- Full suite: 750 tests OK
-- ResourceWarning-sensitive suite: 750 tests OK
+- Full suite: 754 tests OK
+- ResourceWarning-sensitive suite: 754 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -260,8 +271,8 @@ Last updated: 2026-06-30
 - Targeted Phase 14-C supervised smoke request-validation/credential-preflight/
   live-readiness/request-template/dry-run source/docs/CLI suite: 53 CLI tests
   OK plus the targeted source/docs tests above
-- Targeted Phase 14-C Gmail SMTP/Todoist/OpenRouter live-smoke and supervised
-  smoke source/docs/CLI/model suite: 123 tests OK
+- Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
+- Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK

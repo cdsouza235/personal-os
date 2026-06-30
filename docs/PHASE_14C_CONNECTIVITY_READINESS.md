@@ -160,6 +160,18 @@ OpenRouter no-execution gate:
 set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phase14c openrouter-model-smoke --json
 ```
 
+Live-smoke follow-up diagnostics:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c live-smoke-diagnostics --json
+```
+
+That command does not read `.env.local`, environment variables, credential
+values, token contents, model IDs, or provider responses. It reports the
+manual Todoist outcome check needed before any Todoist retry, and records that
+the next separately approved OpenRouter smoke can safely report `error_kind`
+and `http_status` in addition to the existing sanitized metadata.
+
 Live commands already used once for this evidence packet:
 
 ```bash
@@ -192,6 +204,9 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
 - Exactly one OpenRouter Nemotron Super primary call and one GLM 5.2 fallback
   call were made; both failed validation with sanitized transport/parse
   metadata.
+- Follow-up diagnostics are repo-local/report-only and do not read credential
+  values, initialize live clients, call OpenRouter, write Todoist, send Gmail,
+  write Calendar, invoke OpenClaw, open a database, or write files.
 - No duplicate Calendar event was created.
 - No protected path was accessed.
 - No scheduler, LaunchAgent, crontab, daemon, watcher, or background loop was

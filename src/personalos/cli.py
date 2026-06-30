@@ -36,6 +36,9 @@ from personalos.phase14c_gmail_live_smoke import (
     PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
     run_phase14c_gmail_smtp_smoke,
 )
+from personalos.phase14c_live_smoke_diagnostics import (
+    build_phase14c_live_smoke_diagnostics_report,
+)
 from personalos.phase14c_supervised_smoke import (
     ALLOWED_MODES,
     DRY_RUN_MODE,
@@ -299,6 +302,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "primary model and one fallback only if validation fails"
         ),
         "output": "stdout OpenRouter model smoke JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C live-smoke diagnostics",
+        "safe_local_action": "Inspect unresolved Phase 14-C smoke follow-up diagnostics",
+        "command": "personalos phase14c live-smoke-diagnostics [--json]",
+        "mode": "repo-local diagnostics / no values / no live clients",
+        "local_effect": "does not read environment, open a DB, write files, or call services",
+        "output": "stdout live-smoke diagnostics JSON or human summary",
     },
 )
 
@@ -624,6 +635,22 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_openrouter_smoke_parser)
     phase14c_openrouter_smoke_parser.set_defaults(
         func=_command_phase14c_openrouter_model_smoke
+    )
+
+    phase14c_live_smoke_diagnostics_parser = phase14c_subparsers.add_parser(
+        "live-smoke-diagnostics",
+        help="Report Phase 14-C live-smoke follow-up diagnostics without live calls.",
+        description=(
+            "Print a repo-local follow-up diagnostic report for the unresolved "
+            "Todoist and OpenRouter smoke rails. This command does not read "
+            "environment variables, load credentials, open a DB, initialize live "
+            "clients, create Todoist tasks, send Gmail, write Calendar, call "
+            "OpenRouter, invoke OpenClaw, write files, or touch protected paths."
+        ),
+    )
+    _add_json_arg(phase14c_live_smoke_diagnostics_parser)
+    phase14c_live_smoke_diagnostics_parser.set_defaults(
+        func=_command_phase14c_live_smoke_diagnostics
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -1594,6 +1621,42 @@ def _command_phase14c_openrouter_model_smoke(args: argparse.Namespace) -> int:
         )
         else 1
     )
+
+
+def _command_phase14c_live_smoke_diagnostics(args: argparse.Namespace) -> int:
+    diagnostics = build_phase14c_live_smoke_diagnostics_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c live-smoke-diagnostics",
+            "status": diagnostics["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "live_smoke_diagnostics": diagnostics,
+        },
+        workflow_name="Phase 14-C live-smoke diagnostics",
+        workflow_mode="repo-local diagnostics / no values / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Manually check Todoist before any Todoist retry.",
+            "Use the safer OpenRouter metadata on the next separately approved smoke.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
 
 
 def _phase14c_safe_credential_preflight_report(

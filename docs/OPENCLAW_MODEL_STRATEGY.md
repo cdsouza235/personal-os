@@ -92,7 +92,7 @@ Reasoning / high-complexity lane:
 - Credential values must not be logged.
 - Safe metadata is limited to provider alias, model alias, lane,
   success/failure, latency if safely available, token counts if safely
-  available, and sanitized error code/category.
+  available, HTTP status if available, and sanitized error category/class.
 
 ## Provider Readiness
 
@@ -139,6 +139,19 @@ constant smoke probe and is not included in the report.
 - No credential values, full prompt, raw provider response, tool execution,
   OpenClaw runtime call, protected-path access, scheduler activation,
   production DB activation, or external mutation occurred.
+
+Follow-up diagnostics:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c live-smoke-diagnostics --json
+```
+
+That command is repo-local/report-only. It does not read environment variables,
+load credentials, initialize live clients, call OpenRouter, write Todoist,
+send Gmail, write Calendar, invoke OpenClaw, open a database, or write files.
+It records that the next separately approved OpenRouter smoke can include the
+safe diagnostic fields `error_kind` and `http_status` while still dropping raw
+provider responses, full prompts, configured model IDs, and credential values.
 
 ## Non-Goals
 

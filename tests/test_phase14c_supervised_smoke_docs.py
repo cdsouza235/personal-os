@@ -4,6 +4,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SMOKE_DOC = REPO_ROOT / "docs" / "PHASE_14C_SUPERVISED_SMOKE_TEST.md"
+CONNECTIVITY_DOC = REPO_ROOT / "docs" / "PHASE_14C_CONNECTIVITY_READINESS.md"
 
 
 class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
@@ -68,12 +69,35 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "openclaw_model_smoke_not_run_missing_provider_config",
             "openclaw_model_smoke_not_run_missing_client",
             "openclaw_model_smoke_passed",
+            "openclaw_model_smoke_validation_failed",
             "todoist_not_run_missing_execute_live_flag",
             "gmail_not_run_missing_execute_live_flag",
             "openclaw_model_smoke_not_run_missing_execute_live_flag",
             "mutation_state=unconfirmed_after_task_create_attempt",
             "mutation_state=unconfirmed_after_send_attempt",
             "due_date",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def test_runbook_records_remaining_live_smoke_evidence(self) -> None:
+        text = _normalized_doc_text(SMOKE_DOC)
+
+        required_phrases = (
+            "phase14c-2026-06-30-connectivity-live-smoke",
+            "gmail smtp self-send passed with `gmail_self_send_smoke_passed`",
+            "masked sender `c***@gmail.com`",
+            "masked recipient `c***@gmail.com`",
+            "todoist inbox/default made exactly one create attempt",
+            "todoist_inbox_default_task_smoke_failed",
+            "do not rerun todoist without a manual todoist check",
+            "openrouter returned `openclaw_model_smoke_validation_failed`",
+            "transport_or_parse_error",
+            "approved primary/fallback call budget is exhausted",
+            "one controlled gmail smtp self-send passed",
+            "one todoist inbox/default create attempt is unconfirmed",
+            "one openrouter primary/fallback model smoke failed validation",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -148,6 +172,30 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
         for path in related_docs:
             with self.subTest(path=path.name):
                 self.assertIn(runbook_link, path.read_text(encoding="utf-8"))
+
+    def test_connectivity_doc_records_live_smoke_evidence(self) -> None:
+        text = _normalized_doc_text(CONNECTIVITY_DOC)
+
+        required_phrases = (
+            "phase14c-2026-06-30-connectivity-live-smoke",
+            "gmail_self_send_smoke_passed",
+            "sender masked: `c***@gmail.com`",
+            "recipient masked: `c***@gmail.com`",
+            "todoist_inbox_default_task_smoke_failed",
+            "unconfirmed_after_task_create_attempt",
+            "do not rerun this rail without a manual todoist check",
+            "openclaw_model_smoke_validation_failed",
+            "primary_calls=1",
+            "fallback_calls=1",
+            "transport_or_parse_error",
+            "do not rerun any of those three live commands",
+            "exactly one gmail email was sent and accepted by gmail smtp",
+            "exactly one todoist task-create request was attempted",
+            "exactly one openrouter nemotron super primary call",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
 
 
 def _normalized_doc_text(path: Path) -> str:

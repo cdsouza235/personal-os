@@ -178,8 +178,11 @@ The Phase 14-C supervised smoke-test runbook is
 Phase 14-A/B historical preparation remains proposed-only. Current Phase 14-C
 movement is the bounded supervised smoke-test follow-through described above:
 Calendar passed, the repo-local OpenClaw local/test/sandbox harness passed,
-broad activation remains false, readiness remains not ready, and
-Gmail/Todoist/OpenClaw remain bounded to one-operation supervised smoke steps.
+broad activation remains false, readiness remains not ready, Gmail SMTP
+self-send passed, Todoist is unconfirmed after one Inbox/default create
+attempt, OpenRouter model smoke failed validation after the allowed
+primary/fallback call budget, and protected-runtime OpenClaw remains bounded to
+a separately approved local/test/sandbox smoke step.
 
 ## Future Blocked Work
 
@@ -566,12 +569,15 @@ boundary tests and audit search:
 
 ## Persistent Non-Goals Until Approved
 
-- No live Gmail, Todoist, Google Calendar, PersonalOS Markdown, or OpenClaw
-  execution.
-- No credential loading or reading.
+- No additional live Gmail, Todoist, Google Calendar, PersonalOS Markdown,
+  model-provider, or OpenClaw execution outside a separately approved bounded
+  smoke step.
+- No credential loading or reading outside a separately approved bounded smoke
+  step.
 - No production DB activation.
 - No scheduler, LaunchAgent, crontab, daemon, or background-loop activation.
-- No external writes or live external service calls.
+- No additional external writes or live external service calls outside a
+  separately approved bounded smoke step.
 - No protected path inspection or mutation.
 
 ## Phase 13E-D Acceptance Direction

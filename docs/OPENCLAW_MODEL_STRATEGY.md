@@ -125,6 +125,21 @@ the smoke probe may make at most one Nemotron Super primary call and one GLM
 5.2 fallback call only after primary validation failure. The prompt is a short
 constant smoke probe and is not included in the report.
 
+2026-06-30 bounded live OpenRouter result:
+
+- Approval reference:
+  `phase14c-2026-06-30-connectivity-live-smoke`.
+- Status: `openclaw_model_smoke_validation_failed`.
+- Primary call: `nemotron_super`, one call, sanitized
+  `transport_or_parse_error`.
+- Fallback call: `glm_5_2`, one call after primary validation failed,
+  sanitized `transport_or_parse_error`.
+- The approved primary/fallback call budget for this evidence packet is
+  exhausted; do not rerun without a new explicit approval.
+- No credential values, full prompt, raw provider response, tool execution,
+  OpenClaw runtime call, protected-path access, scheduler activation,
+  production DB activation, or external mutation occurred.
+
 ## Non-Goals
 
 This strategy does not:

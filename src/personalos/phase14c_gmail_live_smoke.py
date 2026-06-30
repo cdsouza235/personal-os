@@ -313,7 +313,7 @@ def _sanitize_send_result(result: Mapping[str, Any]) -> dict[str, Any]:
 def _safe_failure(error: BaseException) -> dict[str, str]:
     return {
         "type": type(error).__name__,
-        "message": str(error),
+        "message": "Gmail SMTP send attempt failed; details redacted.",
     }
 
 

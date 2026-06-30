@@ -1,4 +1,5 @@
 import json
+import smtplib
 import unittest
 from datetime import date
 
@@ -142,7 +143,13 @@ class Phase14CGmailLiveSmokeClientTest(unittest.TestCase):
         self.assertIsNone(report["safety_assertions"]["external_mutation"])
         self.assertIsNone(report["safety_assertions"]["gmail_email_sent"])
         self.assertTrue(report["safety_assertions"]["credential_values_read"])
+        self.assertEqual(report["failure"]["type"], "SMTPRecipientsRefused")
+        self.assertEqual(
+            report["failure"]["message"],
+            "Gmail SMTP send attempt failed; details redacted.",
+        )
         self.assertNotIn("secret-app-password", serialized)
+        self.assertNotIn("chris@example.com", serialized)
 
     def test_gmail_missing_names_are_reported_without_present_name_echo(self) -> None:
         report = run_phase14c_gmail_smtp_smoke(
@@ -365,7 +372,9 @@ class _FailingAfterAttemptGmailSmtpClient:
 
     def send_email(self, payload: dict[str, object]) -> dict[str, object]:
         self.payloads.append(dict(payload))
-        raise ValueError("SMTP response was not confirmed")
+        raise smtplib.SMTPRecipientsRefused(
+            {"chris@example.com": (550, b"bad recipient chris@example.com")}
+        )
 
 
 class _FakeOpenRouterOpener:

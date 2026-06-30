@@ -32,6 +32,10 @@ from personalos.path_safety import (
 from personalos.phase14c_connectivity_setup import (
     build_phase14c_connectivity_setup_report,
 )
+from personalos.phase14c_gmail_live_smoke import (
+    PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+    run_phase14c_gmail_smtp_smoke,
+)
 from personalos.phase14c_supervised_smoke import (
     ALLOWED_MODES,
     DRY_RUN_MODE,
@@ -40,10 +44,6 @@ from personalos.phase14c_supervised_smoke import (
     build_phase14c_supervised_smoke_runbook,
     build_phase14c_supervised_smoke_request_validation_report,
     run_phase14c_supervised_smoke_dry_run_rehearsal,
-)
-from personalos.phase14c_gmail_live_smoke import (
-    PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
-    run_phase14c_gmail_smtp_smoke,
 )
 from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,

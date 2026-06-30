@@ -72,9 +72,32 @@ class OpenRouterModelSmokeClient:
                 response_body = response.read().decode("utf-8")
             parsed = json.loads(response_body)
         except urllib.error.HTTPError as error:
-            return _failure_result("http_error", started, http_status=error.code)
-        except (OSError, ValueError, json.JSONDecodeError, urllib.error.URLError):
-            return _failure_result("transport_or_parse_error", started)
+            http_status = error.code
+            error.close()
+            return _failure_result(
+                "http_error",
+                started,
+                error_kind="HTTPError",
+                http_status=http_status,
+            )
+        except json.JSONDecodeError as error:
+            return _failure_result(
+                "transport_or_parse_error",
+                started,
+                error_kind=error.__class__.__name__,
+            )
+        except urllib.error.URLError as error:
+            return _failure_result(
+                "transport_or_parse_error",
+                started,
+                error_kind=_safe_error_kind(error),
+            )
+        except (OSError, ValueError) as error:
+            return _failure_result(
+                "transport_or_parse_error",
+                started,
+                error_kind=error.__class__.__name__,
+            )
 
         if not isinstance(parsed, Mapping):
             return _failure_result("malformed_response", started)
@@ -114,6 +137,7 @@ def _failure_result(
     failure_category: str,
     started: float,
     *,
+    error_kind: str | None = None,
     http_status: int | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
@@ -122,9 +146,18 @@ def _failure_result(
         "failure_category": failure_category,
         "latency_ms": int((time.monotonic() - started) * 1000),
     }
+    if error_kind is not None:
+        result["error_kind"] = error_kind
     if http_status is not None:
         result["http_status"] = http_status
     return result
+
+
+def _safe_error_kind(error: urllib.error.URLError) -> str:
+    reason = getattr(error, "reason", None)
+    if isinstance(reason, BaseException):
+        return reason.__class__.__name__
+    return error.__class__.__name__
 
 
 def _optional_int(value: object) -> int | None:

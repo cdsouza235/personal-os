@@ -84,7 +84,9 @@ verification without printing credential values. The repo also has
 `personalos phase14c openrouter-model-smoke --json` gate commands whose
 default mode is no-execution/report-only; their live modes require explicit
 `--execute-live` flags, approval references, configured credentials, and the
-bounded Phase 14-C supervised smoke envelope.
+bounded Phase 14-C supervised smoke envelope. Use
+`personalos phase14c live-smoke-diagnostics --json` for the no-live Todoist
+manual outcome check and future OpenRouter diagnostic-field readiness.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

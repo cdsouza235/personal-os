@@ -386,6 +386,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C Todoist Inbox/default smoke gate",
             "Phase 14-C OpenClaw model readiness",
             "Phase 14-C OpenRouter model smoke gate",
+            "Phase 14-C live-smoke diagnostics",
         ):
             with self.subTest(workflow_name=workflow_name):
                 self.assertIn(f"- {workflow_name}", result.stdout)
@@ -438,6 +439,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Send Gmail", payload["blocked_actions"])
         self.assertIn("Call live model/API", payload["blocked_actions"])
         self.assertIn("Phase 14-C OpenRouter model smoke gate", workflow_names)
+        self.assertIn("Phase 14-C live-smoke diagnostics", workflow_names)
 
     def test_phase14c_connectivity_setup_missing_names_only(self) -> None:
         secret_environment = {
@@ -1353,6 +1355,62 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             secret_environment["PERSONALOS_OPENCLAW_GLM_5_2_MODEL"],
         ):
             self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_live_smoke_diagnostics_is_no_live_report(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "secret-provider-value",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-model",
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-model",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "live-smoke-diagnostics", "--json"])
+
+        payload = json.loads(result.stdout)
+        diagnostics = payload["live_smoke_diagnostics"]
+        todoist = diagnostics["todoist_manual_check"]
+        openrouter = diagnostics["openrouter_next_probe_diagnostics"]
+        safety = diagnostics["safety_assertions"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c live-smoke-diagnostics")
+        self.assertEqual(payload["status"], "phase14c_live_smoke_diagnostics_ready")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertEqual(
+            todoist["status"],
+            "todoist_manual_outcome_check_required",
+        )
+        self.assertTrue(todoist["manual_check_required"])
+        self.assertTrue(todoist["do_not_rerun_create_without_manual_check"])
+        self.assertEqual(todoist["due_date"], "2026-07-06")
+        self.assertEqual(
+            openrouter["status"],
+            "openrouter_next_probe_diagnostics_ready",
+        )
+        self.assertEqual(openrouter["new_safe_failure_fields"], [
+            "error_kind",
+            "http_status",
+        ])
+        self.assertTrue(openrouter["next_probe_requires_new_explicit_approval"])
+        self.assertFalse(safety["credential_values_read"])
+        self.assertFalse(safety["model_provider_called"])
+        self.assertFalse(safety["external_mutation"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+        for present_name in (
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN",
+            *OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES,
+        ):
+            self.assertNotIn(present_name, result.stdout)
 
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

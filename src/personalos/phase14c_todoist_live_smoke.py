@@ -152,6 +152,26 @@ def run_phase14c_todoist_inbox_smoke(
     started = time.monotonic()
     try:
         response = dict(live_client.create_task(payload))
+    except urllib.error.HTTPError as error:
+        failure = _safe_failure(error)
+        error.close()
+        return {
+            **base,
+            "status": TODOIST_SMOKE_FAILED,
+            "todoist_task_created": None,
+            "mutation_state": "unconfirmed_after_task_create_attempt",
+            "failure": failure,
+            "call_limits": {
+                "max_task_creates": 1,
+                "task_create_calls": 1,
+            },
+            "safety_assertions": _todoist_safety_assertions(
+                credential_values_read=True,
+                external_mutation=None,
+                todoist_task_created=None,
+                live_client_initialized=True,
+            ),
+        }
     except (OSError, ValueError, json.JSONDecodeError, urllib.error.URLError) as error:
         return {
             **base,
@@ -274,11 +294,23 @@ def _todoist_safety_assertions(
     }
 
 
-def _safe_failure(error: BaseException) -> dict[str, str]:
-    return {
+def _safe_failure(error: BaseException) -> dict[str, str | int]:
+    failure: dict[str, str | int] = {
         "category": error.__class__.__name__,
+        "error_kind": _safe_error_kind(error),
         "message": "Todoist smoke call failed before a validated task result.",
     }
+    if isinstance(error, urllib.error.HTTPError):
+        failure["http_status"] = int(error.code)
+    return failure
+
+
+def _safe_error_kind(error: BaseException) -> str:
+    if isinstance(error, urllib.error.URLError):
+        reason = getattr(error, "reason", None)
+        if isinstance(reason, BaseException):
+            return reason.__class__.__name__
+    return error.__class__.__name__
 
 
 def _config_names_only(

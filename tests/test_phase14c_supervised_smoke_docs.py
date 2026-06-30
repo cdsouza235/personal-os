@@ -36,6 +36,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "personalos.cli phase14c gmail-smtp-smoke --json",
             "personalos.cli phase14c todoist-inbox-smoke --json",
             "personalos.cli phase14c openrouter-model-smoke --json",
+            "personalos.cli phase14c live-smoke-diagnostics --json",
             "does not load credentials",
             "does not initialize live clients",
             "does not initialize a model client",
@@ -98,6 +99,9 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "one controlled gmail smtp self-send passed",
             "one todoist inbox/default create attempt is unconfirmed",
             "one openrouter primary/fallback model smoke failed validation",
+            "phase14c live-smoke-diagnostics",
+            "error_kind",
+            "http_status",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):
@@ -192,6 +196,10 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "exactly one gmail email was sent and accepted by gmail smtp",
             "exactly one todoist task-create request was attempted",
             "exactly one openrouter nemotron super primary call",
+            "live-smoke follow-up diagnostics",
+            "manual todoist outcome check",
+            "`error_kind`",
+            "`http_status`",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

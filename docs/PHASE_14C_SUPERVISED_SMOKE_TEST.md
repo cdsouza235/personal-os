@@ -191,6 +191,20 @@ Super at most once, and call GLM 5.2 at most once only if the primary response
 fails validation. It does not log credential values, full prompts, raw
 provider responses, or configured model IDs.
 
+Live-smoke follow-up diagnostics:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c live-smoke-diagnostics --json
+```
+
+That command is report-only. It does not read environment variables, load
+credentials, initialize live clients, create Todoist tasks, send Gmail, write
+Calendar, call OpenRouter, invoke OpenClaw, open a database, or write files.
+It reports the manual Todoist outcome check required before any Todoist retry
+and records that future approved OpenRouter failures can include safe
+`error_kind` and `http_status` diagnostics without raw provider responses,
+full prompts, configured model IDs, or credential values.
+
 Connectivity setup:
 
 ```bash
@@ -572,7 +586,9 @@ live-readiness, fake-client dry-run rehearsal, Gmail self-send readiness,
 Todoist Inbox/default readiness, and a repo-local OpenClaw local/test/sandbox
 smoke harness. It also includes explicit Todoist Inbox/default and OpenRouter
 model smoke gate commands whose default mode is no-execution/report-only and
-whose live modes require separate explicit approval. It also records that one
+whose live modes require separate explicit approval, plus a no-live
+`phase14c live-smoke-diagnostics` command for the unresolved Todoist and
+OpenRouter follow-up. It also records that one
 supervised Calendar smoke event passed; one controlled Gmail SMTP self-send
 passed; one Todoist Inbox/default create attempt is unconfirmed after the
 request; and one OpenRouter primary/fallback model smoke failed validation

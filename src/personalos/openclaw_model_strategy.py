@@ -76,6 +76,8 @@ SAFE_METADATA_FIELDS: tuple[str, ...] = (
     "lane",
     "success",
     "failure_category",
+    "error_kind",
+    "http_status",
     "latency_ms",
     "input_tokens",
     "output_tokens",

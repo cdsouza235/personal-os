@@ -1,5 +1,6 @@
 import json
 import smtplib
+import urllib.error
 import unittest
 from datetime import date
 
@@ -275,6 +276,31 @@ class Phase14CTodoistLiveSmokeClientTest(unittest.TestCase):
         self.assertTrue(report["safety_assertions"]["credential_values_read"])
         self.assertNotIn("secret-token-value", serialized)
 
+    def test_todoist_http_error_reports_safe_diagnostic_metadata(self) -> None:
+        client = _FailingHttpTodoistClient()
+
+        report = run_phase14c_todoist_inbox_smoke(
+            available_config_names=(PHASE14C_TODOIST_TOKEN_CONFIG_NAME,),
+            execute_live=True,
+            approval_reference="approved-phase14c-test",
+            token="secret-token-value",
+            client=client,
+            source_date=date(2026, 6, 29),
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], TODOIST_SMOKE_FAILED)
+        self.assertIsNone(report["todoist_task_created"])
+        self.assertEqual(
+            report["mutation_state"],
+            "unconfirmed_after_task_create_attempt",
+        )
+        self.assertEqual(report["failure"]["category"], "HTTPError")
+        self.assertEqual(report["failure"]["error_kind"], "HTTPError")
+        self.assertEqual(report["failure"]["http_status"], 401)
+        self.assertNotIn("secret-token-value", serialized)
+        self.assertNotIn("Unauthorized", serialized)
+
 
 class Phase14COpenRouterModelSmokeClientTest(unittest.TestCase):
     def test_openrouter_client_returns_safe_metadata_only(self) -> None:
@@ -301,6 +327,31 @@ class Phase14COpenRouterModelSmokeClientTest(unittest.TestCase):
         self.assertNotIn("secret-openrouter-key", serialized)
         self.assertNotIn("configured-model-id", serialized)
         self.assertNotIn("short smoke prompt", serialized)
+
+    def test_openrouter_client_reports_safe_http_error_metadata(self) -> None:
+        client = OpenRouterModelSmokeClient(
+            api_key="secret-openrouter-key",
+            models_by_alias={"nemotron_super": "configured-model-id"},
+            opener=_FailingHttpOpenRouterOpener(),
+        )
+
+        result = client.run_probe(
+            {
+                "model_alias": "nemotron_super",
+                "prompt": "short smoke prompt",
+                "max_output_tokens": 16,
+            }
+        )
+        serialized = json.dumps(result, sort_keys=True)
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["failure_category"], "http_error")
+        self.assertEqual(result["error_kind"], "HTTPError")
+        self.assertEqual(result["http_status"], 401)
+        self.assertNotIn("secret-openrouter-key", serialized)
+        self.assertNotIn("configured-model-id", serialized)
+        self.assertNotIn("short smoke prompt", serialized)
+        self.assertNotIn("Unauthorized", serialized)
 
     def test_openrouter_smoke_probe_sets_live_safety_flags(self) -> None:
         client = OpenRouterModelSmokeClient(
@@ -352,6 +403,17 @@ class _FailingAfterAttemptTodoistClient:
         raise ValueError("response body was not a JSON object")
 
 
+class _FailingHttpTodoistClient:
+    def create_task(self, payload: dict[str, object]) -> dict[str, object]:
+        raise urllib.error.HTTPError(
+            "https://api.todoist.com/api/v1/tasks",
+            401,
+            "Unauthorized",
+            {},
+            None,
+        )
+
+
 class _RecordingGmailSmtpClient:
     def __init__(self) -> None:
         self.payloads: list[dict[str, object]] = []
@@ -393,6 +455,17 @@ class _FakeOpenRouterOpener:
                     "completion_tokens": 5,
                 },
             }
+        )
+
+
+class _FailingHttpOpenRouterOpener:
+    def __call__(self, request: object, timeout: float) -> "_FakeHTTPResponse":
+        raise urllib.error.HTTPError(
+            "https://openrouter.ai/api/v1/chat/completions",
+            401,
+            "Unauthorized",
+            {},
+            None,
         )
 
 

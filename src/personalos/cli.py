@@ -62,7 +62,14 @@ from personalos.phase14c_todoist_live_smoke import (
     run_phase14c_todoist_inbox_smoke,
 )
 from personalos.phase14c_wide_net_rehearsal import (
+    PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     build_phase14c_wide_net_rehearsal_plan,
+)
+from personalos.phase14c_wide_net_rehearsal_live import (
+    WIDE_NET_PASSED,
+    WIDE_NET_PASSED_WITH_MODEL_DIAGNOSTIC_FAILURE,
+    WIDE_NET_REQUIRED_CONFIG_NAMES,
+    run_phase14c_wide_net_rehearsal,
 )
 from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
@@ -349,6 +356,19 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local plan / no values / no live clients",
         "local_effect": "does not read environment, open a DB, write files, or call services",
         "output": "stdout wide-net rehearsal plan JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net rehearsal gate",
+        "safe_local_action": "Gate one wider Gmail/Todoist/Calendar/OpenRouter test",
+        "command": (
+            "personalos phase14c wide-net-rehearsal "
+            "[--execute-live --approval-reference REF] [--json]"
+        ),
+        "mode": "repo-local gate / no values by default / fails closed without Calendar client",
+        "local_effect": (
+            "default path reads environment key names only and makes no live calls"
+        ),
+        "output": "stdout wide-net rehearsal gate JSON or human summary",
     },
 )
 
@@ -752,6 +772,31 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_rehearsal_parser)
     phase14c_wide_net_rehearsal_parser.set_defaults(
         func=_command_phase14c_wide_net_rehearsal_plan
+    )
+
+    phase14c_wide_net_rehearsal_live_parser = phase14c_subparsers.add_parser(
+        "wide-net-rehearsal",
+        help="Gate one bounded Phase 14-C wide-net rehearsal.",
+        description=(
+            "By default this command is report-only and reads environment key names "
+            "only. With --execute-live and the exact wide-net approval reference, "
+            "it still fails closed unless an audited Calendar client/connector "
+            "bridge is available, so it cannot partially run OpenRouter, Todoist, "
+            "or Gmail before Calendar support exists."
+        ),
+    )
+    phase14c_wide_net_rehearsal_live_parser.add_argument(
+        "--execute-live",
+        action="store_true",
+        help="Explicitly request the one wide-net rehearsal.",
+    )
+    phase14c_wide_net_rehearsal_live_parser.add_argument(
+        "--approval-reference",
+        help="Required exact reference for --execute-live; not printed raw.",
+    )
+    _add_json_arg(phase14c_wide_net_rehearsal_live_parser)
+    phase14c_wide_net_rehearsal_live_parser.set_defaults(
+        func=_command_phase14c_wide_net_rehearsal
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -1832,6 +1877,102 @@ def _command_phase14c_wide_net_rehearsal_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_phase14c_wide_net_rehearsal(args: argparse.Namespace) -> int:
+    config_names = tuple(os.environ.keys())
+    approval_matched = (
+        args.approval_reference == PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE
+    )
+    calendar_client_available = False
+    env_values: dict[str, str] | None = None
+    if (
+        args.execute_live
+        and approval_matched
+        and calendar_client_available
+        and all(name in config_names for name in WIDE_NET_REQUIRED_CONFIG_NAMES)
+    ):
+        env_values = _wide_net_rehearsal_env_values()
+
+    rehearsal_report = run_phase14c_wide_net_rehearsal(
+        available_config_names=config_names,
+        execute_live=args.execute_live,
+        approval_reference=args.approval_reference,
+        provider=env_values["provider"] if env_values else None,
+        api_key=env_values["api_key"] if env_values else None,
+        nemotron_super_model=(
+            env_values["nemotron_super_model"] if env_values else None
+        ),
+        glm_5_2_model=env_values["glm_5_2_model"] if env_values else None,
+        todoist_token=env_values["todoist_token"] if env_values else None,
+        gmail_sender_email=env_values["gmail_sender_email"] if env_values else None,
+        gmail_app_password=env_values["gmail_app_password"] if env_values else None,
+        gmail_controlled_recipient=(
+            env_values["gmail_controlled_recipient"] if env_values else None
+        ),
+        calendar_connector_label=(
+            env_values["calendar_connector_label"] if env_values else None
+        ),
+    )
+    call_limits = dict(rehearsal_report["call_limits"])
+    model_calls = int(call_limits["openrouter_primary_calls"]) + int(
+        call_limits["openrouter_fallback_calls"]
+    )
+    todoist_calls = int(call_limits["todoist_task_create_calls"])
+    gmail_calls = int(call_limits["gmail_email_send_calls"])
+    calendar_calls = int(call_limits["calendar_event_create_calls"])
+    safety = dict(rehearsal_report["safety_assertions"])
+    credential_values_read = safety["credential_values_read"] is True
+    status = str(rehearsal_report["status"])
+    external_mutation = safety.get("external_mutation")
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-rehearsal",
+            "status": status,
+            "database_write": False,
+            "external_mutation": external_mutation,
+            "external_writes": rehearsal_report.get("external_writes", "none"),
+            "file_write": False,
+            "no_external_writes": not (todoist_calls or gmail_calls or calendar_calls),
+            "no_credentials_loaded": not credential_values_read,
+            "no_credential_values_read": not credential_values_read,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": not (
+                safety["live_clients_initialized"] is True
+            ),
+            "no_live_rails_activated": not (
+                model_calls or todoist_calls or gmail_calls or calendar_calls
+            ),
+            "no_model_provider_call": not model_calls,
+            "credentials": (
+                "loaded_for_bounded_phase14c_wide_net_rehearsal"
+                if credential_values_read
+                else "not_loaded"
+            ),
+            "wide_net_rehearsal": rehearsal_report,
+        },
+        workflow_name="Phase 14-C wide-net rehearsal",
+        workflow_mode=(
+            "bounded live wide-net rehearsal"
+            if model_calls or todoist_calls or gmail_calls or calendar_calls
+            else "repo-local wide-net rehearsal gate / no live execution"
+        ),
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the wide-net rehearsal status.",
+            "Add an audited Calendar connector bridge before any CLI live run.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    pass_statuses = {
+        WIDE_NET_PASSED,
+        WIDE_NET_PASSED_WITH_MODEL_DIAGNOSTIC_FAILURE,
+    }
+    return 0 if (not args.execute_live or status in pass_statuses) else 1
+
+
 def _command_phase14c_connected_rehearsal(args: argparse.Namespace) -> int:
     config_names = tuple(os.environ.keys())
     approval_matched = (
@@ -2055,6 +2196,38 @@ def _connected_rehearsal_env_values() -> dict[str, str]:
         ),
         "gmail_controlled_recipient": os.environ.get(
             "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
+            "",
+        ),
+    }
+
+
+def _wide_net_rehearsal_env_values() -> dict[str, str]:
+    return {
+        "provider": os.environ.get("PERSONALOS_OPENCLAW_MODEL_PROVIDER", ""),
+        "api_key": os.environ.get("PERSONALOS_OPENCLAW_MODEL_API_KEY", ""),
+        "nemotron_super_model": os.environ.get(
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
+            "",
+        ),
+        "glm_5_2_model": os.environ.get(
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
+            "",
+        ),
+        "todoist_token": os.environ.get("PERSONALOS_PHASE14C_TODOIST_TOKEN", ""),
+        "gmail_sender_email": os.environ.get(
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS",
+            "",
+        ),
+        "gmail_app_password": os.environ.get(
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD",
+            "",
+        ),
+        "gmail_controlled_recipient": os.environ.get(
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
+            "",
+        ),
+        "calendar_connector_label": os.environ.get(
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL",
             "",
         ),
     }

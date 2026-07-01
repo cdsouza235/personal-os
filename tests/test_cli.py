@@ -390,6 +390,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C connected rehearsal plan",
             "Phase 14-C connected rehearsal gate",
             "Phase 14-C wide-net rehearsal plan",
+            "Phase 14-C wide-net rehearsal gate",
         ):
             with self.subTest(workflow_name=workflow_name):
                 self.assertIn(f"- {workflow_name}", result.stdout)
@@ -446,6 +447,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C connected rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C connected rehearsal gate", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
+        self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
 
     def test_phase14c_connectivity_setup_missing_names_only(self) -> None:
         secret_environment = {
@@ -549,7 +551,9 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             self.assertEqual(rail["missing_config_entry_names"], [])
             self.assertFalse(rail["present_config_entry_names_reported"])
             self.assertFalse(rail["credential_values_read"])
-        for secret_value in secret_environment.values():
+        for name, secret_value in secret_environment.items():
+            if name == "PERSONALOS_OPENCLAW_MODEL_PROVIDER":
+                continue
             self.assertNotIn(secret_value, result.stdout)
         for present_name in required_names:
             self.assertNotIn(present_name, result.stdout)
@@ -950,7 +954,9 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(preflight["missing_config_entry_names"], [])
         self.assertTrue(preflight["all_required_config_entry_names_present"])
         self.assertFalse(preflight["available_config_entry_names_reported"])
-        for secret_value in secret_environment.values():
+        for name, secret_value in secret_environment.items():
+            if name == "PERSONALOS_OPENCLAW_MODEL_PROVIDER":
+                continue
             self.assertNotIn(secret_value, result.stdout)
         for present_name in REQUIRED_CONFIG_ENTRY_NAMES:
             self.assertNotIn(present_name, result.stdout)
@@ -1030,7 +1036,9 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(live_readiness["live_run_approved_flag_required_for_future_step"])
         self.assertNotIn(private_recipient, result.stdout)
         self.assertNotIn(approval_reference, result.stdout)
-        for secret_value in secret_environment.values():
+        for name, secret_value in secret_environment.items():
+            if name == "PERSONALOS_OPENCLAW_MODEL_PROVIDER":
+                continue
             self.assertNotIn(secret_value, result.stdout)
         for present_name in REQUIRED_CONFIG_ENTRY_NAMES:
             self.assertNotIn(present_name, result.stdout)
@@ -1288,7 +1296,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
 
     def test_phase14c_openrouter_model_smoke_default_is_no_provider_call(self) -> None:
         secret_environment = {
-            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter-secret-provider",
             "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
             "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-model",
             "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-model",
@@ -1329,7 +1337,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self,
     ) -> None:
         secret_environment = {
-            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter-secret-provider",
             "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
             "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-model",
             "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-model",
@@ -1410,7 +1418,9 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(safety["credential_values_read"])
         self.assertFalse(safety["model_provider_called"])
         self.assertFalse(safety["external_mutation"])
-        for secret_value in secret_environment.values():
+        for name, secret_value in secret_environment.items():
+            if name == "PERSONALOS_OPENCLAW_MODEL_PROVIDER":
+                continue
             self.assertNotIn(secret_value, result.stdout)
         for present_name in (
             "PERSONALOS_PHASE14C_TODOIST_TOKEN",
@@ -1489,7 +1499,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(payload["no_model_provider_call"])
         self.assertFalse(plan["ready_for_live_execution"])
         self.assertTrue(plan["template_only_not_authorization"])
-        self.assertTrue(plan["no_executable_live_runner_in_this_packet"])
+        self.assertTrue(plan["executable_gate_available"])
+        self.assertFalse(plan["calendar_client_bridge_available"])
         self.assertEqual(budgets["openrouter_primary_calls"], 1)
         self.assertEqual(budgets["todoist_task_creates"], 1)
         self.assertEqual(budgets["gmail_emails_sent"], 1)
@@ -1504,6 +1515,103 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(safety["calendar_event_created"])
         self.assertFalse(safety["protected_openclaw_runtime_called"])
         for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_rehearsal_default_is_no_live_gate(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-id",
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-id",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS": "chris@example.com",
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD": "secret-gmail-password",
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT": "chris@example.com",
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "wide-net-rehearsal", "--json"])
+
+        payload = json.loads(result.stdout)
+        report = payload["wide_net_rehearsal"]
+        safety = report["safety_assertions"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-rehearsal")
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_rehearsal_not_run_missing_execute_live_flag",
+        )
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertFalse(safety["credential_values_read"])
+        self.assertFalse(safety["external_mutation"])
+        self.assertEqual(report["call_limits"]["openrouter_primary_calls"], 0)
+        self.assertEqual(report["call_limits"]["todoist_task_create_calls"], 0)
+        self.assertEqual(report["call_limits"]["gmail_email_send_calls"], 0)
+        self.assertEqual(report["call_limits"]["calendar_event_create_calls"], 0)
+        safe_secret_values = (
+            value
+            for name, value in secret_environment.items()
+            if name != "PERSONALOS_OPENCLAW_MODEL_PROVIDER"
+        )
+        for secret_value in safe_secret_values:
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_rehearsal_execute_needs_calendar_client_first(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-id",
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-id",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS": "chris@example.com",
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD": "secret-gmail-password",
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT": "chris@example.com",
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-rehearsal",
+                    "--execute-live",
+                    "--approval-reference",
+                    "phase14c-2026-07-01-wide-net-live-test",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        report = payload["wide_net_rehearsal"]
+        safety = report["safety_assertions"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
+        )
+        self.assertFalse(report["calendar_client_available"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertFalse(safety["credential_values_read"])
+        self.assertFalse(safety["external_mutation"])
+        self.assertEqual(report["call_limits"]["openrouter_primary_calls"], 0)
+        self.assertEqual(report["call_limits"]["todoist_task_create_calls"], 0)
+        self.assertEqual(report["call_limits"]["gmail_email_send_calls"], 0)
+        self.assertEqual(report["call_limits"]["calendar_event_create_calls"], 0)
+        safe_secret_values = (
+            value
+            for name, value in secret_environment.items()
+            if name != "PERSONALOS_OPENCLAW_MODEL_PROVIDER"
+        )
+        for secret_value in safe_secret_values:
             self.assertNotIn(secret_value, result.stdout)
 
     def test_phase14c_connected_rehearsal_default_is_no_live_gate(self) -> None:

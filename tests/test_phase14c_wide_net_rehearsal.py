@@ -29,7 +29,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         )
         self.assertFalse(plan["ready_for_live_execution"])
         self.assertTrue(plan["template_only_not_authorization"])
-        self.assertTrue(plan["no_executable_live_runner_in_this_packet"])
+        self.assertTrue(plan["executable_gate_available"])
+        self.assertFalse(plan["calendar_client_bridge_available"])
         self.assertEqual(
             plan["preconditions"]["ssl_cert_file"],
             PHASE14C_WIDE_NET_REHEARSAL_SSL_CERT_FILE,
@@ -126,9 +127,11 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
 
         required_phrases = (
             "phase14c wide-net-rehearsal-plan --json",
+            "phase14c wide-net-rehearsal --json",
             "does not read `.env.local`",
             "does not authorize or run live rails",
-            "no executable live runner",
+            "fails closed before credential values are read",
+            "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
             "one openrouter diagnostic model probe",
             "one todoist inbox/default marker task",
             "one gmail controlled self-email",

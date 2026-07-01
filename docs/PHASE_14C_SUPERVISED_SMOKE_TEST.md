@@ -265,7 +265,22 @@ Gmail controlled self-email, and one self-only Google Calendar marker event
 after a duplicate-marker precheck. The OpenRouter step is diagnostic-only and
 model-generated text must not be used as task/email/event content. The plan
 requires a new explicit approval reference and Claude Code audit before any
-future live run; it has no executable live runner in this packet.
+future live run; the separate executable gate remains no-live by default and
+fails closed before values until a Calendar bridge exists.
+
+Wide-net rehearsal executable gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-rehearsal --json
+```
+
+The default gate is repo-local/report-only and reads environment key names
+only. Its live form requires `--execute-live` and the exact approval reference
+`phase14c-2026-07-01-wide-net-live-test`; after required config names are
+present, it currently returns
+`phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
+before reading credential values. A separate audited Calendar bridge is
+required before the CLI can run the future wide-net live sequence.
 
 Connectivity setup:
 

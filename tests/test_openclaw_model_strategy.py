@@ -281,9 +281,10 @@ class OpenClawModelStrategyTest(unittest.TestCase):
             "external_mutation=false",
             "approved primary/fallback model budget for this evidence is exhausted",
             "phase14c wide-net-rehearsal-plan --json",
+            "phase14c wide-net-rehearsal --json",
             "diagnostic-only",
             "does not use model text for todoist, gmail, or calendar content",
-            "has no executable live runner in this packet",
+            "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
             "call nemotron super, glm 5.2, openrouter, or any live provider",
         )
         for phrase in required_phrases:

@@ -184,7 +184,9 @@ self-send passed, Todoist passed after the CA-bundle retry and manual
 first connected rehearsal stopped at model validation after the allowed
 Nemotron Super primary and GLM 5.2 fallback calls, and protected-runtime
 OpenClaw remains bounded to a separately approved local/test/sandbox smoke
-step.
+step. The next repo-local packet is an inert wide-net rehearsal plan for one
+OpenRouter diagnostic, one Todoist task, one Gmail self-send, and one self-only
+Calendar event; it is not live authorization and has no executable live runner.
 
 ## Future Blocked Work
 

@@ -6,10 +6,10 @@ Last updated: 2026-07-01
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #99:
-  `67abed73f59713b02735305edaa9bace3159b2ca`
-- Latest merged PR at that baseline: PR #99, Phase 14-C connected rehearsal
-  executable gate
+- Last validated main baseline after PR #100:
+  `8a03d4e47c05be8db5178e11aeae1ab8df02ae22`
+- Latest merged PR at that baseline: PR #100, Phase 14-C connected rehearsal
+  live evidence
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -85,7 +85,10 @@ Last updated: 2026-07-01
   2026-07-01 connected rehearsal used one Nemotron Super primary call plus one
   GLM 5.2 fallback call before stopping at model validation, with no Todoist
   task, no Gmail email, no Calendar event, and no protected OpenClaw runtime
-  invocation
+  invocation; this branch adds an inert wide-net rehearsal plan for one
+  OpenRouter diagnostic, one Todoist Inbox/default task, one Gmail controlled
+  self-send, and one self-only Calendar event, with no executable live runner
+  in this packet
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -135,12 +138,14 @@ Last updated: 2026-07-01
   plus a no-live follow-up diagnostic command for Todoist manual outcome
   confirmation and OpenRouter safe failure metadata, plus the CA-bundle retry
   evidence confirming Todoist and OpenRouter connectivity
-- Current / next phase: Phase 14-C connected rehearsal follow-up after the
-  first approved model-to-task-to-email rehearsal stopped at model validation.
-  The live evidence is recorded in
-  [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md).
-  Calendar duplicate creation and protected OpenClaw runtime invocation remain
-  excluded unless separately approved.
+- Current / next phase: Phase 14-C wide-net rehearsal planning after the first
+  approved model-to-task-to-email rehearsal stopped at model validation. The
+  connected live evidence is recorded in
+  [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md),
+  and the next inert wider plan is recorded in
+  [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md).
+  Calendar creation and protected OpenClaw runtime invocation remain excluded
+  unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
   `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`,
   Monday, 2026-07-06, 09:00-09:15 America/Chicago, event ID
@@ -299,6 +304,18 @@ Last updated: 2026-07-01
   allowed OpenRouter model budget (`primary_calls=1`, `fallback_calls=1`) and
   stopped before Todoist and Gmail with sanitized model-validation failure
   evidence only.
+- Phase 14-C wide-net rehearsal plan:
+  [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md)
+  defines the next wider supervised test plan after the connected rehearsal:
+  one OpenRouter diagnostic model probe, one Todoist Inbox/default marker task,
+  one Gmail controlled self-email, and one self-only Google Calendar marker
+  event after a duplicate-marker precheck. The CLI
+  `phase14c wide-net-rehearsal-plan --json` is repo-local/report-only, does
+  not read environment variables or credential values, does not initialize
+  live clients, does not call OpenRouter, create Todoist tasks, send Gmail,
+  write Calendar, invoke OpenClaw, open a database, or write files, and keeps
+  `ready_for_live_execution=false`. The plan is not live authorization and
+  has no executable live runner in this packet.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -312,8 +329,8 @@ Last updated: 2026-07-01
 
 ## Validated State
 
-- Full suite: 769 tests OK
-- ResourceWarning-sensitive suite: 769 tests OK
+- Full suite: 776 tests OK
+- ResourceWarning-sensitive suite: 776 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -328,6 +345,7 @@ Last updated: 2026-07-01
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
+- Targeted Phase 14-C wide-net rehearsal/CLI/docs/model suite: 91 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

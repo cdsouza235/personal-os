@@ -27,6 +27,8 @@ Source contract:
 - `src/personalos/openclaw_model_strategy.py`
 - `build_openclaw_model_provider_readiness_report`
 - `run_openclaw_model_smoke_probe`
+- `src/personalos/phase14c_wide_net_rehearsal.py`
+- `build_phase14c_wide_net_rehearsal_plan`
 
 CLI discovery:
 
@@ -247,6 +249,23 @@ Todoist and Gmail: `todoist_task_create_calls=0`,
 `protected_openclaw_runtime_invocation_calls=0`, and
 `external_mutation=false`. Do not rerun that connected live command without a
 new explicit approval and a new call/write budget.
+
+Wide-net rehearsal plan:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-rehearsal-plan --json
+```
+
+That command is repo-local/report-only. It does not read environment
+variables, load credentials, initialize live clients, call OpenRouter, create
+Todoist tasks, send Gmail, write Calendar, invoke OpenClaw, open a database,
+or write files. It defines the next wider supervised test plan with one
+OpenRouter diagnostic model probe, one Todoist Inbox/default marker task, one
+Gmail controlled self-email, and one self-only Google Calendar marker event
+after a duplicate-marker precheck. The OpenRouter step is diagnostic-only and
+model-generated text must not be used as task/email/event content. The plan
+requires a new explicit approval reference and Claude Code audit before any
+future live run; it has no executable live runner in this packet.
 
 Connectivity setup:
 

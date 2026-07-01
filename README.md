@@ -38,6 +38,9 @@ Markdown documentation. The current project snapshot lives in
 - [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md):
   next connected Gmail/Todoist/OpenRouter rehearsal plan after connectivity
   confirmation.
+- [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md):
+  next wider Phase 14-C plan for one OpenRouter diagnostic, one Todoist task,
+  one Gmail self-send, and one self-only Calendar event.
 - [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md):
   current connector/client/config inventory and mobile-continuity setup names
   for the remaining Phase 14-C smoke rails.
@@ -99,7 +102,11 @@ to inspect the executable gate for that rehearsal. The approved 2026-07-01
 connected rehearsal used one Nemotron Super primary call and one GLM 5.2
 fallback call, then stopped at model validation before creating Todoist or
 sending Gmail; Calendar and protected OpenClaw runtime remained untouched.
-Do not rerun the connected live command without a new explicit approval.
+Do not rerun the connected live command without a new explicit approval. Use
+`personalos phase14c wide-net-rehearsal-plan --json` to inspect the next
+wider inert plan for one OpenRouter diagnostic, one Todoist task, one Gmail
+self-send, and one self-only Calendar event. That plan is not live
+authorization and has no executable live runner in this packet.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

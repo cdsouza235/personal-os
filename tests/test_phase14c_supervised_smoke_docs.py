@@ -26,6 +26,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "validate_phase14c_supervised_smoke_request",
             "execute_phase14c_supervised_smoke_request",
             "run_phase14c_supervised_smoke_dry_run_rehearsal",
+            "src/personalos/phase14c_wide_net_rehearsal.py",
+            "build_phase14c_wide_net_rehearsal_plan",
             "personalos.cli phase14c supervised-smoke-runbook --json",
             "personalos.cli phase14c supervised-smoke-request-template",
             "personalos.cli phase14c supervised-smoke-validate --input-file",
@@ -39,6 +41,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "personalos.cli phase14c live-smoke-diagnostics --json",
             "personalos.cli phase14c connected-rehearsal-plan --json",
             "personalos.cli phase14c connected-rehearsal --json",
+            "personalos.cli phase14c wide-net-rehearsal-plan --json",
             "does not load credentials",
             "does not initialize live clients",
             "does not initialize a model client",
@@ -76,6 +79,10 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "todoist_not_run_missing_execute_live_flag",
             "gmail_not_run_missing_execute_live_flag",
             "openclaw_model_smoke_not_run_missing_execute_live_flag",
+            "one openrouter diagnostic model probe",
+            "one self-only google calendar marker event",
+            "model-generated text must not be used as task/email/event content",
+            "no executable live runner in this packet",
             "mutation_state=unconfirmed_after_task_create_attempt",
             "mutation_state=unconfirmed_after_send_attempt",
             "due_date",
@@ -235,6 +242,10 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "manual todoist outcome check",
             "`error_kind`",
             "`http_status`",
+            "phase14c wide-net-rehearsal-plan --json",
+            "one openrouter diagnostic model probe",
+            "one self-only google calendar marker event",
+            "has no executable live runner in this packet",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

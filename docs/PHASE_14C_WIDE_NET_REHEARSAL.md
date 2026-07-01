@@ -1,0 +1,178 @@
+# Phase 14-C Wide-Net Rehearsal Plan
+
+Date: 2026-07-01
+
+This document defines the next wider supervised Phase 14-C live-test packet.
+It is a plan only. It does not authorize or run live rails, and it does not
+include an executable live runner. In short: no executable live runner is
+added by this packet.
+
+CLI report:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-rehearsal-plan --json
+```
+
+The plan command is repo-local/report-only. It does not read `.env.local`, read
+environment variables, load credentials, initialize live clients, call
+OpenRouter, create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw,
+open a database, write files, or touch protected paths.
+
+## Confirmed Foundation
+
+- Gmail SMTP self-send has passed once with one controlled self-send and
+  masked sender/recipient only.
+- Todoist Inbox/default has passed once after the CA-bundle retry, creating
+  exactly one bounded test task after manual `not_found` reconciliation.
+- OpenRouter has passed once after the CA-bundle retry, with Nemotron Super
+  primary validation passing and `fallback_calls=0`.
+- The first connected rehearsal then used one Nemotron Super primary call and
+  one GLM 5.2 fallback call before stopping at model validation; no Todoist
+  task, Gmail email, Calendar event, or protected OpenClaw runtime invocation
+  happened in that run.
+- Google Calendar has one existing bounded smoke event. This wide-net plan
+  uses a new marker and requires a duplicate-marker precheck before any future
+  Calendar create.
+- Protected OpenClaw runtime remains uninvoked and is not part of this
+  rehearsal.
+
+## Rehearsal Objective
+
+The next useful test is to widen the net without depending on model-generated
+content for downstream writes:
+
+1. Run one OpenRouter diagnostic model probe.
+2. Create one Todoist Inbox/default marker task.
+3. Send one Gmail controlled self-email with the same marker.
+4. Create one self-only Google Calendar marker event after a duplicate-marker
+   precheck.
+
+The OpenRouter probe is diagnostic-only. If the model validation fails again,
+the report should record the safe metadata and continue only if the separately
+audited live runner or operator packet explicitly allows the fixed-marker
+Todoist/Gmail/Calendar steps. Model text must not be used as task/email/event
+content.
+
+This is not dynamic cleaning, broad live activation, production DB activation,
+scheduler adoption, protected OpenClaw runtime handoff, or a background
+operator loop.
+
+## Proposed Live Envelope
+
+Approval reference to request:
+
+```text
+phase14c-2026-07-01-wide-net-live-test
+```
+
+Required marker:
+
+```text
+[Phase 14-C Wide Test] Evening Reset Coordination
+```
+
+Required CA bundle:
+
+```bash
+SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem
+```
+
+Call/write budgets:
+
+- OpenRouter primary calls: 1.
+- OpenRouter fallback calls: at most 1, only if primary validation fails.
+- Todoist task creates: 1.
+- Gmail emails sent: 1.
+- Calendar event creates: 1.
+- Protected OpenClaw runtime invocations: 0.
+- OpenClaw local/test/sandbox harness invocations: 0.
+- Scheduler/background jobs: 0.
+- Production DB writes: 0.
+
+Todoist target:
+
+- Project: Inbox/default.
+- Title: `[Phase 14-C Wide Test] Evening Reset Coordination`.
+- Due date: next upcoming Monday at runtime.
+- No recurrence, subtasks, labels, comments, attachments, automatic edits,
+  deletes, rescheduling, or skip/push/bump behavior.
+
+Gmail target:
+
+- Recipient: configured controlled recipient or self only.
+- Subject: `[Phase 14-C Wide Test] Evening Reset Coordination`.
+- No CC, BCC, attachments, reply, forward, or bulk send.
+
+Calendar target:
+
+- Calendar: primary or authenticated self calendar only.
+- Title: `[Phase 14-C Wide Test] Evening Reset Coordination`.
+- Duration: 15 minutes.
+- Duplicate precheck: required before create.
+- No attendees, recurrence, conference link, attachments, invite fanout, or
+  duplicate of the prior Calendar smoke event.
+
+OpenRouter target:
+
+- Primary: Nemotron Super.
+- Fallback: GLM 5.2 only if primary validation fails.
+- Prompt: fixed, short, non-secret diagnostic prompt.
+- No protected paths, credentials, or personal data in the prompt.
+- Do not log the full prompt, model-generated text, raw provider response,
+  configured model IDs, or credential values.
+- If GLM returns another `http_status=402`, record the safe diagnostic metadata
+  and do not retry.
+
+## Preconditions
+
+- A new explicit live approval is required.
+- Claude Code read-only audit is required before any live run.
+- `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem` is required.
+- Gmail, Todoist, OpenRouter, and Google Calendar connector/client access must
+  be configured.
+- Google Calendar must pass a duplicate-marker precheck before any create.
+- Config names may be checked, but credential values must not be printed,
+  summarized, committed, or pasted into chat.
+- This document and CLI report do not read environment variables or call the
+  Google Calendar connector.
+
+## Stop Conditions
+
+Stop before or during any future live run if:
+
+- Any rail would exceed its stated call/write budget.
+- A Todoist task already exists with the wide-net marker.
+- A Calendar event already exists with the wide-net marker.
+- Gmail recipient is not the configured controlled recipient or self.
+- Calendar would include attendees, recurrence, conference link, or
+  attachments.
+- OpenRouter prompt would include secrets, protected paths, or personal data.
+- OpenRouter GLM fallback returns another 402 or other spend/config blocker.
+- Protected OpenClaw runtime invocation appears.
+- Scheduler/background, production DB, dynamic cleaning, or protected paths
+  appear.
+- Credential values would be printed, logged, copied, committed, or summarized.
+
+## Suggested Approval Text
+
+```text
+Approved: run exactly one Phase 14-C wide-net live test using approval reference phase14c-2026-07-01-wide-net-live-test with SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem. Allowed live actions: one OpenRouter diagnostic model call with one fallback only if primary validation fails, one Todoist Inbox/default task, one Gmail controlled self-send, and one self-only Google Calendar event using marker [Phase 14-C Wide Test] Evening Reset Coordination. Do not run protected OpenClaw runtime, scheduler/background, production DB, protected paths, dynamic cleaning, or broad runtime handoff.
+```
+
+This is a future human gate, not reusable authorization embedded in this
+document or the CLI report.
+
+## Safety Assertions
+
+- `readiness.status` remains `not_ready`.
+- `inert_report_only` remains `true`.
+- `live_rails_activated` remains `false`.
+- The plan command does not read credential values.
+- The plan command does not initialize live clients.
+- The plan command does not call OpenRouter.
+- The plan command does not create Todoist tasks.
+- The plan command does not send Gmail.
+- The plan command does not write Calendar.
+- The plan command does not invoke protected OpenClaw runtime.
+- This packet does not authorize Calendar duplicates.
+- This packet does not implement dynamic cleaning.

@@ -125,17 +125,25 @@ the smoke probe may make at most one Nemotron Super primary call and one GLM
 5.2 fallback call only after primary validation failure. The prompt is a short
 constant smoke probe and is not included in the report.
 
-2026-06-30 bounded live OpenRouter result:
+2026-06-30 bounded live OpenRouter results:
 
-- Approval reference:
+- First approval reference:
   `phase14c-2026-06-30-connectivity-live-smoke`.
-- Status: `openclaw_model_smoke_validation_failed`.
-- Primary call: `nemotron_super`, one call, sanitized
+- First status: `openclaw_model_smoke_validation_failed`.
+- First primary call: `nemotron_super`, one call, sanitized
   `transport_or_parse_error`.
-- Fallback call: `glm_5_2`, one call after primary validation failed,
+- First fallback call: `glm_5_2`, one call after primary validation failed,
   sanitized `transport_or_parse_error`.
-- The approved primary/fallback call budget for this evidence packet is
-  exhausted; do not rerun without a new explicit approval.
+- The approved primary/fallback call budget for the first evidence packet was
+  exhausted.
+- Diagnostic retry showed the local Python runtime needed a CA bundle:
+  `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem`.
+- CA-bundle retry approval reference:
+  `phase14c-2026-06-30-connectivity-ca-retry`.
+- CA-bundle retry status: `openclaw_model_smoke_passed`.
+- CA-bundle retry primary call: `nemotron_super`, one call, validation passed.
+- CA-bundle retry fallback calls: `fallback_calls=0`; GLM 5.2 was not called.
+- Do not rerun without a new explicit approval.
 - No credential values, full prompt, raw provider response, tool execution,
   OpenClaw runtime call, protected-path access, scheduler activation,
   production DB activation, or external mutation occurred.

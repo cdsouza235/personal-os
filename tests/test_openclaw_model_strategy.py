@@ -266,6 +266,10 @@ class OpenClawModelStrategyTest(unittest.TestCase):
             "error_kind",
             "http_status",
             "phase14c live-smoke-diagnostics --json",
+            "phase14c-2026-06-30-connectivity-ca-retry",
+            "ssl_cert_file=/opt/homebrew/etc/ca-certificates/cert.pem",
+            "openclaw_model_smoke_passed",
+            "fallback_calls=0",
             "call nemotron super, glm 5.2, openrouter, or any live provider",
         )
         for phrase in required_phrases:

@@ -4,13 +4,15 @@ Date: 2026-06-30
 
 Baseline:
 
-- `main` at `b534ca34c9ea17a61d0430e0fea5b8c24739ebc9`
-- PR #94 already merged
+- `main` at `f2e84ae170c98e4757d21d2f257f4088476ee259`
+- PR #96 already merged
 - Google Calendar smoke event already exists:
   `memu6fhql6stl71auv05e1a6d0`
 - Calendar duplicate creation was not authorized or performed by this packet
 - Live approval reference:
   `phase14c-2026-06-30-connectivity-live-smoke`
+- CA-bundle retry approval reference:
+  `phase14c-2026-06-30-connectivity-ca-retry`
 
 ## Capability Inventory
 
@@ -20,9 +22,9 @@ Baseline:
 | GitHub PR via `gh` | available | PR metadata query succeeded; `gh auth status` still reports invalid stored host tokens |
 | Google Calendar connector | available | bounded readback found exactly one matching event |
 | Gmail connector/client | available; bounded live smoke passed | `personalos phase14c gmail-smtp-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json` sent one controlled Gmail SMTP test email |
-| Todoist connector/client | available; bounded live create attempt unconfirmed | `personalos phase14c todoist-inbox-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json` made one Inbox/default create attempt and could not validate the response |
+| Todoist connector/client | available; bounded live smoke passed after CA-bundle retry | first smoke attempt was unconfirmed; manual Todoist outcome was `not_found`; `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem personalos phase14c todoist-inbox-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-ca-retry --json` created one Inbox/default task |
 | OpenClaw local/test/sandbox harness | available and passed | `openclaw_local_harness_passed` |
-| OpenClaw model provider/client | available; bounded OpenRouter smoke failed validation | `personalos phase14c openrouter-model-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-live-smoke --json` called Nemotron Super once and GLM 5.2 once; both attempts reported sanitized `transport_or_parse_error` |
+| OpenClaw model provider/client | available; bounded OpenRouter smoke passed after CA-bundle retry | first smoke failed with sanitized TLS trust diagnostics; `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem personalos phase14c openrouter-model-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-ca-retry --json` passed on Nemotron Super primary with no GLM fallback |
 
 Safe Calendar account identity observed from the connector:
 
@@ -44,17 +46,26 @@ Gmail SMTP self-send:
 
 Todoist Inbox/default:
 
-- Result: `todoist_inbox_default_task_smoke_failed`.
-- Mutation state:
+- First result: `todoist_inbox_default_task_smoke_failed`.
+- First mutation state:
   `unconfirmed_after_task_create_attempt`.
-- One Inbox/default task-create request was attempted.
+- One Inbox/default task-create request was attempted in the first run.
 - Title: `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`.
 - Due date: 2026-07-06.
-- Call budget: `task_create_calls=1`, `max_task_creates=1`.
+- First call budget: `task_create_calls=1`, `max_task_creates=1`.
 - The response could not be validated, so the report intentionally does not
   assert that a task was created or not created.
-- Do not rerun this rail without a manual Todoist check or a new explicit
-  duplicate-risk approval.
+- Manual Todoist outcome check after the first run: `not_found`.
+- CA-bundle retry result: `todoist_inbox_default_task_smoke_passed`.
+- CA-bundle retry approval reference:
+  `phase14c-2026-06-30-connectivity-ca-retry`.
+- CA-bundle retry setting:
+  `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem`.
+- CA-bundle retry call budget: `task_create_calls=1`,
+  `max_task_creates=1`.
+- CA-bundle retry mutation state: `confirmed_task_created`.
+- Exactly one Inbox/default task was created by the CA-bundle retry.
+- Do not rerun this rail without a new explicit duplicate-risk approval.
 - No recurrence, subtasks, labels, comments, attachments, automatic edits,
   deletes, skip/push/bump behavior, or automatic rescheduling were requested.
 - No database write, file write, scheduler activation, production DB
@@ -69,13 +80,23 @@ Google Calendar:
 
 OpenRouter model smoke:
 
-- Result: `openclaw_model_smoke_validation_failed`.
-- Primary smoke lane call: `nemotron_super`, one call.
-- Fallback smoke lane call: `glm_5_2`, one call, only after primary validation
-  failed.
-- Call budget: `primary_calls=1`, `fallback_calls=1`,
+- First result: `openclaw_model_smoke_validation_failed`.
+- First primary smoke lane call: `nemotron_super`, one call.
+- First fallback smoke lane call: `glm_5_2`, one call, only after primary
+  validation failed.
+- First call budget: `primary_calls=1`, `fallback_calls=1`,
   `max_primary_calls=1`, `max_fallback_calls=1`.
-- Both attempts reported sanitized `transport_or_parse_error` metadata.
+- Both first-run attempts reported sanitized `transport_or_parse_error`
+  metadata.
+- CA-bundle retry result: `openclaw_model_smoke_passed`.
+- CA-bundle retry approval reference:
+  `phase14c-2026-06-30-connectivity-ca-retry`.
+- CA-bundle retry setting:
+  `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem`.
+- CA-bundle retry primary smoke lane call: `nemotron_super`, one call.
+- CA-bundle retry fallback calls: `fallback_calls=0`.
+- CA-bundle retry metadata included `success=true`, `input_tokens=40`,
+  `output_tokens=47`, and sanitized latency.
 - No raw provider response, full prompt, configured model ID, or credential
   value was logged or recorded.
 - No tool execution, OpenClaw runtime call, protected-path access, scheduler
@@ -181,8 +202,20 @@ set -a; source .env.local; set +a; PYTHONPATH=src python3 -m personalos.cli phas
 ```
 
 Do not rerun any of those three live commands for this evidence packet.
-Gmail already passed, Todoist has an unconfirmed create-attempt result, and
-OpenRouter already exhausted the allowed primary/fallback call budget.
+The first Gmail run already passed, the first Todoist run had an unconfirmed
+create-attempt result, and the first OpenRouter run exhausted the allowed
+primary/fallback call budget.
+
+Live CA-bundle retry commands already used once:
+
+```bash
+set -a; source .env.local; set +a; export SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem; PYTHONPATH=src python3 -m personalos.cli phase14c todoist-inbox-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-ca-retry --json
+set -a; source .env.local; set +a; export SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem; PYTHONPATH=src python3 -m personalos.cli phase14c openrouter-model-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-ca-retry --json
+```
+
+Do not rerun either CA-bundle live command without a new explicit approval.
+The Todoist CA-bundle retry already created one task, and the OpenRouter
+CA-bundle retry already passed on the Nemotron Super primary call.
 
 OpenClaw local/test/sandbox harness:
 
@@ -198,12 +231,15 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
   printed, copied, logged, summarized, or committed.
 - `.env.local` is gitignored; `.env.example` contains placeholders only.
 - Exactly one Gmail email was sent and accepted by Gmail SMTP.
-- Exactly one Todoist task-create request was attempted; task creation remains
-  unconfirmed and must not be retried without manual review or explicit
-  duplicate-risk approval.
-- Exactly one OpenRouter Nemotron Super primary call and one GLM 5.2 fallback
-  call were made; both failed validation with sanitized transport/parse
+- Exactly one first-run Todoist task-create request was attempted; task
+  creation remained unconfirmed until the manual Todoist outcome check
+  returned `not_found`.
+- Exactly one CA-bundle Todoist retry task was created in Inbox/default.
+- Exactly one first-run OpenRouter Nemotron Super primary call and one GLM 5.2
+  fallback call were made; both failed validation with sanitized TLS trust
   metadata.
+- Exactly one CA-bundle OpenRouter retry primary call was made; it passed on
+  Nemotron Super and did not call the GLM 5.2 fallback.
 - Follow-up diagnostics are repo-local/report-only and do not read credential
   values, initialize live clients, call OpenRouter, write Todoist, send Gmail,
   write Calendar, invoke OpenClaw, open a database, or write files.

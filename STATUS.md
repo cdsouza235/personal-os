@@ -6,10 +6,10 @@ Last updated: 2026-06-30
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #95:
-  `87168fdc1e3661ff8749655cfe3343ba73d14991`
-- Latest merged PR at that baseline: PR #95, Phase 14-C live-smoke evidence
-  packet
+- Last validated main baseline after PR #96:
+  `f2e84ae170c98e4757d21d2f257f4088476ee259`
+- Latest merged PR at that baseline: PR #96, Phase 14-C live-smoke
+  diagnostics
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -72,12 +72,15 @@ Last updated: 2026-06-30
   `--execute-live` gates, and approval-reference requirements before any
   credential values are read or external calls are made; the 2026-06-30
   bounded live-smoke run sent one controlled Gmail SMTP test email, made one
-  Todoist Inbox/default task-create attempt whose result is unconfirmed, and
+  Todoist Inbox/default task-create attempt whose result was unconfirmed, and
   made one OpenRouter Nemotron Super primary call plus one GLM 5.2 fallback
   call that both failed validation with sanitized transport/parse failure
   metadata; a repo-local `phase14c live-smoke-diagnostics` command now
   prepares the Todoist manual outcome check and future OpenRouter safe
-  diagnostic fields without reading credentials or making live calls
+  diagnostic fields without reading credentials or making live calls; after a
+  manual Todoist `not_found` check and a TLS-trust diagnosis, the separately
+  approved CA-bundle retry created exactly one Todoist Inbox/default task and
+  passed the OpenRouter Nemotron Super primary smoke without a GLM fallback
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -125,7 +128,8 @@ Last updated: 2026-06-30
   OpenRouter model smoke client commands that are not executed by default, plus
   the 2026-06-30 bounded Gmail/Todoist/OpenRouter live-smoke evidence packet,
   plus a no-live follow-up diagnostic command for Todoist manual outcome
-  confirmation and OpenRouter safe failure metadata
+  confirmation and OpenRouter safe failure metadata, plus the CA-bundle retry
+  evidence confirming Todoist and OpenRouter connectivity
 - Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
   evidence review and follow-up after the first remaining-rail live run.
   Todoist, Google Calendar, Gmail, and OpenClaw remain acceptable
@@ -146,7 +150,13 @@ Last updated: 2026-06-30
   `mutation_state=unconfirmed_after_task_create_attempt`; OpenRouter made one
   Nemotron Super primary call and one GLM 5.2 fallback call, both sanitized as
   `transport_or_parse_error`, and returned
-  `openclaw_model_smoke_validation_failed`. No protected-runtime OpenClaw
+  `openclaw_model_smoke_validation_failed`. After manual Todoist outcome
+  `not_found`, approval reference
+  `phase14c-2026-06-30-connectivity-ca-retry` was used with
+  `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem`: Todoist created
+  exactly one Inbox/default task for the same title and due date, and
+  OpenRouter returned `openclaw_model_smoke_passed` after one Nemotron Super
+  primary call with `fallback_calls=0`. No protected-runtime OpenClaw
   invocation has been performed. The repo-local OpenClaw local/test/sandbox
   harness passed once with no protected runtime call or external mutation.
 - Broad live activation remains false; readiness remains `not_ready` and
@@ -208,15 +218,19 @@ Last updated: 2026-06-30
   no-execution gate that reads config names only; live mode requires
   `--execute-live`, an approval reference, and
   `PERSONALOS_PHASE14C_TODOIST_TOKEN`, and may create at most one Inbox/default
-  task. The 2026-06-30 approved live smoke made exactly one create attempt for
-  the Inbox/default title `[Phase 14-C Test] Clean Kitchen Countertops and
-  Stovetop`, due 2026-07-06, but the response could not be validated; status
-  was `todoist_inbox_default_task_smoke_failed` with
-  `mutation_state=unconfirmed_after_task_create_attempt`. Do not rerun this
-  rail without a manual Todoist check or a new explicit duplicate-risk
-  approval. The `phase14c live-smoke-diagnostics` CLI reports the exact manual
-  Todoist outcome check without reading credentials, initializing a client, or
-  contacting Todoist.
+  task. The first 2026-06-30 approved live smoke made exactly one create
+  attempt for the Inbox/default title `[Phase 14-C Test] Clean Kitchen
+  Countertops and Stovetop`, due 2026-07-06, but the response could not be
+  validated; status was `todoist_inbox_default_task_smoke_failed` with
+  `mutation_state=unconfirmed_after_task_create_attempt`. A manual Todoist
+  check reported `not_found`; the separately approved CA-bundle retry with
+  approval reference `phase14c-2026-06-30-connectivity-ca-retry` created
+  exactly one Inbox/default task with status
+  `todoist_inbox_default_task_smoke_passed` and
+  `mutation_state=confirmed_task_created`. Do not rerun this rail without a
+  new explicit duplicate-risk approval. The `phase14c live-smoke-diagnostics`
+  CLI reports the exact manual Todoist outcome check without reading
+  credentials, initializing a client, or contacting Todoist.
 - Phase 14-C OpenClaw readiness: includes a repo-local
   `run_phase14c_openclaw_local_sandbox_smoke` harness for
   `phase14c_smoke_test`; the harness passed once with
@@ -233,13 +247,17 @@ Last updated: 2026-06-30
   reads config names only; live mode requires `--execute-live`, an approval
   reference, and OpenRouter config values, and may call Nemotron Super at most
   once plus GLM 5.2 at most once only if primary validation fails. The
-  2026-06-30 approved live smoke used the full allowed call budget
+  first 2026-06-30 approved live smoke used the full allowed call budget
   (`primary_calls=1`, `fallback_calls=1`) and returned
   `openclaw_model_smoke_validation_failed`; both attempts reported sanitized
-  `transport_or_parse_error` metadata only, with no credential values, full
-  prompt, raw provider response, tool execution, OpenClaw runtime call,
-  protected-path access, scheduler activation, production DB activation, or
-  external mutation.
+  `transport_or_parse_error` metadata only. The separately approved
+  CA-bundle retry with approval reference
+  `phase14c-2026-06-30-connectivity-ca-retry` returned
+  `openclaw_model_smoke_passed` after one Nemotron Super primary call
+  (`primary_calls=1`, `fallback_calls=0`), with sanitized metadata only, no
+  credential values, full prompt, raw provider response, tool execution,
+  OpenClaw runtime call, protected-path access, scheduler activation,
+  production DB activation, or external mutation.
 - Phase 14-C live-smoke diagnostics: `phase14c live-smoke-diagnostics` is a
   no-live, no-env, no-credential report that records the manual Todoist check
   required before any Todoist retry and the new safe OpenRouter diagnostic
@@ -249,9 +267,9 @@ Last updated: 2026-06-30
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
   repo-local gated SMTP app-password smoke path and one passed bounded live
-  smoke, Todoist has a repo-local gated smoke client path and one
-  indeterminate post-attempt live smoke, OpenRouter has a repo-local gated
-  smoke client path and one failed bounded live model smoke, the OpenClaw
+  smoke, Todoist has a repo-local gated smoke client path and one confirmed
+  CA-bundle live smoke task, OpenRouter has a repo-local gated smoke client
+  path and one confirmed CA-bundle live model smoke pass, the OpenClaw
   local/test/sandbox harness passed, and GitHub branch push / PR metadata
   operations are available in this session despite `gh auth status` reporting
   invalid stored host tokens.

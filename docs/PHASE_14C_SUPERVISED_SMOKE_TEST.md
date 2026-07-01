@@ -271,7 +271,7 @@ Calendar smoke result:
 
 Remaining-rail live smoke result:
 
-- Approval reference:
+- First approval reference:
   `phase14c-2026-06-30-connectivity-live-smoke`.
 - Gmail SMTP self-send passed with `gmail_self_send_smoke_passed`.
 - Gmail sent exactly one controlled test email from masked sender
@@ -283,14 +283,28 @@ Remaining-rail live smoke result:
   2026-07-06.
 - Todoist returned `todoist_inbox_default_task_smoke_failed` with
   `mutation_state=unconfirmed_after_task_create_attempt`, so the repo does not
-  assert whether the task exists. Do not rerun Todoist without a manual
-  Todoist check or a new explicit duplicate-risk approval.
+  assert whether the task exists.
 - OpenRouter model smoke called Nemotron Super once, then GLM 5.2 once after
   primary validation failed.
 - OpenRouter returned `openclaw_model_smoke_validation_failed`; both attempts
   reported sanitized `transport_or_parse_error` metadata only. Do not rerun the
   OpenRouter smoke for this evidence packet because the approved
   primary/fallback call budget is exhausted.
+- Manual Todoist outcome check after the first remaining-rail run returned
+  `not_found`.
+- CA-bundle retry approval reference:
+  `phase14c-2026-06-30-connectivity-ca-retry`.
+- CA-bundle retry used
+  `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem` after diagnostics
+  showed local Python TLS trust was missing the Homebrew CA bundle.
+- Todoist CA-bundle retry returned
+  `todoist_inbox_default_task_smoke_passed`, created exactly one Inbox/default
+  task with the same title and due date, and reported
+  `mutation_state=confirmed_task_created`.
+- Do not rerun Todoist without a new explicit duplicate-risk approval.
+- OpenRouter CA-bundle retry returned `openclaw_model_smoke_passed` after one
+  Nemotron Super primary call; `fallback_calls=0`, so GLM 5.2 was not called
+  in the successful retry.
 - No credential values, raw provider responses, full prompts, environment
   dumps, database writes, scheduler/background activation, production DB
   activation, protected-path access, broad OpenClaw handoff, or protected
@@ -587,10 +601,13 @@ Todoist Inbox/default readiness, and a repo-local OpenClaw local/test/sandbox
 smoke harness. It also includes explicit Todoist Inbox/default and OpenRouter
 model smoke gate commands whose default mode is no-execution/report-only and
 whose live modes require separate explicit approval, plus a no-live
-`phase14c live-smoke-diagnostics` command for the unresolved Todoist and
-OpenRouter follow-up. It also records that one
+`phase14c live-smoke-diagnostics` command for the Todoist/OpenRouter
+follow-up. It also records that one
 supervised Calendar smoke event passed; one controlled Gmail SMTP self-send
-passed; one Todoist Inbox/default create attempt is unconfirmed after the
-request; and one OpenRouter primary/fallback model smoke failed validation
-with sanitized transport/parse metadata. Broad live activation remains false
+passed; one first-run Todoist Inbox/default create attempt was unconfirmed
+after the request; one first-run OpenRouter primary/fallback model smoke failed
+validation with sanitized transport/parse metadata; one separately approved
+CA-bundle Todoist retry created the bounded Inbox/default task; and one
+separately approved CA-bundle OpenRouter retry passed on the Nemotron Super
+primary call without a GLM 5.2 fallback. Broad live activation remains false
 and readiness remains not ready.

@@ -65,11 +65,13 @@ Markdown documentation. The current project snapshot lives in
 
 Personal OS is currently not broadly live. One bounded supervised Calendar
 smoke event has passed; one bounded Gmail SMTP self-send has passed; one
-Todoist Inbox/default create attempt is unconfirmed after the request; and one
-OpenRouter model smoke used its allowed primary/fallback call budget but failed
-validation with sanitized transport/parse metadata. Protected OpenClaw runtime
-remains unrun. Todoist, Google Calendar, Gmail, and OpenClaw are acceptable
-low-blast-radius rails for the bounded Phase 14-C supervised smoke-test plan in
+first-run Todoist Inbox/default create attempt was unconfirmed, then a manual
+`not_found` check plus separately approved CA-bundle retry created exactly one
+bounded Inbox/default task; and one first-run OpenRouter model smoke failed
+with sanitized TLS trust metadata before a separately approved CA-bundle retry
+passed on the Nemotron Super primary call with no GLM 5.2 fallback. Protected
+OpenClaw runtime remains unrun. Todoist, Google Calendar, Gmail, and OpenClaw
+are acceptable low-blast-radius rails for the bounded Phase 14-C supervised smoke-test plan in
 [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md),
 but repo prep, runbook review, request validation, credential-name preflight,
 live-readiness reports, request-template generation, and the fake-client dry-run

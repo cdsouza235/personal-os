@@ -1391,8 +1391,10 @@ retry; the first connected rehearsal used one Nemotron Super primary call and
 one GLM 5.2 fallback call, then stopped at model validation before Todoist or
 Gmail; and protected OpenClaw runtime remains unrun. The current repo work is
 to preserve those rail results, the repo-local OpenClaw local/test/sandbox
-harness, and deterministic OpenClaw model lane strategy while broad live
-activation remains false.
+harness, deterministic OpenClaw model lane strategy, and the next inert
+wide-net rehearsal plan for one OpenRouter diagnostic, one Todoist task, one
+Gmail self-send, and one self-only Calendar event while broad live activation
+remains false.
 
 Purpose:
 

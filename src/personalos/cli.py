@@ -61,6 +61,9 @@ from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
     run_phase14c_todoist_inbox_smoke,
 )
+from personalos.phase14c_wide_net_rehearsal import (
+    build_phase14c_wide_net_rehearsal_plan,
+)
 from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
     create_external_write_intent_and_record_dry_run,
@@ -338,6 +341,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local gate / no values by default / bounded live only with explicit approval",
         "local_effect": "default path reads environment key names only and makes no live calls",
         "output": "stdout connected rehearsal gate JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net rehearsal plan",
+        "safe_local_action": "Inspect the next wider Phase 14-C live-test plan",
+        "command": "personalos phase14c wide-net-rehearsal-plan [--json]",
+        "mode": "repo-local plan / no values / no live clients",
+        "local_effect": "does not read environment, open a DB, write files, or call services",
+        "output": "stdout wide-net rehearsal plan JSON or human summary",
     },
 )
 
@@ -724,6 +735,23 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_connected_rehearsal_live_parser)
     phase14c_connected_rehearsal_live_parser.set_defaults(
         func=_command_phase14c_connected_rehearsal
+    )
+
+    phase14c_wide_net_rehearsal_parser = phase14c_subparsers.add_parser(
+        "wide-net-rehearsal-plan",
+        help="Report the next wider Phase 14-C rehearsal plan without live calls.",
+        description=(
+            "Print a repo-local plan for a wider Phase 14-C rehearsal using the "
+            "confirmed Gmail, Todoist, OpenRouter, and Google Calendar rails. This "
+            "command does not read environment variables, load credentials, open a "
+            "DB, initialize live clients, call OpenRouter, create Todoist tasks, "
+            "send Gmail, write Calendar, invoke OpenClaw, write files, or touch "
+            "protected paths."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_rehearsal_parser)
+    phase14c_wide_net_rehearsal_parser.set_defaults(
+        func=_command_phase14c_wide_net_rehearsal_plan
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -1761,6 +1789,42 @@ def _command_phase14c_connected_rehearsal_plan(args: argparse.Namespace) -> int:
         safe_next_actions=(
             "Review the connected rehearsal plan and stop conditions.",
             "Run Claude Code audit before any connected live rehearsal.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_rehearsal_plan(args: argparse.Namespace) -> int:
+    rehearsal_plan = build_phase14c_wide_net_rehearsal_plan()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-rehearsal-plan",
+            "status": rehearsal_plan["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_rehearsal_plan": rehearsal_plan,
+        },
+        workflow_name="Phase 14-C wide-net rehearsal plan",
+        workflow_mode="repo-local plan / no values / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the wide-net rehearsal plan and stop conditions.",
+            "Run Claude Code audit before any wide-net live test.",
             "Do not paste or inspect credential values.",
         ),
     )

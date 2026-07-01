@@ -204,6 +204,20 @@ Connected rehearsal live evidence:
 - Do not rerun the connected live command without a new explicit approval; the
   approved primary/fallback model budget for this evidence is exhausted.
 
+Wide-net rehearsal plan:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-rehearsal-plan --json
+```
+
+That command is repo-local/report-only. It keeps the next wider model step
+diagnostic-only: one Nemotron Super primary call, one GLM 5.2 fallback call
+only if primary validation fails, no full prompt logging, no model-generated
+text logging, no raw provider response logging, no configured model ID logging,
+and no credential values. The wide-net plan does not use model text for
+Todoist, Gmail, or Calendar content, and it has no executable live runner in
+this packet.
+
 ## Non-Goals
 
 This strategy does not:

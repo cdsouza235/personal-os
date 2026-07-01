@@ -256,6 +256,21 @@ The live connected rehearsal command has already been used once for approval
 reference `phase14c-2026-07-01-connected-rehearsal`; do not rerun it without a
 new explicit approval and a new call/write budget.
 
+Wide-net rehearsal plan:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-rehearsal-plan --json
+```
+
+That command does not read `.env.local`, environment variables, credential
+values, token contents, model IDs, provider responses, or Google Calendar
+connector data. It reports the next wider supervised plan using one OpenRouter
+diagnostic model probe, one Todoist Inbox/default marker task, one Gmail
+controlled self-email, and one self-only Google Calendar marker event after a
+duplicate-marker precheck. It is not authorization, has no executable live
+runner in this packet, and requires a new explicit approval plus Claude Code
+audit before any live run.
+
 Live commands already used once for this evidence packet:
 
 ```bash

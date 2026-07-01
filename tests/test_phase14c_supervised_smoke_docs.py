@@ -37,6 +37,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "personalos.cli phase14c todoist-inbox-smoke --json",
             "personalos.cli phase14c openrouter-model-smoke --json",
             "personalos.cli phase14c live-smoke-diagnostics --json",
+            "personalos.cli phase14c connected-rehearsal-plan --json",
             "does not load credentials",
             "does not initialize live clients",
             "does not initialize a model client",
@@ -109,6 +110,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "one separately approved ca-bundle todoist retry created the bounded inbox/default task",
             "one separately approved ca-bundle openrouter retry passed on the nemotron super primary call",
             "phase14c live-smoke-diagnostics",
+            "phase_14c_connected_rehearsal.md",
+            "model-to-task-to-email rehearsal",
             "error_kind",
             "http_status",
         )

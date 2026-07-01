@@ -35,6 +35,9 @@ Markdown documentation. The current project snapshot lives in
 - [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md):
   guarded supervised smoke-test runbook for Todoist, Google Calendar, Gmail,
   and OpenClaw.
+- [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md):
+  next connected Gmail/Todoist/OpenRouter rehearsal plan after connectivity
+  confirmation.
 - [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md):
   current connector/client/config inventory and mobile-continuity setup names
   for the remaining Phase 14-C smoke rails.
@@ -88,7 +91,10 @@ default mode is no-execution/report-only; their live modes require explicit
 `--execute-live` flags, approval references, configured credentials, and the
 bounded Phase 14-C supervised smoke envelope. Use
 `personalos phase14c live-smoke-diagnostics --json` for the no-live Todoist
-manual outcome check and future OpenRouter diagnostic-field readiness.
+manual outcome check and future OpenRouter diagnostic-field readiness. Use
+`personalos phase14c connected-rehearsal-plan --json` to inspect the next
+larger model-to-task-to-email rehearsal plan without reading credentials or
+calling live services.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

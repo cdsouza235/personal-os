@@ -32,6 +32,9 @@ from personalos.path_safety import (
 from personalos.phase14c_connectivity_setup import (
     build_phase14c_connectivity_setup_report,
 )
+from personalos.phase14c_connected_rehearsal import (
+    build_phase14c_connected_rehearsal_plan,
+)
 from personalos.phase14c_gmail_live_smoke import (
     PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
     run_phase14c_gmail_smtp_smoke,
@@ -310,6 +313,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local diagnostics / no values / no live clients",
         "local_effect": "does not read environment, open a DB, write files, or call services",
         "output": "stdout live-smoke diagnostics JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C connected rehearsal plan",
+        "safe_local_action": "Inspect the next connected Gmail/Todoist/OpenRouter rehearsal plan",
+        "command": "personalos phase14c connected-rehearsal-plan [--json]",
+        "mode": "repo-local plan / no values / no live clients",
+        "local_effect": "does not read environment, open a DB, write files, or call services",
+        "output": "stdout connected rehearsal plan JSON or human summary",
     },
 )
 
@@ -651,6 +662,23 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_live_smoke_diagnostics_parser)
     phase14c_live_smoke_diagnostics_parser.set_defaults(
         func=_command_phase14c_live_smoke_diagnostics
+    )
+
+    phase14c_connected_rehearsal_parser = phase14c_subparsers.add_parser(
+        "connected-rehearsal-plan",
+        help="Report the next connected Phase 14-C rehearsal plan without live calls.",
+        description=(
+            "Print a repo-local plan for a larger connected Phase 14-C rehearsal "
+            "using the confirmed Gmail, Todoist, and OpenRouter rails. This command "
+            "does not read environment variables, load credentials, open a DB, "
+            "initialize live clients, create Todoist tasks, send Gmail, write "
+            "Calendar, call OpenRouter, invoke OpenClaw, write files, or touch "
+            "protected paths."
+        ),
+    )
+    _add_json_arg(phase14c_connected_rehearsal_parser)
+    phase14c_connected_rehearsal_parser.set_defaults(
+        func=_command_phase14c_connected_rehearsal_plan
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -1652,6 +1680,42 @@ def _command_phase14c_live_smoke_diagnostics(args: argparse.Namespace) -> int:
         safe_next_actions=(
             "Manually check Todoist before any Todoist retry.",
             "Use the safer OpenRouter metadata on the next separately approved smoke.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_connected_rehearsal_plan(args: argparse.Namespace) -> int:
+    rehearsal_plan = build_phase14c_connected_rehearsal_plan()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c connected-rehearsal-plan",
+            "status": rehearsal_plan["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "connected_rehearsal_plan": rehearsal_plan,
+        },
+        workflow_name="Phase 14-C connected rehearsal plan",
+        workflow_mode="repo-local plan / no values / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the connected rehearsal plan and stop conditions.",
+            "Run Claude Code audit before any connected live rehearsal.",
             "Do not paste or inspect credential values.",
         ),
     )

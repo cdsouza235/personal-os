@@ -270,6 +270,8 @@ class OpenClawModelStrategyTest(unittest.TestCase):
             "ssl_cert_file=/opt/homebrew/etc/ca-certificates/cert.pem",
             "openclaw_model_smoke_passed",
             "fallback_calls=0",
+            "phase14c connected-rehearsal-plan --json",
+            "nemotron super primary, glm 5.2 fallback only if primary validation fails",
             "call nemotron super, glm 5.2, openrouter, or any live provider",
         )
         for phrase in required_phrases:

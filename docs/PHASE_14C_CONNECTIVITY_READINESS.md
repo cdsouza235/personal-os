@@ -193,6 +193,18 @@ manual Todoist outcome check needed before any Todoist retry, and records that
 the next separately approved OpenRouter smoke can safely report `error_kind`
 and `http_status` in addition to the existing sanitized metadata.
 
+Connected rehearsal plan:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal-plan --json
+```
+
+That command does not read `.env.local`, environment variables, credential
+values, token contents, model IDs, or provider responses. It reports the next
+larger supervised model-to-task-to-email rehearsal plan using confirmed Gmail,
+Todoist, and OpenRouter rails, while excluding Calendar duplicate creation and
+protected OpenClaw runtime invocation.
+
 Live commands already used once for this evidence packet:
 
 ```bash

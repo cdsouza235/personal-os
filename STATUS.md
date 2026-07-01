@@ -1,15 +1,15 @@
 # Personal OS Status
 
-Last updated: 2026-06-30
+Last updated: 2026-07-01
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #96:
-  `f2e84ae170c98e4757d21d2f257f4088476ee259`
-- Latest merged PR at that baseline: PR #96, Phase 14-C live-smoke
-  diagnostics
+- Last validated main baseline after PR #97:
+  `eac1f171d4a818cb1b689970720b0d2de485c4be`
+- Latest merged PR at that baseline: PR #97, Phase 14-C CA-bundle retry
+  live-smoke evidence
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -80,7 +80,9 @@ Last updated: 2026-06-30
   diagnostic fields without reading credentials or making live calls; after a
   manual Todoist `not_found` check and a TLS-trust diagnosis, the separately
   approved CA-bundle retry created exactly one Todoist Inbox/default task and
-  passed the OpenRouter Nemotron Super primary smoke without a GLM fallback
+  passed the OpenRouter Nemotron Super primary smoke without a GLM fallback;
+  the repo now includes a no-live connected rehearsal plan for the next
+  larger model-to-task-to-email supervised test
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -130,11 +132,12 @@ Last updated: 2026-06-30
   plus a no-live follow-up diagnostic command for Todoist manual outcome
   confirmation and OpenRouter safe failure metadata, plus the CA-bundle retry
   evidence confirming Todoist and OpenRouter connectivity
-- Current / next phase: guarded Phase 14-C supervised multi-rail smoke-test
-  evidence review and follow-up after the first remaining-rail live run.
-  Todoist, Google Calendar, Gmail, and OpenClaw remain acceptable
-  low-blast-radius supervised smoke-test rails inside the bounded runbook in
-  [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md).
+- Current / next phase: guarded Phase 14-C connected rehearsal planning after
+  Gmail, Todoist, and OpenRouter connectivity confirmation. The next planned
+  higher-value supervised test is a model-to-task-to-email rehearsal described
+  in [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md).
+  Calendar duplicate creation and protected OpenClaw runtime invocation remain
+  excluded unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
   `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`,
   Monday, 2026-07-06, 09:00-09:15 America/Chicago, event ID
@@ -263,6 +266,16 @@ Last updated: 2026-06-30
   required before any Todoist retry and the new safe OpenRouter diagnostic
   fields (`error_kind`, `http_status`) available for a future separately
   approved model smoke.
+- Phase 14-C connected rehearsal plan:
+  [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md)
+  defines the next larger supervised test after connectivity confirmation:
+  one OpenRouter brief, one Todoist Inbox/default task, and one Gmail
+  controlled self-send. The CLI
+  `phase14c connected-rehearsal-plan --json` is repo-local/report-only, does
+  not read environment variables or credential values, does not initialize
+  live clients, does not call OpenRouter, create Todoist tasks, send Gmail,
+  write Calendar, invoke OpenClaw, open a database, or write files, and keeps
+  `ready_for_live_execution=false`.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -276,8 +289,8 @@ Last updated: 2026-06-30
 
 ## Validated State
 
-- Full suite: 754 tests OK
-- ResourceWarning-sensitive suite: 754 tests OK
+- Full suite: 761 tests OK
+- ResourceWarning-sensitive suite: 761 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -290,6 +303,7 @@ Last updated: 2026-06-30
   live-readiness/request-template/dry-run source/docs/CLI suite: 53 CLI tests
   OK plus the targeted source/docs tests above
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
+- Targeted Phase 14-C connected rehearsal/CLI/docs/model suite: 88 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

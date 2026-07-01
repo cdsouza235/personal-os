@@ -6,10 +6,10 @@ Last updated: 2026-07-01
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #97:
-  `eac1f171d4a818cb1b689970720b0d2de485c4be`
-- Latest merged PR at that baseline: PR #97, Phase 14-C CA-bundle retry
-  live-smoke evidence
+- Last validated main baseline after PR #99:
+  `67abed73f59713b02735305edaa9bace3159b2ca`
+- Latest merged PR at that baseline: PR #99, Phase 14-C connected rehearsal
+  executable gate
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -81,8 +81,11 @@ Last updated: 2026-07-01
   manual Todoist `not_found` check and a TLS-trust diagnosis, the separately
   approved CA-bundle retry created exactly one Todoist Inbox/default task and
   passed the OpenRouter Nemotron Super primary smoke without a GLM fallback;
-  the repo now includes a no-live connected rehearsal plan for the next
-  larger model-to-task-to-email supervised test
+  the repo includes a connected rehearsal executable gate, and the approved
+  2026-07-01 connected rehearsal used one Nemotron Super primary call plus one
+  GLM 5.2 fallback call before stopping at model validation, with no Todoist
+  task, no Gmail email, no Calendar event, and no protected OpenClaw runtime
+  invocation
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -132,10 +135,10 @@ Last updated: 2026-07-01
   plus a no-live follow-up diagnostic command for Todoist manual outcome
   confirmation and OpenRouter safe failure metadata, plus the CA-bundle retry
   evidence confirming Todoist and OpenRouter connectivity
-- Current / next phase: guarded Phase 14-C connected rehearsal planning after
-  Gmail, Todoist, and OpenRouter connectivity confirmation. The next planned
-  higher-value supervised test is a model-to-task-to-email rehearsal described
-  in [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md).
+- Current / next phase: Phase 14-C connected rehearsal follow-up after the
+  first approved model-to-task-to-email rehearsal stopped at model validation.
+  The live evidence is recorded in
+  [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md).
   Calendar duplicate creation and protected OpenClaw runtime invocation remain
   excluded unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
@@ -159,9 +162,18 @@ Last updated: 2026-07-01
   `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem`: Todoist created
   exactly one Inbox/default task for the same title and due date, and
   OpenRouter returned `openclaw_model_smoke_passed` after one Nemotron Super
-  primary call with `fallback_calls=0`. No protected-runtime OpenClaw
-  invocation has been performed. The repo-local OpenClaw local/test/sandbox
-  harness passed once with no protected runtime call or external mutation.
+  primary call with `fallback_calls=0`. On 2026-07-01, approval reference
+  `phase14c-2026-07-01-connected-rehearsal` was used with
+  `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem` for the connected
+  rehearsal: OpenRouter called Nemotron Super once, then GLM 5.2 once after
+  primary validation failed; the final status was
+  `phase14c_connected_rehearsal_model_validation_failed`. The run stopped
+  before Todoist and Gmail, with `todoist_task_create_calls=0`,
+  `gmail_email_send_calls=0`, `calendar_event_create_calls=0`,
+  `protected_openclaw_runtime_invocation_calls=0`, and
+  `external_mutation=false`. No protected-runtime OpenClaw invocation has been
+  performed. The repo-local OpenClaw local/test/sandbox harness passed once
+  with no protected runtime call or external mutation.
 - Broad live activation remains false; readiness remains `not_ready` and
   `inert_report_only=true`.
 - Phase 14-C dry-run rehearsal: fake-client CLI command prepared and verified;
@@ -283,7 +295,10 @@ Last updated: 2026-07-01
   failure, one Todoist Inbox/default task create, and one controlled Gmail
   self-send. The executable gate keeps the original 2026-07-06 Todoist due
   date while it is current and rolls a stale planned date forward to the next
-  upcoming Monday.
+  upcoming Monday. The first approved live connected rehearsal used the full
+  allowed OpenRouter model budget (`primary_calls=1`, `fallback_calls=1`) and
+  stopped before Todoist and Gmail with sanitized model-validation failure
+  evidence only.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -312,6 +327,7 @@ Last updated: 2026-07-01
   OK plus the targeted source/docs tests above
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
+- Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

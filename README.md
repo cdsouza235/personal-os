@@ -95,9 +95,11 @@ manual outcome check and future OpenRouter diagnostic-field readiness. Use
 `personalos phase14c connected-rehearsal-plan --json` to inspect the next
 larger model-to-task-to-email rehearsal plan without reading credentials or
 calling live services. Use `personalos phase14c connected-rehearsal --json`
-to inspect the executable gate for that rehearsal; its live mode still requires
-the exact approval reference, configured credentials, and Claude Code audit
-before any OpenRouter, Todoist, or Gmail call.
+to inspect the executable gate for that rehearsal. The approved 2026-07-01
+connected rehearsal used one Nemotron Super primary call and one GLM 5.2
+fallback call, then stopped at model validation before creating Todoist or
+sending Gmail; Calendar and protected OpenClaw runtime remained untouched.
+Do not rerun the connected live command without a new explicit approval.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

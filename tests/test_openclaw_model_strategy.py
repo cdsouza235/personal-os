@@ -274,6 +274,12 @@ class OpenClawModelStrategyTest(unittest.TestCase):
             "phase14c connected-rehearsal --json",
             "nemotron super primary, glm 5.2 fallback only if primary validation fails",
             "stops before todoist/gmail if model validation fails",
+            "phase14c-2026-07-01-connected-rehearsal",
+            "phase14c_connected_rehearsal_model_validation_failed",
+            "failure_category=http_error",
+            "http_status=402",
+            "external_mutation=false",
+            "approved primary/fallback model budget for this evidence is exhausted",
             "call nemotron super, glm 5.2, openrouter, or any live provider",
         )
         for phrase in required_phrases:

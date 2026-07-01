@@ -1383,15 +1383,16 @@ candidate-review context only.
 
 ### Current Recommended Phase
 
-Phase 14-C supervised smoke-test evidence review after the first
-remaining-rail live run. One Google Calendar smoke event has passed; one Gmail
-SMTP self-send has passed; one Todoist Inbox/default create attempt is
-unconfirmed after the request; one OpenRouter model smoke used the allowed
-Nemotron Super primary and GLM 5.2 fallback call budget but failed validation
-with sanitized transport/parse metadata; and protected OpenClaw runtime remains
-unrun. The current repo work is to preserve those rail results, the repo-local
-OpenClaw local/test/sandbox harness, and deterministic OpenClaw model lane
-strategy while broad live activation remains false.
+Phase 14-C supervised smoke-test evidence review after the connected
+rehearsal. One Google Calendar smoke event has passed; one Gmail SMTP
+self-send has passed; Todoist Inbox/default passed after manual `not_found`
+reconciliation and the CA-bundle retry; OpenRouter passed after the CA-bundle
+retry; the first connected rehearsal used one Nemotron Super primary call and
+one GLM 5.2 fallback call, then stopped at model validation before Todoist or
+Gmail; and protected OpenClaw runtime remains unrun. The current repo work is
+to preserve those rail results, the repo-local OpenClaw local/test/sandbox
+harness, and deterministic OpenClaw model lane strategy while broad live
+activation remains false.
 
 Purpose:
 

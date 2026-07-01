@@ -234,8 +234,19 @@ at most one OpenRouter primary call, one fallback call only if primary
 validation fails, one Todoist Inbox/default task create, and one controlled
 Gmail self-send. It does not write Calendar, invoke protected OpenClaw runtime,
 open a database, write files, activate a scheduler, or touch protected paths.
-It must not be run until the executable gate has passed Claude Code audit and
-Chris separately confirms the live run.
+It passed Claude Code audit before the approved live run. Do not rerun it
+without a new explicit approval and a new call/write budget.
+
+The connected rehearsal live form has now been run once under approval
+reference `phase14c-2026-07-01-connected-rehearsal` with
+`SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem`. It returned
+`phase14c_connected_rehearsal_model_validation_failed` after one Nemotron Super
+primary call and one GLM 5.2 fallback call. The sequence stopped before
+Todoist and Gmail: `todoist_task_create_calls=0`,
+`gmail_email_send_calls=0`, `calendar_event_create_calls=0`,
+`protected_openclaw_runtime_invocation_calls=0`, and
+`external_mutation=false`. Do not rerun that connected live command without a
+new explicit approval and a new call/write budget.
 
 Connectivity setup:
 
@@ -341,6 +352,26 @@ Remaining-rail live smoke result:
   dumps, database writes, scheduler/background activation, production DB
   activation, protected-path access, broad OpenClaw handoff, or protected
   OpenClaw runtime invocation occurred.
+
+Connected rehearsal live result:
+
+- Approval reference:
+  `phase14c-2026-07-01-connected-rehearsal`.
+- Result: `phase14c_connected_rehearsal_model_validation_failed`.
+- OpenRouter primary call: `nemotron_super`, `primary_calls=1`,
+  `success=true`, `input_tokens=79`, `output_tokens=160`,
+  `validation_passed=false`.
+- OpenRouter fallback call: `glm_5_2`, `fallback_calls=1`,
+  `failure_category=http_error`, `error_kind=HTTPError`, `http_status=402`.
+- The model brief text, raw provider response, full prompt, configured model
+  IDs, and credential values were not logged or recorded.
+- Todoist task creates: `todoist_task_create_calls=0`.
+- Gmail sends: `gmail_email_send_calls=0`.
+- Calendar event creates: `calendar_event_create_calls=0`.
+- Protected OpenClaw runtime invocations:
+  `protected_openclaw_runtime_invocation_calls=0`.
+- Mutation state: `not_attempted`; `external_mutation=false`.
+- Do not rerun the connected live command without a new explicit approval.
 
 ## Test Marker
 

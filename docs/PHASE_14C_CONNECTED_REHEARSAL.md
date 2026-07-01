@@ -3,8 +3,10 @@
 Date: 2026-07-01
 
 This document defines the next larger supervised Phase 14-C test now that
-Gmail, Todoist, and OpenRouter connectivity are confirmed. It is a plan only;
-it does not authorize or run live rails.
+Gmail, Todoist, and OpenRouter connectivity are confirmed. It started as a
+plan only; the bounded live form has now been run once under the explicit
+approval reference below and must not be rerun without a new explicit
+approval.
 
 CLI report:
 
@@ -28,14 +30,15 @@ only and does not read credential values, initialize live clients, call
 OpenRouter, create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw,
 open a database, write files, or touch protected paths.
 
-The live form remains a separate human/audit gate:
+The live form was a separate human/audit gate and has now been used once:
 
 ```bash
 SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal --execute-live --approval-reference phase14c-2026-07-01-connected-rehearsal --json
 ```
 
-The live form must not be run until this executable path has passed read-only
-Claude Code audit and Chris separately confirms the live run.
+The live form passed read-only Claude Code audit and Chris separately
+confirmed the live run. Do not rerun it without a new explicit approval and a
+new call/write budget.
 
 ## Confirmed Foundation
 
@@ -49,6 +52,9 @@ Claude Code audit and Chris separately confirms the live run.
   creation is not authorized for this rehearsal.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
+- The connected rehearsal live run used the full allowed OpenRouter model
+  budget, stopped at model validation, and did not create the Todoist task or
+  send Gmail.
 
 ## Rehearsal Objective
 
@@ -137,22 +143,61 @@ Stop before or during any future live run if:
 - Credential values would be printed, logged, copied, committed, or
   summarized.
 
-## Suggested Approval Text
+## Live Result
+
+Approval reference used once:
+
+```text
+phase14c-2026-07-01-connected-rehearsal
+```
+
+Result:
+
+- Status: `phase14c_connected_rehearsal_model_validation_failed`.
+- OpenRouter primary call: `nemotron_super`, `primary_calls=1`,
+  `success=true`, `input_tokens=79`, `output_tokens=160`,
+  `validation_passed=false`.
+- OpenRouter fallback call: `glm_5_2`, `fallback_calls=1`, only after primary
+  validation failed; sanitized failure metadata was `failure_category=http_error`,
+  `error_kind=HTTPError`, `http_status=402`.
+- Selected model attempt: fallback; selected validation passed: false.
+- Model brief summary: `brief_generated=false`, `brief_line_count=0`,
+  `brief_char_count=0`, `brief_text_logged=false`,
+  `raw_provider_response_logged=false`.
+- Todoist task creates: `todoist_task_create_calls=0`;
+  `todoist_task_created=false`.
+- Gmail sends: `gmail_email_send_calls=0`; `gmail_email_sent=false`.
+- Calendar event creates: `calendar_event_create_calls=0`.
+- Protected OpenClaw runtime invocations:
+  `protected_openclaw_runtime_invocation_calls=0`.
+- Mutation state: `not_attempted`; `external_mutation=false`.
+- Credential values were read for the explicitly approved bounded live run,
+  but `credential_values_logged=false`, `credential_values_committed=false`,
+  and no environment dump was printed or committed.
+
+Do not rerun this connected rehearsal command without a new explicit approval.
+The approved OpenRouter primary/fallback model budget for this connected
+rehearsal evidence is exhausted. Because model validation failed, the bounded
+sequence stopped before Todoist and Gmail.
+
+## Historical Approval Text
 
 ```text
 Approved: run exactly one Phase 14-C connected rehearsal using approval reference phase14c-2026-07-01-connected-rehearsal with SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem. Allowed live actions: one OpenRouter model call with one fallback only if primary validation fails, one Todoist Inbox/default task, and one Gmail controlled self-send. Do not run Calendar or protected OpenClaw runtime.
 ```
 
-This approval text is a future human gate, not authorization embedded in this
-document or the CLI report.
+This approval text was used once for the recorded live result above. It is not
+reusable authorization embedded in this document or the CLI report.
 
 ## Safety Assertions
 
 - `readiness.status` remains `not_ready`.
 - `inert_report_only` remains `true`.
 - `live_rails_activated` remains `false`.
-- This plan does not read credential values.
-- This plan does not initialize live clients.
-- This plan does not perform external mutation.
-- This plan does not authorize Calendar duplicates.
-- This plan does not invoke protected OpenClaw runtime.
+- The plan command does not read credential values.
+- The default executable gate does not initialize live clients.
+- The one approved live run read credential values and initialized live
+  clients only inside the explicit bounded approval.
+- The one approved live run did not perform external mutation.
+- This packet does not authorize Calendar duplicates.
+- This packet does not invoke protected OpenClaw runtime.

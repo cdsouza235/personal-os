@@ -29,11 +29,11 @@ from personalos.path_safety import (
     validate_existing_sqlite_path,
     validate_output_file_path,
 )
-from personalos.phase14c_connectivity_setup import (
-    build_phase14c_connectivity_setup_report,
-)
 from personalos.phase14c_connected_rehearsal import (
     build_phase14c_connected_rehearsal_plan,
+)
+from personalos.phase14c_connectivity_setup import (
+    build_phase14c_connectivity_setup_report,
 )
 from personalos.phase14c_gmail_live_smoke import (
     PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,

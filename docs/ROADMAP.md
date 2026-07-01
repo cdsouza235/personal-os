@@ -179,10 +179,12 @@ Phase 14-A/B historical preparation remains proposed-only. Current Phase 14-C
 movement is the bounded supervised smoke-test follow-through described above:
 Calendar passed, the repo-local OpenClaw local/test/sandbox harness passed,
 broad activation remains false, readiness remains not ready, Gmail SMTP
-self-send passed, Todoist is unconfirmed after one Inbox/default create
-attempt, OpenRouter model smoke failed validation after the allowed
-primary/fallback call budget, and protected-runtime OpenClaw remains bounded to
-a separately approved local/test/sandbox smoke step.
+self-send passed, Todoist passed after the CA-bundle retry and manual
+`not_found` reconciliation, OpenRouter passed after the CA-bundle retry, the
+first connected rehearsal stopped at model validation after the allowed
+Nemotron Super primary and GLM 5.2 fallback calls, and protected-runtime
+OpenClaw remains bounded to a separately approved local/test/sandbox smoke
+step.
 
 ## Future Blocked Work
 

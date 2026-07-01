@@ -13,6 +13,8 @@ Baseline:
   `phase14c-2026-06-30-connectivity-live-smoke`
 - CA-bundle retry approval reference:
   `phase14c-2026-06-30-connectivity-ca-retry`
+- Connected rehearsal approval reference:
+  `phase14c-2026-07-01-connected-rehearsal`
 
 ## Capability Inventory
 
@@ -25,6 +27,7 @@ Baseline:
 | Todoist connector/client | available; bounded live smoke passed after CA-bundle retry | first smoke attempt was unconfirmed; manual Todoist outcome was `not_found`; `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem personalos phase14c todoist-inbox-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-ca-retry --json` created one Inbox/default task |
 | OpenClaw local/test/sandbox harness | available and passed | `openclaw_local_harness_passed` |
 | OpenClaw model provider/client | available; bounded OpenRouter smoke passed after CA-bundle retry | first smoke failed with sanitized TLS trust diagnostics; `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem personalos phase14c openrouter-model-smoke --execute-live --approval-reference phase14c-2026-06-30-connectivity-ca-retry --json` passed on Nemotron Super primary with no GLM fallback |
+| Connected rehearsal gate | available; bounded live run stopped at model validation | `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem personalos phase14c connected-rehearsal --execute-live --approval-reference phase14c-2026-07-01-connected-rehearsal --json` used one Nemotron Super primary call and one GLM 5.2 fallback call, then stopped before Todoist/Gmail |
 
 Safe Calendar account identity observed from the connector:
 
@@ -111,6 +114,36 @@ OpenClaw local/test/sandbox:
 - No protected OpenClaw runtime call, protected path access, scheduler
   activation, production DB activation, broad runtime handoff, credential
   exposure, or external mutation occurred.
+
+Connected rehearsal:
+
+- Result: `phase14c_connected_rehearsal_model_validation_failed`.
+- Approval reference:
+  `phase14c-2026-07-01-connected-rehearsal`.
+- CA-bundle setting:
+  `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem`.
+- Marker: `[Phase 14-C Connected Test] Kitchen Reset Briefing`.
+- OpenRouter primary call: `nemotron_super`, `primary_calls=1`,
+  sanitized metadata `success=true`, `input_tokens=79`, `output_tokens=160`,
+  and `validation_passed=false`.
+- OpenRouter fallback call: `glm_5_2`, `fallback_calls=1`, only after
+  primary validation failed; sanitized metadata included
+  `failure_category=http_error`, `error_kind=HTTPError`, and
+  `http_status=402`.
+- The model brief text, raw provider response, full prompt, configured model
+  IDs, and credential values were not logged or recorded.
+- Because model validation failed, the sequence stopped before Todoist and
+  Gmail.
+- Todoist task creates: `todoist_task_create_calls=0`;
+  `todoist_task_created=false`.
+- Gmail sends: `gmail_email_send_calls=0`; `gmail_email_sent=false`.
+- Calendar event creates: `calendar_event_create_calls=0`.
+- Protected OpenClaw runtime invocations:
+  `protected_openclaw_runtime_invocation_calls=0`.
+- Mutation state: `not_attempted`; `external_mutation=false`.
+- Do not rerun this connected rehearsal command without a new explicit
+  approval; the approved OpenRouter primary/fallback call budget for this
+  connected rehearsal evidence is exhausted.
 
 ## Rails Not Run
 
@@ -219,6 +252,10 @@ primary, OpenRouter fallback only after primary validation failure, Todoist
 Inbox/default task create, and Gmail controlled self-send. Calendar duplicate
 creation and protected OpenClaw runtime invocation remain excluded.
 
+The live connected rehearsal command has already been used once for approval
+reference `phase14c-2026-07-01-connected-rehearsal`; do not rerun it without a
+new explicit approval and a new call/write budget.
+
 Live commands already used once for this evidence packet:
 
 ```bash
@@ -251,8 +288,8 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
 
 ## Safety Assertions
 
-- Credential values were read only by the three explicitly approved bounded
-  live commands that required them.
+- Credential values were read only by the explicitly approved bounded live
+  commands that required them.
 - No credential values, tokens, OAuth material, or environment dumps were
   printed, copied, logged, summarized, or committed.
 - `.env.local` is gitignored; `.env.example` contains placeholders only.
@@ -266,6 +303,9 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
   metadata.
 - Exactly one CA-bundle OpenRouter retry primary call was made; it passed on
   Nemotron Super and did not call the GLM 5.2 fallback.
+- Exactly one connected rehearsal Nemotron Super primary call and one GLM 5.2
+  fallback call were made; model validation failed and the sequence stopped
+  before Todoist/Gmail with no external mutation.
 - Follow-up diagnostics are repo-local/report-only and do not read credential
   values, initialize live clients, call OpenRouter, write Todoist, send Gmail,
   write Calendar, invoke OpenClaw, open a database, or write files.

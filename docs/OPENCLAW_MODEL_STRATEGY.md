@@ -186,6 +186,24 @@ allowlist, does not log the full prompt, model-generated brief text, raw
 provider response, configured model IDs, or credential values, and stops before
 Todoist/Gmail if model validation fails.
 
+Connected rehearsal live evidence:
+
+- Approval reference:
+  `phase14c-2026-07-01-connected-rehearsal`.
+- Result: `phase14c_connected_rehearsal_model_validation_failed`.
+- Nemotron Super primary call: `primary_calls=1`, sanitized
+  `success=true`, `input_tokens=79`, `output_tokens=160`, and
+  `validation_passed=false`.
+- GLM 5.2 fallback call: `fallback_calls=1`, only after primary validation
+  failed; sanitized metadata included `failure_category=http_error`,
+  `error_kind=HTTPError`, and `http_status=402`.
+- Model brief text, raw provider response, full prompt, configured model IDs,
+  and credential values were not logged or recorded.
+- The connected sequence stopped before Todoist and Gmail with
+  `external_mutation=false`.
+- Do not rerun the connected live command without a new explicit approval; the
+  approved primary/fallback model budget for this evidence is exhausted.
+
 ## Non-Goals
 
 This strategy does not:

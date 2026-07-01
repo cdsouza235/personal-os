@@ -131,9 +131,16 @@ class Phase14CConnectedRehearsalTest(unittest.TestCase):
             "ssl_cert_file=/opt/homebrew/etc/ca-certificates/cert.pem",
             "phase14c-2026-07-01-connected-rehearsal",
             "rolls a stale planned date forward to the next upcoming monday",
+            "phase14c_connected_rehearsal_model_validation_failed",
+            "primary_calls=1",
+            "fallback_calls=1",
+            "todoist_task_create_calls=0",
+            "gmail_email_send_calls=0",
+            "external_mutation=false",
+            "do not rerun this connected rehearsal command without a new explicit approval",
             "model-generated brief text",
             "stop before todoist and gmail",
-            "not authorization embedded in this document or the cli report",
+            "not reusable authorization embedded in this document or the cli report",
             "live_rails_activated` remains `false",
         )
         for phrase in required_phrases:
@@ -146,6 +153,10 @@ class Phase14CConnectedRehearsalTest(unittest.TestCase):
         self.assertIn("docs/phase_14c_connected_rehearsal.md", text)
         self.assertIn("phase14c connected-rehearsal-plan --json", text)
         self.assertIn("phase14c connected-rehearsal --json", text)
+        self.assertIn(
+            "stopped at model validation before creating todoist or sending gmail",
+            text,
+        )
 
 
 def _normalized_doc_text(path: Path) -> str:

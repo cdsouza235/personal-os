@@ -99,7 +99,8 @@ Todoist target:
 
 - Project: Inbox/default.
 - Title: `[Phase 14-C Connected Test] Kitchen Reset Briefing`.
-- Due date: 2026-07-06.
+- Due date: 2026-07-06 while that date is current; the executable gate rolls
+  a stale planned date forward to the next upcoming Monday.
 - No recurrence, subtasks, labels, comments, attachments, automatic edits,
   deletes, rescheduling, or skip/push/bump behavior.
 

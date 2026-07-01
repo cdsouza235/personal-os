@@ -114,6 +114,41 @@ class Phase14CConnectedRehearsalLiveTest(unittest.TestCase):
         self.assertNotIn("secret-nemotron-model-id", serialized)
         self.assertNotIn("chris@example.com", serialized)
 
+    def test_live_path_rolls_stale_todoist_due_date_to_next_monday(self) -> None:
+        model = _RecordingModelClient(
+            [
+                {
+                    "success": True,
+                    "response_text": "Clear counters\nWipe stovetop\nPut supplies away",
+                    "provider_alias": "openrouter",
+                }
+            ]
+        )
+        todoist = _RecordingTodoistClient()
+
+        report = run_phase14c_connected_rehearsal(
+            available_config_names=CONNECTED_REHEARSAL_REQUIRED_CONFIG_NAMES,
+            execute_live=True,
+            approval_reference=PHASE14C_CONNECTED_REHEARSAL_APPROVAL_REFERENCE,
+            provider="openrouter",
+            api_key="secret-openrouter-key",
+            nemotron_super_model="secret-nemotron-model-id",
+            glm_5_2_model="secret-glm-model-id",
+            todoist_token="secret-todoist-token",
+            gmail_sender_email="chris@example.com",
+            gmail_app_password="secret-gmail-password",
+            gmail_controlled_recipient="chris@example.com",
+            model_client=model,
+            todoist_client=todoist,
+            gmail_client=_RecordingGmailClient(),
+            source_date=date(2026, 7, 7),
+        )
+
+        self.assertEqual(report["status"], CONNECTED_REHEARSAL_PASSED)
+        self.assertEqual(report["due_date"], "2026-07-13")
+        self.assertEqual(len(todoist.payloads), 1)
+        self.assertEqual(todoist.payloads[0]["due_date"], "2026-07-13")
+
     def test_fallback_runs_only_after_primary_validation_failure(self) -> None:
         model = _RecordingModelClient(
             [

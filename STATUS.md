@@ -281,7 +281,9 @@ Last updated: 2026-07-01
   approval reference before values are read and remains bounded to one
   OpenRouter primary call, one fallback call only after primary validation
   failure, one Todoist Inbox/default task create, and one controlled Gmail
-  self-send.
+  self-send. The executable gate keeps the original 2026-07-06 Todoist due
+  date while it is current and rolls a stale planned date forward to the next
+  upcoming Monday.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -295,8 +297,8 @@ Last updated: 2026-07-01
 
 ## Validated State
 
-- Full suite: 768 tests OK
-- ResourceWarning-sensitive suite: 768 tests OK
+- Full suite: 769 tests OK
+- ResourceWarning-sensitive suite: 769 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -309,7 +311,7 @@ Last updated: 2026-07-01
   live-readiness/request-template/dry-run source/docs/CLI suite: 53 CLI tests
   OK plus the targeted source/docs tests above
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
-- Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 95 tests OK
+- Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

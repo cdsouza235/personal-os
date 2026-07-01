@@ -28,6 +28,7 @@ from personalos.phase14c_gmail_live_smoke import (
 from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
     TodoistRestSmokeClient,
+    next_upcoming_monday,
 )
 
 
@@ -432,9 +433,11 @@ def _validated_brief(value: object) -> str | None:
 
 
 def _connected_due_date(source_date: date | None) -> str:
-    if source_date is None:
-        return PHASE14C_CONNECTED_REHEARSAL_DUE_DATE
-    return PHASE14C_CONNECTED_REHEARSAL_DUE_DATE
+    today = source_date or date.today()
+    planned_due_date = date.fromisoformat(PHASE14C_CONNECTED_REHEARSAL_DUE_DATE)
+    if planned_due_date >= today:
+        return planned_due_date.isoformat()
+    return next_upcoming_monday(today).isoformat()
 
 
 def _todoist_payload(*, due_date: str) -> dict[str, Any]:

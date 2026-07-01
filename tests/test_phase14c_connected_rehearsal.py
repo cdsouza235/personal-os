@@ -130,6 +130,7 @@ class Phase14CConnectedRehearsalTest(unittest.TestCase):
             "protected openclaw runtime invocations: 0",
             "ssl_cert_file=/opt/homebrew/etc/ca-certificates/cert.pem",
             "phase14c-2026-07-01-connected-rehearsal",
+            "rolls a stale planned date forward to the next upcoming monday",
             "model-generated brief text",
             "stop before todoist and gmail",
             "not authorization embedded in this document or the cli report",

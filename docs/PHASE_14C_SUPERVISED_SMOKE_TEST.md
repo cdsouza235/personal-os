@@ -205,6 +205,21 @@ and records that future approved OpenRouter failures can include safe
 `error_kind` and `http_status` diagnostics without raw provider responses,
 full prompts, configured model IDs, or credential values.
 
+Connected rehearsal plan:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal-plan --json
+```
+
+That command is report-only. It does not read environment variables, load
+credentials, initialize live clients, create Todoist tasks, send Gmail, write
+Calendar, call OpenRouter, invoke OpenClaw, open a database, or write files.
+It defines the next larger supervised rehearsal after connectivity
+confirmation: one OpenRouter brief, one Todoist Inbox/default task, and one
+Gmail controlled self-send, with no Calendar duplicate and no protected
+OpenClaw runtime invocation. The plan requires a new explicit approval
+reference before any future live run.
+
 Connectivity setup:
 
 ```bash
@@ -609,5 +624,7 @@ after the request; one first-run OpenRouter primary/fallback model smoke failed
 validation with sanitized transport/parse metadata; one separately approved
 CA-bundle Todoist retry created the bounded Inbox/default task; and one
 separately approved CA-bundle OpenRouter retry passed on the Nemotron Super
-primary call without a GLM 5.2 fallback. Broad live activation remains false
-and readiness remains not ready.
+primary call without a GLM 5.2 fallback. The next repo-local plan is
+[PHASE_14C_CONNECTED_REHEARSAL.md](PHASE_14C_CONNECTED_REHEARSAL.md), which
+defines a model-to-task-to-email rehearsal without authorizing live execution.
+Broad live activation remains false and readiness remains not ready.

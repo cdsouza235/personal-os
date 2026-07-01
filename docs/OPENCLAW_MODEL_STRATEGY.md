@@ -161,6 +161,18 @@ It records that the next separately approved OpenRouter smoke can include the
 safe diagnostic fields `error_kind` and `http_status` while still dropping raw
 provider responses, full prompts, configured model IDs, and credential values.
 
+Connected rehearsal planning:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal-plan --json
+```
+
+That command is repo-local/report-only. It keeps the connected rehearsal model
+step deterministic: Nemotron Super primary, GLM 5.2 fallback only if primary
+validation fails, no full prompt logging, no raw provider response logging, no
+configured model ID logging, no credential values, and no protected OpenClaw
+runtime invocation.
+
 ## Non-Goals
 
 This strategy does not:

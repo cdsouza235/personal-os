@@ -271,7 +271,9 @@ class OpenClawModelStrategyTest(unittest.TestCase):
             "openclaw_model_smoke_passed",
             "fallback_calls=0",
             "phase14c connected-rehearsal-plan --json",
+            "phase14c connected-rehearsal --json",
             "nemotron super primary, glm 5.2 fallback only if primary validation fails",
+            "stops before todoist/gmail if model validation fails",
             "call nemotron super, glm 5.2, openrouter, or any live provider",
         )
         for phrase in required_phrases:

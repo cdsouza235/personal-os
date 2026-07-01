@@ -12,10 +12,30 @@ CLI report:
 PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal-plan --json
 ```
 
-The command is repo-local/report-only. It does not read `.env.local`, read
+The plan command is repo-local/report-only. It does not read `.env.local`, read
 environment variables, load credentials, initialize live clients, call
 OpenRouter, create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw,
 open a database, write files, or touch protected paths.
+
+Executable gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal --json
+```
+
+The default executable gate is also report-only. It reads environment key names
+only and does not read credential values, initialize live clients, call
+OpenRouter, create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw,
+open a database, write files, or touch protected paths.
+
+The live form remains a separate human/audit gate:
+
+```bash
+SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal --execute-live --approval-reference phase14c-2026-07-01-connected-rehearsal --json
+```
+
+The live form must not be run until this executable path has passed read-only
+Claude Code audit and Chris separately confirms the live run.
 
 ## Confirmed Foundation
 
@@ -95,8 +115,9 @@ OpenRouter target:
 - Fallback: GLM 5.2 only if primary validation fails.
 - Prompt: fixed, short, non-secret test prompt.
 - No protected paths, credentials, or personal data in the prompt.
-- Do not log the full prompt, raw provider response, configured model IDs, or
-  credential values.
+- Do not log the full prompt, model-generated brief text, raw provider
+  response, configured model IDs, or credential values.
+- If both model attempts fail validation, stop before Todoist and Gmail.
 
 ## Stop Conditions
 
@@ -106,6 +127,8 @@ Stop before or during any future live run if:
 - A Todoist task already exists with the connected rehearsal marker.
 - Gmail recipient is not the configured controlled recipient or self.
 - OpenRouter prompt would include secrets, protected paths, or personal data.
+- OpenRouter returns a brief that appears to contain secrets, account
+  identifiers, links, or protected paths.
 - Calendar creation appears.
 - Protected OpenClaw runtime invocation appears.
 - Scheduler/background, production DB, dynamic cleaning, or protected paths

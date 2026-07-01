@@ -119,7 +119,10 @@ class Phase14CConnectedRehearsalTest(unittest.TestCase):
 
         required_phrases = (
             "phase14c connected-rehearsal-plan --json",
+            "phase14c connected-rehearsal --json",
+            "connected-rehearsal --execute-live --approval-reference",
             "does not read `.env.local`",
+            "reads environment key names only",
             "one openrouter brief",
             "one todoist inbox/default task",
             "one gmail controlled self-send",
@@ -127,6 +130,8 @@ class Phase14CConnectedRehearsalTest(unittest.TestCase):
             "protected openclaw runtime invocations: 0",
             "ssl_cert_file=/opt/homebrew/etc/ca-certificates/cert.pem",
             "phase14c-2026-07-01-connected-rehearsal",
+            "model-generated brief text",
+            "stop before todoist and gmail",
             "not authorization embedded in this document or the cli report",
             "live_rails_activated` remains `false",
         )
@@ -139,6 +144,7 @@ class Phase14CConnectedRehearsalTest(unittest.TestCase):
 
         self.assertIn("docs/phase_14c_connected_rehearsal.md", text)
         self.assertIn("phase14c connected-rehearsal-plan --json", text)
+        self.assertIn("phase14c connected-rehearsal --json", text)
 
 
 def _normalized_doc_text(path: Path) -> str:

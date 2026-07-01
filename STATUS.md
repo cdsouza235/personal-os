@@ -275,7 +275,13 @@ Last updated: 2026-07-01
   not read environment variables or credential values, does not initialize
   live clients, does not call OpenRouter, create Todoist tasks, send Gmail,
   write Calendar, invoke OpenClaw, open a database, or write files, and keeps
-  `ready_for_live_execution=false`.
+  `ready_for_live_execution=false`. The separate
+  `phase14c connected-rehearsal --json` executable gate is also no-live by
+  default and reads environment key names only; live mode requires the exact
+  approval reference before values are read and remains bounded to one
+  OpenRouter primary call, one fallback call only after primary validation
+  failure, one Todoist Inbox/default task create, and one controlled Gmail
+  self-send.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -289,8 +295,8 @@ Last updated: 2026-07-01
 
 ## Validated State
 
-- Full suite: 761 tests OK
-- ResourceWarning-sensitive suite: 761 tests OK
+- Full suite: 768 tests OK
+- ResourceWarning-sensitive suite: 768 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -303,7 +309,7 @@ Last updated: 2026-07-01
   live-readiness/request-template/dry-run source/docs/CLI suite: 53 CLI tests
   OK plus the targeted source/docs tests above
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
-- Targeted Phase 14-C connected rehearsal/CLI/docs/model suite: 88 tests OK
+- Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 95 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

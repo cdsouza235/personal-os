@@ -30,7 +30,13 @@ from personalos.path_safety import (
     validate_output_file_path,
 )
 from personalos.phase14c_connected_rehearsal import (
+    PHASE14C_CONNECTED_REHEARSAL_APPROVAL_REFERENCE,
     build_phase14c_connected_rehearsal_plan,
+)
+from personalos.phase14c_connected_rehearsal_live import (
+    CONNECTED_REHEARSAL_PASSED,
+    CONNECTED_REHEARSAL_REQUIRED_CONFIG_NAMES,
+    run_phase14c_connected_rehearsal,
 )
 from personalos.phase14c_connectivity_setup import (
     build_phase14c_connectivity_setup_report,
@@ -321,6 +327,17 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local plan / no values / no live clients",
         "local_effect": "does not read environment, open a DB, write files, or call services",
         "output": "stdout connected rehearsal plan JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C connected rehearsal gate",
+        "safe_local_action": "Gate one connected Gmail/Todoist/OpenRouter rehearsal",
+        "command": (
+            "personalos phase14c connected-rehearsal "
+            "[--execute-live --approval-reference REF] [--json]"
+        ),
+        "mode": "repo-local gate / no values by default / bounded live only with explicit approval",
+        "local_effect": "default path reads environment key names only and makes no live calls",
+        "output": "stdout connected rehearsal gate JSON or human summary",
     },
 )
 
@@ -679,6 +696,34 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_connected_rehearsal_parser)
     phase14c_connected_rehearsal_parser.set_defaults(
         func=_command_phase14c_connected_rehearsal_plan
+    )
+
+    phase14c_connected_rehearsal_live_parser = phase14c_subparsers.add_parser(
+        "connected-rehearsal",
+        help="Gate or run one bounded Phase 14-C connected rehearsal.",
+        description=(
+            "By default this command is report-only and reads environment key names "
+            "only. With --execute-live and the exact connected rehearsal approval "
+            "reference, it may load the OpenRouter, Todoist, and Gmail config "
+            "values, call OpenRouter once with one fallback only if validation "
+            "fails, create one Todoist Inbox/default task, and send one controlled "
+            "Gmail self-email. It does not write Calendar, invoke protected "
+            "OpenClaw runtime, open a DB, write files, activate a scheduler, or "
+            "touch protected paths."
+        ),
+    )
+    phase14c_connected_rehearsal_live_parser.add_argument(
+        "--execute-live",
+        action="store_true",
+        help="Explicitly run the one connected rehearsal.",
+    )
+    phase14c_connected_rehearsal_live_parser.add_argument(
+        "--approval-reference",
+        help="Required exact reference for --execute-live; not printed raw.",
+    )
+    _add_json_arg(phase14c_connected_rehearsal_live_parser)
+    phase14c_connected_rehearsal_live_parser.set_defaults(
+        func=_command_phase14c_connected_rehearsal
     )
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
@@ -1723,6 +1768,90 @@ def _command_phase14c_connected_rehearsal_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_phase14c_connected_rehearsal(args: argparse.Namespace) -> int:
+    config_names = tuple(os.environ.keys())
+    approval_matched = (
+        args.approval_reference == PHASE14C_CONNECTED_REHEARSAL_APPROVAL_REFERENCE
+    )
+    env_values: dict[str, str] | None = None
+    if (
+        args.execute_live
+        and approval_matched
+        and all(name in config_names for name in CONNECTED_REHEARSAL_REQUIRED_CONFIG_NAMES)
+    ):
+        env_values = _connected_rehearsal_env_values()
+
+    rehearsal_report = run_phase14c_connected_rehearsal(
+        available_config_names=config_names,
+        execute_live=args.execute_live,
+        approval_reference=args.approval_reference,
+        provider=env_values["provider"] if env_values else None,
+        api_key=env_values["api_key"] if env_values else None,
+        nemotron_super_model=(
+            env_values["nemotron_super_model"] if env_values else None
+        ),
+        glm_5_2_model=env_values["glm_5_2_model"] if env_values else None,
+        todoist_token=env_values["todoist_token"] if env_values else None,
+        gmail_sender_email=env_values["gmail_sender_email"] if env_values else None,
+        gmail_app_password=env_values["gmail_app_password"] if env_values else None,
+        gmail_controlled_recipient=(
+            env_values["gmail_controlled_recipient"] if env_values else None
+        ),
+    )
+    call_limits = dict(rehearsal_report["call_limits"])
+    model_calls = int(call_limits["openrouter_primary_calls"]) + int(
+        call_limits["openrouter_fallback_calls"]
+    )
+    todoist_calls = int(call_limits["todoist_task_create_calls"])
+    gmail_calls = int(call_limits["gmail_email_send_calls"])
+    safety = dict(rehearsal_report["safety_assertions"])
+    credential_values_read = safety["credential_values_read"] is True
+    status = str(rehearsal_report["status"])
+    external_mutation = safety.get("external_mutation")
+    report = _with_workflow_context(
+        {
+            "command": "phase14c connected-rehearsal",
+            "status": status,
+            "database_write": False,
+            "external_mutation": external_mutation,
+            "external_writes": rehearsal_report.get("external_writes", "none"),
+            "file_write": False,
+            "no_external_writes": not (todoist_calls or gmail_calls),
+            "no_credentials_loaded": not credential_values_read,
+            "no_credential_values_read": not credential_values_read,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": not (
+                safety["live_clients_initialized"] is True
+            ),
+            "no_live_rails_activated": not (model_calls or todoist_calls or gmail_calls),
+            "no_model_provider_call": not model_calls,
+            "credentials": (
+                "loaded_for_bounded_phase14c_connected_rehearsal"
+                if credential_values_read
+                else "not_loaded"
+            ),
+            "connected_rehearsal": rehearsal_report,
+        },
+        workflow_name="Phase 14-C connected rehearsal",
+        workflow_mode=(
+            "bounded live connected rehearsal"
+            if model_calls or todoist_calls or gmail_calls
+            else "repo-local connected rehearsal gate / no live execution"
+        ),
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the connected rehearsal status.",
+            "Do not rerun --execute-live after any Todoist or Gmail write.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if (not args.execute_live or status == CONNECTED_REHEARSAL_PASSED) else 1
+
+
 def _phase14c_safe_credential_preflight_report(
     available_config_names: Iterable[str],
 ) -> dict[str, Any]:
@@ -1833,6 +1962,34 @@ def _gmail_smtp_env_values() -> dict[str, str]:
         "sender_email": os.environ.get("PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS", ""),
         "app_password": os.environ.get("PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD", ""),
         "controlled_recipient": os.environ.get(
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
+            "",
+        ),
+    }
+
+
+def _connected_rehearsal_env_values() -> dict[str, str]:
+    return {
+        "provider": os.environ.get("PERSONALOS_OPENCLAW_MODEL_PROVIDER", ""),
+        "api_key": os.environ.get("PERSONALOS_OPENCLAW_MODEL_API_KEY", ""),
+        "nemotron_super_model": os.environ.get(
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
+            "",
+        ),
+        "glm_5_2_model": os.environ.get(
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
+            "",
+        ),
+        "todoist_token": os.environ.get("PERSONALOS_PHASE14C_TODOIST_TOKEN", ""),
+        "gmail_sender_email": os.environ.get(
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS",
+            "",
+        ),
+        "gmail_app_password": os.environ.get(
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD",
+            "",
+        ),
+        "gmail_controlled_recipient": os.environ.get(
             "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
             "",
         ),

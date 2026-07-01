@@ -38,6 +38,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "personalos.cli phase14c openrouter-model-smoke --json",
             "personalos.cli phase14c live-smoke-diagnostics --json",
             "personalos.cli phase14c connected-rehearsal-plan --json",
+            "personalos.cli phase14c connected-rehearsal --json",
             "does not load credentials",
             "does not initialize live clients",
             "does not initialize a model client",
@@ -112,6 +113,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "phase14c live-smoke-diagnostics",
             "phase_14c_connected_rehearsal.md",
             "model-to-task-to-email rehearsal",
+            "phase14c connected-rehearsal",
+            "exact approval reference",
             "error_kind",
             "http_status",
         )

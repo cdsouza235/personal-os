@@ -205,6 +205,20 @@ larger supervised model-to-task-to-email rehearsal plan using confirmed Gmail,
 Todoist, and OpenRouter rails, while excluding Calendar duplicate creation and
 protected OpenClaw runtime invocation.
 
+Connected rehearsal executable gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal --json
+```
+
+The default gate reads environment key names only and makes no live calls. Its
+live mode requires the exact approval reference
+`phase14c-2026-07-01-connected-rehearsal`; only then may it read the configured
+Gmail, Todoist, and OpenRouter values. The bounded live sequence is OpenRouter
+primary, OpenRouter fallback only after primary validation failure, Todoist
+Inbox/default task create, and Gmail controlled self-send. Calendar duplicate
+creation and protected OpenClaw runtime invocation remain excluded.
+
 Live commands already used once for this evidence packet:
 
 ```bash

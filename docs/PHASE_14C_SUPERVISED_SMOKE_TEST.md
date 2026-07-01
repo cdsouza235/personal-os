@@ -220,6 +220,23 @@ Gmail controlled self-send, with no Calendar duplicate and no protected
 OpenClaw runtime invocation. The plan requires a new explicit approval
 reference before any future live run.
 
+Connected rehearsal executable gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal --json
+```
+
+The default command is report-only and reads environment key names only. The
+live form requires `--execute-live`, the exact approval reference
+`phase14c-2026-07-01-connected-rehearsal`, and the configured Gmail, Todoist,
+and OpenRouter values before it reads credential values. The live form may make
+at most one OpenRouter primary call, one fallback call only if primary
+validation fails, one Todoist Inbox/default task create, and one controlled
+Gmail self-send. It does not write Calendar, invoke protected OpenClaw runtime,
+open a database, write files, activate a scheduler, or touch protected paths.
+It must not be run until the executable gate has passed Claude Code audit and
+Chris separately confirms the live run.
+
 Connectivity setup:
 
 ```bash

@@ -173,6 +173,19 @@ validation fails, no full prompt logging, no raw provider response logging, no
 configured model ID logging, no credential values, and no protected OpenClaw
 runtime invocation.
 
+Connected rehearsal executable gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c connected-rehearsal --json
+```
+
+The default gate makes no provider call. Its live mode keeps the same model
+routing with one Nemotron Super primary call and one GLM 5.2 fallback call only
+if primary validation fails. It sanitizes model metadata to the safe field
+allowlist, does not log the full prompt, model-generated brief text, raw
+provider response, configured model IDs, or credential values, and stops before
+Todoist/Gmail if model validation fails.
+
 ## Non-Goals
 
 This strategy does not:

@@ -388,6 +388,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C OpenRouter model smoke gate",
             "Phase 14-C live-smoke diagnostics",
             "Phase 14-C connected rehearsal plan",
+            "Phase 14-C connected rehearsal gate",
         ):
             with self.subTest(workflow_name=workflow_name):
                 self.assertIn(f"- {workflow_name}", result.stdout)
@@ -442,6 +443,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C OpenRouter model smoke gate", workflow_names)
         self.assertIn("Phase 14-C live-smoke diagnostics", workflow_names)
         self.assertIn("Phase 14-C connected rehearsal plan", workflow_names)
+        self.assertIn("Phase 14-C connected rehearsal gate", workflow_names)
 
     def test_phase14c_connectivity_setup_missing_names_only(self) -> None:
         secret_environment = {
@@ -1457,6 +1459,82 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
 
+    def test_phase14c_connected_rehearsal_default_is_no_live_gate(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-model",
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-model",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS": "chris@example.com",
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD": "secret-gmail-password",
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT": "chris@example.com",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "connected-rehearsal", "--json"])
+
+        payload = json.loads(result.stdout)
+        rehearsal = payload["connected_rehearsal"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c connected-rehearsal")
+        self.assertEqual(
+            payload["status"],
+            "phase14c_connected_rehearsal_not_run_missing_execute_live_flag",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertFalse(payload["file_write"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertEqual(rehearsal["call_limits"]["openrouter_primary_calls"], 0)
+        self.assertEqual(rehearsal["call_limits"]["todoist_task_create_calls"], 0)
+        self.assertEqual(rehearsal["call_limits"]["gmail_email_send_calls"], 0)
+        for secret_value in _connected_rehearsal_secret_values(secret_environment):
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_connected_rehearsal_execute_requires_exact_approval(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER": "openrouter",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL": "secret-nemotron-model",
+            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL": "secret-glm-model",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS": "chris@example.com",
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD": "secret-gmail-password",
+            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT": "chris@example.com",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "connected-rehearsal",
+                    "--execute-live",
+                    "--approval-reference",
+                    "wrong-reference",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        rehearsal = payload["connected_rehearsal"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(
+            payload["status"],
+            "phase14c_connected_rehearsal_not_run_unapproved_reference",
+        )
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertEqual(rehearsal["call_limits"]["openrouter_primary_calls"], 0)
+        for secret_value in _connected_rehearsal_secret_values(secret_environment):
+            self.assertNotIn(secret_value, result.stdout)
+
     def test_readiness_status_command_reports_default_not_ready_without_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             before = sorted(Path(temp_dir).iterdir())
@@ -2390,6 +2468,20 @@ def _run_cli(args: list[str]) -> CliRunResult:
         except SystemExit as error:
             code = 0 if error.code is None else int(error.code)
     return CliRunResult(code, stdout.getvalue(), stderr.getvalue())
+
+
+def _connected_rehearsal_secret_values(
+    secret_environment: dict[str, str],
+) -> tuple[str, ...]:
+    return (
+        secret_environment["PERSONALOS_OPENCLAW_MODEL_API_KEY"],
+        secret_environment["PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL"],
+        secret_environment["PERSONALOS_OPENCLAW_GLM_5_2_MODEL"],
+        secret_environment["PERSONALOS_PHASE14C_TODOIST_TOKEN"],
+        secret_environment["PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS"],
+        secret_environment["PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD"],
+        secret_environment["PHASE14C_GMAIL_CONTROLLED_RECIPIENT"],
+    )
 
 
 @contextmanager

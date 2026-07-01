@@ -94,7 +94,10 @@ bounded Phase 14-C supervised smoke envelope. Use
 manual outcome check and future OpenRouter diagnostic-field readiness. Use
 `personalos phase14c connected-rehearsal-plan --json` to inspect the next
 larger model-to-task-to-email rehearsal plan without reading credentials or
-calling live services.
+calling live services. Use `personalos phase14c connected-rehearsal --json`
+to inspect the executable gate for that rehearsal; its live mode still requires
+the exact approval reference, configured credentials, and Claude Code audit
+before any OpenRouter, Todoist, or Gmail call.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

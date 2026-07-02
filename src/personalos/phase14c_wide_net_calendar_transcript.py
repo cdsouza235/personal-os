@@ -268,8 +268,15 @@ def _validate_create(
     performed = create.get("performed") is True
     connector_args_matched = create.get("connector_args") == dict(expected_args)
     result = _mapping(create.get("sanitized_result"))
-    result_keys = tuple(sorted(str(key) for key in result))
-    result_keys_allowed = all(key in _ALLOWED_CREATE_RESULT_KEYS for key in result)
+    result_key_count = len(result)
+    allowed_result_keys = tuple(
+        sorted(
+            str(key)
+            for key in result
+            if isinstance(key, str) and key in _ALLOWED_CREATE_RESULT_KEYS
+        )
+    )
+    result_keys_allowed = result_key_count == len(allowed_result_keys)
 
     if not performed and create:
         if create.get("performed") not in (False, None):
@@ -293,7 +300,8 @@ def _validate_create(
         "connector_action_matched": create.get("connector_action") == "create_event",
         "connector_args_matched": connector_args_matched,
         "safe_result_present": bool(result),
-        "result_keys": result_keys,
+        "result_key_count": result_key_count,
+        "allowed_result_keys": allowed_result_keys,
         "result_keys_allowed": result_keys_allowed,
     }
 
@@ -331,7 +339,8 @@ def _empty_create_summary() -> dict[str, Any]:
         "connector_action_matched": False,
         "connector_args_matched": False,
         "safe_result_present": False,
-        "result_keys": (),
+        "result_key_count": 0,
+        "allowed_result_keys": (),
         "result_keys_allowed": False,
     }
 

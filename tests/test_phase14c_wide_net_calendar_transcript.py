@@ -79,9 +79,10 @@ class Phase14CWideNetCalendarTranscriptTest(unittest.TestCase):
         self.assertFalse(validation["create_allowed_after_precheck"])
         self.assertTrue(validation["calendar_create_summary"]["performed"])
         self.assertEqual(
-            validation["calendar_create_summary"]["result_keys"],
+            validation["calendar_create_summary"]["allowed_result_keys"],
             ("id", "status"),
         )
+        self.assertEqual(validation["calendar_create_summary"]["result_key_count"], 2)
         self.assertNotIn("evt_123", serialized)
 
     def test_validator_blocks_duplicate_precheck_count(self) -> None:
@@ -132,6 +133,38 @@ class Phase14CWideNetCalendarTranscriptTest(unittest.TestCase):
         self.assertIn("secret_like_value_present", validation["failure_reasons"])
         self.assertNotIn("chris@example.com", serialized)
         self.assertNotIn("token=secret", serialized)
+        self.assertNotIn("evt_123", serialized)
+
+    def test_validator_does_not_echo_disallowed_result_key_names(self) -> None:
+        transcript = _precheck_clear_transcript()
+        transcript["calendar_create"] = {
+            "performed": True,
+            "connector_action": "create_event",
+            "connector_args": _template_create_args(),
+            "sanitized_result": {
+                "id": "evt_123",
+                "chris.private@gmail.com": "x",
+            },
+        }
+
+        validation = validate_phase14c_wide_net_calendar_transcript(transcript)
+        serialized = json.dumps(validation, sort_keys=True)
+
+        self.assertEqual(
+            validation["status"],
+            PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_BLOCKED,
+        )
+        self.assertFalse(validation["accepted"])
+        self.assertIn(
+            "calendar_create_result_contains_unapproved_fields",
+            validation["failure_reasons"],
+        )
+        self.assertEqual(
+            validation["calendar_create_summary"]["allowed_result_keys"],
+            ("id",),
+        )
+        self.assertEqual(validation["calendar_create_summary"]["result_key_count"], 2)
+        self.assertNotIn("chris.private@gmail.com", serialized)
         self.assertNotIn("evt_123", serialized)
 
     def test_input_size_report_blocks_without_values(self) -> None:

@@ -378,8 +378,8 @@ Last updated: 2026-07-02
 
 ## Validated State
 
-- Full suite: 819 tests OK
-- ResourceWarning-sensitive suite: 819 tests OK
+- Full suite: 820 tests OK
+- ResourceWarning-sensitive suite: 820 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -397,10 +397,10 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C wide-net handoff/evidence/app-bridge/gate/CLI/docs/model
   suite: 117 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
-- Targeted Phase 14-C wide-net Calendar transcript validator suite: 100 tests OK
+- Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
-- Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK
+- Targeted Phase 14-C gated live-smoke client/CLI/model suite: 84 tests OK
 - Targeted MVP readiness gap report suite: 10 tests OK
 - Targeted MVP readiness docs suite: 5 tests OK
 - Targeted non-human closure plan suite: 11 tests OK

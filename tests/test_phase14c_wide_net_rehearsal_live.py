@@ -7,6 +7,9 @@ from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     PHASE14C_WIDE_NET_REHEARSAL_MARKER,
 )
+from personalos.phase14c_wide_net_calendar_bridge import (
+    PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
+)
 from personalos.phase14c_wide_net_rehearsal_live import (
     WIDE_NET_CALENDAR_FAILED,
     WIDE_NET_CALENDAR_PRECHECK_FAILED,
@@ -312,6 +315,51 @@ class Phase14CWideNetRehearsalLiveTest(unittest.TestCase):
         self.assertEqual(todoist.payloads, [])
         self.assertEqual(gmail.payloads, [])
 
+    def test_malformed_calendar_precheck_response_fails_closed(self) -> None:
+        model = _RecordingModelClient(
+            [
+                {
+                    "success": True,
+                    "response_text": "PHASE14C_WIDE_NET_DIAGNOSTIC_OK",
+                }
+            ]
+        )
+        todoist = _RecordingTodoistClient()
+        gmail = _RecordingGmailClient()
+        calendar = _MalformedCalendarPrecheckClient()
+
+        report = run_phase14c_wide_net_rehearsal(
+            available_config_names=WIDE_NET_REQUIRED_CONFIG_NAMES,
+            execute_live=True,
+            approval_reference=PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
+            provider="openrouter",
+            api_key="secret-openrouter-key",
+            nemotron_super_model="secret-nemotron-model-id",
+            glm_5_2_model="secret-glm-model-id",
+            todoist_token="secret-todoist-token",
+            gmail_sender_email="chris@example.com",
+            gmail_app_password="secret-gmail-password",
+            gmail_controlled_recipient="chris@example.com",
+            calendar_connector_label="google_calendar_connector",
+            model_client=model,
+            todoist_client=todoist,
+            gmail_client=gmail,
+            calendar_client=calendar,
+        )
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(report["status"], WIDE_NET_CALENDAR_PRECHECK_FAILED)
+        self.assertFalse(report["external_mutation"])
+        self.assertEqual(report["external_writes"], "none")
+        self.assertEqual(report["call_limits"]["calendar_duplicate_precheck_calls"], 1)
+        self.assertEqual(report["call_limits"]["openrouter_primary_calls"], 0)
+        self.assertEqual(model.requests, [])
+        self.assertEqual(todoist.payloads, [])
+        self.assertEqual(gmail.payloads, [])
+        self.assertEqual(calendar.payloads, [])
+        self.assertIn("CalendarBridgeContractError", serialized)
+        self.assertNotIn("chris@example.com", serialized)
+
     def test_todoist_failure_stops_before_gmail_and_calendar(self) -> None:
         model = _RecordingModelClient(
             [
@@ -442,7 +490,10 @@ class _RecordingCalendarClient:
 
     def find_events_by_title(self, payload: dict[str, object]) -> dict[str, object]:
         self.precheck_payloads.append(dict(payload))
-        return {"matching_event_count": self.matching_event_count}
+        return {
+            "contract": PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
+            "matching_event_count": self.matching_event_count,
+        }
 
     def create_event(self, payload: dict[str, object]) -> dict[str, object]:
         self.payloads.append(dict(payload))
@@ -467,6 +518,12 @@ class _FailingCalendarCreateClient(_RecordingCalendarClient):
     def create_event(self, payload: dict[str, object]) -> dict[str, object]:
         self.payloads.append(dict(payload))
         raise self.error
+
+
+class _MalformedCalendarPrecheckClient(_RecordingCalendarClient):
+    def find_events_by_title(self, payload: dict[str, object]) -> dict[str, object]:
+        self.precheck_payloads.append(dict(payload))
+        return {"unexpected": []}
 
 
 class _ClosableBody:

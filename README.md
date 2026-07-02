@@ -110,7 +110,9 @@ authorization. Use `personalos phase14c wide-net-rehearsal --json` to inspect
 the default no-live gate; its `--execute-live` path fails closed before
 credential values are read until an audited Calendar client/connector bridge
 exists. The injected wide-net runner now enforces a Calendar duplicate-marker
-precheck before any model, Todoist, Gmail, or Calendar create step can run.
+precheck before any model, Todoist, Gmail, or Calendar create step can run,
+and the Calendar bridge scaffold fails closed on unrecognized precheck
+response shapes.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

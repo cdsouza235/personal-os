@@ -221,7 +221,8 @@ currently fails closed before values, after required config names are present, w
 `phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
 until a future audited Calendar bridge exists. The injected runner performs the
 Calendar duplicate-marker precheck before model, Todoist, Gmail, or Calendar
-create, so model diagnostics remain separate from duplicate-safety.
+create, and the Calendar bridge scaffold fails closed on unrecognized precheck
+response shapes, so model diagnostics remain separate from duplicate-safety.
 
 ## Non-Goals
 

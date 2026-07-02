@@ -7,7 +7,9 @@ It does not authorize or run live rails. The repo now has a default no-live
 executable gate, but that gate fails closed before credential values are read
 unless a future audited Calendar client/connector bridge is available. The
 injected runner now enforces a Calendar duplicate-marker precheck before any
-model, Todoist, Gmail, or Calendar create step can run.
+model, Todoist, Gmail, or Calendar create step can run. The repo also has a
+Calendar bridge scaffold that normalizes connector search responses into an
+explicit precheck contract; unrecognized precheck response shapes fail closed.
 
 CLI report:
 
@@ -38,7 +40,8 @@ present, the current CLI still returns
 before reading credential values. The runner protocol now requires a
 duplicate-marker lookup before `create_event`, but a separate audited Calendar
 bridge is still required before the CLI can run the future wide-net live
-sequence.
+sequence. The scaffolded bridge does not import or initialize a live connector
+by itself.
 
 ## Confirmed Foundation
 
@@ -54,7 +57,9 @@ sequence.
   happened in that run.
 - Google Calendar has one existing bounded smoke event. This wide-net plan
   uses a new marker, and the executable runner now requires a duplicate-marker
-  precheck before any future Calendar create.
+  precheck before any future Calendar create. The Calendar bridge scaffold
+  requires a normalized `matching_event_count` contract before the runner can
+  proceed; malformed or unrecognized precheck responses stop the sequence.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 
@@ -160,6 +165,8 @@ OpenRouter target:
 - Google Calendar must pass a duplicate-marker precheck before any create.
 - The duplicate-marker precheck must stop before model, Todoist, Gmail, and
   Calendar create if the marker already exists.
+- Unrecognized Calendar precheck response shapes must fail closed before model,
+  Todoist, Gmail, or Calendar create.
 - Config names may be checked, but credential values must not be printed,
   summarized, committed, or pasted into chat.
 - This document and CLI report do not read environment variables or call the
@@ -208,5 +215,7 @@ document or the CLI report.
   read unless a future audited Calendar client/connector bridge is available.
 - The injected runner enforces a Calendar duplicate-marker precheck before
   model, Todoist, Gmail, or Calendar create.
+- The Calendar bridge scaffold requires a normalized precheck response
+  contract and fails closed on unrecognized shapes.
 - This packet does not authorize Calendar duplicates.
 - This packet does not implement dynamic cleaning.

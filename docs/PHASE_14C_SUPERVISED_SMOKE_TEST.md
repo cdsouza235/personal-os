@@ -268,7 +268,8 @@ requires a new explicit approval reference and Claude Code audit before any
 future live run; the separate executable gate remains no-live by default and
 fails closed before values until a Calendar bridge exists. The injected runner
 now enforces a Calendar duplicate-marker precheck before model, Todoist, Gmail,
-or Calendar create.
+or Calendar create, and the repo-local Calendar bridge scaffold fails closed on
+unrecognized precheck response shapes.
 
 Wide-net rehearsal executable gate:
 
@@ -284,7 +285,8 @@ present, it currently returns
 before reading credential values. A separate audited Calendar bridge is
 required before the CLI can run the future wide-net live sequence. The runner
 requires a duplicate-marker precheck before any model, Todoist, Gmail, or
-Calendar create step in the injected live path.
+Calendar create step in the injected live path. The precheck response must use
+the normalized bridge contract with an explicit `matching_event_count`.
 
 Connectivity setup:
 

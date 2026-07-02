@@ -125,7 +125,11 @@ booleans. Use
 `personalos phase14c wide-net-evidence-validate --input-file <file> --json` to
 validate one sanitized wide-net evidence report without echoing raw evidence;
 the validator rejects oversized files before JSON parsing and uses shared
-bounded redaction checks with explicit depth and node limits.
+bounded redaction checks with explicit depth and node limits. Use
+`personalos phase14c wide-net-evidence-crosscheck --calendar-transcript-file <file> --evidence-file <file> --json`
+to check that a sanitized Calendar transcript and sanitized wide-net evidence
+agree on the marker, precheck count, and Calendar create count without echoing
+raw inputs.
 Use `personalos phase14c wide-net-rehearsal --json` to inspect the default
 no-live gate; its `--execute-live` path fails closed before credential values
 are read until an audited Calendar client/connector bridge exists. The

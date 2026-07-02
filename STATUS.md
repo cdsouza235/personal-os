@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #108:
-  `76f7f1c2e456e6cf18e4bded0c956be272867553`
-- Latest merged PR at that baseline: PR #108, Phase 14-C wide-net Calendar
-  transcript template and validator
+- Last validated main baseline after PR #109:
+  `92dbc08bfa3a8d253d1f8e9c946071835991f1be`
+- Latest merged PR at that baseline: PR #109, Phase 14-C wide-net fillable
+  evidence template
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -100,11 +100,13 @@ Last updated: 2026-07-02
   the repo has a no-live Calendar transcript template and validator for
   sanitized app-connector precheck/create transcripts, rejecting oversized
   inputs before JSON parsing and never echoing raw event details or attendee
-  addresses; the repo-local wide-net execution-handoff, evidence-template, and
-  evidence-validator surfaces report the future bounded command, Calendar
-  connector handoff, call budgets, sanitized post-run evidence shape, and
-  sanitized post-run evidence checks without reading credentials, wiring a
-  connector, calling live services, or echoing raw evidence; Phase 14-C shared
+  addresses; the repo-local wide-net execution-handoff, evidence-template,
+  evidence-validator, and evidence-crosscheck surfaces report the future
+  bounded command, Calendar connector handoff, call budgets, sanitized
+  post-run evidence shape, sanitized post-run evidence checks, and sanitized
+  Calendar-transcript-to-wide-net-evidence consistency checks without reading
+  credentials, wiring a connector, calling live services, or echoing raw
+  evidence; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
   scans across the live-gated and report-only modules; the wide-net evidence
@@ -162,17 +164,20 @@ Last updated: 2026-07-02
   rehearsal plan/executable gate/live evidence, plus the wide-net rehearsal
   plan, fail-closed executable gate, Calendar duplicate-precheck contract,
   Calendar app-bridge payload report, execution handoff, redacted evidence
-  validator, and shared Phase 14-C safety-helper hardening
+  validator, fillable evidence template, evidence crosscheck, and shared Phase
+  14-C safety-helper hardening
 - Current / next phase: Phase 14-C wide-net rehearsal planning after the first
   approved model-to-task-to-email rehearsal stopped at model validation. The
   connected live evidence is recorded in
   [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md),
   and the next inert wider plan is recorded in
   [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md).
-  The wide-net execution handoff and evidence validator are repo-local and
-  inert; the evidence validator now has an explicit local input-size gate and
-  bounded shared redaction scans. Calendar creation and protected OpenClaw
-  runtime invocation remain excluded unless separately approved.
+  The wide-net execution handoff, evidence template, evidence validator, and
+  evidence crosscheck are repo-local and inert; the evidence validator and
+  evidence crosscheck have explicit local input-size gates, and the evidence
+  validator uses bounded shared redaction scans. Calendar creation and
+  protected OpenClaw runtime invocation remain excluded unless separately
+  approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
   `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`,
   Monday, 2026-07-06, 09:00-09:15 America/Chicago, event ID
@@ -368,6 +373,11 @@ Last updated: 2026-07-02
   command validates one sanitized evidence report without echoing the raw
   evidence payload, rejects oversized files before JSON parsing, and uses
   bounded redaction depth/node limits through shared Phase 14-C safety helpers.
+  The `phase14c wide-net-evidence-crosscheck --calendar-transcript-file <file> --evidence-file <file> --json`
+  command compares sanitized Calendar transcript evidence against sanitized
+  wide-net evidence and verifies the marker, duplicate-precheck count, and
+  Calendar event create count without echoing raw inputs or calling the
+  Calendar connector.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -381,8 +391,8 @@ Last updated: 2026-07-02
 
 ## Validated State
 
-- Full suite: 822 tests OK
-- ResourceWarning-sensitive suite: 822 tests OK
+- Full suite: 825 tests OK
+- ResourceWarning-sensitive suite: 825 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -397,8 +407,8 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
-- Targeted Phase 14-C wide-net evidence-template/handoff/transcript/app-bridge/
-  gate/CLI/docs/model suite: 120 tests OK
+- Targeted Phase 14-C wide-net evidence-template/evidence-crosscheck/handoff/
+  transcript/app-bridge/gate/CLI/docs/model suite: 135 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK

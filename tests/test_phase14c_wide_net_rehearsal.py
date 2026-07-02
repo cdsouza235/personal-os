@@ -149,6 +149,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "phase14c wide-net-execution-handoff --json",
             "phase14c wide-net-evidence-template --json",
             "phase14c wide-net-evidence-validate --input-file",
+            "phase14c wide-net-evidence-crosscheck --calendar-transcript-file",
             "redacted evidence validator",
             "does not wire or inject a calendar client",
             "does not call the google calendar app connector",
@@ -158,6 +159,9 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "oversized local evidence files before json parsing",
             "shared bounded redaction checks",
             "explicit depth and node limits",
+            "sanitized calendar transcript evidence and sanitized wide-net evidence agree",
+            "without echoing raw inputs",
+            "marker, duplicate-precheck count, calendar event create count",
             "one openrouter diagnostic model probe",
             "one todoist inbox/default marker task",
             "one gmail controlled self-email",
@@ -197,10 +201,12 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("phase14c wide-net-execution-handoff --json", text)
         self.assertIn("phase14c wide-net-evidence-template --json", text)
         self.assertIn("phase14c wide-net-evidence-validate --input-file", text)
+        self.assertIn("phase14c wide-net-evidence-crosscheck", text)
         self.assertIn("one self-only calendar event", text)
         self.assertIn("unrecognized precheck response shapes", text)
         self.assertIn("oversized files before json parsing", text)
         self.assertIn("shared bounded redaction checks", text)
+        self.assertIn("raw inputs", text)
 
 
 def _normalized_doc_text(path: Path) -> str:

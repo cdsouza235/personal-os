@@ -460,6 +460,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C wide-net execution handoff", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence template", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
+        self.assertIn("Phase 14-C wide-net evidence crosscheck", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
 
@@ -1850,6 +1851,63 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(validation["raw_evidence_returned"])
         self.assertFalse(validation["input_values_echoed"])
         self.assertNotIn("not-json", result.stdout)
+
+    def test_phase14c_wide_net_evidence_crosscheck_accepts_matching_files(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            transcript_path = Path(temp_dir) / "wide-net-calendar-transcript.json"
+            evidence_path = Path(temp_dir) / "wide-net-evidence.json"
+            transcript_path.write_text(
+                json.dumps(_valid_wide_net_calendar_create_transcript()),
+                encoding="utf-8",
+            )
+            evidence_path.write_text(
+                json.dumps({"wide_net_rehearsal": _valid_wide_net_evidence()}),
+                encoding="utf-8",
+            )
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-evidence-crosscheck",
+                    "--calendar-transcript-file",
+                    str(transcript_path),
+                    "--evidence-file",
+                    str(evidence_path),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        crosscheck = payload["wide_net_evidence_crosscheck"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-evidence-crosscheck")
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_evidence_crosscheck_valid",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["calendar_transcript_file_checked"])
+        self.assertTrue(payload["evidence_file_checked"])
+        self.assertTrue(crosscheck["accepted"])
+        self.assertFalse(crosscheck["raw_inputs_returned"])
+        self.assertFalse(crosscheck["input_values_echoed"])
+        self.assertEqual(crosscheck["failure_reasons"], [])
+        self.assertEqual(
+            crosscheck["wide_net_evidence_summary"]["calendar_event_create_calls"],
+            1,
+        )
+        self.assertNotIn("evt_", result.stdout)
+        self.assertNotIn("chris@example.com", result.stdout)
+        self.assertNotIn(str(transcript_path), result.stdout)
+        self.assertNotIn(str(evidence_path), result.stdout)
 
     def test_phase14c_wide_net_rehearsal_plan_is_no_live_report(self) -> None:
         secret_environment = {
@@ -3269,6 +3327,18 @@ def _valid_wide_net_calendar_transcript() -> dict[str, object]:
         },
         "calendar_create": {"performed": False},
     }
+
+
+def _valid_wide_net_calendar_create_transcript() -> dict[str, object]:
+    transcript = _valid_wide_net_calendar_transcript()
+    template = build_phase14c_wide_net_calendar_transcript_template()
+    transcript["calendar_create"] = {
+        "performed": True,
+        "connector_action": "create_event",
+        "connector_args": template["expected_calendar_create"]["connector_args"],
+        "sanitized_result": {"status": "confirmed"},
+    }
+    return transcript
 
 
 def _synthesis_payload(

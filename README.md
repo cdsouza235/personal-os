@@ -110,9 +110,15 @@ authorization. Use
 `personalos phase14c wide-net-calendar-bridge-payloads --json` to inspect the
 Google Calendar app connector payloads for the duplicate precheck and
 self-only create step; that command is report-only and does not call the
-connector. Use `personalos phase14c wide-net-rehearsal --json` to inspect the
-default no-live gate; its `--execute-live` path fails closed before credential
-values are read until an audited Calendar client/connector bridge exists. The
+connector. Use `personalos phase14c wide-net-execution-handoff --json` to
+inspect the future bounded live command template, Calendar connector handoff,
+call budgets, and post-run evidence requirements without wiring the connector
+or reading credentials. Use
+`personalos phase14c wide-net-evidence-validate --input-file <file> --json` to
+validate one sanitized wide-net evidence report without echoing raw evidence.
+Use `personalos phase14c wide-net-rehearsal --json` to inspect the default
+no-live gate; its `--execute-live` path fails closed before credential values
+are read until an audited Calendar client/connector bridge exists. The
 injected wide-net runner now enforces a Calendar duplicate-marker precheck
 before any model, Todoist, Gmail, or Calendar create step can run, and the
 Calendar bridge scaffold fails closed on unrecognized precheck response

@@ -12,7 +12,11 @@ Calendar bridge scaffold that normalizes connector search responses into an
 explicit precheck contract; unrecognized precheck response shapes fail closed.
 The repo-local Calendar app-bridge payload command now prints the exact Google
 Calendar app connector arguments for the duplicate precheck and self-only
-create step without calling the connector.
+create step without calling the connector. The repo also has a no-live
+execution-handoff command and a redacted evidence validator so the next
+operator can inspect the bounded command, Calendar connector handoff contract,
+call budgets, and post-run evidence requirements without reading credentials
+or calling live services.
 
 CLI report:
 
@@ -54,13 +58,46 @@ PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-bridge-paylo
 
 The bridge-payload command is repo-local/report-only. It does not read
 `.env.local`, read environment variables, load credentials, initialize live
-clients, call the Google Calendar app connector, create events, call
+clients, create events, call
 OpenRouter, create Todoist tasks, send Gmail, invoke OpenClaw, open a
-database, write files, or touch protected paths. It reports the Google
-Calendar app connector payloads for `search_events` and `create_event`, plus
-the normalized precheck response contract required by the runner. It is not
-live authorization and does not inject a Calendar client into the wide-net
-runner.
+database, write files, or touch protected paths. It does not call the Google
+Calendar app connector. It reports the Google Calendar app connector payloads
+for `search_events` and `create_event`, plus the normalized precheck response
+contract required by the runner. It is not live authorization and does not
+inject a Calendar client into the wide-net runner.
+
+Execution handoff:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-execution-handoff --json
+```
+
+The execution-handoff command is repo-local/report-only. It does not read
+`.env.local`, read environment variables, load credentials, initialize live
+clients, call the Google Calendar app connector, call OpenRouter, create
+Todoist tasks, send Gmail, write Calendar, invoke OpenClaw, open a database,
+write files, or touch protected paths. It reports the future bounded live
+command template, required approval reference, Calendar connector handoff
+payloads, normalized precheck contract, call budgets, stop boundaries, and
+post-run evidence validator command. It is not live authorization and does not
+wire or inject a Calendar client into the wide-net runner.
+
+Evidence validator:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-validate --input-file <sanitized-wide-net-report.json> --json
+```
+
+The evidence validator reads one explicit sanitized JSON file and prints a
+redacted pass/block report. It does not read credentials, inspect `.env.local`,
+call connectors, initialize live clients, open a DB, or print raw evidence. It
+does not echo raw evidence. It accepts only complete sanitized wide-net
+evidence within the one-call budgets, with a Calendar duplicate precheck
+performed, `matching_event_count=0`, no event details or attendee addresses
+logged, diagnostic-only model metadata, and no protected OpenClaw runtime,
+scheduler/background, production DB, protected path, dynamic-cleaning,
+broad-live-activation, credential-value, raw-provider-response, full-prompt,
+configured-model-ID, or unmasked-email exposure.
 
 ## Confirmed Foundation
 
@@ -81,7 +118,11 @@ runner.
   proceed; malformed or unrecognized precheck responses stop the sequence. The
   `phase14c wide-net-calendar-bridge-payloads --json` command reports the
   Google Calendar app connector payloads for the future audited bridge without
-  calling the connector.
+  calling the connector. The `phase14c wide-net-execution-handoff --json`
+  command reports the bounded future command and evidence checks without
+  wiring the connector, and
+  `phase14c wide-net-evidence-validate --input-file <file> --json` validates
+  sanitized evidence without echoing the raw payload.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 
@@ -187,6 +228,13 @@ OpenRouter target:
 - The Calendar app-bridge payload command may be inspected before a live run,
   but connector execution still requires a separate audited injection/wiring
   step.
+- The execution-handoff command may be inspected before a live run, but it is
+  not authorization and does not wire the Calendar connector.
+- Post-run evidence must be validated from a sanitized JSON report with
+  `phase14c wide-net-evidence-validate --input-file <file> --json`; the
+  validator must not receive or print credential values, raw provider
+  responses, full prompts, configured model IDs, event details, attendee
+  addresses, or unmasked emails.
 - Google Calendar must pass a duplicate-marker precheck before any create.
 - The duplicate-marker precheck must stop before model, Todoist, Gmail, and
   Calendar create if the marker already exists.

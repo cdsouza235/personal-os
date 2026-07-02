@@ -390,6 +390,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C connected rehearsal plan",
             "Phase 14-C connected rehearsal gate",
             "Phase 14-C wide-net Calendar bridge payloads",
+            "Phase 14-C wide-net execution handoff",
+            "Phase 14-C wide-net evidence validator",
             "Phase 14-C wide-net rehearsal plan",
             "Phase 14-C wide-net rehearsal gate",
         ):
@@ -448,6 +450,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C connected rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C connected rehearsal gate", workflow_names)
         self.assertIn("Phase 14-C wide-net Calendar bridge payloads", workflow_names)
+        self.assertIn("Phase 14-C wide-net execution handoff", workflow_names)
+        self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
 
@@ -1525,6 +1529,126 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIsNone(create["google_calendar_create_event_args"]["recurrence"])
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_execution_handoff_is_no_live_report(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "wide-net-execution-handoff", "--json"])
+
+        payload = json.loads(result.stdout)
+        handoff = payload["wide_net_execution_handoff"]
+        safety = handoff["safety_assertions"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-execution-handoff")
+        self.assertEqual(payload["status"], "phase14c_wide_net_execution_handoff_ready")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(handoff["ready_for_live_execution"])
+        self.assertTrue(handoff["template_only_not_authorization"])
+        self.assertTrue(handoff["human_live_approval_still_required"])
+        self.assertFalse(handoff["calendar_cli_connector_wiring_present"])
+        self.assertFalse(handoff["calendar_app_connector_called"])
+        self.assertIn(
+            "wide-net-rehearsal --execute-live",
+            handoff["execution_command_template"],
+        )
+        self.assertIn(
+            "wide-net-evidence-validate",
+            handoff["post_run_evidence_validator"]["command"],
+        )
+        self.assertEqual(
+            handoff["calendar_connector_handoff"]["duplicate_precheck_args"]["query"],
+            "[Phase 14-C Wide Test] Evening Reset Coordination",
+        )
+        self.assertEqual(handoff["call_budgets"]["calendar_event_create_calls"], 1)
+        self.assertFalse(safety["credential_values_read"])
+        self.assertFalse(safety["calendar_event_created"])
+        self.assertFalse(safety["protected_openclaw_runtime_called"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_evidence_validator_accepts_sanitized_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_path = Path(temp_dir) / "wide-net-evidence.json"
+            evidence_path.write_text(
+                json.dumps({"wide_net_rehearsal": _valid_wide_net_evidence()}),
+                encoding="utf-8",
+            )
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-evidence-validate",
+                    "--input-file",
+                    str(evidence_path),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        validation = payload["wide_net_evidence_validation"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-evidence-validate")
+        self.assertEqual(payload["status"], "phase14c_wide_net_evidence_valid")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(validation["accepted"])
+        self.assertFalse(validation["raw_evidence_returned"])
+        self.assertFalse(validation["input_values_echoed"])
+        self.assertEqual(validation["failure_reasons"], [])
+        self.assertEqual(validation["call_counts"]["calendar_event_create_calls"], 1)
+
+    def test_phase14c_wide_net_evidence_validator_redacts_blocked_file(self) -> None:
+        unsafe_evidence = {
+            **_valid_wide_net_evidence(),
+            "call_limits": {
+                **_valid_wide_net_evidence()["call_limits"],
+                "gmail_email_send_calls": 2,
+            },
+            "api_key": "secret-openrouter-key",
+            "gmail_result": {"recipient": "chris@example.com"},
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_path = Path(temp_dir) / "wide-net-evidence.json"
+            evidence_path.write_text(json.dumps(unsafe_evidence), encoding="utf-8")
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-evidence-validate",
+                    "--input-file",
+                    str(evidence_path),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        validation = payload["wide_net_evidence_validation"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(payload["status"], "phase14c_wide_net_evidence_blocked")
+        self.assertFalse(validation["accepted"])
+        self.assertIn(
+            "gmail_email_send_calls_over_budget",
+            validation["failure_reasons"],
+        )
+        self.assertIn("forbidden_raw_field_present", validation["failure_reasons"])
+        self.assertIn("unmasked_email_value_present", validation["failure_reasons"])
+        self.assertNotIn("secret-openrouter-key", result.stdout)
+        self.assertNotIn("chris@example.com", result.stdout)
 
     def test_phase14c_wide_net_rehearsal_plan_is_no_live_report(self) -> None:
         secret_environment = {
@@ -2871,6 +2995,57 @@ def _synthesis_apply_counts(connection: sqlite3.Connection) -> dict[str, int]:
         "synthesis_apply_runs": count_synthesis_apply_runs(connection),
         "priorities": count_priorities(connection),
         "projects": count_projects(connection),
+    }
+
+
+def _valid_wide_net_evidence() -> dict[str, object]:
+    return {
+        "status": "phase14c_wide_net_rehearsal_passed",
+        "rail": "wide_net_rehearsal",
+        "marker": "[Phase 14-C Wide Test] Evening Reset Coordination",
+        "call_limits": {
+            "openrouter_primary_calls": 1,
+            "openrouter_fallback_calls": 0,
+            "todoist_task_create_calls": 1,
+            "gmail_email_send_calls": 1,
+            "calendar_duplicate_precheck_calls": 1,
+            "calendar_event_create_calls": 1,
+            "protected_openclaw_runtime_invocation_calls": 0,
+        },
+        "calendar_duplicate_precheck": {
+            "performed": True,
+            "matching_event_count": 0,
+            "duplicate_marker_found": False,
+            "event_details_logged": False,
+            "attendee_addresses_logged": False,
+        },
+        "model_diagnostic": {
+            "diagnostic_only": True,
+            "model_output_drives_external_writes": False,
+            "prompt_logged": False,
+            "raw_provider_response_logged": False,
+            "generated_model_text_logged": False,
+            "configured_model_ids_logged": False,
+            "credential_values_logged": False,
+        },
+        "safety_assertions": {
+            "credential_values_read": True,
+            "credential_values_logged": False,
+            "credential_values_committed": False,
+            "environment_dumped": False,
+            "live_clients_initialized": True,
+            "model_provider_called": True,
+            "external_mutation": True,
+            "todoist_task_created": True,
+            "gmail_email_sent": True,
+            "calendar_event_created": True,
+            "protected_openclaw_runtime_called": False,
+            "scheduler_or_background_activated": False,
+            "production_db_active": False,
+            "protected_paths_touched": False,
+            "dynamic_cleaning_triggered": False,
+            "broad_live_activation": False,
+        },
     }
 
 

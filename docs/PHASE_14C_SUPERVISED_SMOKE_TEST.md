@@ -288,6 +288,24 @@ live clients, call the Google Calendar connector, create events, call
 OpenRouter, create Todoist tasks, send Gmail, invoke OpenClaw, open a
 database, or write files.
 
+Wide-net execution handoff and evidence validator:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-execution-handoff --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-validate --input-file <sanitized-wide-net-report.json> --json
+```
+
+These commands are repo-local/report-only. The handoff command reports the
+future bounded live command template, Calendar connector handoff, call budgets,
+and post-run evidence requirements without reading environment variables,
+loading credentials, initializing live clients, calling connectors, or writing
+files. The evidence validator reads one explicit sanitized JSON file and
+prints a redacted pass/block report without echoing raw evidence. It accepts
+only complete sanitized wide-net evidence within the one-call budgets, with the
+Calendar duplicate precheck performed and no credential values, raw provider
+responses, full prompts, configured model IDs, event details, attendee
+addresses, or unmasked emails.
+
 Wide-net rehearsal executable gate:
 
 ```bash

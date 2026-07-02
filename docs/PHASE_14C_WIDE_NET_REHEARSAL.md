@@ -12,11 +12,14 @@ Calendar bridge scaffold that normalizes connector search responses into an
 explicit precheck contract; unrecognized precheck response shapes fail closed.
 The repo-local Calendar app-bridge payload command now prints the exact Google
 Calendar app connector arguments for the duplicate precheck and self-only
-create step without calling the connector. The repo also has a no-live
-execution-handoff command and a redacted evidence validator so the next
-operator can inspect the bounded command, Calendar connector handoff contract,
-call budgets, and post-run evidence requirements without reading credentials
-or calling live services.
+create step without calling the connector. The repo also has no-live Calendar
+transcript template and validator commands so a future app-connector precheck
+or create transcript can be checked as sanitized JSON without echoing raw event
+details or attendee addresses. The repo also has a no-live execution-handoff
+command and a redacted evidence validator so the next operator can inspect the
+bounded command, Calendar connector handoff contract, call budgets, and
+post-run evidence requirements without reading credentials or calling live
+services.
 
 CLI report:
 
@@ -65,6 +68,28 @@ Calendar app connector. It reports the Google Calendar app connector payloads
 for `search_events` and `create_event`, plus the normalized precheck response
 contract required by the runner. It is not live authorization and does not
 inject a Calendar client into the wide-net runner.
+
+Calendar connector transcript template and validator:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-transcript-template --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-transcript-validate --input-file <sanitized-calendar-transcript.json> --json
+```
+
+These commands are repo-local/report-only. They do not read `.env.local`, read
+environment variables, load credentials, initialize live clients, call the
+Google Calendar app connector, create events, call OpenRouter, create Todoist
+tasks, send Gmail, invoke OpenClaw, open a database, write files, or touch
+protected paths. The template reports the sanitized transcript shape for the
+future Calendar duplicate precheck and create handoff. The validator reads one
+explicit sanitized JSON file, rejects oversized files before JSON parsing, and
+prints only redacted pass/block reason codes. It accepts a precheck-clear
+transcript only when the connector action and args match the approved
+`search_events` payload, the normalized response carries the explicit
+`matching_event_count` contract, the count is zero, and no event details or
+attendee addresses were logged. It accepts a post-create transcript only after
+that clear precheck and only with the approved `create_event` payload and
+sanitized result keys.
 
 Execution handoff:
 
@@ -124,6 +149,10 @@ exposure.
   calling the connector. The `phase14c wide-net-execution-handoff --json`
   command reports the bounded future command and evidence checks without
   wiring the connector, and
+  `phase14c wide-net-calendar-transcript-template --json` plus
+  `phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
+  validate sanitized Calendar connector transcripts without calling the
+  connector or echoing raw event details. The
   `phase14c wide-net-evidence-validate --input-file <file> --json` validates
   sanitized evidence without echoing the raw payload. The validator rejects
   oversized files before JSON parsing and uses shared bounded redaction checks
@@ -233,6 +262,10 @@ OpenRouter target:
 - The Calendar app-bridge payload command may be inspected before a live run,
   but connector execution still requires a separate audited injection/wiring
   step.
+- The Calendar transcript template/validator commands may be inspected before
+  a live run, but they are not authorization and do not call the Calendar
+  connector. Sanitized transcripts must not contain raw event details,
+  attendee addresses, credential values, or unmasked emails.
 - The execution-handoff command may be inspected before a live run, but it is
   not authorization and does not wire the Calendar connector.
 - Post-run evidence must be validated from a sanitized JSON report with

@@ -272,12 +272,18 @@ or Calendar create, and the repo-local Calendar bridge scaffold fails closed on
 unrecognized precheck response shapes. The
 `phase14c wide-net-calendar-bridge-payloads --json` command reports the Google
 Calendar app connector payloads for the future wide-net duplicate precheck and
-self-only create step without reading credentials or calling the connector.
+self-only create step without reading credentials or calling the connector. The
+`phase14c wide-net-calendar-transcript-template --json` and
+`phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
+commands inspect and validate sanitized Calendar connector transcripts without
+calling the connector or echoing raw event details.
 
 Calendar app-bridge payloads:
 
 ```bash
 PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-bridge-payloads --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-transcript-template --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-transcript-validate --input-file <sanitized-calendar-transcript.json> --json
 ```
 
 That command is repo-local/report-only. It reports the Google Calendar app
@@ -286,7 +292,10 @@ create step, plus the normalized precheck response contract required by the
 runner. It does not read environment variables, load credentials, initialize
 live clients, call the Google Calendar connector, create events, call
 OpenRouter, create Todoist tasks, send Gmail, invoke OpenClaw, open a
-database, or write files.
+database, or write files. The transcript template and validator are also
+repo-local/report-only. They validate one explicit sanitized Calendar
+connector transcript without calling the connector or echoing raw event
+details, attendee addresses, credential values, or unmasked emails.
 
 Wide-net execution handoff and evidence validator:
 

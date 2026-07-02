@@ -114,6 +114,11 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
             "PYTHONPATH=src python3 -m personalos.cli phase14c "
             "wide-net-calendar-bridge-payloads --json",
             "PYTHONPATH=src python3 -m personalos.cli phase14c "
+            "wide-net-calendar-transcript-template --json",
+            "PYTHONPATH=src python3 -m personalos.cli phase14c "
+            "wide-net-calendar-transcript-validate --input-file "
+            "<sanitized-calendar-transcript.json> --json",
+            "PYTHONPATH=src python3 -m personalos.cli phase14c "
             "wide-net-execution-handoff --json",
         ),
         "post_run_evidence_validator": {
@@ -143,6 +148,11 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
                 "google_calendar_create_event_args"
             ],
             "create_allowed_only_after_matching_event_count_zero": True,
+            "sanitized_transcript_validator_command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-calendar-transcript-validate --input-file "
+                "<sanitized-calendar-transcript.json> --json"
+            ),
         },
         "sequence": (
             "calendar_duplicate_precheck",

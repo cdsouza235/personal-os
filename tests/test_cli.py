@@ -45,6 +45,10 @@ from personalos.phase14c_supervised_smoke import (
     build_default_phase14c_supervised_smoke_request,
 )
 from personalos.phase14c_todoist_live_smoke import next_upcoming_monday
+from personalos.phase14c_wide_net_calendar_transcript import (
+    PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES,
+    build_phase14c_wide_net_calendar_transcript_template,
+)
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
 )
@@ -1532,6 +1536,119 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIsNone(create["google_calendar_create_event_args"]["recurrence"])
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_calendar_transcript_template_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                ["phase14c", "wide-net-calendar-transcript-template", "--json"]
+            )
+
+        payload = json.loads(result.stdout)
+        template = payload["wide_net_calendar_transcript_template"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-calendar-transcript-template",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_transcript_template_ready",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(template["calendar_app_connector_called"])
+        self.assertFalse(template["credential_values_read"])
+        self.assertEqual(
+            template["expected_duplicate_precheck"]["connector_action"],
+            "search_events",
+        )
+        self.assertEqual(
+            template["expected_calendar_create"]["connector_action"],
+            "create_event",
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_calendar_transcript_validate_accepts_file(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            transcript_path = Path(temp_dir) / "wide-net-calendar-transcript.json"
+            transcript_path.write_text(
+                json.dumps(_valid_wide_net_calendar_transcript()),
+                encoding="utf-8",
+            )
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-calendar-transcript-validate",
+                    "--input-file",
+                    str(transcript_path),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        validation = payload["wide_net_calendar_transcript_validation"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-calendar-transcript-validate",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_transcript_valid",
+        )
+        self.assertTrue(validation["accepted"])
+        self.assertEqual(validation["stage"], "duplicate_precheck_clear")
+        self.assertTrue(validation["create_allowed_after_precheck"])
+        self.assertFalse(validation["raw_transcript_returned"])
+        self.assertFalse(validation["input_values_echoed"])
+
+    def test_phase14c_wide_net_calendar_transcript_validate_blocks_oversized_file(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            transcript_path = Path(temp_dir) / "wide-net-calendar-transcript.json"
+            transcript_path.write_text(
+                "not-json\n"
+                * (PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES // 4),
+                encoding="utf-8",
+            )
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-calendar-transcript-validate",
+                    "--input-file",
+                    str(transcript_path),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        validation = payload["wide_net_calendar_transcript_validation"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_transcript_blocked",
+        )
+        self.assertFalse(validation["accepted"])
+        self.assertEqual(validation["failure_reasons"], ["input_file_too_large"])
+        self.assertFalse(validation["raw_transcript_returned"])
+        self.assertFalse(validation["input_values_echoed"])
+        self.assertNotIn("not-json", result.stdout)
 
     def test_phase14c_wide_net_execution_handoff_is_no_live_report(self) -> None:
         secret_environment = {
@@ -3081,6 +3198,27 @@ def _valid_wide_net_evidence() -> dict[str, object]:
             "dynamic_cleaning_triggered": False,
             "broad_live_activation": False,
         },
+    }
+
+
+def _valid_wide_net_calendar_transcript() -> dict[str, object]:
+    template = build_phase14c_wide_net_calendar_transcript_template()
+    return {
+        "marker": "[Phase 14-C Wide Test] Evening Reset Coordination",
+        "duplicate_precheck": {
+            "performed": True,
+            "connector_action": "search_events",
+            "connector_args": template["expected_duplicate_precheck"][
+                "connector_args"
+            ],
+            "normalized_response": {
+                "contract": "phase14c_wide_net_calendar_precheck.v1",
+                "matching_event_count": 0,
+                "event_details_logged": False,
+                "attendee_addresses_logged": False,
+            },
+        },
+        "calendar_create": {"performed": False},
     }
 
 

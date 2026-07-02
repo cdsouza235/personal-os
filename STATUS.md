@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #106:
-  `ff2cf2996137bb59d21328f56589335c273f8a7a`
-- Latest merged PR at that baseline: PR #106, Phase 14-C wide-net execution
-  handoff and redacted evidence validator
+- Last validated main baseline after PR #107:
+  `d60f8e871d1ab8ed9e7fa3112705e4a38846c6b8`
+- Latest merged PR at that baseline: PR #107, Phase 14-C shared safety helper
+  and wide-net evidence validator hardening
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -97,6 +97,10 @@ Last updated: 2026-07-02
   shapes; the repo also has a no-live Calendar app-bridge payload command that
   reports the Google Calendar app connector arguments for the future
   duplicate precheck and self-only create step without calling the connector;
+  the repo has a no-live Calendar transcript template and validator for
+  sanitized app-connector precheck/create transcripts, rejecting oversized
+  inputs before JSON parsing and never echoing raw event details or attendee
+  addresses;
   the repo-local wide-net execution-handoff and evidence-validator surfaces
   report the future bounded command, Calendar connector handoff, call budgets,
   and sanitized post-run evidence checks without reading credentials, wiring a
@@ -349,6 +353,11 @@ Last updated: 2026-07-02
   `phase14c wide-net-calendar-bridge-payloads --json` command reports the
   Google Calendar app connector payloads without reading credentials, calling
   the connector, or injecting a Calendar client into the live runner. The
+  `phase14c wide-net-calendar-transcript-template --json` and
+  `phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
+  commands inspect and validate sanitized Calendar connector transcripts
+  without reading credentials, calling the connector, or echoing raw event
+  details, attendee addresses, credential values, or unmasked emails. The
   `phase14c wide-net-execution-handoff --json` command reports the future
   bounded command template, Calendar connector handoff, call budgets, and
   post-run evidence requirements without wiring a connector or reading
@@ -369,8 +378,8 @@ Last updated: 2026-07-02
 
 ## Validated State
 
-- Full suite: 810 tests OK
-- ResourceWarning-sensitive suite: 810 tests OK
+- Full suite: 819 tests OK
+- ResourceWarning-sensitive suite: 819 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -388,6 +397,7 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C wide-net handoff/evidence/app-bridge/gate/CLI/docs/model
   suite: 117 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
+- Targeted Phase 14-C wide-net Calendar transcript validator suite: 100 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

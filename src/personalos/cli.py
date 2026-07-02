@@ -64,6 +64,13 @@ from personalos.phase14c_todoist_live_smoke import (
 from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
+from personalos.phase14c_wide_net_calendar_transcript import (
+    PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES,
+    PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_VALID,
+    build_phase14c_wide_net_calendar_transcript_input_size_report,
+    build_phase14c_wide_net_calendar_transcript_template,
+    validate_phase14c_wide_net_calendar_transcript,
+)
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
@@ -366,6 +373,25 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local app-bridge payload report / no connector call",
         "local_effect": "no env read; no DB opened; no files written; no app connector called",
         "output": "stdout bridge payload JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net Calendar transcript template",
+        "safe_local_action": "Inspect the sanitized Calendar connector transcript shape",
+        "command": "personalos phase14c wide-net-calendar-transcript-template [--json]",
+        "mode": "repo-local transcript template / no connector call",
+        "local_effect": "no env read; no DB opened; no files written; no app connector called",
+        "output": "stdout Calendar transcript template JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net Calendar transcript validator",
+        "safe_local_action": "Validate one sanitized Calendar connector transcript file",
+        "command": (
+            "personalos phase14c wide-net-calendar-transcript-validate "
+            "--input-file <file> [--json]"
+        ),
+        "mode": "repo-local transcript validation / redacted report / no connector call",
+        "local_effect": "reads one explicit safe JSON file; no DB opened; no services called",
+        "output": "stdout Calendar transcript validation JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net execution handoff",
@@ -806,6 +832,43 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_calendar_bridge_parser)
     phase14c_wide_net_calendar_bridge_parser.set_defaults(
         func=_command_phase14c_wide_net_calendar_bridge_payloads
+    )
+
+    phase14c_wide_net_calendar_transcript_template_parser = (
+        phase14c_subparsers.add_parser(
+            "wide-net-calendar-transcript-template",
+            help="Report the sanitized Calendar transcript shape without live calls.",
+            description=(
+                "Print the repo-local sanitized transcript template for a future "
+                "wide-net Google Calendar connector precheck/create handoff. This "
+                "does not call the connector, read credentials, or authorize a live run."
+            ),
+        )
+    )
+    _add_json_arg(phase14c_wide_net_calendar_transcript_template_parser)
+    phase14c_wide_net_calendar_transcript_template_parser.set_defaults(
+        func=_command_phase14c_wide_net_calendar_transcript_template
+    )
+
+    phase14c_wide_net_calendar_transcript_validate_parser = (
+        phase14c_subparsers.add_parser(
+            "wide-net-calendar-transcript-validate",
+            help="Validate one sanitized wide-net Calendar connector transcript.",
+            description=(
+                "Validate one explicit sanitized Calendar connector transcript JSON "
+                "file and print a redacted pass/block report. This does not read "
+                "credentials, call connectors, initialize live clients, or echo raw "
+                "event details."
+            ),
+        )
+    )
+    phase14c_wide_net_calendar_transcript_validate_parser.add_argument(
+        "--input-file",
+        required=True,
+    )
+    _add_json_arg(phase14c_wide_net_calendar_transcript_validate_parser)
+    phase14c_wide_net_calendar_transcript_validate_parser.set_defaults(
+        func=_command_phase14c_wide_net_calendar_transcript_validate
     )
 
     phase14c_wide_net_handoff_parser = phase14c_subparsers.add_parser(
@@ -1922,6 +1985,97 @@ def _command_phase14c_wide_net_calendar_bridge_payloads(
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _command_phase14c_wide_net_calendar_transcript_template(
+    args: argparse.Namespace,
+) -> int:
+    template = build_phase14c_wide_net_calendar_transcript_template()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-calendar-transcript-template",
+            "status": template["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_calendar_transcript_template": template,
+        },
+        workflow_name="Phase 14-C wide-net Calendar transcript template",
+        workflow_mode="repo-local transcript template / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the sanitized Calendar transcript shape.",
+            "Do not paste raw Calendar event details or attendee addresses.",
+            "Run Claude Code audit before any live connector execution.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_calendar_transcript_validate(
+    args: argparse.Namespace,
+) -> int:
+    input_path = validate_existing_input_file_path(
+        args.input_file,
+        path_label="phase14c wide-net calendar transcript input_file",
+    )
+    input_size_bytes = input_path.stat().st_size
+    if input_size_bytes > PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES:
+        validation = build_phase14c_wide_net_calendar_transcript_input_size_report(
+            input_size_bytes
+        )
+    else:
+        transcript_payload = _load_json_object(input_path)
+        validation = validate_phase14c_wide_net_calendar_transcript(
+            transcript_payload
+        )
+    accepted = validation["status"] == PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_VALID
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-calendar-transcript-validate",
+            "status": validation["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "input_file": str(input_path),
+            "wide_net_calendar_transcript_validation": validation,
+        },
+        workflow_name="Phase 14-C wide-net Calendar transcript validation",
+        workflow_mode="repo-local transcript validation / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review blocked reasons if the transcript did not validate.",
+            "Do not rerun live rails without a fresh explicit approval.",
+            "Do not paste raw Calendar event details or attendee addresses.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if accepted else 1
 
 
 def _command_phase14c_wide_net_execution_handoff(

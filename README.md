@@ -114,6 +114,10 @@ connector. Use `personalos phase14c wide-net-execution-handoff --json` to
 inspect the future bounded live command template, Calendar connector handoff,
 call budgets, and post-run evidence requirements without wiring the connector
 or reading credentials. Use
+`personalos phase14c wide-net-calendar-transcript-template --json` and
+`personalos phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
+to inspect and validate sanitized Calendar connector precheck/create
+transcripts without calling the connector or echoing raw event details. Use
 `personalos phase14c wide-net-evidence-validate --input-file <file> --json` to
 validate one sanitized wide-net evidence report without echoing raw evidence;
 the validator rejects oversized files before JSON parsing and uses shared

@@ -277,6 +277,11 @@ closed on unrecognized precheck response shapes. The
 Calendar app connector payloads for that future bridge without reading
 credentials or calling the connector. The CLI still has no real Calendar
 execution bridge. The
+`phase14c wide-net-calendar-transcript-template --json` and
+`phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
+commands inspect and validate sanitized Calendar connector transcripts without
+calling the connector or echoing raw event details, attendee addresses,
+credential values, or unmasked emails. The
 `phase14c wide-net-execution-handoff --json` command reports the future
 bounded command template, Calendar connector handoff, call budgets, and
 post-run evidence requirements without wiring a connector or reading
@@ -305,6 +310,9 @@ Calendar in the wide-net sequence. Once a bridge exists, the runner must first
 perform the duplicate-marker precheck and stop before every write if the marker
 already exists. The bridge response must normalize to an explicit
 `matching_event_count`; any unrecognized response shape must fail closed.
+The Calendar transcript validator can validate a precheck-clear transcript
+only when that normalized count is zero and no event details or attendee
+addresses were logged; it remains repo-local and does not call Calendar.
 
 Live commands already used once for this evidence packet:
 

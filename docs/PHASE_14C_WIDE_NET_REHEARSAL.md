@@ -21,7 +21,9 @@ the next operator can inspect the bounded command, Calendar connector handoff
 contract, call budgets, post-run evidence shape, and post-run evidence
 requirements without reading credentials or calling live services. It also has
 a post-run crosscheck command to verify that sanitized Calendar transcript
-evidence and sanitized wide-net evidence agree without echoing raw inputs.
+evidence and sanitized wide-net evidence agree without echoing raw inputs, plus
+a synthetic evidence rehearsal command that exercises the full validator chain
+without returning raw fixture payloads or producing live evidence.
 
 CLI report:
 
@@ -132,6 +134,7 @@ Evidence validator:
 ```bash
 PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-validate --input-file <sanitized-wide-net-report.json> --json
 PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-crosscheck --calendar-transcript-file <sanitized-calendar-transcript.json> --evidence-file <sanitized-wide-net-report.json> --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-rehearsal --json
 ```
 
 The evidence validator reads one explicit sanitized JSON file and prints a
@@ -156,6 +159,13 @@ event-details or attendee-address logging. It returns only reason codes,
 counts, booleans, and summaries. It does not echo raw inputs, event IDs,
 attendee addresses, credential values, raw provider responses, full prompts,
 or unmasked emails.
+
+The evidence rehearsal command constructs deterministic synthetic sanitized
+inputs in memory, runs the Calendar transcript validator, wide-net evidence
+validator, and evidence crosscheck, then returns only validation summaries. It
+does not read credentials, call connectors, initialize live clients, write
+files, or return raw fixture payloads. The rehearsal output is not live
+evidence and must not be recorded as proof of a real wide-net run.
 
 ## Confirmed Foundation
 
@@ -191,9 +201,11 @@ or unmasked emails.
   sanitized evidence without echoing the raw payload. The
   `phase14c wide-net-evidence-crosscheck --calendar-transcript-file <file> --evidence-file <file> --json`
   command crosschecks sanitized Calendar transcript evidence against sanitized
-  wide-net evidence without echoing raw inputs. The validator rejects oversized
-  files before JSON parsing and uses shared bounded redaction checks with
-  explicit depth and node limits.
+  wide-net evidence without echoing raw inputs. The
+  `phase14c wide-net-evidence-rehearsal --json` command exercises the same
+  validator chain with synthetic sanitized inputs and returns summaries only,
+  not live evidence. The validator rejects oversized files before JSON parsing
+  and uses shared bounded redaction checks with explicit depth and node limits.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 
@@ -307,6 +319,8 @@ OpenRouter target:
   not authorization and does not wire the Calendar connector.
 - The evidence-template command may be inspected before a live run, but it is
   not authorization and does not produce accepted evidence by itself.
+- The evidence-rehearsal command may be run before a live run, but it uses
+  synthetic sanitized inputs only and must not be recorded as live evidence.
 - Post-run evidence must be validated from a sanitized JSON report with
   `phase14c wide-net-evidence-validate --input-file <file> --json`; the
   validator must not receive or print credential values, raw provider

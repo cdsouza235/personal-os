@@ -461,6 +461,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C wide-net evidence template", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence crosscheck", workflow_names)
+        self.assertIn("Phase 14-C wide-net evidence rehearsal", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
 
@@ -1908,6 +1909,37 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertNotIn("chris@example.com", result.stdout)
         self.assertNotIn(str(transcript_path), result.stdout)
         self.assertNotIn(str(evidence_path), result.stdout)
+
+    def test_phase14c_wide_net_evidence_rehearsal_is_no_live_report(self) -> None:
+        result = _run_cli(["phase14c", "wide-net-evidence-rehearsal", "--json"])
+
+        payload = json.loads(result.stdout)
+        rehearsal = payload["wide_net_evidence_rehearsal"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-evidence-rehearsal")
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_evidence_rehearsal_passed",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(rehearsal["synthetic_fixture_only"])
+        self.assertTrue(rehearsal["not_live_evidence"])
+        self.assertFalse(rehearsal["synthetic_fixture_payloads_returned"])
+        self.assertTrue(rehearsal["summary"]["crosscheck_accepted"])
+        self.assertFalse(
+            rehearsal["safety_assertions"]["calendar_app_connector_called"]
+        )
+        self.assertNotIn('"connector_args":', result.stdout)
+        self.assertNotIn("sanitized_result", result.stdout)
+        self.assertNotIn("normalized_response", result.stdout)
+        self.assertNotIn("evt_", result.stdout)
+        self.assertNotIn("chris@example.com", result.stdout)
 
     def test_phase14c_wide_net_rehearsal_plan_is_no_live_report(self) -> None:
         secret_environment = {

@@ -15,10 +15,12 @@ from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_BLOCKED,
     PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID,
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+    PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED,
     PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_STATUS,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
     PHASE14C_WIDE_NET_EXECUTION_HANDOFF_STATUS,
     build_phase14c_wide_net_evidence_input_size_report,
+    build_phase14c_wide_net_evidence_rehearsal_report,
     build_phase14c_wide_net_evidence_template_report,
     build_phase14c_wide_net_execution_handoff_report,
     crosscheck_phase14c_wide_net_evidence,
@@ -70,6 +72,10 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
         self.assertIn(
             "wide-net-evidence-crosscheck",
             report["post_run_evidence_crosscheck"]["command"],
+        )
+        self.assertIn(
+            "wide-net-evidence-rehearsal",
+            report["local_evidence_rehearsal"]["command"],
         )
         self.assertTrue(
             any(
@@ -178,6 +184,37 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
         )
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, serialized)
+
+    def test_evidence_rehearsal_passes_without_returning_raw_fixtures(self) -> None:
+        report = build_phase14c_wide_net_evidence_rehearsal_report()
+        serialized = json.dumps(report, sort_keys=True)
+
+        self.assertEqual(
+            report["status"],
+            PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED,
+        )
+        self.assertTrue(report["accepted"])
+        self.assertTrue(report["synthetic_fixture_only"])
+        self.assertTrue(report["not_live_evidence"])
+        self.assertFalse(report["synthetic_fixture_payloads_returned"])
+        self.assertFalse(report["ready_for_live_execution"])
+        self.assertFalse(report["safety_assertions"]["credential_values_read"])
+        self.assertFalse(report["safety_assertions"]["calendar_app_connector_called"])
+        self.assertFalse(report["safety_assertions"]["external_mutation"])
+        self.assertTrue(report["summary"]["calendar_transcript_accepted"])
+        self.assertTrue(report["summary"]["wide_net_evidence_accepted"])
+        self.assertTrue(report["summary"]["crosscheck_accepted"])
+        self.assertEqual(report["summary"]["calendar_event_create_calls"], 1)
+        self.assertEqual(report["summary"]["precheck_matching_event_count"], 0)
+        self.assertEqual(
+            report["wide_net_evidence_crosscheck"]["status"],
+            PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID,
+        )
+        self.assertNotIn('"connector_args":', serialized)
+        self.assertNotIn("sanitized_result", serialized)
+        self.assertNotIn("normalized_response", serialized)
+        self.assertNotIn("evt_", serialized)
+        self.assertNotIn("chris@example.com", serialized)
 
     def test_evidence_crosscheck_accepts_matching_transcript_and_evidence(self) -> None:
         calendar_validation = validate_phase14c_wide_net_calendar_transcript(

@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any, Protocol
 
+from personalos.phase14c_safety_utils import config_names_only, optional_string
+
 
 OPENCLAW_MODEL_STRATEGY_SCHEMA_VERSION = "personal_os_openclaw_model_strategy.v1"
 OPENCLAW_MODEL_READINESS_DEFAULT_GENERATED_AT_UTC = "2026-06-29T18:00:00+00:00"
@@ -236,7 +238,7 @@ def run_openclaw_model_smoke_probe(
         "provider_config": preflight,
         "client": {
             "available": True,
-            "type": _optional_string(client_type) or "injected_model_smoke_client",
+            "type": optional_string(client_type) or "injected_model_smoke_client",
         },
         "call_limits": {
             "max_primary_calls": plan["max_primary_calls"],
@@ -328,7 +330,7 @@ def _normalize_model_aliases(
 def _model_provider_config_preflight(
     available_config_names: Iterable[str] | Mapping[str, Any],
 ) -> dict[str, Any]:
-    available_names = set(_config_names_only(available_config_names))
+    available_names = set(config_names_only(available_config_names))
     missing = tuple(
         name
         for name in OPENCLAW_MODEL_PROVIDER_CONFIG_ENTRY_NAMES
@@ -367,7 +369,7 @@ def _model_smoke_not_run_report(
         "provider_config": dict(preflight),
         "client": {
             "available": client_available,
-            "type": _optional_string(client_type),
+            "type": optional_string(client_type),
         },
         "call_limits": {
             "max_primary_calls": plan["max_primary_calls"],
@@ -457,17 +459,3 @@ def _model_smoke_safety_assertions(
         "external_mutation": False,
         "broad_openclaw_runtime_handoff": False,
     }
-
-
-def _config_names_only(
-    available_config_names: Iterable[str] | Mapping[str, Any],
-) -> tuple[str, ...]:
-    if isinstance(available_config_names, Mapping):
-        return tuple(str(name) for name in available_config_names.keys())
-    return tuple(str(name) for name in available_config_names)
-
-
-def _optional_string(value: object) -> str | None:
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None

@@ -5,8 +5,10 @@ from unittest import mock
 
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_BLOCKED,
+    PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
     PHASE14C_WIDE_NET_EXECUTION_HANDOFF_STATUS,
+    build_phase14c_wide_net_evidence_input_size_report,
     build_phase14c_wide_net_execution_handoff_report,
     validate_phase14c_wide_net_evidence_report,
 )
@@ -45,9 +47,27 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
         self.assertFalse(report["calendar_app_connector_called"])
         self.assertFalse(report["credential_values_read"])
         self.assertFalse(report["external_mutation"])
-        self.assertIn("wide-net-rehearsal --execute-live", report["execution_command_template"])
-        self.assertIn("wide-net-evidence-validate", report["post_run_evidence_validator"]["command"])
+        self.assertIn(
+            "wide-net-rehearsal --execute-live",
+            report["execution_command_template"],
+        )
+        self.assertIn(
+            "wide-net-evidence-validate",
+            report["post_run_evidence_validator"]["command"],
+        )
         self.assertFalse(report["post_run_evidence_validator"]["raw_evidence_echoed"])
+        self.assertEqual(
+            report["post_run_evidence_validator"]["max_input_file_size_bytes"],
+            PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+        )
+        self.assertEqual(
+            report["post_run_evidence_validator"]["redaction_scan_max_depth"],
+            32,
+        )
+        self.assertEqual(
+            report["post_run_evidence_validator"]["redaction_scan_max_nodes"],
+            5000,
+        )
         self.assertEqual(
             handoff["duplicate_precheck_args"]["query"],
             PHASE14C_WIDE_NET_REHEARSAL_MARKER,
@@ -85,6 +105,10 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
         self.assertFalse(validation["input_values_echoed"])
         self.assertFalse(validation["credential_values_reported"])
         self.assertFalse(validation["unmasked_emails_reported"])
+        self.assertEqual(
+            validation["max_input_file_size_bytes"],
+            PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+        )
         self.assertEqual(validation["call_counts"]["openrouter_primary_calls"], 1)
         self.assertEqual(validation["call_counts"]["gmail_email_send_calls"], 1)
         self.assertEqual(
@@ -111,12 +135,50 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
 
         self.assertEqual(validation["status"], PHASE14C_WIDE_NET_EVIDENCE_BLOCKED)
         self.assertFalse(validation["accepted"])
-        self.assertIn("gmail_email_send_calls_over_budget", validation["failure_reasons"])
+        self.assertIn(
+            "gmail_email_send_calls_over_budget",
+            validation["failure_reasons"],
+        )
         self.assertIn("forbidden_raw_field_present", validation["failure_reasons"])
         self.assertIn("unmasked_email_value_present", validation["failure_reasons"])
         self.assertIn("secret_like_value_present", validation["failure_reasons"])
         self.assertNotIn("secret-openrouter-key", serialized)
         self.assertNotIn("chris@example.com", serialized)
+
+    def test_evidence_validator_blocks_scan_limit_failures(self) -> None:
+        evidence: dict[str, object] = _valid_evidence()
+        nested: object = "safe"
+        for _ in range(40):
+            nested = {"child": nested}
+        evidence["nested_evidence"] = nested
+
+        validation = validate_phase14c_wide_net_evidence_report(evidence)
+
+        self.assertEqual(validation["status"], PHASE14C_WIDE_NET_EVIDENCE_BLOCKED)
+        self.assertFalse(validation["accepted"])
+        self.assertIn(
+            "redaction_scan_depth_limit_exceeded",
+            validation["failure_reasons"],
+        )
+        self.assertFalse(validation["raw_evidence_returned"])
+        self.assertFalse(validation["input_values_echoed"])
+
+    def test_evidence_input_size_report_blocks_without_input_values(self) -> None:
+        validation = build_phase14c_wide_net_evidence_input_size_report(
+            PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES + 1
+        )
+        serialized = json.dumps(validation, sort_keys=True)
+
+        self.assertEqual(validation["status"], PHASE14C_WIDE_NET_EVIDENCE_BLOCKED)
+        self.assertFalse(validation["accepted"])
+        self.assertEqual(validation["failure_reasons"], ["input_file_too_large"])
+        self.assertEqual(
+            validation["input_file_size_bytes"],
+            PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES + 1,
+        )
+        self.assertFalse(validation["raw_evidence_returned"])
+        self.assertFalse(validation["input_values_echoed"])
+        self.assertNotIn(PHASE14C_WIDE_NET_REHEARSAL_MARKER, serialized)
 
 
 def _valid_evidence() -> dict[str, object]:

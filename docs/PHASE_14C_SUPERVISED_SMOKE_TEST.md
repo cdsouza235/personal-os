@@ -300,11 +300,12 @@ future bounded live command template, Calendar connector handoff, call budgets,
 and post-run evidence requirements without reading environment variables,
 loading credentials, initializing live clients, calling connectors, or writing
 files. The evidence validator reads one explicit sanitized JSON file and
-prints a redacted pass/block report without echoing raw evidence. It accepts
-only complete sanitized wide-net evidence within the one-call budgets, with the
-Calendar duplicate precheck performed and no credential values, raw provider
-responses, full prompts, configured model IDs, event details, attendee
-addresses, or unmasked emails.
+prints a redacted pass/block report without echoing raw evidence. It rejects
+oversized files before JSON parsing, uses shared bounded redaction checks with
+explicit depth and node limits, and accepts only complete sanitized wide-net
+evidence within the one-call budgets, with the Calendar duplicate precheck
+performed and no credential values, raw provider responses, full prompts,
+configured model IDs, event details, attendee addresses, or unmasked emails.
 
 Wide-net rehearsal executable gate:
 

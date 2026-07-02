@@ -263,6 +263,9 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "google calendar app connector payloads",
             "bridge response must normalize",
             "without echoing raw evidence",
+            "oversized files before json parsing",
+            "shared bounded redaction checks",
+            "explicit depth and node limits",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

@@ -65,7 +65,9 @@ from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
 from personalos.phase14c_wide_net_execution_handoff import (
+    PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
+    build_phase14c_wide_net_evidence_input_size_report,
     build_phase14c_wide_net_execution_handoff_report,
     validate_phase14c_wide_net_evidence_report,
 )
@@ -1967,8 +1969,14 @@ def _command_phase14c_wide_net_evidence_validate(
         args.input_file,
         path_label="phase14c wide-net evidence input_file",
     )
-    evidence_payload = _load_json_object(input_path)
-    validation = validate_phase14c_wide_net_evidence_report(evidence_payload)
+    input_size_bytes = input_path.stat().st_size
+    if input_size_bytes > PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES:
+        validation = build_phase14c_wide_net_evidence_input_size_report(
+            input_size_bytes
+        )
+    else:
+        evidence_payload = _load_json_object(input_path)
+        validation = validate_phase14c_wide_net_evidence_report(evidence_payload)
     accepted = validation["status"] == PHASE14C_WIDE_NET_EVIDENCE_VALID
     report = _with_workflow_context(
         {

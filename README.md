@@ -115,7 +115,9 @@ inspect the future bounded live command template, Calendar connector handoff,
 call budgets, and post-run evidence requirements without wiring the connector
 or reading credentials. Use
 `personalos phase14c wide-net-evidence-validate --input-file <file> --json` to
-validate one sanitized wide-net evidence report without echoing raw evidence.
+validate one sanitized wide-net evidence report without echoing raw evidence;
+the validator rejects oversized files before JSON parsing and uses shared
+bounded redaction checks with explicit depth and node limits.
 Use `personalos phase14c wide-net-rehearsal --json` to inspect the default
 no-live gate; its `--execute-live` path fails closed before credential values
 are read until an audited Calendar client/connector bridge exists. The

@@ -91,13 +91,16 @@ PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-validate --i
 The evidence validator reads one explicit sanitized JSON file and prints a
 redacted pass/block report. It does not read credentials, inspect `.env.local`,
 call connectors, initialize live clients, open a DB, or print raw evidence. It
-does not echo raw evidence. It accepts only complete sanitized wide-net
-evidence within the one-call budgets, with a Calendar duplicate precheck
-performed, `matching_event_count=0`, no event details or attendee addresses
-logged, diagnostic-only model metadata, and no protected OpenClaw runtime,
-scheduler/background, production DB, protected path, dynamic-cleaning,
-broad-live-activation, credential-value, raw-provider-response, full-prompt,
-configured-model-ID, or unmasked-email exposure.
+does not echo raw evidence. It rejects oversized local evidence files before
+JSON parsing and uses shared bounded redaction checks with explicit depth and
+node limits, returning reason codes instead of offending values. It accepts
+only complete sanitized wide-net evidence within the one-call budgets, with a
+Calendar duplicate precheck performed, `matching_event_count=0`, no event
+details or attendee addresses logged, diagnostic-only model metadata, and no
+protected OpenClaw runtime, scheduler/background, production DB, protected
+path, dynamic-cleaning, broad-live-activation, credential-value,
+raw-provider-response, full-prompt, configured-model-ID, or unmasked-email
+exposure.
 
 ## Confirmed Foundation
 
@@ -122,7 +125,9 @@ configured-model-ID, or unmasked-email exposure.
   command reports the bounded future command and evidence checks without
   wiring the connector, and
   `phase14c wide-net-evidence-validate --input-file <file> --json` validates
-  sanitized evidence without echoing the raw payload.
+  sanitized evidence without echoing the raw payload. The validator rejects
+  oversized files before JSON parsing and uses shared bounded redaction checks
+  with explicit depth and node limits.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 
@@ -234,7 +239,8 @@ OpenRouter target:
   `phase14c wide-net-evidence-validate --input-file <file> --json`; the
   validator must not receive or print credential values, raw provider
   responses, full prompts, configured model IDs, event details, attendee
-  addresses, or unmasked emails.
+  addresses, or unmasked emails. Oversized, malformed, deeply nested, or
+  scan-limit-exceeding evidence must fail closed without echoing raw input.
 - Google Calendar must pass a duplicate-marker precheck before any create.
 - The duplicate-marker precheck must stop before model, Todoist, Gmail, and
   Calendar create if the marker already exists.

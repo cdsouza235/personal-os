@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #105:
-  `86b184702404192831ca84bed78bc84eb2dd2c60`
-- Latest merged PR at that baseline: PR #105, Phase 14-C wide-net Calendar
-  app-bridge payloads
+- Last validated main baseline after PR #106:
+  `ff2cf2996137bb59d21328f56589335c273f8a7a`
+- Latest merged PR at that baseline: PR #106, Phase 14-C wide-net execution
+  handoff and redacted evidence validator
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -100,7 +100,12 @@ Last updated: 2026-07-02
   the repo-local wide-net execution-handoff and evidence-validator surfaces
   report the future bounded command, Calendar connector handoff, call budgets,
   and sanitized post-run evidence checks without reading credentials, wiring a
-  connector, calling live services, or echoing raw evidence
+  connector, calling live services, or echoing raw evidence; Phase 14-C shared
+  safety helpers now centralize names-only config extraction, optional
+  string/email parsing, safe error-kind reporting, and bounded redaction reason
+  scans across the live-gated and report-only modules; the wide-net evidence
+  validator now rejects oversized local inputs before JSON parsing and uses
+  explicit redaction scan depth/node limits without echoing offending values
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -149,7 +154,11 @@ Last updated: 2026-07-02
   the 2026-06-30 bounded Gmail/Todoist/OpenRouter live-smoke evidence packet,
   plus a no-live follow-up diagnostic command for Todoist manual outcome
   confirmation and OpenRouter safe failure metadata, plus the CA-bundle retry
-  evidence confirming Todoist and OpenRouter connectivity
+  evidence confirming Todoist and OpenRouter connectivity, plus the connected
+  rehearsal plan/executable gate/live evidence, plus the wide-net rehearsal
+  plan, fail-closed executable gate, Calendar duplicate-precheck contract,
+  Calendar app-bridge payload report, execution handoff, redacted evidence
+  validator, and shared Phase 14-C safety-helper hardening
 - Current / next phase: Phase 14-C wide-net rehearsal planning after the first
   approved model-to-task-to-email rehearsal stopped at model validation. The
   connected live evidence is recorded in
@@ -157,8 +166,9 @@ Last updated: 2026-07-02
   and the next inert wider plan is recorded in
   [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md).
   The wide-net execution handoff and evidence validator are repo-local and
-  inert; Calendar creation and protected OpenClaw runtime invocation remain
-  excluded unless separately approved.
+  inert; the evidence validator now has an explicit local input-size gate and
+  bounded shared redaction scans. Calendar creation and protected OpenClaw
+  runtime invocation remain excluded unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
   `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`,
   Monday, 2026-07-06, 09:00-09:15 America/Chicago, event ID
@@ -344,7 +354,8 @@ Last updated: 2026-07-02
   post-run evidence requirements without wiring a connector or reading
   credentials; the `phase14c wide-net-evidence-validate --input-file <file>`
   command validates one sanitized evidence report without echoing the raw
-  evidence payload.
+  evidence payload, rejects oversized files before JSON parsing, and uses
+  bounded redaction depth/node limits through shared Phase 14-C safety helpers.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -358,8 +369,8 @@ Last updated: 2026-07-02
 
 ## Validated State
 
-- Full suite: 802 tests OK
-- ResourceWarning-sensitive suite: 802 tests OK
+- Full suite: 810 tests OK
+- ResourceWarning-sensitive suite: 810 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -376,6 +387,7 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
 - Targeted Phase 14-C wide-net handoff/evidence/app-bridge/gate/CLI/docs/model
   suite: 117 tests OK
+- Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

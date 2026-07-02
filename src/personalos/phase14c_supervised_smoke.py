@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from personalos.path_safety import validate_demo_output_dir_path
+from personalos.phase14c_safety_utils import config_names_only, optional_string
 
 
 PHASE14C_SUPERVISED_SMOKE_SCHEMA_VERSION = "personal_os_phase14c_supervised_smoke.v1"
@@ -624,7 +625,7 @@ def build_phase14c_gmail_self_send_readiness_report(
 ) -> dict[str, Any]:
     """Resolve Gmail self-send readiness without reporting raw addresses."""
 
-    recipient = _optional_string(configured_controlled_recipient)
+    recipient = optional_string(configured_controlled_recipient)
     source = "configured_controlled_recipient" if recipient is not None else None
     sender: str | None = None
     if recipient is None:
@@ -668,7 +669,7 @@ def build_phase14c_gmail_self_send_smoke_request(
 ) -> dict[str, Any]:
     """Build a Gmail self-send smoke request using an injected identity client."""
 
-    recipient = _optional_string(configured_controlled_recipient)
+    recipient = optional_string(configured_controlled_recipient)
     if recipient is None:
         recipient = _resolve_authenticated_sender(gmail_identity_client)
     if recipient is None:
@@ -820,7 +821,7 @@ def build_phase14c_credential_preflight_report(
 ) -> dict[str, Any]:
     """Report config entry presence by name without reading or logging values."""
 
-    available_names = set(_config_names_only(available_config_names))
+    available_names = set(config_names_only(available_config_names))
     missing = tuple(
         name for name in REQUIRED_CONFIG_ENTRY_NAMES if name not in available_names
     )
@@ -882,7 +883,7 @@ def validate_phase14c_supervised_smoke_request(
             reasons.append(f"Smoke boundary {field} must remain false.")
 
     controlled_recipients = _string_set(request.get("controlled_test_recipients"))
-    self_identity = _optional_string(request.get("self_test_identity"))
+    self_identity = optional_string(request.get("self_test_identity"))
     if not controlled_recipients:
         reasons.append("At least one controlled Gmail test recipient is required.")
     if self_identity is None:
@@ -896,7 +897,7 @@ def validate_phase14c_supervised_smoke_request(
     if mode == LIVE_RUN_MODE:
         if request.get("live_run_requested") is not True:
             reasons.append("Live run requires live_run_requested=true.")
-        if not _optional_string(request.get("approval_reference")):
+        if not optional_string(request.get("approval_reference")):
             reasons.append("Live run requires a current approval_reference.")
         if credential_report["missing_config_entry_names"]:
             reasons.append("Live run requires all config entry names to be present.")
@@ -1420,7 +1421,7 @@ def _safe_normalized_rail_summary(
             "attachment_count": len(_items(gmail_email, "attachments")),
             "send_requested": gmail_email.get("send") is True,
             "create_draft_requested": gmail_email.get("create_draft") is True,
-            "thread_id_present": _optional_string(gmail_email.get("thread_id"))
+            "thread_id_present": optional_string(gmail_email.get("thread_id"))
             is not None,
             "reply_to_existing_thread": gmail_email.get("reply_to_existing_thread")
             is True,
@@ -1510,9 +1511,9 @@ def _validate_todoist(todoist: object) -> tuple[str, ...]:
     task = tasks[0]
     if not _contains_marker(task.get("title")):
         reasons.append("Todoist task title must include the required test marker.")
-    if _optional_string(task.get("project")) != PHASE14C_TODOIST_DEFAULT_PROJECT:
+    if optional_string(task.get("project")) != PHASE14C_TODOIST_DEFAULT_PROJECT:
         reasons.append("Todoist task project must be Inbox/default.")
-    if _optional_string(task.get("due_date")) is None:
+    if optional_string(task.get("due_date")) is None:
         reasons.append("Todoist task due_date is required.")
     if _has_recurrence(task):
         reasons.append("Todoist task recurrence is not allowed.")
@@ -1580,7 +1581,7 @@ def _validate_gmail(gmail: object, controlled_recipients: set[str]) -> tuple[str
         reasons.append("Gmail recipients must be controlled test recipients only.")
     if _items(email, "attachments"):
         reasons.append("Gmail attachments are not allowed.")
-    if _optional_string(email.get("thread_id")) is not None:
+    if optional_string(email.get("thread_id")) is not None:
         reasons.append("Gmail must not attach to an existing thread.")
     if email.get("reply_to_existing_thread") is not False:
         reasons.append("Gmail replies to existing threads are not allowed.")
@@ -1599,7 +1600,7 @@ def _validate_openclaw(openclaw: object) -> tuple[str, ...]:
     invocation = invocations[0]
     if not _contains_marker(invocation.get("label")):
         reasons.append("OpenClaw invocation label must include the required test marker.")
-    if _optional_string(invocation.get("name")) != PHASE14C_OPENCLAW_SMOKE_NAME:
+    if optional_string(invocation.get("name")) != PHASE14C_OPENCLAW_SMOKE_NAME:
         reasons.append("OpenClaw invocation name must be phase14c_smoke_test.")
     if invocation.get("mode") not in OPENCLAW_ALLOWED_MODES:
         reasons.append("OpenClaw invocation must use local/test/sandbox mode.")
@@ -1636,18 +1637,18 @@ def _resolve_authenticated_sender(gmail_identity_client: Any | None) -> str | No
 
 def _extract_email_address(value: object) -> str | None:
     if isinstance(value, str):
-        return _optional_string(value)
+        return optional_string(value)
     if not isinstance(value, Mapping):
         return None
     for key in ("email", "email_address", "address", "sender", "authenticated_sender"):
-        email = _optional_string(value.get(key))
+        email = optional_string(value.get(key))
         if email is not None:
             return email
     return None
 
 
 def _mask_email(value: str | None) -> str | None:
-    email = _optional_string(value)
+    email = optional_string(value)
     if email is None or "@" not in email:
         return None
     local, domain = email.split("@", 1)
@@ -1707,7 +1708,7 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         "mode": str(request["mode"]),
         "test_marker": PHASE14C_SUPERVISED_SMOKE_MARKER,
         "live_run_requested": bool(request.get("live_run_requested")),
-        "approval_reference": _optional_string(request.get("approval_reference")),
+        "approval_reference": optional_string(request.get("approval_reference")),
         "rail_operation_counts": _operation_counts(1),
         "rails": {
             "todoist": {"task": dict(_items(rails["todoist"], "tasks")[0])},
@@ -1782,19 +1783,3 @@ def _string_list(value: object) -> list[str]:
 
 def _string_set(value: object) -> set[str]:
     return set(_string_list(value))
-
-
-def _optional_string(value: object) -> str | None:
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None
-
-
-def _config_names_only(
-    available_config_names: Iterable[str] | Mapping[str, Any],
-) -> tuple[str, ...]:
-    if isinstance(available_config_names, Mapping):
-        names = available_config_names.keys()
-    else:
-        names = available_config_names
-    return tuple(str(name) for name in names)

@@ -38,14 +38,17 @@ from personalos.phase14c_connectivity_setup import (
 from personalos.phase14c_gmail_live_smoke import (
     PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
 )
-from personalos.phase14c_todoist_live_smoke import next_upcoming_monday
-from personalos.permissions import PermissionMode
 from personalos.phase14c_supervised_smoke import (
     LIVE_RUN_MODE,
     PHASE14C_SUPERVISED_SMOKE_TEMPLATE_RECIPIENT,
     REQUIRED_CONFIG_ENTRY_NAMES,
     build_default_phase14c_supervised_smoke_request,
 )
+from personalos.phase14c_todoist_live_smoke import next_upcoming_monday
+from personalos.phase14c_wide_net_execution_handoff import (
+    PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+)
+from personalos.permissions import PermissionMode
 from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_RUN_PERMISSION,
     RUNTIME_BOOTSTRAP_WRITE_PERMISSION,
@@ -1649,6 +1652,38 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("unmasked_email_value_present", validation["failure_reasons"])
         self.assertNotIn("secret-openrouter-key", result.stdout)
         self.assertNotIn("chris@example.com", result.stdout)
+
+    def test_phase14c_wide_net_evidence_validator_blocks_oversized_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_path = Path(temp_dir) / "wide-net-evidence.json"
+            evidence_path.write_text(
+                "not-json\n" * (PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES // 4),
+                encoding="utf-8",
+            )
+
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-evidence-validate",
+                    "--input-file",
+                    str(evidence_path),
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        validation = payload["wide_net_evidence_validation"]
+        self.assertEqual(result.code, 1)
+        self.assertEqual(payload["status"], "phase14c_wide_net_evidence_blocked")
+        self.assertFalse(validation["accepted"])
+        self.assertEqual(validation["failure_reasons"], ["input_file_too_large"])
+        self.assertEqual(
+            validation["max_input_file_size_bytes"],
+            PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+        )
+        self.assertFalse(validation["raw_evidence_returned"])
+        self.assertFalse(validation["input_values_echoed"])
+        self.assertNotIn("not-json", result.stdout)
 
     def test_phase14c_wide_net_rehearsal_plan_is_no_live_report(self) -> None:
         secret_environment = {

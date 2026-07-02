@@ -188,7 +188,8 @@ step. The next repo-local packet is an inert wide-net rehearsal plan for one
 OpenRouter diagnostic, one Todoist task, one Gmail self-send, and one self-only
 Calendar event; it is not live authorization. The default no-live executable
 gate now fails closed before credential values until an audited Calendar bridge
-exists.
+exists; the injected runner enforces the Calendar duplicate-marker precheck
+before model, Todoist, Gmail, or Calendar create.
 
 ## Future Blocked Work
 

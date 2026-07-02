@@ -1918,6 +1918,7 @@ def _command_phase14c_wide_net_rehearsal(args: argparse.Namespace) -> int:
     )
     todoist_calls = int(call_limits["todoist_task_create_calls"])
     gmail_calls = int(call_limits["gmail_email_send_calls"])
+    calendar_precheck_calls = int(call_limits["calendar_duplicate_precheck_calls"])
     calendar_calls = int(call_limits["calendar_event_create_calls"])
     safety = dict(rehearsal_report["safety_assertions"])
     credential_values_read = safety["credential_values_read"] is True
@@ -1939,7 +1940,11 @@ def _command_phase14c_wide_net_rehearsal(args: argparse.Namespace) -> int:
                 safety["live_clients_initialized"] is True
             ),
             "no_live_rails_activated": not (
-                model_calls or todoist_calls or gmail_calls or calendar_calls
+                model_calls
+                or todoist_calls
+                or gmail_calls
+                or calendar_precheck_calls
+                or calendar_calls
             ),
             "no_model_provider_call": not model_calls,
             "credentials": (
@@ -1952,7 +1957,13 @@ def _command_phase14c_wide_net_rehearsal(args: argparse.Namespace) -> int:
         workflow_name="Phase 14-C wide-net rehearsal",
         workflow_mode=(
             "bounded live wide-net rehearsal"
-            if model_calls or todoist_calls or gmail_calls or calendar_calls
+            if (
+                model_calls
+                or todoist_calls
+                or gmail_calls
+                or calendar_precheck_calls
+                or calendar_calls
+            )
             else "repo-local wide-net rehearsal gate / no live execution"
         ),
         database_access="not_applicable_no_db_opened",

@@ -5,7 +5,9 @@ Date: 2026-07-01
 This document defines the next wider supervised Phase 14-C live-test packet.
 It does not authorize or run live rails. The repo now has a default no-live
 executable gate, but that gate fails closed before credential values are read
-unless a future audited Calendar client/connector bridge is available.
+unless a future audited Calendar client/connector bridge is available. The
+injected runner now enforces a Calendar duplicate-marker precheck before any
+model, Todoist, Gmail, or Calendar create step can run.
 
 CLI report:
 
@@ -33,8 +35,10 @@ The live form requires `--execute-live` and the exact approval reference
 `phase14c-2026-07-01-wide-net-live-test`. Once required config names are
 present, the current CLI still returns
 `phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
-before reading credential values. A separate audited Calendar bridge is
-required before the CLI can run the future wide-net live sequence.
+before reading credential values. The runner protocol now requires a
+duplicate-marker lookup before `create_event`, but a separate audited Calendar
+bridge is still required before the CLI can run the future wide-net live
+sequence.
 
 ## Confirmed Foundation
 
@@ -49,8 +53,8 @@ required before the CLI can run the future wide-net live sequence.
   task, Gmail email, Calendar event, or protected OpenClaw runtime invocation
   happened in that run.
 - Google Calendar has one existing bounded smoke event. This wide-net plan
-  uses a new marker and requires a duplicate-marker precheck before any future
-  Calendar create.
+  uses a new marker, and the executable runner now requires a duplicate-marker
+  precheck before any future Calendar create.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 
@@ -59,11 +63,13 @@ required before the CLI can run the future wide-net live sequence.
 The next useful test is to widen the net without depending on model-generated
 content for downstream writes:
 
-1. Run one OpenRouter diagnostic model probe.
-2. Create one Todoist Inbox/default marker task.
-3. Send one Gmail controlled self-email with the same marker.
-4. Create one self-only Google Calendar marker event after a duplicate-marker
-   precheck.
+1. Read the primary/self Calendar for the exact marker in the target event
+   window; stop before every write if a duplicate marker exists.
+2. Run one OpenRouter diagnostic model probe.
+3. Create one Todoist Inbox/default marker task.
+4. Send one Gmail controlled self-email with the same marker.
+5. Create one self-only Google Calendar marker event after the duplicate-marker
+   precheck passes.
 
 The OpenRouter probe is diagnostic-only. If the model validation fails again,
 the report should record the safe metadata and continue only if the separately
@@ -101,6 +107,8 @@ Call/write budgets:
 - OpenRouter fallback calls: at most 1, only if primary validation fails.
 - Todoist task creates: 1.
 - Gmail emails sent: 1.
+- Calendar duplicate precheck reads: 1 before model, Todoist, Gmail, or
+  Calendar create.
 - Calendar event creates: 1.
 - Protected OpenClaw runtime invocations: 0.
 - OpenClaw local/test/sandbox harness invocations: 0.
@@ -126,7 +134,8 @@ Calendar target:
 - Calendar: primary or authenticated self calendar only.
 - Title: `[Phase 14-C Wide Test] Evening Reset Coordination`.
 - Duration: 15 minutes.
-- Duplicate precheck: required before create.
+- Duplicate precheck: required before model, Todoist, Gmail, or Calendar
+  create.
 - No attendees, recurrence, conference link, attachments, invite fanout, or
   duplicate of the prior Calendar smoke event.
 
@@ -149,6 +158,8 @@ OpenRouter target:
 - Gmail, Todoist, OpenRouter, and Google Calendar connector/client access must
   be configured.
 - Google Calendar must pass a duplicate-marker precheck before any create.
+- The duplicate-marker precheck must stop before model, Todoist, Gmail, and
+  Calendar create if the marker already exists.
 - Config names may be checked, but credential values must not be printed,
   summarized, committed, or pasted into chat.
 - This document and CLI report do not read environment variables or call the
@@ -195,5 +206,7 @@ document or the CLI report.
 - The plan command and default gate do not invoke protected OpenClaw runtime.
 - The current `--execute-live` path fails closed before credential values are
   read unless a future audited Calendar client/connector bridge is available.
+- The injected runner enforces a Calendar duplicate-marker precheck before
+  model, Todoist, Gmail, or Calendar create.
 - This packet does not authorize Calendar duplicates.
 - This packet does not implement dynamic cleaning.

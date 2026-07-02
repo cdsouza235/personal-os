@@ -285,6 +285,7 @@ class OpenClawModelStrategyTest(unittest.TestCase):
             "diagnostic-only",
             "does not use model text for todoist, gmail, or calendar content",
             "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
+            "precheck before model, todoist, gmail, or calendar create",
             "call nemotron super, glm 5.2, openrouter, or any live provider",
         )
         for phrase in required_phrases:

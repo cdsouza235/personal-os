@@ -1551,6 +1551,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(report["call_limits"]["openrouter_primary_calls"], 0)
         self.assertEqual(report["call_limits"]["todoist_task_create_calls"], 0)
         self.assertEqual(report["call_limits"]["gmail_email_send_calls"], 0)
+        self.assertEqual(report["call_limits"]["calendar_duplicate_precheck_calls"], 0)
         self.assertEqual(report["call_limits"]["calendar_event_create_calls"], 0)
         safe_secret_values = (
             value
@@ -1603,6 +1604,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(safety["credential_values_read"])
         self.assertFalse(safety["external_mutation"])
         self.assertEqual(report["call_limits"]["openrouter_primary_calls"], 0)
+        self.assertEqual(report["call_limits"]["calendar_duplicate_precheck_calls"], 0)
         self.assertEqual(report["call_limits"]["todoist_task_create_calls"], 0)
         self.assertEqual(report["call_limits"]["gmail_email_send_calls"], 0)
         self.assertEqual(report["call_limits"]["calendar_event_create_calls"], 0)

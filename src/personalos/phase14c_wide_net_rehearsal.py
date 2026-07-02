@@ -31,6 +31,7 @@ def build_phase14c_wide_net_rehearsal_plan() -> dict[str, object]:
         "template_only_not_authorization": True,
         "executable_gate_available": True,
         "calendar_client_bridge_available": False,
+        "calendar_duplicate_precheck_enforced_by_runner": True,
         "foundation": _confirmed_foundation(),
         "objective": _objective(),
         "proposed_live_sequence": _proposed_live_sequence(),
@@ -71,6 +72,7 @@ def _confirmed_foundation() -> dict[str, object]:
             "status": "confirmed_existing_smoke_only",
             "existing_bounded_event_count": 1,
             "duplicate_existing_calendar_smoke_authorized": False,
+            "wide_net_duplicate_precheck_enforced_by_runner": True,
         },
         "openclaw_runtime": {
             "status": "repo_local_harness_passed_protected_runtime_not_invoked",
@@ -103,6 +105,18 @@ def _proposed_live_sequence() -> list[dict[str, object]]:
     return [
         {
             "step": 1,
+            "rail": "google_calendar",
+            "operation": "read_duplicate_marker_precheck_before_external_mutation",
+            "title": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+            "calendar_scope": "primary_or_authenticated_self_calendar_only",
+            "external_mutation": False,
+            "duplicate_marker_precheck_required": True,
+            "stop_before_model_todoist_gmail_or_calendar_create_on_match": True,
+            "event_details_logged": False,
+            "attendee_addresses_logged": False,
+        },
+        {
+            "step": 2,
             "rail": "openrouter",
             "operation": "run_one_diagnostic_model_probe",
             "primary_model_alias": "nemotron_super",
@@ -123,7 +137,7 @@ def _proposed_live_sequence() -> list[dict[str, object]]:
             },
         },
         {
-            "step": 2,
+            "step": 3,
             "rail": "todoist",
             "operation": "create_one_inbox_default_marker_task",
             "title": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
@@ -136,7 +150,7 @@ def _proposed_live_sequence() -> list[dict[str, object]]:
             "automatic_edits_deletes_or_reschedule": False,
         },
         {
-            "step": 3,
+            "step": 4,
             "rail": "gmail",
             "operation": "send_one_controlled_self_email_with_marker",
             "subject": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
@@ -147,7 +161,7 @@ def _proposed_live_sequence() -> list[dict[str, object]]:
             "reply_or_forward": False,
         },
         {
-            "step": 4,
+            "step": 5,
             "rail": "google_calendar",
             "operation": "create_one_self_only_marker_event_after_duplicate_precheck",
             "title": PHASE14C_WIDE_NET_REHEARSAL_MARKER,

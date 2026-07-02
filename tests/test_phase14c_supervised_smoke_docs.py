@@ -84,6 +84,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "model-generated text must not be used as task/email/event content",
             "phase14c wide-net-rehearsal --json",
             "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
+            "precheck before model, todoist, gmail, or calendar create",
             "mutation_state=unconfirmed_after_task_create_attempt",
             "mutation_state=unconfirmed_after_send_attempt",
             "due_date",
@@ -248,6 +249,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "one openrouter diagnostic model probe",
             "one self-only google calendar marker event",
             "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
+            "precheck before model, todoist, gmail, or calendar create",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

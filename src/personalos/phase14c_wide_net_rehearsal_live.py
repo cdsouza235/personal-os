@@ -54,6 +54,12 @@ WIDE_NET_NOT_RUN_PROVIDER_NOT_OPENROUTER = (
 WIDE_NET_TODOIST_FAILED = "phase14c_wide_net_rehearsal_todoist_failed"
 WIDE_NET_GMAIL_FAILED = "phase14c_wide_net_rehearsal_gmail_failed"
 WIDE_NET_CALENDAR_FAILED = "phase14c_wide_net_rehearsal_calendar_failed"
+WIDE_NET_CALENDAR_PRECHECK_FAILED = (
+    "phase14c_wide_net_rehearsal_calendar_precheck_failed"
+)
+WIDE_NET_NOT_RUN_DUPLICATE_CALENDAR_MARKER = (
+    "phase14c_wide_net_rehearsal_not_run_duplicate_calendar_marker"
+)
 WIDE_NET_PASSED = "phase14c_wide_net_rehearsal_passed"
 WIDE_NET_PASSED_WITH_MODEL_DIAGNOSTIC_FAILURE = (
     "phase14c_wide_net_rehearsal_passed_with_model_diagnostic_failure"
@@ -97,6 +103,9 @@ class WideNetGmailClient(Protocol):
 
 
 class WideNetCalendarClient(Protocol):
+    def find_events_by_title(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Find existing Calendar events for the marker title."""
+
     def create_event(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         """Create one Calendar event."""
 
@@ -127,6 +136,9 @@ def run_phase14c_wide_net_rehearsal(
     preflight = _wide_net_config_preflight(available_config_names)
     due_date = _wide_net_due_date(source_date)
     calendar_payload = _calendar_payload(source_date=source_date)
+    calendar_precheck_payload = _calendar_precheck_payload(
+        calendar_payload=calendar_payload
+    )
     base = {
         "schema_version": PHASE14C_WIDE_NET_REHEARSAL_SCHEMA_VERSION,
         "generated_at_utc": generated_at_utc,
@@ -135,6 +147,11 @@ def run_phase14c_wide_net_rehearsal(
         "marker": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
         "due_date": due_date,
         "calendar_connector_payload": _redacted_calendar_payload(calendar_payload),
+        "calendar_duplicate_precheck": _calendar_precheck_report(
+            calendar_precheck_payload=calendar_precheck_payload,
+            matching_event_count=None,
+            performed=False,
+        ),
         "live_execution_requested": execute_live,
         "approval_reference_required": PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
         "approval_reference_present": bool(_optional_string(approval_reference)),
@@ -144,7 +161,13 @@ def run_phase14c_wide_net_rehearsal(
         ),
         "config_preflight": preflight,
         "calendar_client_available": calendar_client is not None,
-        "sequence": ("openrouter", "todoist", "gmail", "google_calendar"),
+        "sequence": (
+            "google_calendar_duplicate_precheck",
+            "openrouter",
+            "todoist",
+            "gmail",
+            "google_calendar_create",
+        ),
         "call_limits": _call_limits(),
         "model_diagnostic": _empty_model_diagnostic(),
         "todoist_task_created": False,
@@ -216,6 +239,39 @@ def run_phase14c_wide_net_rehearsal(
             ),
         }
 
+    try:
+        precheck_raw = dict(
+            calendar_client.find_events_by_title(calendar_precheck_payload)
+        )
+    except urllib.error.HTTPError as error:
+        failure = _safe_failure(error)
+        error.close()
+        return _post_calendar_precheck_failure_report(
+            base=base,
+            failure=failure,
+            credential_values_read=credential_values_read,
+        )
+    except (OSError, ValueError, json.JSONDecodeError, urllib.error.URLError) as error:
+        return _post_calendar_precheck_failure_report(
+            base=base,
+            failure=_safe_failure(error),
+            credential_values_read=credential_values_read,
+        )
+
+    matching_event_count = _calendar_matching_event_count(precheck_raw)
+    precheck_report = _calendar_precheck_report(
+        calendar_precheck_payload=calendar_precheck_payload,
+        matching_event_count=matching_event_count,
+        performed=True,
+    )
+    if matching_event_count > 0:
+        return _post_calendar_duplicate_marker_report(
+            base=base,
+            precheck_report=precheck_report,
+            credential_values_read=credential_values_read,
+        )
+    base = {**base, "calendar_duplicate_precheck": precheck_report}
+
     live_model_client = model_client or _openrouter_client(
         api_key=str(values["api_key"]),
         nemotron_super_model=str(values["nemotron_super_model"]),
@@ -224,6 +280,7 @@ def run_phase14c_wide_net_rehearsal(
     model_report = _run_model_diagnostic(live_model_client)
     call_limits = {
         **_call_limits(),
+        "calendar_duplicate_precheck_calls": 1,
         "openrouter_primary_calls": 1,
         "openrouter_fallback_calls": int(model_report["fallback_calls"]),
     }
@@ -279,6 +336,18 @@ def run_phase14c_wide_net_rehearsal(
 
     try:
         calendar_result = dict(calendar_client.create_event(calendar_payload))
+    except urllib.error.HTTPError as error:
+        failure = _safe_failure(error)
+        error.close()
+        return _post_calendar_failure_report(
+            base=base,
+            call_limits=call_limits,
+            model_report=model_report,
+            todoist_result=todoist_result,
+            gmail_result=gmail_result,
+            failure=failure,
+            credential_values_read=credential_values_read,
+        )
     except (OSError, ValueError, json.JSONDecodeError, urllib.error.URLError) as error:
         return _post_calendar_failure_report(
             base=base,
@@ -298,12 +367,14 @@ def run_phase14c_wide_net_rehearsal(
         else WIDE_NET_PASSED_WITH_MODEL_DIAGNOSTIC_FAILURE,
         "external_mutation": True,
         "external_writes": "todoist_task_created_gmail_email_sent_calendar_event_created",
+        "calendar_duplicate_precheck": precheck_report,
         "todoist_task_created": True,
         "gmail_email_sent": True,
         "calendar_event_created": True,
         "mutation_state": "confirmed_task_email_and_calendar_event_created",
         "call_limits": {
             **call_limits,
+            "calendar_duplicate_precheck_calls": 1,
             "todoist_task_create_calls": 1,
             "gmail_email_send_calls": 1,
             "calendar_event_create_calls": 1,
@@ -462,6 +533,26 @@ def _calendar_payload(*, source_date: date | None) -> dict[str, Any]:
     }
 
 
+def _calendar_precheck_payload(
+    *,
+    calendar_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    start_value = _optional_string(calendar_payload.get("start_time"))
+    timezone = _optional_string(calendar_payload.get("timezone_str"))
+    event_date = date.fromisoformat(str(start_value).split("T", maxsplit=1)[0])
+    window_start = datetime.combine(event_date, datetime_time.min)
+    window_end = window_start + timedelta(days=1)
+    return {
+        "calendar_id": calendar_payload.get("calendar_id"),
+        "title": calendar_payload.get("title"),
+        "time_min": window_start.isoformat(timespec="seconds"),
+        "time_max": window_end.isoformat(timespec="seconds"),
+        "timezone_str": timezone,
+        "exact_title_match_required": True,
+        "attendee_data_required": False,
+    }
+
+
 def _redacted_calendar_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "calendar_id": payload.get("calendar_id"),
@@ -473,6 +564,114 @@ def _redacted_calendar_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         "add_google_meet": payload.get("add_google_meet") is True,
         "recurrence_present": payload.get("recurrence") is not None,
         "attachment_count": len(_string_list(payload.get("attachments"))),
+    }
+
+
+def _calendar_precheck_report(
+    *,
+    calendar_precheck_payload: Mapping[str, Any],
+    matching_event_count: int | None,
+    performed: bool,
+) -> dict[str, Any]:
+    return {
+        "required": True,
+        "performed": performed,
+        "calendar_id": calendar_precheck_payload.get("calendar_id"),
+        "title": calendar_precheck_payload.get("title"),
+        "time_min": calendar_precheck_payload.get("time_min"),
+        "time_max": calendar_precheck_payload.get("time_max"),
+        "timezone_str": calendar_precheck_payload.get("timezone_str"),
+        "exact_title_match_required": True,
+        "matching_event_count": matching_event_count,
+        "duplicate_marker_found": matching_event_count is not None
+        and matching_event_count > 0,
+        "event_details_logged": False,
+        "attendee_addresses_logged": False,
+    }
+
+
+def _calendar_matching_event_count(result: Mapping[str, Any]) -> int:
+    count = result.get("matching_event_count")
+    if isinstance(count, int) and count >= 0:
+        return count
+    found = result.get("found")
+    if isinstance(found, bool):
+        return int(found)
+    for key in ("events", "items"):
+        matches = _calendar_matching_events(result.get(key))
+        if matches is not None:
+            return matches
+    return 0
+
+
+def _calendar_matching_events(value: object) -> int | None:
+    if not isinstance(value, list | tuple):
+        return None
+    matched = 0
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        title = item.get("title", item.get("summary"))
+        if title == PHASE14C_WIDE_NET_REHEARSAL_MARKER:
+            matched += 1
+    return matched
+
+
+def _post_calendar_precheck_failure_report(
+    *,
+    base: Mapping[str, Any],
+    failure: Mapping[str, Any],
+    credential_values_read: bool,
+) -> dict[str, Any]:
+    return {
+        **dict(base),
+        "status": WIDE_NET_CALENDAR_PRECHECK_FAILED,
+        "external_mutation": False,
+        "external_writes": "none",
+        "mutation_state": "calendar_precheck_failed_before_external_mutation",
+        "call_limits": {
+            **_call_limits(),
+            "calendar_duplicate_precheck_calls": 1,
+        },
+        "calendar_precheck_failure": dict(failure),
+        "safety_assertions": _safety_assertions(
+            credential_values_read=credential_values_read,
+            live_clients_initialized=True,
+            model_provider_called=False,
+            external_mutation=False,
+            todoist_task_created=False,
+            gmail_email_sent=False,
+            calendar_event_created=False,
+        ),
+    }
+
+
+def _post_calendar_duplicate_marker_report(
+    *,
+    base: Mapping[str, Any],
+    precheck_report: Mapping[str, Any],
+    credential_values_read: bool,
+) -> dict[str, Any]:
+    return {
+        **dict(base),
+        "status": WIDE_NET_NOT_RUN_DUPLICATE_CALENDAR_MARKER,
+        "external_mutation": False,
+        "external_writes": "none",
+        "calendar_duplicate_precheck": dict(precheck_report),
+        "mutation_state": "calendar_duplicate_marker_found_before_external_mutation",
+        "call_limits": {
+            **_call_limits(),
+            "calendar_duplicate_precheck_calls": 1,
+        },
+        "safety_assertions": _safety_assertions(
+            credential_values_read=credential_values_read,
+            live_clients_initialized=True,
+            model_provider_called=False,
+            external_mutation=False,
+            todoist_task_created=False,
+            gmail_email_sent=False,
+            calendar_event_created=False,
+        ),
     }
 
 
@@ -617,11 +816,13 @@ def _call_limits() -> dict[str, int]:
         "max_todoist_task_creates": 1,
         "max_gmail_email_sends": 1,
         "max_calendar_event_creates": 1,
+        "max_calendar_duplicate_precheck_reads": 1,
         "max_protected_openclaw_runtime_invocations": 0,
         "openrouter_primary_calls": 0,
         "openrouter_fallback_calls": 0,
         "todoist_task_create_calls": 0,
         "gmail_email_send_calls": 0,
+        "calendar_duplicate_precheck_calls": 0,
         "calendar_event_create_calls": 0,
         "protected_openclaw_runtime_invocation_calls": 0,
     }
@@ -670,10 +871,14 @@ def _sanitize_calendar_result(result: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _safe_failure(error: BaseException) -> dict[str, Any]:
-    return {
+    report: dict[str, Any] = {
         "type": error.__class__.__name__,
         "message": "Phase 14-C wide-net live attempt failed; details redacted.",
     }
+    status = getattr(error, "code", None)
+    if isinstance(status, int):
+        report["http_status"] = status
+    return report
 
 
 def _safety_assertions(

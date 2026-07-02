@@ -399,6 +399,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C wide-net Calendar bridge payloads",
             "Phase 14-C wide-net execution handoff",
             "Phase 14-C wide-net evidence validator",
+            "Phase 14-C wide-net readiness rollup",
             "Phase 14-C wide-net rehearsal plan",
             "Phase 14-C wide-net rehearsal gate",
         ):
@@ -462,6 +463,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence crosscheck", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence rehearsal", workflow_names)
+        self.assertIn("Phase 14-C wide-net readiness rollup", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
 
@@ -1940,6 +1942,60 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertNotIn("normalized_response", result.stdout)
         self.assertNotIn("evt_", result.stdout)
         self.assertNotIn("chris@example.com", result.stdout)
+
+    def test_phase14c_wide_net_readiness_rollup_is_no_live_report(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "wide-net-readiness-rollup", "--json"])
+
+        payload = json.loads(result.stdout)
+        rollup = payload["wide_net_readiness_rollup"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-readiness-rollup")
+        self.assertEqual(payload["status"], "phase14c_wide_net_readiness_rollup_ready")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(rollup["ready_for_live_execution"])
+        self.assertTrue(rollup["template_only_not_authorization"])
+        self.assertTrue(rollup["human_live_approval_still_required"])
+        self.assertFalse(rollup["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(rollup["calendar_cli_connector_wiring_present"])
+        self.assertTrue(
+            rollup["component_readiness"]["synthetic_evidence_rehearsal_passed"]
+        )
+        self.assertFalse(
+            rollup["component_readiness"]["calendar_cli_connector_wiring_present"]
+        )
+        self.assertEqual(
+            rollup["evidence_rehearsal_summary"]["status"],
+            "phase14c_wide_net_evidence_rehearsal_passed",
+        )
+        self.assertFalse(
+            rollup["evidence_rehearsal_summary"][
+                "synthetic_fixture_payloads_returned"
+            ]
+        )
+        self.assertFalse(rollup["safety_assertions"]["credential_values_read"])
+        self.assertFalse(rollup["safety_assertions"]["calendar_app_connector_called"])
+        self.assertFalse(rollup["safety_assertions"]["external_mutation"])
+        self.assertFalse(rollup["safety_assertions"]["calendar_event_created"])
+        self.assertEqual(rollup["readiness"]["status"], "not_ready")
+        self.assertTrue(rollup["readiness"]["inert_report_only"])
+        self.assertFalse(rollup["readiness"]["live_rails_activated"])
+        self.assertNotIn('"connector_args":', result.stdout)
+        self.assertNotIn("sanitized_result", result.stdout)
+        self.assertNotIn("normalized_response", result.stdout)
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
 
     def test_phase14c_wide_net_rehearsal_plan_is_no_live_report(self) -> None:
         secret_environment = {

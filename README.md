@@ -133,6 +133,13 @@ raw inputs. Use `personalos phase14c wide-net-evidence-rehearsal --json` to
 run a repo-local rehearsal with synthetic sanitized inputs through the Calendar
 transcript validator, wide-net evidence validator, and crosscheck chain
 without returning raw fixture payloads or producing live evidence.
+Use `personalos phase14c wide-net-readiness-rollup --json` to inspect one
+repo-local wide-net readiness rollup that summarizes the plan, Calendar
+payload/transcript surfaces, execution handoff, evidence template, and
+synthetic evidence rehearsal. The rollup does not read credentials, does not
+call connectors, does not initialize live clients, does not write files, does
+not produce live evidence, and does not authorize a live run; it records
+remaining human and connector gates.
 Use `personalos phase14c wide-net-rehearsal --json` to inspect the default
 no-live gate; its `--execute-live` path fails closed before credential values
 are read until an audited Calendar client/connector bridge exists. The

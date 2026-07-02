@@ -167,6 +167,22 @@ does not read credentials, call connectors, initialize live clients, write
 files, or return raw fixture payloads. The rehearsal output is not live
 evidence and must not be recorded as proof of a real wide-net run.
 
+Readiness rollup:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-readiness-rollup --json
+```
+
+The readiness rollup command is repo-local/report-only. It composes the
+wide-net plan, Calendar bridge payload surface, sanitized Calendar transcript
+template, execution handoff, fillable evidence template, and synthetic
+evidence rehearsal into one summary report. It does not read `.env.local`, read
+credentials, initialize live clients, create Todoist tasks, send Gmail, write
+Calendar, call OpenRouter, invoke OpenClaw, open a database, write files, or
+touch protected paths. It does not call connectors, does not authorize a live
+run, does not produce live evidence, and records the remaining human and
+connector gates before the future wide-net live packet.
+
 ## Confirmed Foundation
 
 - Gmail SMTP self-send has passed once with one controlled self-send and
@@ -206,6 +222,9 @@ evidence and must not be recorded as proof of a real wide-net run.
   validator chain with synthetic sanitized inputs and returns summaries only,
   not live evidence. The validator rejects oversized files before JSON parsing
   and uses shared bounded redaction checks with explicit depth and node limits.
+  The `phase14c wide-net-readiness-rollup --json` command summarizes those
+  report-only surfaces and the remaining human and connector gates without
+  reading credentials, calling connectors, or authorizing a live run.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 

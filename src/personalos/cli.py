@@ -84,6 +84,9 @@ from personalos.phase14c_wide_net_execution_handoff import (
     crosscheck_phase14c_wide_net_evidence,
     validate_phase14c_wide_net_evidence_report,
 )
+from personalos.phase14c_wide_net_readiness_rollup import (
+    build_phase14c_wide_net_readiness_rollup_report,
+)
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     build_phase14c_wide_net_rehearsal_plan,
@@ -450,6 +453,16 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "constructs synthetic sanitized inputs in memory; no services called"
         ),
         "output": "stdout evidence rehearsal JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net readiness rollup",
+        "safe_local_action": "Inspect the repo-local wide-net preflight rollup",
+        "command": "personalos phase14c wide-net-readiness-rollup [--json]",
+        "mode": "repo-local readiness rollup / no live clients",
+        "local_effect": (
+            "composes existing report-only surfaces; no services called; no files written"
+        ),
+        "output": "stdout wide-net readiness rollup JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net rehearsal plan",
@@ -990,6 +1003,21 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_evidence_rehearsal_parser)
     phase14c_wide_net_evidence_rehearsal_parser.set_defaults(
         func=_command_phase14c_wide_net_evidence_rehearsal
+    )
+
+    phase14c_wide_net_readiness_rollup_parser = phase14c_subparsers.add_parser(
+        "wide-net-readiness-rollup",
+        help="Report the no-live wide-net readiness rollup.",
+        description=(
+            "Compose the repo-local wide-net plan, Calendar payload/transcript "
+            "surfaces, execution handoff, evidence template, and synthetic evidence "
+            "rehearsal into one summary report. This does not read credentials, call "
+            "connectors, initialize live clients, write files, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_readiness_rollup_parser)
+    phase14c_wide_net_readiness_rollup_parser.set_defaults(
+        func=_command_phase14c_wide_net_readiness_rollup
     )
 
     phase14c_wide_net_rehearsal_parser = phase14c_subparsers.add_parser(
@@ -2409,6 +2437,42 @@ def _command_phase14c_wide_net_evidence_rehearsal(
     )
     _emit_report(report, json_output=args.json)
     return 0 if accepted else 1
+
+
+def _command_phase14c_wide_net_readiness_rollup(args: argparse.Namespace) -> int:
+    rollup = build_phase14c_wide_net_readiness_rollup_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-readiness-rollup",
+            "status": rollup["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_readiness_rollup": rollup,
+        },
+        workflow_name="Phase 14-C wide-net readiness rollup",
+        workflow_mode="repo-local readiness rollup / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review remaining human and connector gates before any live run.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
 
 
 def _command_phase14c_connected_rehearsal_plan(args: argparse.Namespace) -> int:

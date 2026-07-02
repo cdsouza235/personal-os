@@ -151,6 +151,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "phase14c wide-net-evidence-validate --input-file",
             "phase14c wide-net-evidence-crosscheck --calendar-transcript-file",
             "phase14c wide-net-evidence-rehearsal --json",
+            "phase14c wide-net-readiness-rollup --json",
             "redacted evidence validator",
             "does not wire or inject a calendar client",
             "does not call the google calendar app connector",
@@ -166,6 +167,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "synthetic evidence rehearsal command",
             "without returning raw fixture payloads or producing live evidence",
             "not live evidence",
+            "remaining human and connector gates",
+            "does not authorize a live run",
             "one openrouter diagnostic model probe",
             "one todoist inbox/default marker task",
             "one gmail controlled self-email",
@@ -207,6 +210,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("phase14c wide-net-evidence-validate --input-file", text)
         self.assertIn("phase14c wide-net-evidence-crosscheck", text)
         self.assertIn("phase14c wide-net-evidence-rehearsal", text)
+        self.assertIn("phase14c wide-net-readiness-rollup", text)
         self.assertIn("one self-only calendar event", text)
         self.assertIn("unrecognized precheck response shapes", text)
         self.assertIn("oversized files before json parsing", text)

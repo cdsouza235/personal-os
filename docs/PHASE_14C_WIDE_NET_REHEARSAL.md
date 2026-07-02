@@ -16,10 +16,10 @@ create step without calling the connector. The repo also has no-live Calendar
 transcript template and validator commands so a future app-connector precheck
 or create transcript can be checked as sanitized JSON without echoing raw event
 details or attendee addresses. The repo also has a no-live execution-handoff
-command and a redacted evidence validator so the next operator can inspect the
-bounded command, Calendar connector handoff contract, call budgets, and
-post-run evidence requirements without reading credentials or calling live
-services.
+command, fillable evidence-template command, and redacted evidence validator so
+the next operator can inspect the bounded command, Calendar connector handoff
+contract, call budgets, post-run evidence shape, and post-run evidence
+requirements without reading credentials or calling live services.
 
 CLI report:
 
@@ -107,6 +107,24 @@ payloads, normalized precheck contract, call budgets, stop boundaries, and
 post-run evidence validator command. It is not live authorization and does not
 wire or inject a Calendar client into the wide-net runner.
 
+Evidence template:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-template --json
+```
+
+The evidence-template command is repo-local/report-only. It does not read
+`.env.local`, read environment variables, load credentials, initialize live
+clients, call the Google Calendar app connector, call OpenRouter, create
+Todoist tasks, send Gmail, write Calendar, invoke OpenClaw, open a database,
+write files, or touch protected paths. It reports a fillable sanitized
+wide-net evidence shape, the accepted complete statuses, call budgets, Calendar
+transcript validator command, and post-run evidence validator command. The
+template payload is not evidence and is expected to fail the evidence validator
+until a separately approved live run fills the observed counts, booleans, and
+status. It must not be used to record live results without validated sanitized
+evidence.
+
 Evidence validator:
 
 ```bash
@@ -153,6 +171,10 @@ exposure.
   `phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
   validate sanitized Calendar connector transcripts without calling the
   connector or echoing raw event details. The
+  `phase14c wide-net-evidence-template --json` command reports the fillable
+  sanitized post-run evidence shape without calling services; that template is
+  not accepted evidence until a separately approved run fills it with observed
+  values. The
   `phase14c wide-net-evidence-validate --input-file <file> --json` validates
   sanitized evidence without echoing the raw payload. The validator rejects
   oversized files before JSON parsing and uses shared bounded redaction checks
@@ -268,6 +290,8 @@ OpenRouter target:
   attendee addresses, credential values, or unmasked emails.
 - The execution-handoff command may be inspected before a live run, but it is
   not authorization and does not wire the Calendar connector.
+- The evidence-template command may be inspected before a live run, but it is
+  not authorization and does not produce accepted evidence by itself.
 - Post-run evidence must be validated from a sanitized JSON report with
   `phase14c wide-net-evidence-validate --input-file <file> --json`; the
   validator must not receive or print credential values, raw provider

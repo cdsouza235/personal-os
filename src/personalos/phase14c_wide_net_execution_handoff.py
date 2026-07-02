@@ -42,6 +42,12 @@ PHASE14C_WIDE_NET_EXECUTION_HANDOFF_STATUS = (
 PHASE14C_WIDE_NET_EVIDENCE_VALIDATION_SCHEMA_VERSION = (
     "personal_os_phase14c_wide_net_evidence_validation.v1"
 )
+PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_SCHEMA_VERSION = (
+    "personal_os_phase14c_wide_net_evidence_template.v1"
+)
+PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_STATUS = (
+    "phase14c_wide_net_evidence_template_ready"
+)
 PHASE14C_WIDE_NET_EVIDENCE_VALID = "phase14c_wide_net_evidence_valid"
 PHASE14C_WIDE_NET_EVIDENCE_BLOCKED = "phase14c_wide_net_evidence_blocked"
 PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES = 262_144
@@ -86,6 +92,8 @@ _SAFETY_FALSE_FLAGS = (
     "dynamic_cleaning_triggered",
     "broad_live_activation",
 )
+
+
 def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
     """Build a no-live handoff report for the future wide-net live gate."""
 
@@ -120,6 +128,8 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
             "<sanitized-calendar-transcript.json> --json",
             "PYTHONPATH=src python3 -m personalos.cli phase14c "
             "wide-net-execution-handoff --json",
+            "PYTHONPATH=src python3 -m personalos.cli phase14c "
+            "wide-net-evidence-template --json",
         ),
         "post_run_evidence_validator": {
             "command": (
@@ -175,6 +185,77 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
             "credential_values_logged": False,
             "environment_dumped": False,
             "calendar_app_connector_called": False,
+            "external_mutation": False,
+            "model_provider_called": False,
+            "todoist_task_created": False,
+            "gmail_email_sent": False,
+            "calendar_event_created": False,
+            "protected_openclaw_runtime_called": False,
+            "scheduler_or_background_activated": False,
+            "production_db_active": False,
+            "protected_paths_touched": False,
+            "dynamic_cleaning_triggered": False,
+            "broad_live_activation": False,
+        },
+    }
+
+
+def build_phase14c_wide_net_evidence_template_report() -> dict[str, Any]:
+    """Build a no-live fillable evidence template for the future wide-net run."""
+
+    return {
+        "schema_version": PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_SCHEMA_VERSION,
+        "status": PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_STATUS,
+        "marker": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+        "ready_for_live_execution": False,
+        "template_only_not_authorization": True,
+        "human_live_approval_still_required": True,
+        "claude_code_audit_required_before_live_run": True,
+        "calendar_cli_connector_wiring_present": False,
+        "calendar_app_connector_called": False,
+        "credential_values_read": False,
+        "external_mutation": False,
+        "template_payload_is_not_evidence": True,
+        "template_payload_expected_to_fail_validator_until_filled": True,
+        "accepted_complete_statuses": tuple(sorted(_COMPLETE_PASS_STATUSES)),
+        "call_budgets": dict(_MAX_CALL_COUNTS),
+        "calendar_transcript_validator_command": (
+            "PYTHONPATH=src python3 -m personalos.cli phase14c "
+            "wide-net-calendar-transcript-validate --input-file "
+            "<sanitized-calendar-transcript.json> --json"
+        ),
+        "post_run_evidence_validator_command": (
+            "PYTHONPATH=src python3 -m personalos.cli phase14c "
+            "wide-net-evidence-validate --input-file "
+            "<sanitized-wide-net-report.json> --json"
+        ),
+        "fillable_evidence_shape": _fillable_wide_net_evidence_shape(),
+        "required_false_model_flags": _MODEL_FALSE_FLAGS,
+        "required_false_safety_flags": _SAFETY_FALSE_FLAGS,
+        "input_limits": {
+            "max_input_file_size_bytes": PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+            "redaction_scan_max_depth": PHASE14C_REDACTION_MAX_DEPTH,
+            "redaction_scan_max_nodes": PHASE14C_REDACTION_MAX_NODES,
+        },
+        "forbidden_evidence_content": (
+            "credential_values",
+            "raw_provider_response",
+            "full_prompt",
+            "generated_model_text",
+            "configured_model_ids",
+            "raw_calendar_event_details",
+            "attendee_addresses",
+            "unmasked_emails",
+            "event_ids",
+            "todoist_ids",
+            "gmail_message_ids",
+            "protected_paths",
+        ),
+        "safety_assertions": {
+            "calendar_app_connector_called": False,
+            "credential_values_read": False,
+            "credential_values_logged": False,
+            "environment_dumped": False,
             "external_mutation": False,
             "model_provider_called": False,
             "todoist_task_created": False,
@@ -375,4 +456,59 @@ def _call_counts(evidence: Mapping[str, Any]) -> dict[str, int | None]:
     return {
         key: call_limits.get(key) if isinstance(call_limits.get(key), int) else None
         for key in _MAX_CALL_COUNTS
+    }
+
+
+def _fillable_wide_net_evidence_shape() -> dict[str, Any]:
+    return {
+        "wide_net_rehearsal": {
+            "status": (
+                "<phase14c_wide_net_rehearsal_passed_or_"
+                "passed_with_model_diagnostic_failure>"
+            ),
+            "rail": "wide_net_rehearsal",
+            "marker": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+            "call_limits": {
+                key: "<observed_integer_count_within_budget>"
+                for key in _MAX_CALL_COUNTS
+            },
+            "calendar_duplicate_precheck": {
+                "performed": "<observed_boolean_after_sanitized_precheck>",
+                "matching_event_count": "<0_required>",
+                "duplicate_marker_found": "<false_required>",
+                "event_details_logged": False,
+                "attendee_addresses_logged": False,
+            },
+            "model_diagnostic": {
+                "diagnostic_only": "<observed_boolean_after_model_step>",
+                "model_output_drives_external_writes": False,
+                "prompt_logged": False,
+                "raw_provider_response_logged": False,
+                "generated_model_text_logged": False,
+                "configured_model_ids_logged": False,
+                "credential_values_logged": False,
+            },
+            "todoist_task_created": "<observed_boolean_after_confirmed_create>",
+            "gmail_email_sent": "<observed_boolean_after_confirmed_send>",
+            "calendar_event_created": "<observed_boolean_after_confirmed_create>",
+            "mutation_state": "<confirmed_task_email_and_calendar_event_created>",
+            "safety_assertions": {
+                "credential_values_read": "<observed_boolean_after_approved_run>",
+                "credential_values_logged": False,
+                "credential_values_committed": False,
+                "environment_dumped": False,
+                "live_clients_initialized": "<observed_boolean_after_approved_run>",
+                "model_provider_called": "<observed_boolean_after_model_step>",
+                "external_mutation": "<observed_boolean_after_confirmed_writes>",
+                "todoist_task_created": "<observed_boolean_after_confirmed_create>",
+                "gmail_email_sent": "<observed_boolean_after_confirmed_send>",
+                "calendar_event_created": "<observed_boolean_after_confirmed_create>",
+                "protected_openclaw_runtime_called": False,
+                "scheduler_or_background_activated": False,
+                "production_db_active": False,
+                "protected_paths_touched": False,
+                "dynamic_cleaning_triggered": False,
+                "broad_live_activation": False,
+            },
+        }
     }

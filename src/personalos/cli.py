@@ -64,6 +64,11 @@ from personalos.phase14c_todoist_live_smoke import (
 from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
+from personalos.phase14c_wide_net_execution_handoff import (
+    PHASE14C_WIDE_NET_EVIDENCE_VALID,
+    build_phase14c_wide_net_execution_handoff_report,
+    validate_phase14c_wide_net_evidence_report,
+)
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     build_phase14c_wide_net_rehearsal_plan,
@@ -359,6 +364,25 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local app-bridge payload report / no connector call",
         "local_effect": "no env read; no DB opened; no files written; no app connector called",
         "output": "stdout bridge payload JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net execution handoff",
+        "safe_local_action": "Inspect the future wide-net live handoff and evidence checks",
+        "command": "personalos phase14c wide-net-execution-handoff [--json]",
+        "mode": "repo-local handoff / no connector call / no live authorization",
+        "local_effect": "no env read; no DB opened; no files written; no app connector called",
+        "output": "stdout execution handoff JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net evidence validator",
+        "safe_local_action": "Validate one sanitized wide-net evidence JSON file",
+        "command": (
+            "personalos phase14c wide-net-evidence-validate "
+            "--input-file <file> [--json]"
+        ),
+        "mode": "repo-local evidence validation / redacted report / no live clients",
+        "local_effect": "reads one explicit safe JSON file; no DB opened; no services called",
+        "output": "stdout evidence validation JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net rehearsal plan",
@@ -780,6 +804,36 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_calendar_bridge_parser)
     phase14c_wide_net_calendar_bridge_parser.set_defaults(
         func=_command_phase14c_wide_net_calendar_bridge_payloads
+    )
+
+    phase14c_wide_net_handoff_parser = phase14c_subparsers.add_parser(
+        "wide-net-execution-handoff",
+        help="Report the Phase 14-C wide-net execution handoff without live calls.",
+        description=(
+            "Print the repo-local handoff for a future wide-net live run, including "
+            "the exact bounded command template, Calendar connector handoff, call "
+            "budgets, and post-run evidence validator. This does not call the "
+            "connector, read credentials, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_handoff_parser)
+    phase14c_wide_net_handoff_parser.set_defaults(
+        func=_command_phase14c_wide_net_execution_handoff
+    )
+
+    phase14c_wide_net_evidence_parser = phase14c_subparsers.add_parser(
+        "wide-net-evidence-validate",
+        help="Validate one sanitized Phase 14-C wide-net evidence JSON file.",
+        description=(
+            "Validate one explicit sanitized wide-net evidence JSON file and print "
+            "a redacted pass/block report. This does not read credentials, call "
+            "connectors, initialize live clients, or echo the raw evidence payload."
+        ),
+    )
+    phase14c_wide_net_evidence_parser.add_argument("--input-file", required=True)
+    _add_json_arg(phase14c_wide_net_evidence_parser)
+    phase14c_wide_net_evidence_parser.set_defaults(
+        func=_command_phase14c_wide_net_evidence_validate
     )
 
     phase14c_wide_net_rehearsal_parser = phase14c_subparsers.add_parser(
@@ -1866,6 +1920,88 @@ def _command_phase14c_wide_net_calendar_bridge_payloads(
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _command_phase14c_wide_net_execution_handoff(
+    args: argparse.Namespace,
+) -> int:
+    handoff = build_phase14c_wide_net_execution_handoff_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-execution-handoff",
+            "status": handoff["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_execution_handoff": handoff,
+        },
+        workflow_name="Phase 14-C wide-net execution handoff",
+        workflow_mode="repo-local execution handoff / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the bounded command template and evidence validator.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_evidence_validate(
+    args: argparse.Namespace,
+) -> int:
+    input_path = validate_existing_input_file_path(
+        args.input_file,
+        path_label="phase14c wide-net evidence input_file",
+    )
+    evidence_payload = _load_json_object(input_path)
+    validation = validate_phase14c_wide_net_evidence_report(evidence_payload)
+    accepted = validation["status"] == PHASE14C_WIDE_NET_EVIDENCE_VALID
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-evidence-validate",
+            "status": validation["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "input_file": str(input_path),
+            "wide_net_evidence_validation": validation,
+        },
+        workflow_name="Phase 14-C wide-net evidence validation",
+        workflow_mode="repo-local evidence validation / redacted report / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review blocked reasons if the evidence did not validate.",
+            "Do not rerun live rails without a fresh explicit approval.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if accepted else 1
 
 
 def _command_phase14c_connected_rehearsal_plan(args: argparse.Namespace) -> int:

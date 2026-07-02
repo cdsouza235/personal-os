@@ -276,7 +276,16 @@ closed on unrecognized precheck response shapes. The
 `phase14c wide-net-calendar-bridge-payloads --json` command reports the Google
 Calendar app connector payloads for that future bridge without reading
 credentials or calling the connector. The CLI still has no real Calendar
-execution bridge.
+execution bridge. The
+`phase14c wide-net-execution-handoff --json` command reports the future
+bounded command template, Calendar connector handoff, call budgets, and
+post-run evidence requirements without wiring a connector or reading
+credentials. The
+`phase14c wide-net-evidence-validate --input-file <file> --json` command reads
+one explicit sanitized JSON file and prints a redacted pass/block report
+without echoing raw evidence, credential values, raw provider responses, full
+prompts, configured model IDs, event details, attendee addresses, or unmasked
+emails.
 
 Wide-net rehearsal executable gate:
 

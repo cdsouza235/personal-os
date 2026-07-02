@@ -144,6 +144,12 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "fails closed before credential values are read",
             "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
             "phase14c wide-net-calendar-bridge-payloads --json",
+            "phase14c wide-net-execution-handoff --json",
+            "phase14c wide-net-evidence-validate --input-file",
+            "redacted evidence validator",
+            "does not wire or inject a calendar client",
+            "does not call the google calendar app connector",
+            "does not echo raw evidence",
             "one openrouter diagnostic model probe",
             "one todoist inbox/default marker task",
             "one gmail controlled self-email",
@@ -176,6 +182,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("docs/phase_14c_wide_net_rehearsal.md", text)
         self.assertIn("phase14c wide-net-rehearsal-plan --json", text)
         self.assertIn("phase14c wide-net-calendar-bridge-payloads --json", text)
+        self.assertIn("phase14c wide-net-execution-handoff --json", text)
+        self.assertIn("phase14c wide-net-evidence-validate --input-file", text)
         self.assertIn("one self-only calendar event", text)
         self.assertIn("unrecognized precheck response shapes", text)
 

@@ -192,7 +192,12 @@ exists; the injected runner enforces the Calendar duplicate-marker precheck
 before model, Todoist, Gmail, or Calendar create, and the Calendar bridge
 scaffold fails closed on unrecognized precheck response shapes. The repo-local
 `phase14c wide-net-calendar-bridge-payloads --json` command now reports the
-Google Calendar app connector payloads without calling the connector.
+Google Calendar app connector payloads without calling the connector. The
+repo-local `phase14c wide-net-execution-handoff --json` command now reports
+the future bounded command template, Calendar connector handoff, call budgets,
+and evidence requirements without reading credentials or wiring a connector,
+and `phase14c wide-net-evidence-validate --input-file <file> --json` validates
+one sanitized evidence report without echoing raw evidence.
 
 ## Future Blocked Work
 

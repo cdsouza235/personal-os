@@ -224,7 +224,15 @@ Calendar duplicate-marker precheck before model, Todoist, Gmail, or Calendar
 create, and the Calendar bridge scaffold fails closed on unrecognized precheck
 response shapes. The `phase14c wide-net-calendar-bridge-payloads --json`
 command reports the Google Calendar app connector payloads without calling the
-connector, so model diagnostics remain separate from duplicate-safety.
+connector, so model diagnostics remain separate from duplicate-safety. The
+`phase14c wide-net-execution-handoff --json` command reports the future
+bounded command template, Calendar connector handoff, call budgets, and
+post-run evidence requirements without wiring a connector or reading
+credentials. The
+`phase14c wide-net-evidence-validate --input-file <file> --json` command
+validates sanitized evidence and rejects raw provider responses, full prompts,
+configured model IDs, credential values, and unmasked emails without echoing
+the raw evidence payload.
 
 ## Non-Goals
 

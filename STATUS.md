@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #104:
-  `247c6b0ed6f20bd456d48dde9197387d47bd90bc`
-- Latest merged PR at that baseline: PR #104, Phase 14-C wide-net Calendar
-  bridge contract and fail-closed precheck
+- Last validated main baseline after PR #105:
+  `86b184702404192831ca84bed78bc84eb2dd2c60`
+- Latest merged PR at that baseline: PR #105, Phase 14-C wide-net Calendar
+  app-bridge payloads
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -96,7 +96,11 @@ Last updated: 2026-07-02
   `matching_event_count` contract and fails closed on unrecognized response
   shapes; the repo also has a no-live Calendar app-bridge payload command that
   reports the Google Calendar app connector arguments for the future
-  duplicate precheck and self-only create step without calling the connector
+  duplicate precheck and self-only create step without calling the connector;
+  the repo-local wide-net execution-handoff and evidence-validator surfaces
+  report the future bounded command, Calendar connector handoff, call budgets,
+  and sanitized post-run evidence checks without reading credentials, wiring a
+  connector, calling live services, or echoing raw evidence
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -152,8 +156,9 @@ Last updated: 2026-07-02
   [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md),
   and the next inert wider plan is recorded in
   [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md).
-  Calendar creation and protected OpenClaw runtime invocation remain excluded
-  unless separately approved.
+  The wide-net execution handoff and evidence validator are repo-local and
+  inert; Calendar creation and protected OpenClaw runtime invocation remain
+  excluded unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
   `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`,
   Monday, 2026-07-06, 09:00-09:15 America/Chicago, event ID
@@ -333,7 +338,13 @@ Last updated: 2026-07-02
   fails closed on malformed or unrecognized precheck response shapes. The
   `phase14c wide-net-calendar-bridge-payloads --json` command reports the
   Google Calendar app connector payloads without reading credentials, calling
-  the connector, or injecting a Calendar client into the live runner.
+  the connector, or injecting a Calendar client into the live runner. The
+  `phase14c wide-net-execution-handoff --json` command reports the future
+  bounded command template, Calendar connector handoff, call budgets, and
+  post-run evidence requirements without wiring a connector or reading
+  credentials; the `phase14c wide-net-evidence-validate --input-file <file>`
+  command validates one sanitized evidence report without echoing the raw
+  evidence payload.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -347,8 +358,8 @@ Last updated: 2026-07-02
 
 ## Validated State
 
-- Full suite: 796 tests OK
-- ResourceWarning-sensitive suite: 796 tests OK
+- Full suite: 802 tests OK
+- ResourceWarning-sensitive suite: 802 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -363,8 +374,8 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
-- Targeted Phase 14-C wide-net app-bridge/gate/CLI/docs/model suite:
-  111 tests OK
+- Targeted Phase 14-C wide-net handoff/evidence/app-bridge/gate/CLI/docs/model
+  suite: 117 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

@@ -42,6 +42,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "personalos.cli phase14c connected-rehearsal-plan --json",
             "personalos.cli phase14c connected-rehearsal --json",
             "personalos.cli phase14c wide-net-calendar-bridge-payloads --json",
+            "personalos.cli phase14c wide-net-execution-handoff --json",
+            "personalos.cli phase14c wide-net-evidence-validate --input-file",
             "personalos.cli phase14c wide-net-rehearsal-plan --json",
             "does not load credentials",
             "does not initialize live clients",
@@ -88,6 +90,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "precheck before model, todoist, gmail, or calendar create",
             "unrecognized precheck response shapes",
             "google calendar app connector payloads",
+            "post-run evidence requirements",
+            "redacted pass/block report",
             "mutation_state=unconfirmed_after_task_create_attempt",
             "mutation_state=unconfirmed_after_send_attempt",
             "due_date",
@@ -249,6 +253,8 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "`http_status`",
             "phase14c wide-net-rehearsal-plan --json",
             "phase14c wide-net-calendar-bridge-payloads",
+            "phase14c wide-net-execution-handoff --json",
+            "phase14c wide-net-evidence-validate --input-file",
             "phase14c wide-net-rehearsal --json",
             "one openrouter diagnostic model probe",
             "one self-only google calendar marker event",
@@ -256,6 +262,7 @@ class Phase14CSupervisedSmokeDocsTest(unittest.TestCase):
             "precheck before model, todoist, gmail, or calendar create",
             "google calendar app connector payloads",
             "bridge response must normalize",
+            "without echoing raw evidence",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

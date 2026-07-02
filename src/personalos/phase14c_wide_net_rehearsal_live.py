@@ -23,6 +23,9 @@ from personalos.phase14c_todoist_live_smoke import (
     TodoistRestSmokeClient,
     next_upcoming_monday,
 )
+from personalos.phase14c_wide_net_calendar_bridge import (
+    require_explicit_calendar_matching_event_count,
+)
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     PHASE14C_WIDE_NET_REHEARSAL_MARKER,
@@ -258,7 +261,14 @@ def run_phase14c_wide_net_rehearsal(
             credential_values_read=credential_values_read,
         )
 
-    matching_event_count = _calendar_matching_event_count(precheck_raw)
+    try:
+        matching_event_count = _calendar_matching_event_count(precheck_raw)
+    except ValueError as error:
+        return _post_calendar_precheck_failure_report(
+            base=base,
+            failure=_safe_failure(error),
+            credential_values_read=credential_values_read,
+        )
     precheck_report = _calendar_precheck_report(
         calendar_precheck_payload=calendar_precheck_payload,
         matching_event_count=matching_event_count,
@@ -591,30 +601,7 @@ def _calendar_precheck_report(
 
 
 def _calendar_matching_event_count(result: Mapping[str, Any]) -> int:
-    count = result.get("matching_event_count")
-    if isinstance(count, int) and count >= 0:
-        return count
-    found = result.get("found")
-    if isinstance(found, bool):
-        return int(found)
-    for key in ("events", "items"):
-        matches = _calendar_matching_events(result.get(key))
-        if matches is not None:
-            return matches
-    return 0
-
-
-def _calendar_matching_events(value: object) -> int | None:
-    if not isinstance(value, list | tuple):
-        return None
-    matched = 0
-    for item in value:
-        if not isinstance(item, Mapping):
-            continue
-        title = item.get("title", item.get("summary"))
-        if title == PHASE14C_WIDE_NET_REHEARSAL_MARKER:
-            matched += 1
-    return matched
+    return require_explicit_calendar_matching_event_count(result)
 
 
 def _post_calendar_precheck_failure_report(

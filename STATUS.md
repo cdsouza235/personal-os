@@ -6,10 +6,10 @@ Last updated: 2026-07-01
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #102:
-  `a74d3d9546dfb65e96b20439cadd8c6268f706f8`
-- Latest merged PR at that baseline: PR #102, Phase 14-C wide-net executable
-  gate
+- Last validated main baseline after PR #103:
+  `40a44291181cd9bde72e7d365459b54ce9739660`
+- Latest merged PR at that baseline: PR #103, Phase 14-C wide-net Calendar
+  duplicate precheck
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -91,7 +91,10 @@ Last updated: 2026-07-01
   executable gate that fails closed before credential values are read until an
   audited Calendar client/connector bridge exists; the injected wide-net
   runner now enforces a Calendar duplicate-marker precheck before model,
-  Todoist, Gmail, or Calendar create
+  Todoist, Gmail, or Calendar create; the repo has a Calendar bridge scaffold
+  that normalizes connector precheck results into an explicit
+  `matching_event_count` contract and fails closed on unrecognized response
+  shapes
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -324,7 +327,8 @@ Last updated: 2026-07-01
   requires the exact approval reference but fails closed with
   `phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
   before credential values are read until an audited Calendar client/connector
-  bridge exists.
+  bridge exists. The Calendar bridge scaffold exists for injected adapters and
+  fails closed on malformed or unrecognized precheck response shapes.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -338,8 +342,8 @@ Last updated: 2026-07-01
 
 ## Validated State
 
-- Full suite: 787 tests OK
-- ResourceWarning-sensitive suite: 787 tests OK
+- Full suite: 793 tests OK
+- ResourceWarning-sensitive suite: 793 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -354,7 +358,7 @@ Last updated: 2026-07-01
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
-- Targeted Phase 14-C wide-net rehearsal gate/CLI/docs/model suite: 102 tests OK
+- Targeted Phase 14-C wide-net bridge/gate/CLI/docs/model suite: 108 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

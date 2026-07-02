@@ -30,8 +30,10 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertFalse(plan["ready_for_live_execution"])
         self.assertTrue(plan["template_only_not_authorization"])
         self.assertTrue(plan["executable_gate_available"])
+        self.assertTrue(plan["calendar_bridge_scaffold_available"])
         self.assertFalse(plan["calendar_client_bridge_available"])
         self.assertTrue(plan["calendar_duplicate_precheck_enforced_by_runner"])
+        self.assertTrue(plan["calendar_precheck_unrecognized_response_fails_closed"])
         self.assertEqual(
             plan["preconditions"]["ssl_cert_file"],
             PHASE14C_WIDE_NET_REHEARSAL_SSL_CERT_FILE,
@@ -81,6 +83,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertTrue(
             sequence[0]["stop_before_model_todoist_gmail_or_calendar_create_on_match"]
         )
+        self.assertTrue(sequence[0]["requires_bridge_normalized_matching_event_count"])
+        self.assertTrue(sequence[0]["unrecognized_precheck_response_fails_closed"])
         self.assertFalse(sequence[0]["external_mutation"])
         self.assertTrue(sequence[1]["diagnostic_only"])
         self.assertFalse(sequence[1]["external_write_dependency"])
@@ -152,6 +156,9 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "duplicate-marker precheck",
             "precheck before model, todoist, gmail, or calendar create",
             "stop before every write if a duplicate marker exists",
+            "unrecognized precheck response",
+            "explicit precheck contract",
+            "unrecognized precheck response shapes fail closed",
             "if glm returns another `http_status=402`",
             "future human gate, not reusable authorization",
             "live_rails_activated` remains `false",
@@ -166,6 +173,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("docs/phase_14c_wide_net_rehearsal.md", text)
         self.assertIn("phase14c wide-net-rehearsal-plan --json", text)
         self.assertIn("one self-only calendar event", text)
+        self.assertIn("unrecognized precheck response shapes", text)
 
 
 def _normalized_doc_text(path: Path) -> str:

@@ -271,7 +271,9 @@ duplicate-marker precheck. It is not authorization; the separate executable
 gate is no-live by default and requires a new explicit approval, Claude Code
 audit, and audited Calendar bridge before any live run. The injected runner now
 requires the Calendar duplicate-marker precheck before model, Todoist, Gmail,
-or Calendar create, but the CLI still has no real Calendar bridge.
+or Calendar create, and the repo has a Calendar bridge scaffold that fails
+closed on unrecognized precheck response shapes. The CLI still has no real
+Calendar bridge.
 
 Wide-net rehearsal executable gate:
 
@@ -288,7 +290,8 @@ before reading credential values. A separate audited Calendar client/connector
 bridge remains required before this CLI can run OpenRouter, Todoist, Gmail, or
 Calendar in the wide-net sequence. Once a bridge exists, the runner must first
 perform the duplicate-marker precheck and stop before every write if the marker
-already exists.
+already exists. The bridge response must normalize to an explicit
+`matching_event_count`; any unrecognized response shape must fail closed.
 
 Live commands already used once for this evidence packet:
 

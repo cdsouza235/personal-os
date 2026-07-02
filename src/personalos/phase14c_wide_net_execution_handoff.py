@@ -17,6 +17,10 @@ from personalos.phase14c_wide_net_calendar_app_bridge import (
 from personalos.phase14c_wide_net_calendar_bridge import (
     PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
 )
+from personalos.phase14c_wide_net_calendar_transcript import (
+    build_phase14c_wide_net_calendar_transcript_template,
+    validate_phase14c_wide_net_calendar_transcript,
+)
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     PHASE14C_WIDE_NET_REHEARSAL_MARKER,
@@ -56,6 +60,15 @@ PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID = (
 )
 PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_BLOCKED = (
     "phase14c_wide_net_evidence_crosscheck_blocked"
+)
+PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_SCHEMA_VERSION = (
+    "personal_os_phase14c_wide_net_evidence_rehearsal.v1"
+)
+PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED = (
+    "phase14c_wide_net_evidence_rehearsal_passed"
+)
+PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_BLOCKED = (
+    "phase14c_wide_net_evidence_rehearsal_blocked"
 )
 PHASE14C_WIDE_NET_EVIDENCE_VALID = "phase14c_wide_net_evidence_valid"
 PHASE14C_WIDE_NET_EVIDENCE_BLOCKED = "phase14c_wide_net_evidence_blocked"
@@ -166,6 +179,15 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
             "credential_values_allowed": False,
             "unmasked_emails_allowed": False,
         },
+        "local_evidence_rehearsal": {
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-evidence-rehearsal --json"
+            ),
+            "synthetic_fixture_only": True,
+            "fixture_payloads_returned": False,
+            "live_evidence_created": False,
+        },
         "calendar_connector_handoff": {
             "connector_type": "Google Calendar app connector",
             "repo_cli_constructs_connector": False,
@@ -256,6 +278,10 @@ def build_phase14c_wide_net_evidence_template_report() -> dict[str, Any]:
             "<sanitized-calendar-transcript.json> --evidence-file "
             "<sanitized-wide-net-report.json> --json"
         ),
+        "local_evidence_rehearsal_command": (
+            "PYTHONPATH=src python3 -m personalos.cli phase14c "
+            "wide-net-evidence-rehearsal --json"
+        ),
         "fillable_evidence_shape": _fillable_wide_net_evidence_shape(),
         "required_false_model_flags": _MODEL_FALSE_FLAGS,
         "required_false_safety_flags": _SAFETY_FALSE_FLAGS,
@@ -288,6 +314,90 @@ def build_phase14c_wide_net_evidence_template_report() -> dict[str, Any]:
             "todoist_task_created": False,
             "gmail_email_sent": False,
             "calendar_event_created": False,
+            "protected_openclaw_runtime_called": False,
+            "scheduler_or_background_activated": False,
+            "production_db_active": False,
+            "protected_paths_touched": False,
+            "dynamic_cleaning_triggered": False,
+            "broad_live_activation": False,
+        },
+    }
+
+
+def build_phase14c_wide_net_evidence_rehearsal_report() -> dict[str, Any]:
+    """Run an internal no-live rehearsal of the wide-net evidence checks."""
+
+    calendar_transcript_validation = validate_phase14c_wide_net_calendar_transcript(
+        _synthetic_calendar_create_transcript()
+    )
+    wide_net_evidence_validation = validate_phase14c_wide_net_evidence_report(
+        {"wide_net_rehearsal": _synthetic_wide_net_evidence()}
+    )
+    crosscheck = crosscheck_phase14c_wide_net_evidence(
+        calendar_transcript_validation=calendar_transcript_validation,
+        wide_net_evidence_validation=wide_net_evidence_validation,
+    )
+    accepted = (
+        calendar_transcript_validation.get("accepted") is True
+        and wide_net_evidence_validation.get("accepted") is True
+        and crosscheck.get("accepted") is True
+    )
+    return {
+        "schema_version": PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_SCHEMA_VERSION,
+        "status": (
+            PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED
+            if accepted
+            else PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_BLOCKED
+        ),
+        "accepted": accepted,
+        "synthetic_fixture_only": True,
+        "synthetic_fixture_payloads_returned": False,
+        "not_live_evidence": True,
+        "ready_for_live_execution": False,
+        "template_only_not_authorization": True,
+        "calendar_transcript_validation": calendar_transcript_validation,
+        "wide_net_evidence_validation": wide_net_evidence_validation,
+        "wide_net_evidence_crosscheck": crosscheck,
+        "summary": {
+            "calendar_transcript_accepted": (
+                calendar_transcript_validation.get("accepted") is True
+            ),
+            "wide_net_evidence_accepted": (
+                wide_net_evidence_validation.get("accepted") is True
+            ),
+            "crosscheck_accepted": crosscheck.get("accepted") is True,
+            "calendar_create_performed": (
+                crosscheck["calendar_transcript_summary"][
+                    "calendar_create_performed"
+                ]
+                is True
+            ),
+            "calendar_event_create_calls": (
+                crosscheck["wide_net_evidence_summary"][
+                    "calendar_event_create_calls"
+                ]
+            ),
+            "precheck_matching_event_count": (
+                crosscheck["wide_net_evidence_summary"][
+                    "precheck_matching_event_count"
+                ]
+            ),
+        },
+        "safety_assertions": {
+            "credential_values_read": False,
+            "credential_values_logged": False,
+            "synthetic_payloads_logged": False,
+            "raw_transcript_returned": False,
+            "raw_evidence_returned": False,
+            "event_ids_returned": False,
+            "attendee_addresses_returned": False,
+            "unmasked_emails_returned": False,
+            "calendar_app_connector_called": False,
+            "model_provider_called": False,
+            "todoist_task_created": False,
+            "gmail_email_sent": False,
+            "calendar_event_created": False,
+            "external_mutation": False,
             "protected_openclaw_runtime_called": False,
             "scheduler_or_background_activated": False,
             "production_db_active": False,
@@ -650,6 +760,87 @@ def _empty_evidence_summary() -> dict[str, Any]:
         "precheck_matching_event_count": None,
         "event_details_logged": False,
         "attendee_addresses_logged": False,
+    }
+
+
+def _synthetic_calendar_create_transcript() -> dict[str, Any]:
+    template = build_phase14c_wide_net_calendar_transcript_template()
+    return {
+        "marker": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+        "duplicate_precheck": {
+            "performed": True,
+            "connector_action": "search_events",
+            "connector_args": template["expected_duplicate_precheck"][
+                "connector_args"
+            ],
+            "normalized_response": {
+                "contract": PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
+                "matching_event_count": 0,
+                "event_details_logged": False,
+                "attendee_addresses_logged": False,
+            },
+        },
+        "calendar_create": {
+            "performed": True,
+            "connector_action": "create_event",
+            "connector_args": template["expected_calendar_create"]["connector_args"],
+            "sanitized_result": {"status": "confirmed"},
+        },
+    }
+
+
+def _synthetic_wide_net_evidence() -> dict[str, Any]:
+    return {
+        "status": WIDE_NET_PASSED,
+        "rail": "wide_net_rehearsal",
+        "marker": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+        "call_limits": {
+            "openrouter_primary_calls": 1,
+            "openrouter_fallback_calls": 0,
+            "todoist_task_create_calls": 1,
+            "gmail_email_send_calls": 1,
+            "calendar_duplicate_precheck_calls": 1,
+            "calendar_event_create_calls": 1,
+            "protected_openclaw_runtime_invocation_calls": 0,
+        },
+        "calendar_duplicate_precheck": {
+            "performed": True,
+            "matching_event_count": 0,
+            "duplicate_marker_found": False,
+            "event_details_logged": False,
+            "attendee_addresses_logged": False,
+        },
+        "model_diagnostic": {
+            "diagnostic_only": True,
+            "model_output_drives_external_writes": False,
+            "prompt_logged": False,
+            "raw_provider_response_logged": False,
+            "generated_model_text_logged": False,
+            "configured_model_ids_logged": False,
+            "credential_values_logged": False,
+        },
+        "todoist_task_created": True,
+        "gmail_email_sent": True,
+        "calendar_event_created": True,
+        "mutation_state": "confirmed_task_email_and_calendar_event_created",
+        "safety_assertions": {
+            "credential_values_read": True,
+            "credential_values_logged": False,
+            "credential_values_committed": False,
+            "environment_dumped": False,
+            "live_clients_initialized": True,
+            "model_provider_called": True,
+            "external_mutation": True,
+            "todoist_task_created": True,
+            "gmail_email_sent": True,
+            "calendar_event_created": True,
+            "protected_openclaw_runtime_called": False,
+            "scheduler_or_background_activated": False,
+            "production_db_active": False,
+            "protected_paths_touched": False,
+            "dynamic_cleaning_triggered": False,
+            "broad_live_activation": False,
+        },
     }
 
 

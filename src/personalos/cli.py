@@ -74,9 +74,11 @@ from personalos.phase14c_wide_net_calendar_transcript import (
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID,
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+    PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
     build_phase14c_wide_net_evidence_crosscheck_input_size_report,
     build_phase14c_wide_net_evidence_input_size_report,
+    build_phase14c_wide_net_evidence_rehearsal_report,
     build_phase14c_wide_net_evidence_template_report,
     build_phase14c_wide_net_execution_handoff_report,
     crosscheck_phase14c_wide_net_evidence,
@@ -436,6 +438,18 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "reads two explicit safe JSON files; no DB opened; no services called"
         ),
         "output": "stdout evidence crosscheck JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net evidence rehearsal",
+        "safe_local_action": (
+            "Rehearse Calendar transcript, evidence, and crosscheck validators"
+        ),
+        "command": "personalos phase14c wide-net-evidence-rehearsal [--json]",
+        "mode": "repo-local synthetic evidence rehearsal / no live clients",
+        "local_effect": (
+            "constructs synthetic sanitized inputs in memory; no services called"
+        ),
+        "output": "stdout evidence rehearsal JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net rehearsal plan",
@@ -960,6 +974,22 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_evidence_crosscheck_parser)
     phase14c_wide_net_evidence_crosscheck_parser.set_defaults(
         func=_command_phase14c_wide_net_evidence_crosscheck
+    )
+
+    phase14c_wide_net_evidence_rehearsal_parser = phase14c_subparsers.add_parser(
+        "wide-net-evidence-rehearsal",
+        help="Run a no-live synthetic rehearsal of wide-net evidence checks.",
+        description=(
+            "Construct synthetic sanitized wide-net evidence inputs in memory, run "
+            "the Calendar transcript validator, wide-net evidence validator, and "
+            "crosscheck, then print only validation summaries. This does not read "
+            "credentials, call connectors, initialize live clients, or return raw "
+            "fixture payloads."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_evidence_rehearsal_parser)
+    phase14c_wide_net_evidence_rehearsal_parser.set_defaults(
+        func=_command_phase14c_wide_net_evidence_rehearsal
     )
 
     phase14c_wide_net_rehearsal_parser = phase14c_subparsers.add_parser(
@@ -2335,6 +2365,45 @@ def _command_phase14c_wide_net_evidence_crosscheck(
         safe_next_actions=(
             "Review blocked reasons if the crosscheck did not validate.",
             "Do not paste raw Calendar details, identifiers, or credential values.",
+            "Do not rerun live rails without a fresh explicit approval.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if accepted else 1
+
+
+def _command_phase14c_wide_net_evidence_rehearsal(
+    args: argparse.Namespace,
+) -> int:
+    rehearsal = build_phase14c_wide_net_evidence_rehearsal_report()
+    accepted = rehearsal["status"] == PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-evidence-rehearsal",
+            "status": rehearsal["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_evidence_rehearsal": rehearsal,
+        },
+        workflow_name="Phase 14-C wide-net evidence rehearsal",
+        workflow_mode="repo-local synthetic evidence rehearsal / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Use this rehearsal only as a local validator-chain check.",
+            "Do not record its synthetic fixture as live evidence.",
             "Do not rerun live rails without a fresh explicit approval.",
         ),
     )

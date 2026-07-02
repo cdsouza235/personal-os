@@ -300,7 +300,10 @@ redaction checks with explicit depth and node limits. The
 command compares sanitized Calendar transcript evidence with sanitized
 wide-net evidence and verifies that marker, precheck count, and Calendar
 create count agree without echoing raw inputs or calling the Calendar
-connector.
+connector. The `phase14c wide-net-evidence-rehearsal --json` command runs a
+synthetic repo-local rehearsal of that validator chain without reading
+credentials or calling connectors, and without returning raw fixture payloads
+or producing live evidence.
 
 Wide-net rehearsal executable gate:
 

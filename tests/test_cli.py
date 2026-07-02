@@ -400,6 +400,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C wide-net execution handoff",
             "Phase 14-C wide-net evidence validator",
             "Phase 14-C wide-net readiness rollup",
+            "Phase 14-C wide-net readiness rollup contract",
             "Phase 14-C wide-net rehearsal plan",
             "Phase 14-C wide-net rehearsal gate",
         ):
@@ -464,6 +465,10 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C wide-net evidence crosscheck", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence rehearsal", workflow_names)
         self.assertIn("Phase 14-C wide-net readiness rollup", workflow_names)
+        self.assertIn(
+            "Phase 14-C wide-net readiness rollup contract",
+            workflow_names,
+        )
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
 
@@ -1991,6 +1996,49 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(rollup["readiness"]["status"], "not_ready")
         self.assertTrue(rollup["readiness"]["inert_report_only"])
         self.assertFalse(rollup["readiness"]["live_rails_activated"])
+        self.assertNotIn('"connector_args":', result.stdout)
+        self.assertNotIn("sanitized_result", result.stdout)
+        self.assertNotIn("normalized_response", result.stdout)
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_readiness_rollup_contract_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                ["phase14c", "wide-net-readiness-rollup-contract", "--json"]
+            )
+
+        payload = json.loads(result.stdout)
+        contract = payload["wide_net_readiness_rollup_contract"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-readiness-rollup-contract",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_readiness_rollup_contract_valid",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertTrue(contract["report_matches_inert_contract"])
+        self.assertEqual(
+            contract["reasons"],
+            ["wide_net_readiness_rollup_remains_inert_and_non_authorizing"],
+        )
         self.assertNotIn('"connector_args":', result.stdout)
         self.assertNotIn("sanitized_result", result.stdout)
         self.assertNotIn("normalized_response", result.stdout)

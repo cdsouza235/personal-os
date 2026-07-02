@@ -8,7 +8,9 @@ from unittest import mock
 import personalos.phase14c_wide_net_readiness_rollup as rollup_module
 from personalos.phase14c_wide_net_readiness_rollup import (
     PHASE14C_WIDE_NET_READINESS_ROLLUP_STATUS,
+    PHASE14C_WIDE_NET_READINESS_ROLLUP_TOP_LEVEL_FIELDS,
     build_phase14c_wide_net_readiness_rollup_report,
+    validate_phase14c_wide_net_readiness_rollup_report_contract,
 )
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
@@ -140,6 +142,120 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
         self.assertNotIn("evt_", serialized)
         self.assertNotIn("chris@example.com", serialized)
 
+    def test_rollup_contract_validator_accepts_default_report(self) -> None:
+        report = build_phase14c_wide_net_readiness_rollup_report()
+        validation = validate_phase14c_wide_net_readiness_rollup_report_contract(
+            report
+        )
+
+        self.assertEqual(
+            tuple(report),
+            PHASE14C_WIDE_NET_READINESS_ROLLUP_TOP_LEVEL_FIELDS,
+        )
+        self.assertTrue(validation.report_matches_inert_contract)
+        self.assertEqual(
+            validation.to_dict(),
+            {
+                "report_matches_inert_contract": True,
+                "reasons": [
+                    "wide_net_readiness_rollup_remains_inert_and_non_authorizing"
+                ],
+            },
+        )
+
+    def test_rollup_contract_validator_blocks_missing_report(self) -> None:
+        validation = validate_phase14c_wide_net_readiness_rollup_report_contract(
+            None
+        )
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertEqual(
+            validation.to_dict(),
+            {
+                "report_matches_inert_contract": False,
+                "reasons": ["wide_net_readiness_rollup_report_missing"],
+            },
+        )
+
+    def test_rollup_contract_validator_blocks_drift_without_echo(self) -> None:
+        cases = (
+            (
+                "status",
+                lambda report, token: report.update({"status": token}),
+                "wide_net_readiness_rollup_status_drifted",
+            ),
+            (
+                "readiness",
+                lambda report, token: report["readiness"].update({"status": token}),
+                "wide_net_readiness_rollup_readiness_drifted",
+            ),
+            (
+                "non_authorization",
+                lambda report, token: report["non_authorization"].update(
+                    {"phase14c_authorized": token}
+                ),
+                "wide_net_readiness_rollup_non_authorization_drifted",
+            ),
+            (
+                "safety",
+                lambda report, token: report["safety_assertions"].update(
+                    {"calendar_event_created": token}
+                ),
+                "wide_net_readiness_rollup_safety_assertions_drifted",
+            ),
+            (
+                "component",
+                lambda report, token: report["component_statuses"].update(
+                    {"evidence_rehearsal": token}
+                ),
+                "wide_net_readiness_rollup_component_statuses_drifted",
+            ),
+            (
+                "gate",
+                lambda report, token: report["remaining_gates_before_live"][0].update(
+                    {"gate": token}
+                ),
+                "wide_net_readiness_rollup_remaining_gates_drifted",
+            ),
+        )
+        for label, mutate, expected_reason in cases:
+            with self.subTest(label=label):
+                unsafe_value = f"secret-rollup-{label}"
+                report = build_phase14c_wide_net_readiness_rollup_report()
+                mutate(report, unsafe_value)
+
+                validation = validate_phase14c_wide_net_readiness_rollup_report_contract(
+                    report
+                )
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_rollup_contract_validator_blocks_raw_fields_without_echo(self) -> None:
+        report = build_phase14c_wide_net_readiness_rollup_report()
+        report["api_key"] = "sk-secret-rollup-key"
+        report["evidence_rehearsal_summary"]["operator_email"] = (
+            "chris.private@example.com"
+        )
+
+        validation = validate_phase14c_wide_net_readiness_rollup_report_contract(
+            report
+        )
+        serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+        self.assertFalse(validation.report_matches_inert_contract)
+        self.assertIn(
+            "wide_net_readiness_rollup_top_level_fields_drifted",
+            validation.reasons,
+        )
+        self.assertIn("forbidden_raw_field_present", validation.reasons)
+        self.assertIn("secret_like_value_present", validation.reasons)
+        self.assertIn("unmasked_email_value_present", validation.reasons)
+        self.assertNotIn("sk-secret-rollup-key", serialized_validation)
+        self.assertNotIn("chris.private@example.com", serialized_validation)
+
     def test_rollup_records_remaining_live_gates_and_commands(self) -> None:
         report = build_phase14c_wide_net_readiness_rollup_report()
         gates = {gate["gate"]: gate for gate in report["remaining_gates_before_live"]}
@@ -215,6 +331,7 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
 
         required_phrases = (
             "phase14c wide-net-readiness-rollup --json",
+            "phase14c wide-net-readiness-rollup-contract",
             "wide-net readiness rollup",
             "does not read credentials",
             "does not call connectors",
@@ -222,6 +339,7 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
             "remaining human and connector gates",
             "synthetic evidence rehearsal",
             "not live evidence",
+            "contract",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

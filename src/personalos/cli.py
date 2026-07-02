@@ -85,7 +85,10 @@ from personalos.phase14c_wide_net_execution_handoff import (
     validate_phase14c_wide_net_evidence_report,
 )
 from personalos.phase14c_wide_net_readiness_rollup import (
+    PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_BLOCKED,
+    PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_VALID,
     build_phase14c_wide_net_readiness_rollup_report,
+    validate_phase14c_wide_net_readiness_rollup_report_contract,
 )
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
@@ -463,6 +466,16 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "composes existing report-only surfaces; no services called; no files written"
         ),
         "output": "stdout wide-net readiness rollup JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net readiness rollup contract",
+        "safe_local_action": "Validate the wide-net readiness rollup contract",
+        "command": "personalos phase14c wide-net-readiness-rollup-contract [--json]",
+        "mode": "repo-local contract validation / no live clients",
+        "local_effect": (
+            "builds and validates the rollup report; no services called; no files written"
+        ),
+        "output": "stdout wide-net readiness rollup contract JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net rehearsal plan",
@@ -1018,6 +1031,22 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_readiness_rollup_parser)
     phase14c_wide_net_readiness_rollup_parser.set_defaults(
         func=_command_phase14c_wide_net_readiness_rollup
+    )
+
+    phase14c_wide_net_readiness_rollup_contract_parser = (
+        phase14c_subparsers.add_parser(
+            "wide-net-readiness-rollup-contract",
+            help="Validate the no-live wide-net readiness rollup contract.",
+            description=(
+                "Build and validate the repo-local wide-net readiness rollup report "
+                "against its inert contract. This does not read credentials, call "
+                "connectors, initialize live clients, write files, or authorize a live run."
+            ),
+        )
+    )
+    _add_json_arg(phase14c_wide_net_readiness_rollup_contract_parser)
+    phase14c_wide_net_readiness_rollup_contract_parser.set_defaults(
+        func=_command_phase14c_wide_net_readiness_rollup_contract
     )
 
     phase14c_wide_net_rehearsal_parser = phase14c_subparsers.add_parser(
@@ -2473,6 +2502,51 @@ def _command_phase14c_wide_net_readiness_rollup(args: argparse.Namespace) -> int
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _command_phase14c_wide_net_readiness_rollup_contract(
+    args: argparse.Namespace,
+) -> int:
+    rollup = build_phase14c_wide_net_readiness_rollup_report()
+    validation = validate_phase14c_wide_net_readiness_rollup_report_contract(rollup)
+    valid = validation.report_matches_inert_contract
+    status = (
+        PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_VALID
+        if valid
+        else PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_BLOCKED
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-readiness-rollup-contract",
+            "status": status,
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_readiness_rollup_contract": validation.to_dict(),
+        },
+        workflow_name="Phase 14-C wide-net readiness rollup contract",
+        workflow_mode="repo-local contract validation / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the contract reasons if validation did not pass.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if valid else 1
 
 
 def _command_phase14c_connected_rehearsal_plan(args: argparse.Namespace) -> int:

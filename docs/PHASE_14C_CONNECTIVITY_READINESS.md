@@ -286,6 +286,10 @@ credential values, or unmasked emails. The
 bounded command template, Calendar connector handoff, call budgets, and
 post-run evidence requirements without wiring a connector or reading
 credentials. The
+`phase14c wide-net-evidence-template --json` command reports a fillable
+sanitized post-run evidence shape without calling services; the template is not
+accepted evidence until a separately approved run fills observed counts and
+booleans. The
 `phase14c wide-net-evidence-validate --input-file <file> --json` command reads
 one explicit sanitized JSON file and prints a redacted pass/block report
 without echoing raw evidence, credential values, raw provider responses, full

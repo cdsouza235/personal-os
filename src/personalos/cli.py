@@ -75,6 +75,7 @@ from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
     build_phase14c_wide_net_evidence_input_size_report,
+    build_phase14c_wide_net_evidence_template_report,
     build_phase14c_wide_net_execution_handoff_report,
     validate_phase14c_wide_net_evidence_report,
 )
@@ -400,6 +401,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local handoff / no connector call / no live authorization",
         "local_effect": "no env read; no DB opened; no files written; no app connector called",
         "output": "stdout execution handoff JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net evidence template",
+        "safe_local_action": "Inspect the sanitized post-run evidence shape",
+        "command": "personalos phase14c wide-net-evidence-template [--json]",
+        "mode": "repo-local fillable evidence template / no live clients",
+        "local_effect": "no env read; no DB opened; no files written; no services called",
+        "output": "stdout evidence template JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net evidence validator",
@@ -884,6 +893,20 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_handoff_parser)
     phase14c_wide_net_handoff_parser.set_defaults(
         func=_command_phase14c_wide_net_execution_handoff
+    )
+
+    phase14c_wide_net_evidence_template_parser = phase14c_subparsers.add_parser(
+        "wide-net-evidence-template",
+        help="Report the sanitized wide-net evidence shape without live calls.",
+        description=(
+            "Print a repo-local fillable template for the future wide-net post-run "
+            "evidence report. This does not call connectors, read credentials, "
+            "authorize a live run, or produce accepted evidence by itself."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_evidence_template_parser)
+    phase14c_wide_net_evidence_template_parser.set_defaults(
+        func=_command_phase14c_wide_net_evidence_template
     )
 
     phase14c_wide_net_evidence_parser = phase14c_subparsers.add_parser(
@@ -2110,6 +2133,42 @@ def _command_phase14c_wide_net_execution_handoff(
             "Review the bounded command template and evidence validator.",
             "Run Claude Code audit before wiring or running live connector execution.",
             "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_evidence_template(args: argparse.Namespace) -> int:
+    template = build_phase14c_wide_net_evidence_template_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-evidence-template",
+            "status": template["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_evidence_template": template,
+        },
+        workflow_name="Phase 14-C wide-net evidence template",
+        workflow_mode="repo-local evidence template / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Use this as a fillable shape only after a separately approved run.",
+            "Validate sanitized evidence before recording live results.",
+            "Do not paste raw Calendar details, identifiers, or credential values.",
         ),
     )
     _emit_report(report, json_output=args.json)

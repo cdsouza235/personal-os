@@ -118,6 +118,10 @@ or reading credentials. Use
 `personalos phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
 to inspect and validate sanitized Calendar connector precheck/create
 transcripts without calling the connector or echoing raw event details. Use
+`personalos phase14c wide-net-evidence-template --json` to inspect the
+fillable sanitized post-run evidence shape; the template is not accepted
+evidence until a separately approved run fills it with observed counts and
+booleans. Use
 `personalos phase14c wide-net-evidence-validate --input-file <file> --json` to
 validate one sanitized wide-net evidence report without echoing raw evidence;
 the validator rejects oversized files before JSON parsing and uses shared

@@ -458,6 +458,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C connected rehearsal gate", workflow_names)
         self.assertIn("Phase 14-C wide-net Calendar bridge payloads", workflow_names)
         self.assertIn("Phase 14-C wide-net execution handoff", workflow_names)
+        self.assertIn("Phase 14-C wide-net evidence template", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
@@ -1693,6 +1694,54 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(safety["credential_values_read"])
         self.assertFalse(safety["calendar_event_created"])
         self.assertFalse(safety["protected_openclaw_runtime_called"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_evidence_template_is_no_live_report(self) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "wide-net-evidence-template", "--json"])
+
+        payload = json.loads(result.stdout)
+        template = payload["wide_net_evidence_template"]
+        fillable = template["fillable_evidence_shape"]["wide_net_rehearsal"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-evidence-template")
+        self.assertEqual(payload["status"], "phase14c_wide_net_evidence_template_ready")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(template["ready_for_live_execution"])
+        self.assertTrue(template["template_only_not_authorization"])
+        self.assertTrue(template["template_payload_is_not_evidence"])
+        self.assertTrue(
+            template["template_payload_expected_to_fail_validator_until_filled"]
+        )
+        self.assertIn(
+            "wide-net-evidence-validate",
+            template["post_run_evidence_validator_command"],
+        )
+        self.assertIn(
+            "wide-net-calendar-transcript-validate",
+            template["calendar_transcript_validator_command"],
+        )
+        self.assertEqual(template["call_budgets"]["calendar_event_create_calls"], 1)
+        self.assertEqual(
+            fillable["marker"],
+            "[Phase 14-C Wide Test] Evening Reset Coordination",
+        )
+        self.assertIn(
+            "<observed_integer_count_within_budget>",
+            fillable["call_limits"].values(),
+        )
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
 

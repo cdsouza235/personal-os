@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #107:
-  `d60f8e871d1ab8ed9e7fa3112705e4a38846c6b8`
-- Latest merged PR at that baseline: PR #107, Phase 14-C shared safety helper
-  and wide-net evidence validator hardening
+- Last validated main baseline after PR #108:
+  `76f7f1c2e456e6cf18e4bded0c956be272867553`
+- Latest merged PR at that baseline: PR #108, Phase 14-C wide-net Calendar
+  transcript template and validator
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -100,10 +100,10 @@ Last updated: 2026-07-02
   the repo has a no-live Calendar transcript template and validator for
   sanitized app-connector precheck/create transcripts, rejecting oversized
   inputs before JSON parsing and never echoing raw event details or attendee
-  addresses;
-  the repo-local wide-net execution-handoff and evidence-validator surfaces
-  report the future bounded command, Calendar connector handoff, call budgets,
-  and sanitized post-run evidence checks without reading credentials, wiring a
+  addresses; the repo-local wide-net execution-handoff, evidence-template, and
+  evidence-validator surfaces report the future bounded command, Calendar
+  connector handoff, call budgets, sanitized post-run evidence shape, and
+  sanitized post-run evidence checks without reading credentials, wiring a
   connector, calling live services, or echoing raw evidence; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
@@ -361,7 +361,10 @@ Last updated: 2026-07-02
   `phase14c wide-net-execution-handoff --json` command reports the future
   bounded command template, Calendar connector handoff, call budgets, and
   post-run evidence requirements without wiring a connector or reading
-  credentials; the `phase14c wide-net-evidence-validate --input-file <file>`
+  credentials; the `phase14c wide-net-evidence-template --json` command
+  reports a fillable sanitized post-run evidence shape that is not accepted
+  evidence until a separately approved run fills observed values; the
+  `phase14c wide-net-evidence-validate --input-file <file>`
   command validates one sanitized evidence report without echoing the raw
   evidence payload, rejects oversized files before JSON parsing, and uses
   bounded redaction depth/node limits through shared Phase 14-C safety helpers.
@@ -378,8 +381,8 @@ Last updated: 2026-07-02
 
 ## Validated State
 
-- Full suite: 820 tests OK
-- ResourceWarning-sensitive suite: 820 tests OK
+- Full suite: 822 tests OK
+- ResourceWarning-sensitive suite: 822 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -394,8 +397,8 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
-- Targeted Phase 14-C wide-net handoff/evidence/app-bridge/gate/CLI/docs/model
-  suite: 117 tests OK
+- Targeted Phase 14-C wide-net evidence-template/handoff/transcript/app-bridge/
+  gate/CLI/docs/model suite: 120 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK

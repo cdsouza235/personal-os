@@ -6,9 +6,11 @@ from unittest import mock
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_BLOCKED,
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+    PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_STATUS,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
     PHASE14C_WIDE_NET_EXECUTION_HANDOFF_STATUS,
     build_phase14c_wide_net_evidence_input_size_report,
+    build_phase14c_wide_net_evidence_template_report,
     build_phase14c_wide_net_execution_handoff_report,
     validate_phase14c_wide_net_evidence_report,
 )
@@ -67,6 +69,12 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
                 for command in report["preflight_commands"]
             )
         )
+        self.assertTrue(
+            any(
+                "wide-net-evidence-template --json" in command
+                for command in report["preflight_commands"]
+            )
+        )
         self.assertIn(
             "wide-net-calendar-transcript-validate",
             handoff["sanitized_transcript_validator_command"],
@@ -103,6 +111,56 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
         self.assertIn(
             WIDE_NET_PASSED_WITH_MODEL_DIAGNOSTIC_FAILURE,
             report["expected_complete_statuses"],
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, serialized)
+
+    def test_evidence_template_is_inert_and_not_accepted_as_evidence(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD": "secret-gmail-password",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            template = build_phase14c_wide_net_evidence_template_report()
+        serialized = json.dumps(template, sort_keys=True)
+        fillable = template["fillable_evidence_shape"]
+
+        self.assertEqual(template["status"], PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_STATUS)
+        self.assertEqual(template["marker"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
+        self.assertFalse(template["ready_for_live_execution"])
+        self.assertTrue(template["template_only_not_authorization"])
+        self.assertTrue(template["human_live_approval_still_required"])
+        self.assertFalse(template["calendar_app_connector_called"])
+        self.assertFalse(template["credential_values_read"])
+        self.assertFalse(template["external_mutation"])
+        self.assertTrue(template["template_payload_is_not_evidence"])
+        self.assertTrue(
+            template["template_payload_expected_to_fail_validator_until_filled"]
+        )
+        self.assertIn(
+            "wide-net-evidence-validate",
+            template["post_run_evidence_validator_command"],
+        )
+        self.assertIn(
+            "wide-net-calendar-transcript-validate",
+            template["calendar_transcript_validator_command"],
+        )
+        self.assertEqual(template["call_budgets"]["calendar_event_create_calls"], 1)
+        self.assertEqual(
+            template["call_budgets"]["protected_openclaw_runtime_invocation_calls"],
+            0,
+        )
+        blocked = validate_phase14c_wide_net_evidence_report(fillable)
+        self.assertEqual(blocked["status"], PHASE14C_WIDE_NET_EVIDENCE_BLOCKED)
+        self.assertFalse(blocked["accepted"])
+        self.assertIn(
+            "wide_net_status_is_not_complete_pass",
+            blocked["failure_reasons"],
+        )
+        self.assertIn(
+            "openrouter_primary_calls_missing_or_not_int",
+            blocked["failure_reasons"],
         )
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, serialized)

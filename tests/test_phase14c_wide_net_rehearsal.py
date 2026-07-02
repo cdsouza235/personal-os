@@ -147,10 +147,13 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "phase14c wide-net-calendar-transcript-template --json",
             "phase14c wide-net-calendar-transcript-validate --input-file",
             "phase14c wide-net-execution-handoff --json",
+            "phase14c wide-net-evidence-template --json",
             "phase14c wide-net-evidence-validate --input-file",
             "redacted evidence validator",
             "does not wire or inject a calendar client",
             "does not call the google calendar app connector",
+            "template payload is not evidence",
+            "expected to fail the evidence validator until a separately approved live run",
             "does not echo raw evidence",
             "oversized local evidence files before json parsing",
             "shared bounded redaction checks",
@@ -192,6 +195,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("phase14c wide-net-calendar-transcript-template", text)
         self.assertIn("phase14c wide-net-calendar-transcript-validate", text)
         self.assertIn("phase14c wide-net-execution-handoff --json", text)
+        self.assertIn("phase14c wide-net-evidence-template --json", text)
         self.assertIn("phase14c wide-net-evidence-validate --input-file", text)
         self.assertIn("one self-only calendar event", text)
         self.assertIn("unrecognized precheck response shapes", text)

@@ -295,7 +295,12 @@ one explicit sanitized JSON file and prints a redacted pass/block report
 without echoing raw evidence, credential values, raw provider responses, full
 prompts, configured model IDs, event details, attendee addresses, or unmasked
 emails. It rejects oversized files before JSON parsing and uses shared bounded
-redaction checks with explicit depth and node limits.
+redaction checks with explicit depth and node limits. The
+`phase14c wide-net-evidence-crosscheck --calendar-transcript-file <file> --evidence-file <file> --json`
+command compares sanitized Calendar transcript evidence with sanitized
+wide-net evidence and verifies that marker, precheck count, and Calendar
+create count agree without echoing raw inputs or calling the Calendar
+connector.
 
 Wide-net rehearsal executable gate:
 

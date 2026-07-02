@@ -72,11 +72,14 @@ from personalos.phase14c_wide_net_calendar_transcript import (
     validate_phase14c_wide_net_calendar_transcript,
 )
 from personalos.phase14c_wide_net_execution_handoff import (
+    PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID,
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
+    build_phase14c_wide_net_evidence_crosscheck_input_size_report,
     build_phase14c_wide_net_evidence_input_size_report,
     build_phase14c_wide_net_evidence_template_report,
     build_phase14c_wide_net_execution_handoff_report,
+    crosscheck_phase14c_wide_net_evidence,
     validate_phase14c_wide_net_evidence_report,
 )
 from personalos.phase14c_wide_net_rehearsal import (
@@ -420,6 +423,19 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local evidence validation / redacted report / no live clients",
         "local_effect": "reads one explicit safe JSON file; no DB opened; no services called",
         "output": "stdout evidence validation JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net evidence crosscheck",
+        "safe_local_action": "Crosscheck Calendar transcript and wide-net evidence",
+        "command": (
+            "personalos phase14c wide-net-evidence-crosscheck "
+            "--calendar-transcript-file <file> --evidence-file <file> [--json]"
+        ),
+        "mode": "repo-local evidence crosscheck / redacted report / no live clients",
+        "local_effect": (
+            "reads two explicit safe JSON files; no DB opened; no services called"
+        ),
+        "output": "stdout evidence crosscheck JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net rehearsal plan",
@@ -922,6 +938,28 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_evidence_parser)
     phase14c_wide_net_evidence_parser.set_defaults(
         func=_command_phase14c_wide_net_evidence_validate
+    )
+
+    phase14c_wide_net_evidence_crosscheck_parser = phase14c_subparsers.add_parser(
+        "wide-net-evidence-crosscheck",
+        help="Crosscheck sanitized Calendar transcript and wide-net evidence files.",
+        description=(
+            "Validate and crosscheck one sanitized Calendar transcript JSON file "
+            "against one sanitized wide-net evidence JSON file. This does not read "
+            "credentials, call connectors, initialize live clients, or echo raw inputs."
+        ),
+    )
+    phase14c_wide_net_evidence_crosscheck_parser.add_argument(
+        "--calendar-transcript-file",
+        required=True,
+    )
+    phase14c_wide_net_evidence_crosscheck_parser.add_argument(
+        "--evidence-file",
+        required=True,
+    )
+    _add_json_arg(phase14c_wide_net_evidence_crosscheck_parser)
+    phase14c_wide_net_evidence_crosscheck_parser.set_defaults(
+        func=_command_phase14c_wide_net_evidence_crosscheck
     )
 
     phase14c_wide_net_rehearsal_parser = phase14c_subparsers.add_parser(
@@ -2218,6 +2256,85 @@ def _command_phase14c_wide_net_evidence_validate(
         output_kind="stdout_json" if args.json else "stdout_human",
         safe_next_actions=(
             "Review blocked reasons if the evidence did not validate.",
+            "Do not rerun live rails without a fresh explicit approval.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if accepted else 1
+
+
+def _command_phase14c_wide_net_evidence_crosscheck(
+    args: argparse.Namespace,
+) -> int:
+    calendar_transcript_path = validate_existing_input_file_path(
+        args.calendar_transcript_file,
+        path_label="phase14c wide-net calendar transcript input_file",
+    )
+    evidence_path = validate_existing_input_file_path(
+        args.evidence_file,
+        path_label="phase14c wide-net evidence input_file",
+    )
+    calendar_transcript_size = calendar_transcript_path.stat().st_size
+    evidence_size = evidence_path.stat().st_size
+    if calendar_transcript_size > PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES:
+        crosscheck = build_phase14c_wide_net_evidence_crosscheck_input_size_report(
+            input_name="calendar_transcript",
+            input_size_bytes=calendar_transcript_size,
+            max_input_file_size_bytes=(
+                PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES
+            ),
+        )
+    elif evidence_size > PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES:
+        crosscheck = build_phase14c_wide_net_evidence_crosscheck_input_size_report(
+            input_name="wide_net_evidence",
+            input_size_bytes=evidence_size,
+            max_input_file_size_bytes=PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+        )
+    else:
+        calendar_transcript_payload = _load_json_object(calendar_transcript_path)
+        evidence_payload = _load_json_object(evidence_path)
+        calendar_transcript_validation = (
+            validate_phase14c_wide_net_calendar_transcript(
+                calendar_transcript_payload
+            )
+        )
+        wide_net_evidence_validation = validate_phase14c_wide_net_evidence_report(
+            evidence_payload
+        )
+        crosscheck = crosscheck_phase14c_wide_net_evidence(
+            calendar_transcript_validation=calendar_transcript_validation,
+            wide_net_evidence_validation=wide_net_evidence_validation,
+        )
+    accepted = crosscheck["status"] == PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-evidence-crosscheck",
+            "status": crosscheck["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "calendar_transcript_file_checked": True,
+            "evidence_file_checked": True,
+            "wide_net_evidence_crosscheck": crosscheck,
+        },
+        workflow_name="Phase 14-C wide-net evidence crosscheck",
+        workflow_mode="repo-local evidence crosscheck / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review blocked reasons if the crosscheck did not validate.",
+            "Do not paste raw Calendar details, identifiers, or credential values.",
             "Do not rerun live rails without a fresh explicit approval.",
         ),
     )

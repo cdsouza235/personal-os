@@ -3,8 +3,17 @@ import os
 import unittest
 from unittest import mock
 
+from personalos.phase14c_wide_net_calendar_bridge import (
+    PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
+)
+from personalos.phase14c_wide_net_calendar_transcript import (
+    build_phase14c_wide_net_calendar_transcript_template,
+    validate_phase14c_wide_net_calendar_transcript,
+)
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_BLOCKED,
+    PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_BLOCKED,
+    PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID,
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_STATUS,
     PHASE14C_WIDE_NET_EVIDENCE_VALID,
@@ -12,6 +21,7 @@ from personalos.phase14c_wide_net_execution_handoff import (
     build_phase14c_wide_net_evidence_input_size_report,
     build_phase14c_wide_net_evidence_template_report,
     build_phase14c_wide_net_execution_handoff_report,
+    crosscheck_phase14c_wide_net_evidence,
     validate_phase14c_wide_net_evidence_report,
 )
 from personalos.phase14c_wide_net_rehearsal import (
@@ -56,6 +66,10 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
         self.assertIn(
             "wide-net-evidence-validate",
             report["post_run_evidence_validator"]["command"],
+        )
+        self.assertIn(
+            "wide-net-evidence-crosscheck",
+            report["post_run_evidence_crosscheck"]["command"],
         )
         self.assertTrue(
             any(
@@ -164,6 +178,65 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
         )
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, serialized)
+
+    def test_evidence_crosscheck_accepts_matching_transcript_and_evidence(self) -> None:
+        calendar_validation = validate_phase14c_wide_net_calendar_transcript(
+            _valid_calendar_create_transcript()
+        )
+        evidence_validation = validate_phase14c_wide_net_evidence_report(
+            {"wide_net_rehearsal": _valid_evidence()}
+        )
+
+        crosscheck = crosscheck_phase14c_wide_net_evidence(
+            calendar_transcript_validation=calendar_validation,
+            wide_net_evidence_validation=evidence_validation,
+        )
+
+        self.assertEqual(
+            crosscheck["status"],
+            PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID,
+        )
+        self.assertTrue(crosscheck["accepted"])
+        self.assertEqual(crosscheck["failure_reasons"], [])
+        self.assertFalse(crosscheck["raw_inputs_returned"])
+        self.assertFalse(crosscheck["input_values_echoed"])
+        self.assertTrue(
+            crosscheck["calendar_transcript_summary"]["calendar_create_performed"]
+        )
+        self.assertEqual(
+            crosscheck["wide_net_evidence_summary"]["calendar_event_create_calls"],
+            1,
+        )
+
+    def test_evidence_crosscheck_blocks_create_without_transcript_create(self) -> None:
+        calendar_validation = validate_phase14c_wide_net_calendar_transcript(
+            _precheck_clear_transcript()
+        )
+        evidence_validation = validate_phase14c_wide_net_evidence_report(
+            {"wide_net_rehearsal": _valid_evidence()}
+        )
+
+        crosscheck = crosscheck_phase14c_wide_net_evidence(
+            calendar_transcript_validation=calendar_validation,
+            wide_net_evidence_validation=evidence_validation,
+        )
+
+        self.assertEqual(
+            crosscheck["status"],
+            PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_BLOCKED,
+        )
+        self.assertFalse(crosscheck["accepted"])
+        self.assertIn(
+            "calendar_evidence_create_call_without_transcript_create",
+            crosscheck["failure_reasons"],
+        )
+        self.assertFalse(
+            crosscheck["calendar_transcript_summary"]["calendar_create_performed"]
+        )
+        self.assertEqual(
+            crosscheck["wide_net_evidence_summary"]["calendar_event_create_calls"],
+            1,
+        )
 
     def test_evidence_validator_accepts_sanitized_complete_evidence(self) -> None:
         validation = validate_phase14c_wide_net_evidence_report(
@@ -308,6 +381,45 @@ def _valid_evidence() -> dict[str, object]:
             "broad_live_activation": False,
         },
     }
+
+
+def _template_precheck_args() -> dict[str, object]:
+    template = build_phase14c_wide_net_calendar_transcript_template()
+    return dict(template["expected_duplicate_precheck"]["connector_args"])
+
+
+def _template_create_args() -> dict[str, object]:
+    template = build_phase14c_wide_net_calendar_transcript_template()
+    return dict(template["expected_calendar_create"]["connector_args"])
+
+
+def _precheck_clear_transcript() -> dict[str, object]:
+    return {
+        "marker": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+        "duplicate_precheck": {
+            "performed": True,
+            "connector_action": "search_events",
+            "connector_args": _template_precheck_args(),
+            "normalized_response": {
+                "contract": PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
+                "matching_event_count": 0,
+                "event_details_logged": False,
+                "attendee_addresses_logged": False,
+            },
+        },
+        "calendar_create": {"performed": False},
+    }
+
+
+def _valid_calendar_create_transcript() -> dict[str, object]:
+    transcript = _precheck_clear_transcript()
+    transcript["calendar_create"] = {
+        "performed": True,
+        "connector_action": "create_event",
+        "connector_args": _template_create_args(),
+        "sanitized_result": {"status": "confirmed"},
+    }
+    return transcript
 
 
 if __name__ == "__main__":

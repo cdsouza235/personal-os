@@ -19,7 +19,9 @@ details or attendee addresses. The repo also has a no-live execution-handoff
 command, fillable evidence-template command, and redacted evidence validator so
 the next operator can inspect the bounded command, Calendar connector handoff
 contract, call budgets, post-run evidence shape, and post-run evidence
-requirements without reading credentials or calling live services.
+requirements without reading credentials or calling live services. It also has
+a post-run crosscheck command to verify that sanitized Calendar transcript
+evidence and sanitized wide-net evidence agree without echoing raw inputs.
 
 CLI report:
 
@@ -129,6 +131,7 @@ Evidence validator:
 
 ```bash
 PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-validate --input-file <sanitized-wide-net-report.json> --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-crosscheck --calendar-transcript-file <sanitized-calendar-transcript.json> --evidence-file <sanitized-wide-net-report.json> --json
 ```
 
 The evidence validator reads one explicit sanitized JSON file and prints a
@@ -144,6 +147,15 @@ protected OpenClaw runtime, scheduler/background, production DB, protected
 path, dynamic-cleaning, broad-live-activation, credential-value,
 raw-provider-response, full-prompt, configured-model-ID, or unmasked-email
 exposure.
+
+The evidence crosscheck reads one explicit sanitized Calendar transcript file
+and one explicit sanitized wide-net evidence file. It runs the existing
+transcript and evidence validators, then checks that both reports agree on the
+marker, duplicate-precheck count, Calendar event create count, and no raw
+event-details or attendee-address logging. It returns only reason codes,
+counts, booleans, and summaries. It does not echo raw inputs, event IDs,
+attendee addresses, credential values, raw provider responses, full prompts,
+or unmasked emails.
 
 ## Confirmed Foundation
 
@@ -176,9 +188,12 @@ exposure.
   not accepted evidence until a separately approved run fills it with observed
   values. The
   `phase14c wide-net-evidence-validate --input-file <file> --json` validates
-  sanitized evidence without echoing the raw payload. The validator rejects
-  oversized files before JSON parsing and uses shared bounded redaction checks
-  with explicit depth and node limits.
+  sanitized evidence without echoing the raw payload. The
+  `phase14c wide-net-evidence-crosscheck --calendar-transcript-file <file> --evidence-file <file> --json`
+  command crosschecks sanitized Calendar transcript evidence against sanitized
+  wide-net evidence without echoing raw inputs. The validator rejects oversized
+  files before JSON parsing and uses shared bounded redaction checks with
+  explicit depth and node limits.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 
@@ -298,6 +313,10 @@ OpenRouter target:
   responses, full prompts, configured model IDs, event details, attendee
   addresses, or unmasked emails. Oversized, malformed, deeply nested, or
   scan-limit-exceeding evidence must fail closed without echoing raw input.
+- Post-run Calendar evidence should be crosschecked with
+  `phase14c wide-net-evidence-crosscheck --calendar-transcript-file <file> --evidence-file <file> --json`
+  before evidence is recorded. The crosscheck is repo-local and does not call
+  the Calendar connector.
 - Google Calendar must pass a duplicate-marker precheck before any create.
 - The duplicate-marker precheck must stop before model, Todoist, Gmail, and
   Calendar create if the marker already exists.

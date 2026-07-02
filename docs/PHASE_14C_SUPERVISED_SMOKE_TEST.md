@@ -303,6 +303,7 @@ Wide-net execution handoff and evidence validator:
 PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-execution-handoff --json
 PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-template --json
 PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-validate --input-file <sanitized-wide-net-report.json> --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-evidence-crosscheck --calendar-transcript-file <sanitized-calendar-transcript.json> --evidence-file <sanitized-wide-net-report.json> --json
 ```
 
 These commands are repo-local/report-only. The handoff command reports the
@@ -321,6 +322,9 @@ wide-net evidence within the one-call budgets, with the Calendar duplicate
 precheck performed and no credential values, raw provider responses, full
 prompts, configured model IDs, event details, attendee addresses, or unmasked
 emails.
+The evidence crosscheck compares one sanitized Calendar transcript with one
+sanitized wide-net evidence report and verifies that the marker, precheck
+count, and Calendar create count agree without echoing raw inputs.
 
 Wide-net rehearsal executable gate:
 

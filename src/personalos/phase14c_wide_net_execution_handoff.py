@@ -48,6 +48,15 @@ PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_SCHEMA_VERSION = (
 PHASE14C_WIDE_NET_EVIDENCE_TEMPLATE_STATUS = (
     "phase14c_wide_net_evidence_template_ready"
 )
+PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_SCHEMA_VERSION = (
+    "personal_os_phase14c_wide_net_evidence_crosscheck.v1"
+)
+PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID = (
+    "phase14c_wide_net_evidence_crosscheck_valid"
+)
+PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_BLOCKED = (
+    "phase14c_wide_net_evidence_crosscheck_blocked"
+)
 PHASE14C_WIDE_NET_EVIDENCE_VALID = "phase14c_wide_net_evidence_valid"
 PHASE14C_WIDE_NET_EVIDENCE_BLOCKED = "phase14c_wide_net_evidence_blocked"
 PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES = 262_144
@@ -145,6 +154,18 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
             "redaction_scan_max_depth": PHASE14C_REDACTION_MAX_DEPTH,
             "redaction_scan_max_nodes": PHASE14C_REDACTION_MAX_NODES,
         },
+        "post_run_evidence_crosscheck": {
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-evidence-crosscheck --calendar-transcript-file "
+                "<sanitized-calendar-transcript.json> --evidence-file "
+                "<sanitized-wide-net-report.json> --json"
+            ),
+            "expects_sanitized_inputs_only": True,
+            "raw_inputs_echoed": False,
+            "credential_values_allowed": False,
+            "unmasked_emails_allowed": False,
+        },
         "calendar_connector_handoff": {
             "connector_type": "Google Calendar app connector",
             "repo_cli_constructs_connector": False,
@@ -229,6 +250,12 @@ def build_phase14c_wide_net_evidence_template_report() -> dict[str, Any]:
             "wide-net-evidence-validate --input-file "
             "<sanitized-wide-net-report.json> --json"
         ),
+        "post_run_evidence_crosscheck_command": (
+            "PYTHONPATH=src python3 -m personalos.cli phase14c "
+            "wide-net-evidence-crosscheck --calendar-transcript-file "
+            "<sanitized-calendar-transcript.json> --evidence-file "
+            "<sanitized-wide-net-report.json> --json"
+        ),
         "fillable_evidence_shape": _fillable_wide_net_evidence_shape(),
         "required_false_model_flags": _MODEL_FALSE_FLAGS,
         "required_false_safety_flags": _SAFETY_FALSE_FLAGS,
@@ -268,6 +295,99 @@ def build_phase14c_wide_net_evidence_template_report() -> dict[str, Any]:
             "dynamic_cleaning_triggered": False,
             "broad_live_activation": False,
         },
+    }
+
+
+def build_phase14c_wide_net_evidence_crosscheck_input_size_report(
+    *,
+    input_name: str,
+    input_size_bytes: int,
+    max_input_file_size_bytes: int,
+) -> dict[str, Any]:
+    """Build a blocked crosscheck report without reading oversized input."""
+
+    return {
+        "schema_version": PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_SCHEMA_VERSION,
+        "status": PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_BLOCKED,
+        "accepted": False,
+        "stage": "not_loaded_input_file_too_large",
+        "failure_reasons": [f"{input_name}_input_file_too_large"],
+        "raw_inputs_returned": False,
+        "input_values_echoed": False,
+        "credential_values_reported": False,
+        "unmasked_emails_reported": False,
+        "input_name": input_name,
+        "input_file_size_bytes": input_size_bytes,
+        "max_input_file_size_bytes": max_input_file_size_bytes,
+        "calendar_transcript_summary": _empty_calendar_transcript_summary(),
+        "wide_net_evidence_summary": _empty_evidence_summary(),
+    }
+
+
+def crosscheck_phase14c_wide_net_evidence(
+    *,
+    calendar_transcript_validation: Mapping[str, Any],
+    wide_net_evidence_validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Crosscheck sanitized Calendar transcript and wide-net evidence reports."""
+
+    reasons: list[str] = []
+    calendar_summary = _calendar_transcript_summary(calendar_transcript_validation)
+    evidence_summary = _evidence_summary(wide_net_evidence_validation)
+
+    if calendar_transcript_validation.get("accepted") is not True:
+        reasons.append("calendar_transcript_validation_not_accepted")
+    if wide_net_evidence_validation.get("accepted") is not True:
+        reasons.append("wide_net_evidence_validation_not_accepted")
+    if calendar_transcript_validation.get("marker_matched") is not True:
+        reasons.append("calendar_transcript_marker_not_matched")
+    if wide_net_evidence_validation.get("marker_matched") is not True:
+        reasons.append("wide_net_evidence_marker_not_matched")
+
+    calendar_precheck_count = calendar_summary["precheck_matching_event_count"]
+    evidence_precheck_count = evidence_summary["precheck_matching_event_count"]
+    if calendar_precheck_count != 0:
+        reasons.append("calendar_transcript_precheck_count_not_zero")
+    if evidence_precheck_count != 0:
+        reasons.append("wide_net_evidence_precheck_count_not_zero")
+    if calendar_precheck_count != evidence_precheck_count:
+        reasons.append("calendar_precheck_count_mismatch")
+
+    evidence_create_calls = evidence_summary["calendar_event_create_calls"]
+    calendar_create_performed = calendar_summary["calendar_create_performed"]
+    if evidence_create_calls == 1 and calendar_create_performed is not True:
+        reasons.append("calendar_evidence_create_call_without_transcript_create")
+    if calendar_create_performed is True and evidence_create_calls != 1:
+        reasons.append("calendar_transcript_create_without_evidence_create_call")
+    if evidence_create_calls not in (0, 1):
+        reasons.append("calendar_event_create_call_count_missing_or_invalid")
+
+    if calendar_summary["event_details_logged"] is True:
+        reasons.append("calendar_transcript_event_details_logged")
+    if calendar_summary["attendee_addresses_logged"] is True:
+        reasons.append("calendar_transcript_attendee_addresses_logged")
+    if evidence_summary["event_details_logged"] is True:
+        reasons.append("wide_net_evidence_event_details_logged")
+    if evidence_summary["attendee_addresses_logged"] is True:
+        reasons.append("wide_net_evidence_attendee_addresses_logged")
+
+    unique_reasons = unique_reason_codes(reasons)
+    accepted = not unique_reasons
+    return {
+        "schema_version": PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_SCHEMA_VERSION,
+        "status": (
+            PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID
+            if accepted
+            else PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_BLOCKED
+        ),
+        "accepted": accepted,
+        "failure_reasons": unique_reasons,
+        "raw_inputs_returned": False,
+        "input_values_echoed": False,
+        "credential_values_reported": False,
+        "unmasked_emails_reported": False,
+        "calendar_transcript_summary": calendar_summary,
+        "wide_net_evidence_summary": evidence_summary,
     }
 
 
@@ -456,6 +576,80 @@ def _call_counts(evidence: Mapping[str, Any]) -> dict[str, int | None]:
     return {
         key: call_limits.get(key) if isinstance(call_limits.get(key), int) else None
         for key in _MAX_CALL_COUNTS
+    }
+
+
+def _calendar_transcript_summary(
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    precheck = _mapping(validation.get("precheck_summary"))
+    create = _mapping(validation.get("calendar_create_summary"))
+    return {
+        "accepted": validation.get("accepted") is True,
+        "stage": (
+            validation.get("stage")
+            if isinstance(validation.get("stage"), str)
+            else None
+        ),
+        "marker_matched": validation.get("marker_matched") is True,
+        "precheck_matching_event_count": (
+            precheck.get("matching_event_count")
+            if isinstance(precheck.get("matching_event_count"), int)
+            else None
+        ),
+        "calendar_create_performed": create.get("performed") is True,
+        "event_details_logged": precheck.get("event_details_logged") is True,
+        "attendee_addresses_logged": precheck.get("attendee_addresses_logged") is True,
+    }
+
+
+def _evidence_summary(validation: Mapping[str, Any]) -> dict[str, Any]:
+    call_counts = _mapping(validation.get("call_counts"))
+    precheck = _mapping(validation.get("calendar_precheck_summary"))
+    return {
+        "accepted": validation.get("accepted") is True,
+        "evidence_status": (
+            validation.get("evidence_status")
+            if isinstance(validation.get("evidence_status"), str)
+            else None
+        ),
+        "marker_matched": validation.get("marker_matched") is True,
+        "calendar_event_create_calls": (
+            call_counts.get("calendar_event_create_calls")
+            if isinstance(call_counts.get("calendar_event_create_calls"), int)
+            else None
+        ),
+        "precheck_matching_event_count": (
+            precheck.get("matching_event_count")
+            if isinstance(precheck.get("matching_event_count"), int)
+            else None
+        ),
+        "event_details_logged": precheck.get("event_details_logged") is True,
+        "attendee_addresses_logged": precheck.get("attendee_addresses_logged") is True,
+    }
+
+
+def _empty_calendar_transcript_summary() -> dict[str, Any]:
+    return {
+        "accepted": False,
+        "stage": None,
+        "marker_matched": False,
+        "precheck_matching_event_count": None,
+        "calendar_create_performed": False,
+        "event_details_logged": False,
+        "attendee_addresses_logged": False,
+    }
+
+
+def _empty_evidence_summary() -> dict[str, Any]:
+    return {
+        "accepted": False,
+        "evidence_status": None,
+        "marker_matched": False,
+        "calendar_event_create_calls": None,
+        "precheck_matching_event_count": None,
+        "event_details_logged": False,
+        "attendee_addresses_logged": False,
     }
 
 

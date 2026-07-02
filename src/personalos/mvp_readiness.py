@@ -11,6 +11,10 @@ from personalos.phase14c_candidate_decision_support import (
     build_phase14c_candidate_decision_support_report,
     validate_phase14c_candidate_decision_support_report_contract,
 )
+from personalos.phase14c_wide_net_readiness_rollup import (
+    build_phase14c_wide_net_readiness_rollup_report,
+    validate_phase14c_wide_net_readiness_rollup_report_contract,
+)
 
 
 MVP_READINESS_SCHEMA_VERSION = "personal_os_mvp_readiness_gap_report.v1"
@@ -29,6 +33,7 @@ MVP_READINESS_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "phase14_c_blocked",
     "readiness",
     "phase14c_decision_support",
+    "phase14c_wide_net_readiness",
     "completed_inert_capabilities",
     "pending_human_decisions",
     "blocked_live_rails",
@@ -47,12 +52,20 @@ COMPLETED_INERT_CAPABILITIES: tuple[str, ...] = (
     "Phase 14-A/B first-live pilot preparation as proposed-only scaffolding",
     "Phase 14-C candidate-review tracking record",
     "Phase 14-C decision gate and decision-support report contract",
+    "Phase 14-C supervised smoke and connectivity readiness evidence",
+    "Phase 14-C connected rehearsal gate and live evidence packet",
+    (
+        "Phase 14-C wide-net rehearsal plan, fail-closed gate, evidence "
+        "validators, readiness rollup, and contract guardrails"
+    ),
 )
 
 PENDING_HUMAN_DECISIONS: tuple[str, ...] = (
     "candidate approval remains a separate human decision",
     "Phase 14-C authorization remains a separate human decision",
+    "Phase 14-C wide-net live rehearsal approval remains a separate human decision",
     "live-service access remains a separate human decision",
+    "Calendar app connector live use remains a separate human decision",
     "credential/auth handling remains a separate human decision",
     "production DB activation remains a separate human decision",
     "scheduler/background activation remains a separate human decision",
@@ -120,6 +133,22 @@ PHASE14C_DECISION_SUPPORT_PAYLOAD_FIELDS: tuple[str, ...] = (
     "candidate_run",
 )
 
+PHASE14C_WIDE_NET_READINESS_PAYLOAD_FIELDS: tuple[str, ...] = (
+    "rollup_status",
+    "rollup_contract_valid",
+    "repo_local_rollup_complete",
+    "ready_for_live_execution",
+    "wide_net_live_run_authorized_by_this_report",
+    "calendar_cli_connector_wiring_present",
+    "credential_values_read",
+    "external_mutation",
+    "synthetic_evidence_rehearsal_passed",
+    "remaining_gate_count",
+    "readiness_status",
+    "inert_report_only",
+    "live_rails_activated",
+)
+
 NON_AUTHORIZATION_FIELDS: tuple[str, ...] = (
     "approval_to_merge_docs_is_not_live_authorization",
     *NON_AUTHORIZATION_FALSE_FIELDS,
@@ -145,6 +174,10 @@ def build_mvp_readiness_gap_report() -> dict[str, Any]:
         validate_phase14c_candidate_decision_support_report_contract(
             decision_support_report
         )
+    )
+    wide_net_report = build_phase14c_wide_net_readiness_rollup_report()
+    wide_net_contract = validate_phase14c_wide_net_readiness_rollup_report_contract(
+        wide_net_report
     )
 
     return {
@@ -184,6 +217,39 @@ def build_mvp_readiness_gap_report() -> dict[str, Any]:
                 "candidate_activated"
             ],
             "candidate_run": decision_support_report["candidate_run"],
+        },
+        "phase14c_wide_net_readiness": {
+            "rollup_status": wide_net_report["status"],
+            "rollup_contract_valid": (
+                wide_net_contract.report_matches_inert_contract
+            ),
+            "repo_local_rollup_complete": wide_net_report[
+                "repo_local_rollup_complete"
+            ],
+            "ready_for_live_execution": wide_net_report[
+                "ready_for_live_execution"
+            ],
+            "wide_net_live_run_authorized_by_this_report": wide_net_report[
+                "wide_net_live_run_authorized_by_this_report"
+            ],
+            "calendar_cli_connector_wiring_present": wide_net_report[
+                "calendar_cli_connector_wiring_present"
+            ],
+            "credential_values_read": wide_net_report["credential_values_read"],
+            "external_mutation": wide_net_report["external_mutation"],
+            "synthetic_evidence_rehearsal_passed": wide_net_report[
+                "component_readiness"
+            ]["synthetic_evidence_rehearsal_passed"],
+            "remaining_gate_count": len(
+                wide_net_report["remaining_gates_before_live"]
+            ),
+            "readiness_status": wide_net_report["readiness"]["status"],
+            "inert_report_only": wide_net_report["readiness"][
+                "inert_report_only"
+            ],
+            "live_rails_activated": wide_net_report["readiness"][
+                "live_rails_activated"
+            ],
         },
         "completed_inert_capabilities": list(COMPLETED_INERT_CAPABILITIES),
         "pending_human_decisions": list(PENDING_HUMAN_DECISIONS),
@@ -297,6 +363,56 @@ def _blocked_mvp_readiness_reasons(report: Mapping[str, Any]) -> list[str]:
         ):
             if phase14c.get(field) is not False:
                 reasons.append(f"MVP readiness report Phase 14-C field {field} drifted.")
+
+    wide_net = report.get("phase14c_wide_net_readiness")
+    if not isinstance(wide_net, Mapping):
+        reasons.append("MVP readiness report Phase 14-C wide-net payload is missing.")
+    else:
+        if tuple(wide_net) != PHASE14C_WIDE_NET_READINESS_PAYLOAD_FIELDS:
+            reasons.append(
+                "MVP readiness report Phase 14-C wide-net fields do not match the contract."
+            )
+        if (
+            wide_net.get("rollup_status")
+            != "phase14c_wide_net_readiness_rollup_ready"
+        ):
+            reasons.append(
+                "MVP readiness report Phase 14-C wide-net rollup status drifted."
+            )
+        for field in (
+            "rollup_contract_valid",
+            "repo_local_rollup_complete",
+            "synthetic_evidence_rehearsal_passed",
+            "inert_report_only",
+        ):
+            if wide_net.get(field) is not True:
+                reasons.append(
+                    f"MVP readiness report Phase 14-C wide-net field {field} drifted."
+                )
+        for field in (
+            "ready_for_live_execution",
+            "wide_net_live_run_authorized_by_this_report",
+            "calendar_cli_connector_wiring_present",
+            "credential_values_read",
+            "external_mutation",
+            "live_rails_activated",
+        ):
+            if wide_net.get(field) is not False:
+                reasons.append(
+                    f"MVP readiness report Phase 14-C wide-net field {field} drifted."
+                )
+        if wide_net.get("readiness_status") != "not_ready":
+            reasons.append(
+                "MVP readiness report Phase 14-C wide-net readiness must remain not_ready."
+            )
+        if not isinstance(wide_net.get("remaining_gate_count"), int):
+            reasons.append(
+                "MVP readiness report Phase 14-C wide-net remaining gate count is missing."
+            )
+        elif wide_net["remaining_gate_count"] < 1:
+            reasons.append(
+                "MVP readiness report Phase 14-C wide-net remaining gates must stay explicit."
+            )
 
     if report.get("completed_inert_capabilities") != list(COMPLETED_INERT_CAPABILITIES):
         reasons.append("MVP readiness report completed capability list drifted.")

@@ -94,12 +94,13 @@ Report-payload contract matrix tests cover missing validation payload fields,
 validation payload type drift, missing payload surfaces, and preflight
 checklist type drift without echoing caller-controlled values.
 The MVP readiness gap report summarizes completed inert repo-local
-capabilities, pending human decisions, and blocked live rails as a
-deterministic report-only contract. Its validator keeps
-`readiness.status=not_ready`, `inert_report_only=true`, and
-`live_rails_activated=false`, composes the Phase 14-C decision-support
-contract, requires exact nested payload shapes, and fails closed on drift
-without echoing caller-controlled values.
+capabilities, pending human decisions, blocked live rails, and the current
+Phase 14-C wide-net readiness rollup contract as a deterministic report-only
+contract. Its validator keeps `readiness.status=not_ready`,
+`inert_report_only=true`, and `live_rails_activated=false`, composes the Phase
+14-C decision-support contract and wide-net readiness rollup contract, requires
+exact nested payload shapes, and fails closed on drift without echoing
+caller-controlled values.
 The non-human closure plan records a three-to-five-packet Codex/Fable +
 Claude Code loop for finishing remaining repo-local non-human work while
 preserving human gates for candidate approval, Phase 14-C authorization,
@@ -264,7 +265,9 @@ the stricter payload branches without exposing caller-controlled values.
 MVP readiness, non-human closure, weekend test readiness, dry-run evidence,
 and final non-human handoff reports preserve the same boundary by keeping
 repo-local non-human artifacts inert, non-authorizing, non-live, and blocked
-by pending human gates.
+by pending human gates; the MVP readiness report also composes the current
+Phase 14-C wide-net readiness rollup contract without turning that summary into
+live authorization.
 
 Phase 14 must not be inferred from completion of Phase 13E-D, Phase 13F docs,
 readiness reports, activation checklists, Phase 13G, or Phase 14-A/B

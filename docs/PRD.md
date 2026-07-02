@@ -1563,7 +1563,8 @@ Current validated state:
 - Phase 14-C candidate decision-support validator/reporting is inert,
   source/test-only, and non-authorizing
 - MVP readiness gap reporting is inert, argument-free, source/test/docs-only,
-  non-authorizing, and keeps live MVP readiness blocked
+  non-authorizing, composes the current Phase 14-C wide-net readiness rollup
+  contract as a status summary, and keeps live MVP readiness blocked
 - Non-human closure planning is inert, argument-free, source/test/docs-only,
   non-authorizing, and keeps human gates explicit
 - Weekend test readiness planning is inert, argument-free, source/test/docs-only,

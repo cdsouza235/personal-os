@@ -23,6 +23,7 @@ The source module exposes:
 - `PENDING_HUMAN_DECISIONS`
 - `BLOCKED_LIVE_RAILS`
 - `NON_AUTHORIZATION_FALSE_FIELDS`
+- `PHASE14C_WIDE_NET_READINESS_PAYLOAD_FIELDS`
 
 The builder accepts no caller input. The report defaults to:
 
@@ -56,6 +57,10 @@ The report records completed repo-local capability groups, including:
 - Phase 14-A/B first live pilot preparation as proposed-only scaffolding
 - Phase 14-C candidate-review tracking record
 - Phase 14-C decision gate and decision-support report contract
+- Phase 14-C supervised smoke and connectivity readiness evidence
+- Phase 14-C connected rehearsal gate and live evidence packet
+- Phase 14-C wide-net rehearsal plan, fail-closed gate, evidence validators,
+  readiness rollup, and contract guardrails
 
 These completed items are evidence of repo-local scaffolding and validation
 only. They are not live MVP activation.
@@ -66,7 +71,9 @@ The report records these pending human decisions:
 
 - candidate approval remains a separate human decision
 - Phase 14-C authorization remains a separate human decision
+- Phase 14-C wide-net live rehearsal approval remains a separate human decision
 - live-service access remains a separate human decision
+- Calendar app connector live use remains a separate human decision
 - credential/auth handling remains a separate human decision
 - production DB activation remains a separate human decision
 - scheduler/background activation remains a separate human decision
@@ -109,6 +116,23 @@ The report records these fields as false:
 - `candidate_activated`
 - `candidate_run`
 
+The report also composes the Phase 14-C wide-net readiness rollup contract. It
+records that the wide-net rollup contract is valid and repo-local, while still
+keeping:
+
+- `ready_for_live_execution=false`
+- `wide_net_live_run_authorized_by_this_report=false`
+- `calendar_cli_connector_wiring_present=false`
+- `credential_values_read=false`
+- `external_mutation=false`
+- `readiness_status=not_ready`
+- `inert_report_only=true`
+- `live_rails_activated=false`
+
+The wide-net payload is a status summary only. It does not authorize the
+future wide-net live run, wire the Calendar app connector, read credentials, or
+perform external mutation.
+
 ## Non-Authorization
 
 The report includes `approval_to_merge_docs_is_not_live_authorization=true`.
@@ -137,6 +161,8 @@ Tower, add `.agent/`, add `CLAUDE.md`, or add runtime/operator scaffolding.
 - the builder accepts no caller input
 - the default timestamp is deterministic
 - nested readiness, Phase 14-C, and non-authorization payload shapes are exact
+- the Phase 14-C wide-net readiness payload composes the rollup contract while
+  preserving no-live readiness
 - completed inert capabilities, pending human decisions, and blocked live
   rails match the source constants
 - non-authorization false fields remain false

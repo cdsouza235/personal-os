@@ -106,7 +106,10 @@ Do not rerun the connected live command without a new explicit approval. Use
 `personalos phase14c wide-net-rehearsal-plan --json` to inspect the next
 wider inert plan for one OpenRouter diagnostic, one Todoist task, one Gmail
 self-send, and one self-only Calendar event. That plan is not live
-authorization and has no executable live runner in this packet.
+authorization. Use `personalos phase14c wide-net-rehearsal --json` to inspect
+the default no-live gate; its `--execute-live` path fails closed before
+credential values are read until an audited Calendar client/connector bridge
+exists.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

@@ -215,8 +215,11 @@ diagnostic-only: one Nemotron Super primary call, one GLM 5.2 fallback call
 only if primary validation fails, no full prompt logging, no model-generated
 text logging, no raw provider response logging, no configured model ID logging,
 and no credential values. The wide-net plan does not use model text for
-Todoist, Gmail, or Calendar content, and it has no executable live runner in
-this packet.
+Todoist, Gmail, or Calendar content. The separate
+`phase14c wide-net-rehearsal --json` gate is no-live by default; its live form
+currently fails closed before values, after required config names are present, with
+`phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
+until a future audited Calendar bridge exists.
 
 ## Non-Goals
 

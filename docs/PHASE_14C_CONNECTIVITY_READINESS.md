@@ -267,9 +267,24 @@ values, token contents, model IDs, provider responses, or Google Calendar
 connector data. It reports the next wider supervised plan using one OpenRouter
 diagnostic model probe, one Todoist Inbox/default marker task, one Gmail
 controlled self-email, and one self-only Google Calendar marker event after a
-duplicate-marker precheck. It is not authorization, has no executable live
-runner in this packet, and requires a new explicit approval plus Claude Code
-audit before any live run.
+duplicate-marker precheck. It is not authorization; the separate executable
+gate is no-live by default and requires a new explicit approval, Claude Code
+audit, and audited Calendar bridge before any live run.
+
+Wide-net rehearsal executable gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-rehearsal --json
+```
+
+The default gate reads environment key names only and makes no live calls. Its
+live form requires the exact approval reference
+`phase14c-2026-07-01-wide-net-live-test`; after required config names are
+present, it currently fails closed with
+`phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
+before reading credential values. A separate audited Calendar client/connector
+bridge remains required before this CLI can run OpenRouter, Todoist, Gmail, or
+Calendar in the wide-net sequence.
 
 Live commands already used once for this evidence packet:
 

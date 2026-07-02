@@ -1394,7 +1394,8 @@ to preserve those rail results, the repo-local OpenClaw local/test/sandbox
 harness, deterministic OpenClaw model lane strategy, and the next inert
 wide-net rehearsal plan for one OpenRouter diagnostic, one Todoist task, one
 Gmail self-send, and one self-only Calendar event while broad live activation
-remains false.
+remains false. The default no-live wide-net executable gate fails closed before
+credential values until an audited Calendar bridge exists.
 
 Purpose:
 

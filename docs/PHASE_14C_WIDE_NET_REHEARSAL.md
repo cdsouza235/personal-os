@@ -3,9 +3,9 @@
 Date: 2026-07-01
 
 This document defines the next wider supervised Phase 14-C live-test packet.
-It is a plan only. It does not authorize or run live rails, and it does not
-include an executable live runner. In short: no executable live runner is
-added by this packet.
+It does not authorize or run live rails. The repo now has a default no-live
+executable gate, but that gate fails closed before credential values are read
+unless a future audited Calendar client/connector bridge is available.
 
 CLI report:
 
@@ -17,6 +17,24 @@ The plan command is repo-local/report-only. It does not read `.env.local`, read
 environment variables, load credentials, initialize live clients, call
 OpenRouter, create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw,
 open a database, write files, or touch protected paths.
+
+Executable gate:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-rehearsal --json
+```
+
+The default gate is also repo-local/report-only. It reads environment key names
+only and does not read credential values, initialize live clients, call
+OpenRouter, create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw,
+open a database, write files, or touch protected paths.
+
+The live form requires `--execute-live` and the exact approval reference
+`phase14c-2026-07-01-wide-net-live-test`. Once required config names are
+present, the current CLI still returns
+`phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
+before reading credential values. A separate audited Calendar bridge is
+required before the CLI can run the future wide-net live sequence.
 
 ## Confirmed Foundation
 
@@ -147,7 +165,8 @@ Stop before or during any future live run if:
 - Calendar would include attendees, recurrence, conference link, or
   attachments.
 - OpenRouter prompt would include secrets, protected paths, or personal data.
-- OpenRouter GLM fallback returns another 402 or other spend/config blocker.
+- OpenRouter would need more than the one primary and one fallback diagnostic
+  call, or would enter a spend/config retry loop.
 - Protected OpenClaw runtime invocation appears.
 - Scheduler/background, production DB, dynamic cleaning, or protected paths
   appear.
@@ -167,12 +186,14 @@ document or the CLI report.
 - `readiness.status` remains `not_ready`.
 - `inert_report_only` remains `true`.
 - `live_rails_activated` remains `false`.
-- The plan command does not read credential values.
-- The plan command does not initialize live clients.
-- The plan command does not call OpenRouter.
-- The plan command does not create Todoist tasks.
-- The plan command does not send Gmail.
-- The plan command does not write Calendar.
-- The plan command does not invoke protected OpenClaw runtime.
+- The plan command and default gate do not read credential values.
+- The plan command and default gate do not initialize live clients.
+- The plan command and default gate do not call OpenRouter.
+- The plan command and default gate do not create Todoist tasks.
+- The plan command and default gate do not send Gmail.
+- The plan command and default gate do not write Calendar.
+- The plan command and default gate do not invoke protected OpenClaw runtime.
+- The current `--execute-live` path fails closed before credential values are
+  read unless a future audited Calendar client/connector bridge is available.
 - This packet does not authorize Calendar duplicates.
 - This packet does not implement dynamic cleaning.

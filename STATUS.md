@@ -85,10 +85,11 @@ Last updated: 2026-07-01
   2026-07-01 connected rehearsal used one Nemotron Super primary call plus one
   GLM 5.2 fallback call before stopping at model validation, with no Todoist
   task, no Gmail email, no Calendar event, and no protected OpenClaw runtime
-  invocation; this branch adds an inert wide-net rehearsal plan for one
+  invocation; the repo now includes an inert wide-net rehearsal plan for one
   OpenRouter diagnostic, one Todoist Inbox/default task, one Gmail controlled
-  self-send, and one self-only Calendar event, with no executable live runner
-  in this packet
+  self-send, and one self-only Calendar event, plus a default no-live
+  executable gate that fails closed before credential values are read until an
+  audited Calendar client/connector bridge exists
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -314,8 +315,13 @@ Last updated: 2026-07-01
   not read environment variables or credential values, does not initialize
   live clients, does not call OpenRouter, create Todoist tasks, send Gmail,
   write Calendar, invoke OpenClaw, open a database, or write files, and keeps
-  `ready_for_live_execution=false`. The plan is not live authorization and
-  has no executable live runner in this packet.
+  `ready_for_live_execution=false`. The separate
+  `phase14c wide-net-rehearsal --json` executable gate is also no-live by
+  default and reads environment key names only. Its `--execute-live` path
+  requires the exact approval reference but fails closed with
+  `phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
+  before credential values are read until an audited Calendar client/connector
+  bridge exists.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -329,8 +335,8 @@ Last updated: 2026-07-01
 
 ## Validated State
 
-- Full suite: 776 tests OK
-- ResourceWarning-sensitive suite: 776 tests OK
+- Full suite: 784 tests OK
+- ResourceWarning-sensitive suite: 784 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -345,7 +351,7 @@ Last updated: 2026-07-01
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
-- Targeted Phase 14-C wide-net rehearsal/CLI/docs/model suite: 91 tests OK
+- Targeted Phase 14-C wide-net rehearsal gate/CLI/docs/model suite: 99 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

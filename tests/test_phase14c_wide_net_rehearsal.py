@@ -31,6 +31,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertTrue(plan["template_only_not_authorization"])
         self.assertTrue(plan["executable_gate_available"])
         self.assertFalse(plan["calendar_client_bridge_available"])
+        self.assertTrue(plan["calendar_duplicate_precheck_enforced_by_runner"])
         self.assertEqual(
             plan["preconditions"]["ssl_cert_file"],
             PHASE14C_WIDE_NET_REHEARSAL_SSL_CERT_FILE,
@@ -74,21 +75,26 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
 
         self.assertEqual(
             [step["rail"] for step in sequence],
-            ["openrouter", "todoist", "gmail", "google_calendar"],
+            ["google_calendar", "openrouter", "todoist", "gmail", "google_calendar"],
         )
-        self.assertTrue(sequence[0]["diagnostic_only"])
-        self.assertFalse(sequence[0]["external_write_dependency"])
-        self.assertFalse(sequence[0]["output_policy"]["generated_text_used_for_task_or_email"])
-        self.assertFalse(sequence[0]["output_policy"]["raw_provider_response_logged"])
-        self.assertEqual(sequence[1]["title"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
-        self.assertEqual(sequence[1]["due_date_policy"], "next_upcoming_monday_at_runtime")
-        self.assertEqual(sequence[2]["subject"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
-        self.assertEqual(sequence[2]["attachments"], 0)
-        self.assertEqual(sequence[3]["title"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
-        self.assertEqual(sequence[3]["duration_minutes"], 15)
-        self.assertEqual(sequence[3]["attendees"], 0)
-        self.assertTrue(sequence[3]["duplicate_marker_precheck_required"])
-        self.assertFalse(sequence[3]["conference_link"])
+        self.assertTrue(sequence[0]["duplicate_marker_precheck_required"])
+        self.assertTrue(
+            sequence[0]["stop_before_model_todoist_gmail_or_calendar_create_on_match"]
+        )
+        self.assertFalse(sequence[0]["external_mutation"])
+        self.assertTrue(sequence[1]["diagnostic_only"])
+        self.assertFalse(sequence[1]["external_write_dependency"])
+        self.assertFalse(sequence[1]["output_policy"]["generated_text_used_for_task_or_email"])
+        self.assertFalse(sequence[1]["output_policy"]["raw_provider_response_logged"])
+        self.assertEqual(sequence[2]["title"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
+        self.assertEqual(sequence[2]["due_date_policy"], "next_upcoming_monday_at_runtime")
+        self.assertEqual(sequence[3]["subject"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
+        self.assertEqual(sequence[3]["attachments"], 0)
+        self.assertEqual(sequence[4]["title"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
+        self.assertEqual(sequence[4]["duration_minutes"], 15)
+        self.assertEqual(sequence[4]["attendees"], 0)
+        self.assertTrue(sequence[4]["duplicate_marker_precheck_required"])
+        self.assertFalse(sequence[4]["conference_link"])
 
     def test_wide_net_plan_does_not_read_or_echo_environment(self) -> None:
         secret_environment = {
@@ -136,6 +142,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "one todoist inbox/default marker task",
             "one gmail controlled self-email",
             "one self-only google calendar marker event",
+            "read the primary/self calendar for the exact marker",
             "diagnostic-only",
             "model text must not be used as task/email/event content",
             "calendar event creates: 1",
@@ -143,6 +150,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "phase14c-2026-07-01-wide-net-live-test",
             "[phase 14-c wide test] evening reset coordination",
             "duplicate-marker precheck",
+            "precheck before model, todoist, gmail, or calendar create",
+            "stop before every write if a duplicate marker exists",
             "if glm returns another `http_status=402`",
             "future human gate, not reusable authorization",
             "live_rails_activated` remains `false",

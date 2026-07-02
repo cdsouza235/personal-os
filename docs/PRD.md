@@ -1395,7 +1395,9 @@ harness, deterministic OpenClaw model lane strategy, and the next inert
 wide-net rehearsal plan for one OpenRouter diagnostic, one Todoist task, one
 Gmail self-send, and one self-only Calendar event while broad live activation
 remains false. The default no-live wide-net executable gate fails closed before
-credential values until an audited Calendar bridge exists.
+credential values until an audited Calendar bridge exists; the injected runner
+enforces the Calendar duplicate-marker precheck before model, Todoist, Gmail,
+or Calendar create.
 
 Purpose:
 

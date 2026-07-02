@@ -269,7 +269,9 @@ diagnostic model probe, one Todoist Inbox/default marker task, one Gmail
 controlled self-email, and one self-only Google Calendar marker event after a
 duplicate-marker precheck. It is not authorization; the separate executable
 gate is no-live by default and requires a new explicit approval, Claude Code
-audit, and audited Calendar bridge before any live run.
+audit, and audited Calendar bridge before any live run. The injected runner now
+requires the Calendar duplicate-marker precheck before model, Todoist, Gmail,
+or Calendar create, but the CLI still has no real Calendar bridge.
 
 Wide-net rehearsal executable gate:
 
@@ -284,7 +286,9 @@ present, it currently fails closed with
 `phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
 before reading credential values. A separate audited Calendar client/connector
 bridge remains required before this CLI can run OpenRouter, Todoist, Gmail, or
-Calendar in the wide-net sequence.
+Calendar in the wide-net sequence. Once a bridge exists, the runner must first
+perform the duplicate-marker precheck and stop before every write if the marker
+already exists.
 
 Live commands already used once for this evidence packet:
 

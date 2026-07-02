@@ -6,10 +6,10 @@ Last updated: 2026-07-01
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #100:
-  `8a03d4e47c05be8db5178e11aeae1ab8df02ae22`
-- Latest merged PR at that baseline: PR #100, Phase 14-C connected rehearsal
-  live evidence
+- Last validated main baseline after PR #102:
+  `a74d3d9546dfb65e96b20439cadd8c6268f706f8`
+- Latest merged PR at that baseline: PR #102, Phase 14-C wide-net executable
+  gate
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -89,7 +89,9 @@ Last updated: 2026-07-01
   OpenRouter diagnostic, one Todoist Inbox/default task, one Gmail controlled
   self-send, and one self-only Calendar event, plus a default no-live
   executable gate that fails closed before credential values are read until an
-  audited Calendar client/connector bridge exists
+  audited Calendar client/connector bridge exists; the injected wide-net
+  runner now enforces a Calendar duplicate-marker precheck before model,
+  Todoist, Gmail, or Calendar create
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -310,7 +312,8 @@ Last updated: 2026-07-01
   defines the next wider supervised test plan after the connected rehearsal:
   one OpenRouter diagnostic model probe, one Todoist Inbox/default marker task,
   one Gmail controlled self-email, and one self-only Google Calendar marker
-  event after a duplicate-marker precheck. The CLI
+  event after a duplicate-marker precheck. The injected runner now enforces
+  that precheck before model, Todoist, Gmail, or Calendar create. The CLI
   `phase14c wide-net-rehearsal-plan --json` is repo-local/report-only, does
   not read environment variables or credential values, does not initialize
   live clients, does not call OpenRouter, create Todoist tasks, send Gmail,
@@ -335,8 +338,8 @@ Last updated: 2026-07-01
 
 ## Validated State
 
-- Full suite: 784 tests OK
-- ResourceWarning-sensitive suite: 784 tests OK
+- Full suite: 787 tests OK
+- ResourceWarning-sensitive suite: 787 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -351,7 +354,7 @@ Last updated: 2026-07-01
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
-- Targeted Phase 14-C wide-net rehearsal gate/CLI/docs/model suite: 99 tests OK
+- Targeted Phase 14-C wide-net rehearsal gate/CLI/docs/model suite: 102 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

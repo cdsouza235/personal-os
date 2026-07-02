@@ -269,7 +269,24 @@ future live run; the separate executable gate remains no-live by default and
 fails closed before values until a Calendar bridge exists. The injected runner
 now enforces a Calendar duplicate-marker precheck before model, Todoist, Gmail,
 or Calendar create, and the repo-local Calendar bridge scaffold fails closed on
-unrecognized precheck response shapes.
+unrecognized precheck response shapes. The
+`phase14c wide-net-calendar-bridge-payloads --json` command reports the Google
+Calendar app connector payloads for the future wide-net duplicate precheck and
+self-only create step without reading credentials or calling the connector.
+
+Calendar app-bridge payloads:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-bridge-payloads --json
+```
+
+That command is repo-local/report-only. It reports the Google Calendar app
+connector payloads for the future wide-net duplicate precheck and self-only
+create step, plus the normalized precheck response contract required by the
+runner. It does not read environment variables, load credentials, initialize
+live clients, call the Google Calendar connector, create events, call
+OpenRouter, create Todoist tasks, send Gmail, invoke OpenClaw, open a
+database, or write files.
 
 Wide-net rehearsal executable gate:
 

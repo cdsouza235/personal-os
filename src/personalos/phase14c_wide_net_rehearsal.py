@@ -31,6 +31,7 @@ def build_phase14c_wide_net_rehearsal_plan() -> dict[str, object]:
         "template_only_not_authorization": True,
         "executable_gate_available": True,
         "calendar_bridge_scaffold_available": True,
+        "calendar_app_bridge_payload_command_available": True,
         "calendar_client_bridge_available": False,
         "calendar_duplicate_precheck_enforced_by_runner": True,
         "calendar_precheck_unrecognized_response_fails_closed": True,
@@ -76,6 +77,7 @@ def _confirmed_foundation() -> dict[str, object]:
             "duplicate_existing_calendar_smoke_authorized": False,
             "wide_net_duplicate_precheck_enforced_by_runner": True,
             "wide_net_calendar_bridge_scaffold_available": True,
+            "wide_net_calendar_app_bridge_payloads_available": True,
             "unrecognized_precheck_response_fails_closed": True,
         },
         "openclaw_runtime": {
@@ -228,6 +230,7 @@ def _preconditions() -> dict[str, object]:
         "requires_google_calendar_connector_duplicate_precheck": True,
         "requires_bridge_normalized_precheck_response_contract": True,
         "calendar_bridge_scaffold_available": True,
+        "calendar_app_bridge_payload_command_available": True,
         "calendar_cli_bridge_available": False,
         "requires_configured_rails": [
             "PERSONALOS_OPENCLAW_MODEL_API_KEY",

@@ -272,8 +272,11 @@ gate is no-live by default and requires a new explicit approval, Claude Code
 audit, and audited Calendar bridge before any live run. The injected runner now
 requires the Calendar duplicate-marker precheck before model, Todoist, Gmail,
 or Calendar create, and the repo has a Calendar bridge scaffold that fails
-closed on unrecognized precheck response shapes. The CLI still has no real
-Calendar bridge.
+closed on unrecognized precheck response shapes. The
+`phase14c wide-net-calendar-bridge-payloads --json` command reports the Google
+Calendar app connector payloads for that future bridge without reading
+credentials or calling the connector. The CLI still has no real Calendar
+execution bridge.
 
 Wide-net rehearsal executable gate:
 

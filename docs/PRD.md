@@ -1398,7 +1398,9 @@ remains false. The default no-live wide-net executable gate fails closed before
 credential values until an audited Calendar bridge exists; the injected runner
 enforces the Calendar duplicate-marker precheck before model, Todoist, Gmail,
 or Calendar create, and the Calendar bridge scaffold fails closed on
-unrecognized precheck response shapes.
+unrecognized precheck response shapes. The repo-local
+`phase14c wide-net-calendar-bridge-payloads --json` command now reports the
+Google Calendar app connector payloads without calling the connector.
 
 Purpose:
 

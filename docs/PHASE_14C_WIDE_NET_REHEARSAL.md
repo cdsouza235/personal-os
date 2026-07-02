@@ -10,6 +10,9 @@ injected runner now enforces a Calendar duplicate-marker precheck before any
 model, Todoist, Gmail, or Calendar create step can run. The repo also has a
 Calendar bridge scaffold that normalizes connector search responses into an
 explicit precheck contract; unrecognized precheck response shapes fail closed.
+The repo-local Calendar app-bridge payload command now prints the exact Google
+Calendar app connector arguments for the duplicate precheck and self-only
+create step without calling the connector.
 
 CLI report:
 
@@ -43,6 +46,22 @@ bridge is still required before the CLI can run the future wide-net live
 sequence. The scaffolded bridge does not import or initialize a live connector
 by itself.
 
+Calendar app-bridge payloads:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-bridge-payloads --json
+```
+
+The bridge-payload command is repo-local/report-only. It does not read
+`.env.local`, read environment variables, load credentials, initialize live
+clients, call the Google Calendar app connector, create events, call
+OpenRouter, create Todoist tasks, send Gmail, invoke OpenClaw, open a
+database, write files, or touch protected paths. It reports the Google
+Calendar app connector payloads for `search_events` and `create_event`, plus
+the normalized precheck response contract required by the runner. It is not
+live authorization and does not inject a Calendar client into the wide-net
+runner.
+
 ## Confirmed Foundation
 
 - Gmail SMTP self-send has passed once with one controlled self-send and
@@ -59,7 +78,10 @@ by itself.
   uses a new marker, and the executable runner now requires a duplicate-marker
   precheck before any future Calendar create. The Calendar bridge scaffold
   requires a normalized `matching_event_count` contract before the runner can
-  proceed; malformed or unrecognized precheck responses stop the sequence.
+  proceed; malformed or unrecognized precheck responses stop the sequence. The
+  `phase14c wide-net-calendar-bridge-payloads --json` command reports the
+  Google Calendar app connector payloads for the future audited bridge without
+  calling the connector.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 
@@ -162,6 +184,9 @@ OpenRouter target:
 - `SSL_CERT_FILE=/opt/homebrew/etc/ca-certificates/cert.pem` is required.
 - Gmail, Todoist, OpenRouter, and Google Calendar connector/client access must
   be configured.
+- The Calendar app-bridge payload command may be inspected before a live run,
+  but connector execution still requires a separate audited injection/wiring
+  step.
 - Google Calendar must pass a duplicate-marker precheck before any create.
 - The duplicate-marker precheck must stop before model, Todoist, Gmail, and
   Calendar create if the marker already exists.

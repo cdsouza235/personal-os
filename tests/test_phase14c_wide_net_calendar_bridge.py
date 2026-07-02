@@ -1,6 +1,13 @@
 import json
 import unittest
+from datetime import date
 
+from personalos.phase14c_wide_net_calendar_app_bridge import (
+    PHASE14C_WIDE_NET_CALENDAR_APP_BRIDGE_STATUS,
+    build_google_calendar_create_event_args,
+    build_google_calendar_search_events_args,
+    build_phase14c_wide_net_calendar_app_bridge_report,
+)
 from personalos.phase14c_wide_net_calendar_bridge import (
     CalendarBridgeContractError,
     PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
@@ -103,6 +110,53 @@ class Phase14CWideNetCalendarBridgeTest(unittest.TestCase):
                 {"unexpected": []},
                 title=PHASE14C_WIDE_NET_REHEARSAL_MARKER,
             )
+
+    def test_google_calendar_app_args_are_bounded_and_self_only(self) -> None:
+        search_args = build_google_calendar_search_events_args(_valid_precheck_payload())
+        create_args = build_google_calendar_create_event_args(_valid_create_payload())
+
+        self.assertEqual(search_args["calendar_id"], "primary")
+        self.assertEqual(search_args["query"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
+        self.assertEqual(search_args["max_results"], 10)
+        self.assertEqual(create_args["calendar_id"], "primary")
+        self.assertEqual(create_args["title"], PHASE14C_WIDE_NET_REHEARSAL_MARKER)
+        self.assertEqual(create_args["attendees"], [])
+        self.assertFalse(create_args["add_google_meet"])
+        self.assertIsNone(create_args["recurrence"])
+        self.assertNotIn("attachments", create_args)
+
+    def test_app_bridge_report_is_no_live_and_contains_connector_payloads(self) -> None:
+        report = build_phase14c_wide_net_calendar_app_bridge_report(
+            source_date=date(2026, 7, 2)
+        )
+        serialized = json.dumps(report, sort_keys=True)
+        precheck = report["duplicate_precheck"]
+        create = report["calendar_create"]
+        safety = report["safety_assertions"]
+
+        self.assertEqual(report["status"], PHASE14C_WIDE_NET_CALENDAR_APP_BRIDGE_STATUS)
+        self.assertFalse(report["ready_for_live_execution"])
+        self.assertTrue(report["template_only_not_authorization"])
+        self.assertFalse(report["calendar_app_connector_called"])
+        self.assertFalse(report["credential_values_read"])
+        self.assertFalse(safety["calendar_app_connector_called"])
+        self.assertFalse(safety["external_mutation"])
+        self.assertEqual(
+            precheck["normalized_response_contract"],
+            PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
+        )
+        self.assertEqual(
+            precheck["google_calendar_search_events_args"]["query"],
+            PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+        )
+        self.assertEqual(
+            create["google_calendar_create_event_args"]["title"],
+            PHASE14C_WIDE_NET_REHEARSAL_MARKER,
+        )
+        self.assertEqual(create["attendee_count"], 0)
+        self.assertFalse(create["conference_link"])
+        self.assertNotIn("chris@example.com", serialized)
+        self.assertNotIn("secret", serialized)
 
 
 def _valid_precheck_payload() -> dict[str, object]:

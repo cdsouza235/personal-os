@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-import re
 import smtplib
 import time
 from collections.abc import Callable, Iterable, Mapping
 from email.message import EmailMessage
 from typing import Any
 
+from personalos.phase14c_safety_utils import (
+    config_names_only,
+    optional_email,
+    optional_string,
+)
 
 PHASE14C_GMAIL_SMOKE_SCHEMA_VERSION = "personal_os_phase14c_gmail_smoke.v1"
 PHASE14C_GMAIL_SMTP_ADDRESS_CONFIG_NAME = "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS"
@@ -42,9 +46,6 @@ GMAIL_SMOKE_NOT_RUN_MISSING_SENDER_OR_RECIPIENT = (
 )
 GMAIL_SMOKE_PASSED = "gmail_self_send_smoke_passed"
 GMAIL_SMOKE_FAILED = "gmail_self_send_smoke_failed"
-
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
 
 class GmailSmtpSmokeClient:
     """Minimal Gmail SMTP client for exactly one Phase 14-C test email."""
@@ -96,8 +97,8 @@ def run_phase14c_gmail_smtp_smoke(
     """Run or report readiness for the one-email Gmail SMTP smoke rail."""
 
     preflight = _gmail_config_preflight(available_config_names)
-    sender = _optional_email(sender_email)
-    recipient = _optional_email(controlled_recipient) or sender
+    sender = optional_email(sender_email)
+    recipient = optional_email(controlled_recipient) or sender
     payload = (
         build_phase14c_gmail_email_payload(
             sender_email=sender,
@@ -113,12 +114,12 @@ def run_phase14c_gmail_smtp_smoke(
         "client_type": "gmail_smtp_app_password",
         "title": PHASE14C_GMAIL_SMOKE_SUBJECT,
         "live_execution_requested": execute_live,
-        "approval_reference_present": bool(_optional_string(approval_reference)),
+        "approval_reference_present": bool(optional_string(approval_reference)),
         "config_preflight": preflight,
         "sender_masked": _mask_email(sender),
         "recipient_masked": _mask_email(recipient),
         "recipient_source": (
-            "controlled_recipient_config" if _optional_email(controlled_recipient)
+            "controlled_recipient_config" if optional_email(controlled_recipient)
             else "smtp_sender_self"
         ),
         "self_send": (
@@ -167,7 +168,7 @@ def run_phase14c_gmail_smtp_smoke(
             "status": GMAIL_SMOKE_NOT_RUN_MISSING_CONFIG,
             "gmail_email_sent": False,
         }
-    app_password_value = _optional_string(app_password)
+    app_password_value = optional_string(app_password)
     if sender is None or recipient is None or app_password_value is None:
         return {
             **base,
@@ -253,7 +254,7 @@ def build_phase14c_gmail_email_payload(
 def _gmail_config_preflight(
     available_config_names: Iterable[str] | Mapping[str, Any],
 ) -> dict[str, Any]:
-    names = set(_config_names_only(available_config_names))
+    names = set(config_names_only(available_config_names))
     missing = [
         name for name in PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES if name not in names
     ]
@@ -315,28 +316,6 @@ def _safe_failure(error: BaseException) -> dict[str, str]:
         "type": type(error).__name__,
         "message": "Gmail SMTP send attempt failed; details redacted.",
     }
-
-
-def _config_names_only(
-    available_config_names: Iterable[str] | Mapping[str, Any],
-) -> tuple[str, ...]:
-    if isinstance(available_config_names, Mapping):
-        return tuple(str(name) for name in available_config_names.keys())
-    return tuple(str(name) for name in available_config_names)
-
-
-def _optional_string(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    stripped = value.strip()
-    return stripped or None
-
-
-def _optional_email(value: object) -> str | None:
-    text = _optional_string(value)
-    if text is None or _EMAIL_RE.match(text) is None:
-        return None
-    return text
 
 
 def _normalize_email(value: str | None) -> str | None:

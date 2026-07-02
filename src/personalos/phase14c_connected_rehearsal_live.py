@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import smtplib
 import time
 import urllib.error
@@ -24,6 +23,11 @@ from personalos.phase14c_connected_rehearsal import (
 from personalos.phase14c_gmail_live_smoke import (
     GmailSmtpSmokeClient,
     PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
+)
+from personalos.phase14c_safety_utils import (
+    config_names_only,
+    optional_email,
+    optional_string,
 )
 from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
@@ -74,7 +78,6 @@ CONNECTED_REHEARSAL_REQUIRED_CONFIG_NAMES: tuple[str, ...] = (
     *PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
 )
 
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _FORBIDDEN_BRIEF_FRAGMENTS = (
     "secret",
     "password",
@@ -134,9 +137,9 @@ def run_phase14c_connected_rehearsal(
         "due_date": due_date,
         "live_execution_requested": execute_live,
         "approval_reference_required": PHASE14C_CONNECTED_REHEARSAL_APPROVAL_REFERENCE,
-        "approval_reference_present": bool(_optional_string(approval_reference)),
+        "approval_reference_present": bool(optional_string(approval_reference)),
         "approval_reference_matched": (
-            _optional_string(approval_reference)
+            optional_string(approval_reference)
             == PHASE14C_CONNECTED_REHEARSAL_APPROVAL_REFERENCE
         ),
         "config_preflight": preflight,
@@ -166,14 +169,14 @@ def run_phase14c_connected_rehearsal(
 
     credential_values_read = True
     values = {
-        "provider": _optional_string(provider),
-        "api_key": _optional_string(api_key),
-        "nemotron_super_model": _optional_string(nemotron_super_model),
-        "glm_5_2_model": _optional_string(glm_5_2_model),
-        "todoist_token": _optional_string(todoist_token),
-        "gmail_sender_email": _optional_email(gmail_sender_email),
-        "gmail_app_password": _optional_string(gmail_app_password),
-        "gmail_controlled_recipient": _optional_email(gmail_controlled_recipient),
+        "provider": optional_string(provider),
+        "api_key": optional_string(api_key),
+        "nemotron_super_model": optional_string(nemotron_super_model),
+        "glm_5_2_model": optional_string(glm_5_2_model),
+        "todoist_token": optional_string(todoist_token),
+        "gmail_sender_email": optional_email(gmail_sender_email),
+        "gmail_app_password": optional_string(gmail_app_password),
+        "gmail_controlled_recipient": optional_email(gmail_controlled_recipient),
     }
     if any(value is None for value in values.values()):
         return {
@@ -513,7 +516,7 @@ def _post_todoist_failure_report(
 def _connected_config_preflight(
     available_config_names: Iterable[str] | Mapping[str, Any],
 ) -> dict[str, Any]:
-    names = set(_config_names_only(available_config_names))
+    names = set(config_names_only(available_config_names))
     missing = tuple(
         name for name in CONNECTED_REHEARSAL_REQUIRED_CONFIG_NAMES if name not in names
     )
@@ -634,24 +637,3 @@ def _safety_assertions(
         "max_one_todoist_task_create": True,
         "max_one_gmail_email_send": True,
     }
-
-
-def _config_names_only(
-    available_config_names: Iterable[str] | Mapping[str, Any],
-) -> tuple[str, ...]:
-    if isinstance(available_config_names, Mapping):
-        return tuple(str(name) for name in available_config_names.keys())
-    return tuple(str(name) for name in available_config_names)
-
-
-def _optional_string(value: object) -> str | None:
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None
-
-
-def _optional_email(value: object) -> str | None:
-    text = _optional_string(value)
-    if text is None or _EMAIL_RE.match(text) is None:
-        return None
-    return text

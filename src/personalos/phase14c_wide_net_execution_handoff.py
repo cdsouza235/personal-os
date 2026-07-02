@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from typing import Any
 
+from personalos.phase14c_safety_utils import (
+    PHASE14C_REDACTION_MAX_DEPTH,
+    PHASE14C_REDACTION_MAX_NODES,
+    redaction_failure_reasons,
+    unique_reason_codes,
+)
 from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
@@ -39,6 +44,7 @@ PHASE14C_WIDE_NET_EVIDENCE_VALIDATION_SCHEMA_VERSION = (
 )
 PHASE14C_WIDE_NET_EVIDENCE_VALID = "phase14c_wide_net_evidence_valid"
 PHASE14C_WIDE_NET_EVIDENCE_BLOCKED = "phase14c_wide_net_evidence_blocked"
+PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES = 262_144
 
 _COMPLETE_PASS_STATUSES = {
     WIDE_NET_PASSED,
@@ -80,34 +86,6 @@ _SAFETY_FALSE_FLAGS = (
     "dynamic_cleaning_triggered",
     "broad_live_activation",
 )
-_FORBIDDEN_RAW_KEYS = {
-    "api_key",
-    "app_password",
-    "authorization",
-    "configured_model_ids",
-    "full_prompt",
-    "oauth_token",
-    "password",
-    "prompt",
-    "raw_provider_response",
-    "response_text",
-    "smtp_password",
-    "token",
-}
-_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
-_SECRET_VALUE_PATTERNS = (
-    "api_key=",
-    "app_password=",
-    "bearer ",
-    "oauth",
-    "password=",
-    "secret-",
-    "sk-",
-    "token=",
-    "ya29.",
-)
-
-
 def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
     """Build a no-live handoff report for the future wide-net live gate."""
 
@@ -148,6 +126,9 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
             "raw_evidence_echoed": False,
             "credential_values_allowed": False,
             "unmasked_emails_allowed": False,
+            "max_input_file_size_bytes": PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+            "redaction_scan_max_depth": PHASE14C_REDACTION_MAX_DEPTH,
+            "redaction_scan_max_nodes": PHASE14C_REDACTION_MAX_NODES,
         },
         "calendar_connector_handoff": {
             "connector_type": "Google Calendar app connector",
@@ -189,6 +170,48 @@ def build_phase14c_wide_net_execution_handoff_report() -> dict[str, Any]:
             "todoist_task_created": False,
             "gmail_email_sent": False,
             "calendar_event_created": False,
+            "protected_openclaw_runtime_called": False,
+            "scheduler_or_background_activated": False,
+            "production_db_active": False,
+            "protected_paths_touched": False,
+            "dynamic_cleaning_triggered": False,
+            "broad_live_activation": False,
+        },
+    }
+
+
+def build_phase14c_wide_net_evidence_input_size_report(
+    input_size_bytes: int,
+) -> dict[str, Any]:
+    """Build a blocked evidence report without reading an oversized input file."""
+
+    return {
+        "schema_version": PHASE14C_WIDE_NET_EVIDENCE_VALIDATION_SCHEMA_VERSION,
+        "status": PHASE14C_WIDE_NET_EVIDENCE_BLOCKED,
+        "accepted": False,
+        "evidence_status": "not_loaded_input_file_too_large",
+        "marker_matched": False,
+        "failure_reasons": ["input_file_too_large"],
+        "raw_evidence_returned": False,
+        "input_values_echoed": False,
+        "credential_values_reported": False,
+        "unmasked_emails_reported": False,
+        "input_file_size_bytes": input_size_bytes,
+        "max_input_file_size_bytes": PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+        "redaction_scan_max_depth": PHASE14C_REDACTION_MAX_DEPTH,
+        "redaction_scan_max_nodes": PHASE14C_REDACTION_MAX_NODES,
+        "call_counts": {key: None for key in _MAX_CALL_COUNTS},
+        "call_budgets": dict(_MAX_CALL_COUNTS),
+        "calendar_precheck_summary": {
+            "performed": False,
+            "matching_event_count": None,
+            "duplicate_marker_found": None,
+            "event_details_logged": False,
+            "attendee_addresses_logged": False,
+        },
+        "safety_summary": {
+            "credential_values_logged": False,
+            "environment_dumped": False,
             "protected_openclaw_runtime_called": False,
             "scheduler_or_background_activated": False,
             "production_db_active": False,
@@ -251,9 +274,9 @@ def validate_phase14c_wide_net_evidence_report(
         if safety.get(key) is not False:
             reasons.append(f"{key}_not_false")
 
-    leak_reasons = _redaction_failure_reasons(evidence)
+    leak_reasons = redaction_failure_reasons(evidence)
     reasons.extend(leak_reasons)
-    unique_reasons = _unique(reasons)
+    unique_reasons = unique_reason_codes(reasons)
     accepted = not unique_reasons
     return {
         "schema_version": PHASE14C_WIDE_NET_EVIDENCE_VALIDATION_SCHEMA_VERSION,
@@ -270,6 +293,9 @@ def validate_phase14c_wide_net_evidence_report(
         "input_values_echoed": False,
         "credential_values_reported": False,
         "unmasked_emails_reported": False,
+        "max_input_file_size_bytes": PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
+        "redaction_scan_max_depth": PHASE14C_REDACTION_MAX_DEPTH,
+        "redaction_scan_max_nodes": PHASE14C_REDACTION_MAX_NODES,
         "call_counts": call_counts,
         "call_budgets": dict(_MAX_CALL_COUNTS),
         "calendar_precheck_summary": {
@@ -340,38 +366,3 @@ def _call_counts(evidence: Mapping[str, Any]) -> dict[str, int | None]:
         key: call_limits.get(key) if isinstance(call_limits.get(key), int) else None
         for key in _MAX_CALL_COUNTS
     }
-
-
-def _redaction_failure_reasons(value: object) -> list[str]:
-    reasons: list[str] = []
-
-    def visit(item: object) -> None:
-        if isinstance(item, Mapping):
-            for key, child in item.items():
-                if isinstance(key, str) and key.lower() in _FORBIDDEN_RAW_KEYS:
-                    reasons.append("forbidden_raw_field_present")
-                visit(child)
-            return
-        if isinstance(item, list | tuple):
-            for child in item:
-                visit(child)
-            return
-        if isinstance(item, str):
-            lowered = item.lower()
-            if _EMAIL_RE.search(item):
-                reasons.append("unmasked_email_value_present")
-            if any(pattern in lowered for pattern in _SECRET_VALUE_PATTERNS):
-                reasons.append("secret_like_value_present")
-
-    visit(value)
-    return _unique(reasons)
-
-
-def _unique(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for value in values:
-        if value not in seen:
-            seen.add(value)
-            result.append(value)
-    return result

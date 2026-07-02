@@ -11,6 +11,7 @@ from personalos.openclaw_model_strategy import (
 from personalos.phase14c_gmail_live_smoke import (
     PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
 )
+from personalos.phase14c_safety_utils import config_names_only
 from personalos.phase14c_supervised_smoke import REQUIRED_CONFIG_ENTRY_NAMES
 
 
@@ -35,7 +36,7 @@ def build_phase14c_connectivity_setup_report(
 ) -> dict[str, Any]:
     """Build a setup report using config entry names only."""
 
-    available_names = set(_config_names_only(available_config_names))
+    available_names = set(config_names_only(available_config_names))
     rails = {
         rail: _rail_setup_report(rail, required_names, available_names)
         for rail, required_names in PHASE14C_CONNECTIVITY_SETUP_ENTRY_NAMES.items()
@@ -137,11 +138,3 @@ def _rail_setup_report(
         "credential_values_read": False,
         "credential_values_logged": False,
     }
-
-
-def _config_names_only(
-    available_config_names: Iterable[str] | Mapping[str, Any],
-) -> tuple[str, ...]:
-    if isinstance(available_config_names, Mapping):
-        return tuple(str(name) for name in available_config_names.keys())
-    return tuple(str(name) for name in available_config_names)

@@ -18,6 +18,11 @@ from personalos.phase14c_gmail_live_smoke import (
     GmailSmtpSmokeClient,
     PHASE14C_GMAIL_SMTP_CONFIG_ENTRY_NAMES,
 )
+from personalos.phase14c_safety_utils import (
+    config_names_only,
+    optional_email,
+    optional_string,
+)
 from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
     TodoistRestSmokeClient,
@@ -157,9 +162,9 @@ def run_phase14c_wide_net_rehearsal(
         ),
         "live_execution_requested": execute_live,
         "approval_reference_required": PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
-        "approval_reference_present": bool(_optional_string(approval_reference)),
+        "approval_reference_present": bool(optional_string(approval_reference)),
         "approval_reference_matched": (
-            _optional_string(approval_reference)
+            optional_string(approval_reference)
             == PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE
         ),
         "config_preflight": preflight,
@@ -200,15 +205,15 @@ def run_phase14c_wide_net_rehearsal(
 
     credential_values_read = True
     values = {
-        "provider": _optional_string(provider),
-        "api_key": _optional_string(api_key),
-        "nemotron_super_model": _optional_string(nemotron_super_model),
-        "glm_5_2_model": _optional_string(glm_5_2_model),
-        "todoist_token": _optional_string(todoist_token),
-        "gmail_sender_email": _optional_email(gmail_sender_email),
-        "gmail_app_password": _optional_string(gmail_app_password),
-        "gmail_controlled_recipient": _optional_email(gmail_controlled_recipient),
-        "calendar_connector_label": _optional_string(calendar_connector_label),
+        "provider": optional_string(provider),
+        "api_key": optional_string(api_key),
+        "nemotron_super_model": optional_string(nemotron_super_model),
+        "glm_5_2_model": optional_string(glm_5_2_model),
+        "todoist_token": optional_string(todoist_token),
+        "gmail_sender_email": optional_email(gmail_sender_email),
+        "gmail_app_password": optional_string(gmail_app_password),
+        "gmail_controlled_recipient": optional_email(gmail_controlled_recipient),
+        "calendar_connector_label": optional_string(calendar_connector_label),
     }
     if any(value is None for value in values.values()):
         return {
@@ -547,8 +552,8 @@ def _calendar_precheck_payload(
     *,
     calendar_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
-    start_value = _optional_string(calendar_payload.get("start_time"))
-    timezone = _optional_string(calendar_payload.get("timezone_str"))
+    start_value = optional_string(calendar_payload.get("start_time"))
+    timezone = optional_string(calendar_payload.get("timezone_str"))
     event_date = date.fromisoformat(str(start_value).split("T", maxsplit=1)[0])
     window_start = datetime.combine(event_date, datetime_time.min)
     window_end = window_start + timedelta(days=1)
@@ -797,7 +802,7 @@ def _post_calendar_failure_report(
 def _wide_net_config_preflight(
     available_config_names: Iterable[str] | Mapping[str, Any],
 ) -> dict[str, Any]:
-    names = set(_config_names_only(available_config_names))
+    names = set(config_names_only(available_config_names))
     missing = tuple(name for name in WIDE_NET_REQUIRED_CONFIG_NAMES if name not in names)
     return {
         "required_config_entry_count": len(WIDE_NET_REQUIRED_CONFIG_NAMES),
@@ -912,25 +917,6 @@ def _safety_assertions(
         "broad_live_activation": False,
     }
 
-
-def _config_names_only(values: Iterable[str] | Mapping[str, Any]) -> tuple[str, ...]:
-    if isinstance(values, Mapping):
-        return tuple(str(name) for name in values.keys())
-    return tuple(str(name) for name in values)
-
-
-def _optional_string(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    stripped = value.strip()
-    return stripped or None
-
-
-def _optional_email(value: object) -> str | None:
-    candidate = _optional_string(value)
-    if candidate is None or "@" not in candidate or " " in candidate:
-        return None
-    return candidate
 
 
 def _string_list(value: object) -> tuple[str, ...]:

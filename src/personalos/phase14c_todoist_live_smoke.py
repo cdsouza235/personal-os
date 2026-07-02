@@ -10,6 +10,12 @@ from collections.abc import Callable, Iterable, Mapping
 from datetime import date, timedelta
 from typing import Any
 
+from personalos.phase14c_safety_utils import (
+    config_names_only,
+    optional_string,
+    safe_error_kind,
+)
+
 
 PHASE14C_TODOIST_SMOKE_SCHEMA_VERSION = "personal_os_phase14c_todoist_smoke.v1"
 PHASE14C_TODOIST_TOKEN_CONFIG_NAME = "PERSONALOS_PHASE14C_TODOIST_TOKEN"
@@ -92,7 +98,7 @@ def run_phase14c_todoist_inbox_smoke(
         "title": PHASE14C_TODOIST_TASK_TITLE,
         "due_date": due_date.isoformat(),
         "live_execution_requested": execute_live,
-        "approval_reference_present": bool(_optional_string(approval_reference)),
+        "approval_reference_present": bool(optional_string(approval_reference)),
         "config_preflight": preflight,
         "task_payload_summary": {
             "content": PHASE14C_TODOIST_TASK_TITLE,
@@ -134,7 +140,7 @@ def run_phase14c_todoist_inbox_smoke(
             "status": TODOIST_SMOKE_NOT_RUN_MISSING_CONFIG,
             "todoist_task_created": False,
         }
-    token_value = _optional_string(token)
+    token_value = optional_string(token)
     if token_value is None and client is None:
         return {
             **base,
@@ -233,7 +239,7 @@ def next_upcoming_monday(source_date: date) -> date:
 def _todoist_config_preflight(
     available_config_names: Iterable[str] | Mapping[str, Any],
 ) -> dict[str, Any]:
-    names = set(_config_names_only(available_config_names))
+    names = set(config_names_only(available_config_names))
     missing = (
         []
         if PHASE14C_TODOIST_TOKEN_CONFIG_NAME in names
@@ -297,31 +303,9 @@ def _todoist_safety_assertions(
 def _safe_failure(error: BaseException) -> dict[str, str | int]:
     failure: dict[str, str | int] = {
         "category": error.__class__.__name__,
-        "error_kind": _safe_error_kind(error),
+        "error_kind": safe_error_kind(error),
         "message": "Todoist smoke call failed before a validated task result.",
     }
     if isinstance(error, urllib.error.HTTPError):
         failure["http_status"] = int(error.code)
     return failure
-
-
-def _safe_error_kind(error: BaseException) -> str:
-    if isinstance(error, urllib.error.URLError):
-        reason = getattr(error, "reason", None)
-        if isinstance(reason, BaseException):
-            return reason.__class__.__name__
-    return error.__class__.__name__
-
-
-def _config_names_only(
-    available_config_names: Iterable[str] | Mapping[str, Any],
-) -> tuple[str, ...]:
-    if isinstance(available_config_names, Mapping):
-        return tuple(str(name) for name in available_config_names.keys())
-    return tuple(str(name) for name in available_config_names)
-
-
-def _optional_string(value: object) -> str | None:
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None

@@ -150,6 +150,9 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "does not wire or inject a calendar client",
             "does not call the google calendar app connector",
             "does not echo raw evidence",
+            "oversized local evidence files before json parsing",
+            "shared bounded redaction checks",
+            "explicit depth and node limits",
             "one openrouter diagnostic model probe",
             "one todoist inbox/default marker task",
             "one gmail controlled self-email",
@@ -186,6 +189,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("phase14c wide-net-evidence-validate --input-file", text)
         self.assertIn("one self-only calendar event", text)
         self.assertIn("unrecognized precheck response shapes", text)
+        self.assertIn("oversized files before json parsing", text)
+        self.assertIn("shared bounded redaction checks", text)
 
 
 def _normalized_doc_text(path: Path) -> str:

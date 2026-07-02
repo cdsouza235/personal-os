@@ -9,6 +9,8 @@ import urllib.request
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from personalos.phase14c_safety_utils import safe_error_kind
+
 
 OPENROUTER_CHAT_COMPLETIONS_ENDPOINT = (
     "https://openrouter.ai/api/v1/chat/completions"
@@ -90,7 +92,7 @@ class OpenRouterModelSmokeClient:
             return _failure_result(
                 "transport_or_parse_error",
                 started,
-                error_kind=_safe_error_kind(error),
+                error_kind=safe_error_kind(error),
             )
         except (OSError, ValueError) as error:
             return _failure_result(
@@ -151,14 +153,6 @@ def _failure_result(
     if http_status is not None:
         result["http_status"] = http_status
     return result
-
-
-def _safe_error_kind(error: urllib.error.URLError) -> str:
-    reason = getattr(error, "reason", None)
-    if isinstance(reason, BaseException):
-        return reason.__class__.__name__
-    return error.__class__.__name__
-
 
 def _optional_int(value: object) -> int | None:
     if isinstance(value, bool):

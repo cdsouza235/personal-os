@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from personalos.phase14c_safety_utils import optional_string
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_MARKER,
 )
@@ -147,7 +148,7 @@ def validate_wide_net_calendar_create_payload(
         "add_google_meet": False,
         "recurrence": None,
         "attachments": [],
-        "description": _optional_string(payload.get("description")),
+        "description": optional_string(payload.get("description")),
     }
 
 
@@ -165,14 +166,7 @@ def _count_event_title_matches(events: list[Any] | tuple[Any, ...], *, title: st
 
 
 def _required_string(payload: Mapping[str, Any], key: str) -> str:
-    value = _optional_string(payload.get(key))
+    value = optional_string(payload.get(key))
     if value is None:
         raise CalendarBridgeContractError(f"Calendar payload missing {key}.")
     return value
-
-
-def _optional_string(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    stripped = value.strip()
-    return stripped or None

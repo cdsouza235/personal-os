@@ -285,7 +285,8 @@ credentials. The
 one explicit sanitized JSON file and prints a redacted pass/block report
 without echoing raw evidence, credential values, raw provider responses, full
 prompts, configured model IDs, event details, attendee addresses, or unmasked
-emails.
+emails. It rejects oversized files before JSON parsing and uses shared bounded
+redaction checks with explicit depth and node limits.
 
 Wide-net rehearsal executable gate:
 
@@ -358,6 +359,10 @@ PYTHONPATH=src python3 -c 'import json; from personalos.phase14c_supervised_smok
 - Follow-up diagnostics are repo-local/report-only and do not read credential
   values, initialize live clients, call OpenRouter, write Todoist, send Gmail,
   write Calendar, invoke OpenClaw, open a database, or write files.
+- Phase 14-C shared safety helpers centralize names-only config extraction,
+  optional string/email parsing, safe error-kind reporting, and bounded
+  redaction reason scans; they do not read environment values, credentials,
+  files, or connectors.
 - No duplicate Calendar event was created.
 - No protected path was accessed.
 - No scheduler, LaunchAgent, crontab, daemon, watcher, or background loop was

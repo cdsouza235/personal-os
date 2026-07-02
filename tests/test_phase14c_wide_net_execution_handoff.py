@@ -55,6 +55,22 @@ class Phase14CWideNetExecutionHandoffTest(unittest.TestCase):
             "wide-net-evidence-validate",
             report["post_run_evidence_validator"]["command"],
         )
+        self.assertTrue(
+            any(
+                "wide-net-calendar-transcript-template --json" in command
+                for command in report["preflight_commands"]
+            )
+        )
+        self.assertTrue(
+            any(
+                "wide-net-calendar-transcript-validate --input-file" in command
+                for command in report["preflight_commands"]
+            )
+        )
+        self.assertIn(
+            "wide-net-calendar-transcript-validate",
+            handoff["sanitized_transcript_validator_command"],
+        )
         self.assertFalse(report["post_run_evidence_validator"]["raw_evidence_echoed"])
         self.assertEqual(
             report["post_run_evidence_validator"]["max_input_file_size_bytes"],

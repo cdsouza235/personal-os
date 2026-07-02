@@ -144,6 +144,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "fails closed before credential values are read",
             "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
             "phase14c wide-net-calendar-bridge-payloads --json",
+            "phase14c wide-net-calendar-transcript-template --json",
+            "phase14c wide-net-calendar-transcript-validate --input-file",
             "phase14c wide-net-execution-handoff --json",
             "phase14c wide-net-evidence-validate --input-file",
             "redacted evidence validator",
@@ -171,6 +173,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "explicit precheck contract",
             "unrecognized precheck response shapes fail closed",
             "google calendar app connector payloads",
+            "sanitized calendar connector transcripts",
+            "without calling the connector or echoing raw event details",
             "if glm returns another `http_status=402`",
             "future human gate, not reusable authorization",
             "live_rails_activated` remains `false",
@@ -185,6 +189,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("docs/phase_14c_wide_net_rehearsal.md", text)
         self.assertIn("phase14c wide-net-rehearsal-plan --json", text)
         self.assertIn("phase14c wide-net-calendar-bridge-payloads --json", text)
+        self.assertIn("phase14c wide-net-calendar-transcript-template", text)
+        self.assertIn("phase14c wide-net-calendar-transcript-validate", text)
         self.assertIn("phase14c wide-net-execution-handoff --json", text)
         self.assertIn("phase14c wide-net-evidence-validate --input-file", text)
         self.assertIn("one self-only calendar event", text)

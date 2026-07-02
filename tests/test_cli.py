@@ -389,6 +389,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C live-smoke diagnostics",
             "Phase 14-C connected rehearsal plan",
             "Phase 14-C connected rehearsal gate",
+            "Phase 14-C wide-net Calendar bridge payloads",
             "Phase 14-C wide-net rehearsal plan",
             "Phase 14-C wide-net rehearsal gate",
         ):
@@ -446,6 +447,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C live-smoke diagnostics", workflow_names)
         self.assertIn("Phase 14-C connected rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C connected rehearsal gate", workflow_names)
+        self.assertIn("Phase 14-C wide-net Calendar bridge payloads", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C wide-net rehearsal gate", workflow_names)
 
@@ -1471,6 +1473,59 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
 
+    def test_phase14c_wide_net_calendar_bridge_payloads_are_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                ["phase14c", "wide-net-calendar-bridge-payloads", "--json"]
+            )
+
+        payload = json.loads(result.stdout)
+        bridge = payload["wide_net_calendar_app_bridge"]
+        precheck = bridge["duplicate_precheck"]
+        create = bridge["calendar_create"]
+        safety = bridge["safety_assertions"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-calendar-bridge-payloads",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_app_bridge_payloads_ready",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(bridge["ready_for_live_execution"])
+        self.assertTrue(bridge["template_only_not_authorization"])
+        self.assertFalse(bridge["calendar_app_connector_called"])
+        self.assertFalse(bridge["calendar_client_injected_into_wide_net_runner"])
+        self.assertFalse(safety["calendar_app_connector_called"])
+        self.assertFalse(safety["external_mutation"])
+        self.assertEqual(
+            precheck["google_calendar_search_events_args"]["query"],
+            "[Phase 14-C Wide Test] Evening Reset Coordination",
+        )
+        self.assertEqual(
+            create["google_calendar_create_event_args"]["attendees"],
+            [],
+        )
+        self.assertFalse(create["google_calendar_create_event_args"]["add_google_meet"])
+        self.assertIsNone(create["google_calendar_create_event_args"]["recurrence"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
     def test_phase14c_wide_net_rehearsal_plan_is_no_live_report(self) -> None:
         secret_environment = {
             "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
@@ -1501,6 +1556,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(plan["template_only_not_authorization"])
         self.assertTrue(plan["executable_gate_available"])
         self.assertTrue(plan["calendar_bridge_scaffold_available"])
+        self.assertTrue(plan["calendar_app_bridge_payload_command_available"])
         self.assertFalse(plan["calendar_client_bridge_available"])
         self.assertTrue(plan["calendar_precheck_unrecognized_response_fails_closed"])
         self.assertEqual(budgets["openrouter_primary_calls"], 1)

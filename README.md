@@ -106,13 +106,17 @@ Do not rerun the connected live command without a new explicit approval. Use
 `personalos phase14c wide-net-rehearsal-plan --json` to inspect the next
 wider inert plan for one OpenRouter diagnostic, one Todoist task, one Gmail
 self-send, and one self-only Calendar event. That plan is not live
-authorization. Use `personalos phase14c wide-net-rehearsal --json` to inspect
-the default no-live gate; its `--execute-live` path fails closed before
-credential values are read until an audited Calendar client/connector bridge
-exists. The injected wide-net runner now enforces a Calendar duplicate-marker
-precheck before any model, Todoist, Gmail, or Calendar create step can run,
-and the Calendar bridge scaffold fails closed on unrecognized precheck
-response shapes.
+authorization. Use
+`personalos phase14c wide-net-calendar-bridge-payloads --json` to inspect the
+Google Calendar app connector payloads for the duplicate precheck and
+self-only create step; that command is report-only and does not call the
+connector. Use `personalos phase14c wide-net-rehearsal --json` to inspect the
+default no-live gate; its `--execute-live` path fails closed before credential
+values are read until an audited Calendar client/connector bridge exists. The
+injected wide-net runner now enforces a Calendar duplicate-marker precheck
+before any model, Todoist, Gmail, or Calendar create step can run, and the
+Calendar bridge scaffold fails closed on unrecognized precheck response
+shapes.
 
 Codex/Fable must not inspect or mutate `/Users/coldstake/PersonalOS`,
 `/Users/coldstake/.openclaw`, credential stores, LaunchAgents, crontab,

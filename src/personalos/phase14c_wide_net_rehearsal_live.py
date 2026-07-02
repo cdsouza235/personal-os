@@ -563,6 +563,21 @@ def _calendar_precheck_payload(
     }
 
 
+def build_wide_net_calendar_payloads(
+    *,
+    source_date: date | None = None,
+) -> dict[str, Any]:
+    """Return the bounded wide-net Calendar precheck/create payloads."""
+
+    calendar_payload = _calendar_payload(source_date=source_date)
+    return {
+        "calendar_precheck_payload": _calendar_precheck_payload(
+            calendar_payload=calendar_payload
+        ),
+        "calendar_create_payload": calendar_payload,
+    }
+
+
 def _redacted_calendar_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "calendar_id": payload.get("calendar_id"),

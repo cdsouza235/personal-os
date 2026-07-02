@@ -222,7 +222,9 @@ currently fails closed before values, after required config names are present, w
 until a future audited Calendar bridge exists. The injected runner performs the
 Calendar duplicate-marker precheck before model, Todoist, Gmail, or Calendar
 create, and the Calendar bridge scaffold fails closed on unrecognized precheck
-response shapes, so model diagnostics remain separate from duplicate-safety.
+response shapes. The `phase14c wide-net-calendar-bridge-payloads --json`
+command reports the Google Calendar app connector payloads without calling the
+connector, so model diagnostics remain separate from duplicate-safety.
 
 ## Non-Goals
 

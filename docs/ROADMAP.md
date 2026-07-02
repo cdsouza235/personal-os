@@ -190,7 +190,9 @@ Calendar event; it is not live authorization. The default no-live executable
 gate now fails closed before credential values until an audited Calendar bridge
 exists; the injected runner enforces the Calendar duplicate-marker precheck
 before model, Todoist, Gmail, or Calendar create, and the Calendar bridge
-scaffold fails closed on unrecognized precheck response shapes.
+scaffold fails closed on unrecognized precheck response shapes. The repo-local
+`phase14c wide-net-calendar-bridge-payloads --json` command now reports the
+Google Calendar app connector payloads without calling the connector.
 
 ## Future Blocked Work
 

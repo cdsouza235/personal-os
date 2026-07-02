@@ -61,6 +61,9 @@ from personalos.phase14c_todoist_live_smoke import (
     PHASE14C_TODOIST_TOKEN_CONFIG_NAME,
     run_phase14c_todoist_inbox_smoke,
 )
+from personalos.phase14c_wide_net_calendar_app_bridge import (
+    build_phase14c_wide_net_calendar_app_bridge_report,
+)
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     build_phase14c_wide_net_rehearsal_plan,
@@ -348,6 +351,14 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local gate / no values by default / bounded live only with explicit approval",
         "local_effect": "default path reads environment key names only and makes no live calls",
         "output": "stdout connected rehearsal gate JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net Calendar bridge payloads",
+        "safe_local_action": "Inspect Google Calendar app connector payloads",
+        "command": "personalos phase14c wide-net-calendar-bridge-payloads [--json]",
+        "mode": "repo-local app-bridge payload report / no connector call",
+        "local_effect": "no env read; no DB opened; no files written; no app connector called",
+        "output": "stdout bridge payload JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net rehearsal plan",
@@ -755,6 +766,20 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_connected_rehearsal_live_parser)
     phase14c_connected_rehearsal_live_parser.set_defaults(
         func=_command_phase14c_connected_rehearsal
+    )
+
+    phase14c_wide_net_calendar_bridge_parser = phase14c_subparsers.add_parser(
+        "wide-net-calendar-bridge-payloads",
+        help="Report Google Calendar app bridge payloads for the wide-net rehearsal.",
+        description=(
+            "Print the repo-local Google Calendar app connector payloads for the "
+            "wide-net duplicate precheck and self-only event create step. This "
+            "does not call the connector, read credentials, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_calendar_bridge_parser)
+    phase14c_wide_net_calendar_bridge_parser.set_defaults(
+        func=_command_phase14c_wide_net_calendar_bridge_payloads
     )
 
     phase14c_wide_net_rehearsal_parser = phase14c_subparsers.add_parser(
@@ -1798,6 +1823,44 @@ def _command_phase14c_live_smoke_diagnostics(args: argparse.Namespace) -> int:
         safe_next_actions=(
             "Manually check Todoist before any Todoist retry.",
             "Use the safer OpenRouter metadata on the next separately approved smoke.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_calendar_bridge_payloads(
+    args: argparse.Namespace,
+) -> int:
+    bridge_report = build_phase14c_wide_net_calendar_app_bridge_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-calendar-bridge-payloads",
+            "status": bridge_report["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_calendar_app_bridge": bridge_report,
+        },
+        workflow_name="Phase 14-C wide-net Calendar bridge payloads",
+        workflow_mode="repo-local app bridge payloads / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the Calendar app connector payloads.",
+            "Run Claude Code audit before wiring live connector execution.",
             "Do not paste or inspect credential values.",
         ),
     )

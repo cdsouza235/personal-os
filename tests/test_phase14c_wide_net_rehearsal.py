@@ -31,6 +31,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertTrue(plan["template_only_not_authorization"])
         self.assertTrue(plan["executable_gate_available"])
         self.assertTrue(plan["calendar_bridge_scaffold_available"])
+        self.assertTrue(plan["calendar_app_bridge_payload_command_available"])
         self.assertFalse(plan["calendar_client_bridge_available"])
         self.assertTrue(plan["calendar_duplicate_precheck_enforced_by_runner"])
         self.assertTrue(plan["calendar_precheck_unrecognized_response_fails_closed"])
@@ -142,6 +143,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "does not authorize or run live rails",
             "fails closed before credential values are read",
             "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
+            "phase14c wide-net-calendar-bridge-payloads --json",
             "one openrouter diagnostic model probe",
             "one todoist inbox/default marker task",
             "one gmail controlled self-email",
@@ -159,6 +161,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "unrecognized precheck response",
             "explicit precheck contract",
             "unrecognized precheck response shapes fail closed",
+            "google calendar app connector payloads",
             "if glm returns another `http_status=402`",
             "future human gate, not reusable authorization",
             "live_rails_activated` remains `false",
@@ -172,6 +175,7 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
 
         self.assertIn("docs/phase_14c_wide_net_rehearsal.md", text)
         self.assertIn("phase14c wide-net-rehearsal-plan --json", text)
+        self.assertIn("phase14c wide-net-calendar-bridge-payloads --json", text)
         self.assertIn("one self-only calendar event", text)
         self.assertIn("unrecognized precheck response shapes", text)
 

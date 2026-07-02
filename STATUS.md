@@ -1,15 +1,15 @@
 # Personal OS Status
 
-Last updated: 2026-07-01
+Last updated: 2026-07-02
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #103:
-  `40a44291181cd9bde72e7d365459b54ce9739660`
-- Latest merged PR at that baseline: PR #103, Phase 14-C wide-net Calendar
-  duplicate precheck
+- Last validated main baseline after PR #104:
+  `247c6b0ed6f20bd456d48dde9197387d47bd90bc`
+- Latest merged PR at that baseline: PR #104, Phase 14-C wide-net Calendar
+  bridge contract and fail-closed precheck
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -94,7 +94,9 @@ Last updated: 2026-07-01
   Todoist, Gmail, or Calendar create; the repo has a Calendar bridge scaffold
   that normalizes connector precheck results into an explicit
   `matching_event_count` contract and fails closed on unrecognized response
-  shapes
+  shapes; the repo also has a no-live Calendar app-bridge payload command that
+  reports the Google Calendar app connector arguments for the future
+  duplicate precheck and self-only create step without calling the connector
 - Completed through: Phase 14-A/B first live pilot preparation on `main`, plus
   pre-Phase-14-C candidate-selection preparation on `main`, plus one future
   Todoist candidate recorded for candidate-review tracking only, plus the
@@ -328,7 +330,10 @@ Last updated: 2026-07-01
   `phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client`
   before credential values are read until an audited Calendar client/connector
   bridge exists. The Calendar bridge scaffold exists for injected adapters and
-  fails closed on malformed or unrecognized precheck response shapes.
+  fails closed on malformed or unrecognized precheck response shapes. The
+  `phase14c wide-net-calendar-bridge-payloads --json` command reports the
+  Google Calendar app connector payloads without reading credentials, calling
+  the connector, or injecting a Calendar client into the live runner.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a
@@ -342,8 +347,8 @@ Last updated: 2026-07-01
 
 ## Validated State
 
-- Full suite: 793 tests OK
-- ResourceWarning-sensitive suite: 793 tests OK
+- Full suite: 796 tests OK
+- ResourceWarning-sensitive suite: 796 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -358,7 +363,8 @@ Last updated: 2026-07-01
 - Targeted Phase 14-C diagnostics/client/CLI/model/docs suite: 97 tests OK
 - Targeted Phase 14-C connected rehearsal executor/CLI/docs/model suite: 96 tests OK
 - Targeted Phase 14-C connected rehearsal evidence docs/model suite: 24 tests OK
-- Targeted Phase 14-C wide-net bridge/gate/CLI/docs/model suite: 108 tests OK
+- Targeted Phase 14-C wide-net app-bridge/gate/CLI/docs/model suite:
+  111 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 83 tests OK

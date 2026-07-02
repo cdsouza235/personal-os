@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #111:
-  `8932c1b479de8ec3d30a659305df65e833dcfd99`
-- Latest merged PR at that baseline: PR #111, Phase 14-C wide-net evidence
-  rehearsal
+- Last validated main baseline after PR #112:
+  `9a8bffae0a6e0e8ed24eb025f23754fe37811ffc`
+- Latest merged PR at that baseline: PR #112, Phase 14-C wide-net readiness
+  rollup
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -106,10 +106,11 @@ Last updated: 2026-07-02
   report the future bounded command, Calendar connector handoff, call budgets,
   sanitized post-run evidence shape, sanitized post-run evidence checks,
   sanitized Calendar-transcript-to-wide-net-evidence consistency checks,
-  synthetic no-live validator-chain rehearsal, and one summary of remaining
-  human/connector gates without reading credentials, wiring a connector,
-  calling live services, returning raw fixture payloads, authorizing a live
-  run, or echoing raw evidence; Phase 14-C shared
+  synthetic no-live validator-chain rehearsal, one summary of remaining
+  human/connector gates, and a fixed no-live readiness-rollup contract
+  validator without reading credentials, wiring a connector, calling live
+  services, returning raw fixture payloads, authorizing a live run, or echoing
+  raw evidence; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
   scans across the live-gated and report-only modules; the wide-net evidence
@@ -168,7 +169,8 @@ Last updated: 2026-07-02
   plan, fail-closed executable gate, Calendar duplicate-precheck contract,
   Calendar app-bridge payload report, execution handoff, redacted evidence
   validator, fillable evidence template, evidence crosscheck, evidence
-  rehearsal, readiness rollup, and shared Phase 14-C safety-helper hardening
+  rehearsal, readiness rollup, readiness-rollup contract validator, and shared
+  Phase 14-C safety-helper hardening
 - Current / next phase: Phase 14-C wide-net rehearsal planning after the first
   approved model-to-task-to-email rehearsal stopped at model validation. The
   connected live evidence is recorded in
@@ -176,12 +178,14 @@ Last updated: 2026-07-02
   and the next inert wider plan is recorded in
   [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md).
   The wide-net execution handoff, evidence template, evidence validator,
-  evidence crosscheck, evidence rehearsal, and readiness rollup are repo-local
+  evidence crosscheck, evidence rehearsal, readiness rollup, and
+  readiness-rollup contract validator are repo-local
   and inert; the evidence validator and evidence crosscheck have explicit local
   input-size gates, the evidence validator uses bounded shared redaction scans,
   the evidence rehearsal exercises the validator chain with synthetic
-  sanitized inputs only, and the readiness rollup summarizes remaining human
-  and connector gates. Calendar creation and protected OpenClaw runtime
+  sanitized inputs only, and the readiness rollup plus contract validator
+  summarize and pin remaining human and connector gates. Calendar creation and
+  protected OpenClaw runtime
   invocation remain excluded unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
   `[Phase 14-C Test] Clean Kitchen Countertops and Stovetop`,
@@ -391,7 +395,12 @@ Last updated: 2026-07-02
   evidence template, and synthetic evidence rehearsal into one repo-local
   readiness report, records remaining human and connector gates, and does not
   read credentials, does not call connectors, does not produce live evidence,
-  and does not authorize a live run.
+  and does not authorize a live run. The
+  `phase14c wide-net-readiness-rollup-contract --json` command validates that
+  rollup against fixed inert fields, non-authorization flags, safety
+  assertions, and fixed reason-code output without echoing drifted values,
+  reading credentials, calling connectors, producing live evidence, or
+  authorizing a live run.
 - Phase 14-C connectivity readiness:
   [docs/PHASE_14C_CONNECTIVITY_READINESS.md](docs/PHASE_14C_CONNECTIVITY_READINESS.md)
   records that Google Calendar connector reads are available, Gmail now has a

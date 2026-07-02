@@ -183,6 +183,21 @@ touch protected paths. It does not call connectors, does not authorize a live
 run, does not produce live evidence, and records the remaining human and
 connector gates before the future wide-net live packet.
 
+Readiness rollup contract:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-readiness-rollup-contract --json
+```
+
+The readiness rollup contract command rebuilds the rollup report and validates
+it against a fixed inert contract: top-level fields, fixed component statuses,
+required false live flags, required true non-authorization flags, remaining
+gate text, evidence-rehearsal summary, and safety assertions. The command emits
+fixed reason codes only; it does not echo drifted values, read `.env.local`,
+read credentials, initialize live clients, call connectors, create Todoist
+tasks, send Gmail, write Calendar, call OpenRouter, invoke OpenClaw, open a
+database, write files, or authorize a live run.
+
 ## Confirmed Foundation
 
 - Gmail SMTP self-send has passed once with one controlled self-send and

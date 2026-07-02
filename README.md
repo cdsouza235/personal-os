@@ -139,7 +139,11 @@ payload/transcript surfaces, execution handoff, evidence template, and
 synthetic evidence rehearsal. The rollup does not read credentials, does not
 call connectors, does not initialize live clients, does not write files, does
 not produce live evidence, and does not authorize a live run; it records
-remaining human and connector gates.
+remaining human and connector gates. Use
+`personalos phase14c wide-net-readiness-rollup-contract --json` to validate
+that rollup against a fixed inert contract and fixed reason-code output without
+reading credentials, calling connectors, initializing live clients, writing
+files, or authorizing live execution.
 Use `personalos phase14c wide-net-rehearsal --json` to inspect the default
 no-live gate; its `--execute-live` path fails closed before credential values
 are read until an audited Calendar client/connector bridge exists. The

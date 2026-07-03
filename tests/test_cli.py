@@ -52,6 +52,7 @@ from personalos.phase14c_wide_net_calendar_transcript import (
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
 )
+from personalos.phase14c_wide_net_rehearsal_live import WIDE_NET_REQUIRED_CONFIG_NAMES
 from personalos.permissions import PermissionMode
 from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_RUN_PERMISSION,
@@ -399,6 +400,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C wide-net Calendar bridge payloads",
             "Phase 14-C wide-net execution handoff",
             "Phase 14-C wide-net evidence validator",
+            "Phase 14-C wide-net local preflight",
             "Phase 14-C wide-net readiness rollup",
             "Phase 14-C wide-net readiness rollup contract",
             "Phase 14-C wide-net rehearsal plan",
@@ -464,6 +466,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence crosscheck", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence rehearsal", workflow_names)
+        self.assertIn("Phase 14-C wide-net local preflight", workflow_names)
         self.assertIn("Phase 14-C wide-net readiness rollup", workflow_names)
         self.assertIn(
             "Phase 14-C wide-net readiness rollup contract",
@@ -1947,6 +1950,89 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertNotIn("normalized_response", result.stdout)
         self.assertNotIn("evt_", result.stdout)
         self.assertNotIn("chris@example.com", result.stdout)
+
+    def test_phase14c_wide_net_local_preflight_missing_names_only(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+            "UNRELATED_SECRET_TOKEN": "sk-secret-local-preflight",
+        }
+        with (
+            mock.patch.dict(os.environ, secret_environment, clear=True),
+            mock.patch("personalos.cli.Path.is_file", return_value=False),
+        ):
+            result = _run_cli(["phase14c", "wide-net-local-preflight", "--json"])
+
+        payload = json.loads(result.stdout)
+        preflight = payload["wide_net_local_preflight"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-local-preflight")
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_local_preflight_reported",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertFalse(preflight["ready_for_live_execution"])
+        self.assertFalse(preflight["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(preflight["credential_values_read"])
+        self.assertFalse(preflight["present_config_names_reported"])
+        self.assertFalse(
+            preflight["config_preflight"]["available_config_entry_names_reported"]
+        )
+        self.assertIn(
+            "PERSONALOS_OPENCLAW_MODEL_PROVIDER",
+            preflight["config_preflight"]["missing_config_entry_names"],
+        )
+        self.assertFalse(preflight["ssl_cert_file"]["is_file"])
+        self.assertFalse(preflight["ssl_cert_file"]["content_read"])
+        self.assertFalse(preflight["local_preflight"]["local_preflight_passed"])
+        self.assertFalse(preflight["safety_assertions"]["credential_values_read"])
+        self.assertFalse(preflight["safety_assertions"]["environment_dumped"])
+        self.assertFalse(preflight["safety_assertions"]["external_mutation"])
+        self.assertFalse(preflight["safety_assertions"]["calendar_event_created"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+        self.assertNotIn("UNRELATED_SECRET_TOKEN", result.stdout)
+
+    def test_phase14c_wide_net_local_preflight_pass_still_not_authorized(
+        self,
+    ) -> None:
+        secret_environment = {
+            name: f"secret-value-for-{name}" for name in WIDE_NET_REQUIRED_CONFIG_NAMES
+        }
+        with (
+            mock.patch.dict(os.environ, secret_environment, clear=True),
+            mock.patch("personalos.cli.Path.is_file", return_value=True),
+        ):
+            result = _run_cli(["phase14c", "wide-net-local-preflight", "--json"])
+
+        payload = json.loads(result.stdout)
+        preflight = payload["wide_net_local_preflight"]
+        self.assertEqual(result.code, 0)
+        self.assertTrue(
+            preflight["config_preflight"]["all_required_config_names_present"]
+        )
+        self.assertEqual(preflight["config_preflight"]["missing_config_entry_names"], [])
+        self.assertTrue(preflight["ssl_cert_file"]["is_file"])
+        self.assertTrue(preflight["local_preflight"]["local_preflight_passed"])
+        self.assertFalse(preflight["ready_for_live_execution"])
+        self.assertFalse(preflight["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(preflight["calendar_cli_connector_wiring_present"])
+        self.assertTrue(
+            preflight["local_preflight"]["calendar_connector_wiring_still_required"]
+        )
+        self.assertTrue(
+            preflight["local_preflight"]["fresh_human_live_approval_still_required"]
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
 
     def test_phase14c_wide_net_readiness_rollup_is_no_live_report(self) -> None:
         secret_environment = {

@@ -23,7 +23,10 @@ requirements without reading credentials or calling live services. It also has
 a post-run crosscheck command to verify that sanitized Calendar transcript
 evidence and sanitized wide-net evidence agree without echoing raw inputs, plus
 a synthetic evidence rehearsal command that exercises the full validator chain
-without returning raw fixture payloads or producing live evidence.
+without returning raw fixture payloads or producing live evidence. The repo
+also has a wide-net local preflight command that checks required config entry
+names and the fixed CA-bundle path metadata without reading credential values
+or CA file contents.
 
 CLI report:
 
@@ -167,6 +170,26 @@ does not read credentials, call connectors, initialize live clients, write
 files, or return raw fixture payloads. The rehearsal output is not live
 evidence and must not be recorded as proof of a real wide-net run.
 
+Local preflight:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-local-preflight --json
+```
+
+The local preflight command is repo-local/report-only. It reads environment key
+names only, checks whether the fixed
+`/opt/homebrew/etc/ca-certificates/cert.pem` path is a file, and reports only
+missing required config entry names plus CA path metadata. It does not read
+credential values, report present config names, dump the environment, read the
+CA file contents, initialize live clients, call connectors, call OpenRouter,
+create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw, open a
+database, write files, or touch protected paths. Even when all required config
+names are present and the CA bundle exists, it keeps
+`ready_for_live_execution=false`, keeps
+`wide_net_live_run_authorized_by_this_report=false`, and records that Calendar
+connector wiring, OpenRouter budget confirmation, fresh human approval, and
+Claude Code audit remain required.
+
 Readiness rollup:
 
 ```bash
@@ -175,13 +198,14 @@ PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-readiness-rollup --js
 
 The readiness rollup command is repo-local/report-only. It composes the
 wide-net plan, Calendar bridge payload surface, sanitized Calendar transcript
-template, execution handoff, fillable evidence template, and synthetic
-evidence rehearsal into one summary report. It does not read `.env.local`, read
-credentials, initialize live clients, create Todoist tasks, send Gmail, write
-Calendar, call OpenRouter, invoke OpenClaw, open a database, write files, or
-touch protected paths. It does not call connectors, does not authorize a live
-run, does not produce live evidence, and records the remaining human and
-connector gates before the future wide-net live packet.
+template, execution handoff, fillable evidence template, synthetic evidence
+rehearsal, and local preflight report surface into one summary report. It does
+not read `.env.local`, read credentials, initialize live clients, create
+Todoist tasks, send Gmail, write Calendar, call OpenRouter, invoke OpenClaw,
+open a database, write files, or touch protected paths. It does not call
+connectors, does not authorize a live run, does not produce live evidence, and
+records the remaining human and connector gates before the future wide-net
+live packet.
 
 Readiness rollup contract:
 

@@ -303,7 +303,11 @@ create count agree without echoing raw inputs or calling the Calendar
 connector. The `phase14c wide-net-evidence-rehearsal --json` command runs a
 synthetic repo-local rehearsal of that validator chain without reading
 credentials or calling connectors, and without returning raw fixture payloads
-or producing live evidence.
+or producing live evidence. The
+`phase14c wide-net-local-preflight --json` command checks required wide-net
+config entry names and the fixed CA-bundle path metadata without reading
+credential values, reporting present config names, reading CA file contents,
+calling connectors, or authorizing a live run.
 
 Wide-net rehearsal executable gate:
 

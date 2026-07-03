@@ -22,6 +22,10 @@ from personalos.phase14c_wide_net_execution_handoff import (
     build_phase14c_wide_net_evidence_template_report,
     build_phase14c_wide_net_execution_handoff_report,
 )
+from personalos.phase14c_wide_net_local_preflight import (
+    PHASE14C_WIDE_NET_LOCAL_PREFLIGHT_STATUS,
+    build_phase14c_wide_net_local_preflight_report,
+)
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     PHASE14C_WIDE_NET_REHEARSAL_MARKER,
@@ -98,6 +102,7 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_STATUSES: dict[str, str] = {
     "execution_handoff": "phase14c_wide_net_execution_handoff_ready",
     "evidence_template": "phase14c_wide_net_evidence_template_ready",
     "evidence_rehearsal": "phase14c_wide_net_evidence_rehearsal_passed",
+    "local_preflight": PHASE14C_WIDE_NET_LOCAL_PREFLIGHT_STATUS,
 }
 
 PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS: dict[str, bool] = {
@@ -109,6 +114,7 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS: dict[str, bool] = {
     "evidence_validator_available": True,
     "evidence_crosscheck_available": True,
     "synthetic_evidence_rehearsal_passed": True,
+    "local_preflight_report_available": True,
     "wide_net_runner_available_but_fail_closed": True,
     "calendar_cli_connector_wiring_present": False,
 }
@@ -183,6 +189,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
     handoff = build_phase14c_wide_net_execution_handoff_report()
     evidence_template = build_phase14c_wide_net_evidence_template_report()
     evidence_rehearsal = build_phase14c_wide_net_evidence_rehearsal_report()
+    local_preflight = build_phase14c_wide_net_local_preflight_report()
     rehearsal_passed = (
         evidence_rehearsal["status"] == PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED
     )
@@ -210,6 +217,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
             "execution_handoff": handoff["status"],
             "evidence_template": evidence_template["status"],
             "evidence_rehearsal": evidence_rehearsal["status"],
+            "local_preflight": local_preflight["status"],
         },
         "component_readiness": {
             **PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS,
@@ -376,6 +384,14 @@ def _commands() -> tuple[dict[str, object], ...]:
             "command": (
                 "PYTHONPATH=src python3 -m personalos.cli phase14c "
                 "wide-net-evidence-rehearsal --json"
+            ),
+            "live_action": False,
+        },
+        {
+            "name": "local_preflight",
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-local-preflight --json"
             ),
             "live_action": False,
         },

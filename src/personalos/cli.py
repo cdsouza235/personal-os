@@ -84,6 +84,9 @@ from personalos.phase14c_wide_net_execution_handoff import (
     crosscheck_phase14c_wide_net_evidence,
     validate_phase14c_wide_net_evidence_report,
 )
+from personalos.phase14c_wide_net_local_preflight import (
+    build_phase14c_wide_net_local_preflight_report,
+)
 from personalos.phase14c_wide_net_readiness_rollup import (
     PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_BLOCKED,
     PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_VALID,
@@ -92,6 +95,7 @@ from personalos.phase14c_wide_net_readiness_rollup import (
 )
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
+    PHASE14C_WIDE_NET_REHEARSAL_SSL_CERT_FILE,
     build_phase14c_wide_net_rehearsal_plan,
 )
 from personalos.phase14c_wide_net_rehearsal_live import (
@@ -456,6 +460,17 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "constructs synthetic sanitized inputs in memory; no services called"
         ),
         "output": "stdout evidence rehearsal JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net local preflight",
+        "safe_local_action": "Check local wide-net config names and CA bundle metadata",
+        "command": "personalos phase14c wide-net-local-preflight [--json]",
+        "mode": "repo-local preflight / names-only / no credential values",
+        "local_effect": (
+            "reads environment key names and CA bundle file metadata only; "
+            "no services called; no files written"
+        ),
+        "output": "stdout wide-net local preflight JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net readiness rollup",
@@ -1016,6 +1031,21 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_evidence_rehearsal_parser)
     phase14c_wide_net_evidence_rehearsal_parser.set_defaults(
         func=_command_phase14c_wide_net_evidence_rehearsal
+    )
+
+    phase14c_wide_net_local_preflight_parser = phase14c_subparsers.add_parser(
+        "wide-net-local-preflight",
+        help="Check wide-net local config names and CA bundle metadata.",
+        description=(
+            "Report whether required wide-net environment/config entry names are "
+            "present and whether the fixed CA bundle path exists as a file. This "
+            "does not read credential values, read the CA file contents, initialize "
+            "live clients, call connectors, write files, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_local_preflight_parser)
+    phase14c_wide_net_local_preflight_parser.set_defaults(
+        func=_command_phase14c_wide_net_local_preflight
     )
 
     phase14c_wide_net_readiness_rollup_parser = phase14c_subparsers.add_parser(
@@ -2466,6 +2496,46 @@ def _command_phase14c_wide_net_evidence_rehearsal(
     )
     _emit_report(report, json_output=args.json)
     return 0 if accepted else 1
+
+
+def _command_phase14c_wide_net_local_preflight(args: argparse.Namespace) -> int:
+    ssl_cert_file_is_file = Path(PHASE14C_WIDE_NET_REHEARSAL_SSL_CERT_FILE).is_file()
+    preflight = build_phase14c_wide_net_local_preflight_report(
+        available_config_names=os.environ.keys(),
+        ssl_cert_file_is_file=ssl_cert_file_is_file,
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-local-preflight",
+            "status": preflight["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_local_preflight": preflight,
+        },
+        workflow_name="Phase 14-C wide-net local preflight",
+        workflow_mode="repo-local local preflight / names-only / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review missing config entry names and CA bundle metadata.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
 
 
 def _command_phase14c_wide_net_readiness_rollup(args: argparse.Namespace) -> int:

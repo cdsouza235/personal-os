@@ -50,6 +50,15 @@ MVP_READINESS_PAYLOAD_FIELDS: tuple[str, ...] = (
     "live_mvp_ready",
     "candidate_review_tracking_only",
     "phase14_c_blocked",
+    "wide_net_rollup_contract_valid",
+    "wide_net_ready_for_live_execution",
+    "wide_net_live_run_authorized_by_this_report",
+    "wide_net_calendar_cli_connector_wiring_present",
+    "wide_net_credential_values_read",
+    "wide_net_external_mutation",
+    "wide_net_readiness_status",
+    "wide_net_live_rails_activated",
+    "wide_net_remaining_gate_count",
 )
 
 PACKET_PLAN_FIELDS: tuple[str, ...] = (
@@ -190,6 +199,33 @@ def build_nonhuman_closure_plan_report() -> dict[str, Any]:
                 "candidate_review_tracking_only"
             ],
             "phase14_c_blocked": mvp_report["phase14_c_blocked"],
+            "wide_net_rollup_contract_valid": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["rollup_contract_valid"],
+            "wide_net_ready_for_live_execution": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["ready_for_live_execution"],
+            "wide_net_live_run_authorized_by_this_report": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["wide_net_live_run_authorized_by_this_report"],
+            "wide_net_calendar_cli_connector_wiring_present": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["calendar_cli_connector_wiring_present"],
+            "wide_net_credential_values_read": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["credential_values_read"],
+            "wide_net_external_mutation": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["external_mutation"],
+            "wide_net_readiness_status": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["readiness_status"],
+            "wide_net_live_rails_activated": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["live_rails_activated"],
+            "wide_net_remaining_gate_count": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["remaining_gate_count"],
         },
         "packet_plan": [dict(packet) for packet in NONHUMAN_CLOSURE_PACKET_PLAN],
         "human_required_gates": list(HUMAN_REQUIRED_GATES),
@@ -320,12 +356,28 @@ def _check_mvp_readiness(value: Any, reasons: list[str]) -> None:
         "live_mvp_ready": False,
         "candidate_review_tracking_only": True,
         "phase14_c_blocked": True,
+        "wide_net_rollup_contract_valid": True,
+        "wide_net_ready_for_live_execution": False,
+        "wide_net_live_run_authorized_by_this_report": False,
+        "wide_net_calendar_cli_connector_wiring_present": False,
+        "wide_net_credential_values_read": False,
+        "wide_net_external_mutation": False,
+        "wide_net_readiness_status": "not_ready",
+        "wide_net_live_rails_activated": False,
     }
     for field, expected_value in expected.items():
         if not _matches_expected_value(value.get(field), expected_value):
             reasons.append(
                 f"Non-human closure report MVP readiness field {field} drifted."
             )
+    if not isinstance(value.get("wide_net_remaining_gate_count"), int):
+        reasons.append(
+            "Non-human closure report MVP readiness wide-net gate count is missing."
+        )
+    elif value["wide_net_remaining_gate_count"] < 1:
+        reasons.append(
+            "Non-human closure report MVP readiness wide-net gates must stay explicit."
+        )
 
 
 def _check_packet_plan(value: Any, reasons: list[str]) -> None:

@@ -38,6 +38,22 @@ The builder accepts no caller input. The report defaults to:
 - `inert_report_only=true`
 - `live_rails_activated=false`
 
+The report also composes the MVP readiness gap report, including the current
+Phase 14-C wide-net readiness summary. That nested MVP summary keeps:
+
+- `wide_net_rollup_contract_valid=true`
+- `wide_net_ready_for_live_execution=false`
+- `wide_net_live_run_authorized_by_this_report=false`
+- `wide_net_calendar_cli_connector_wiring_present=false`
+- `wide_net_credential_values_read=false`
+- `wide_net_external_mutation=false`
+- `wide_net_readiness_status=not_ready`
+- `wide_net_live_rails_activated=false`
+
+Those fields are status evidence only. They do not authorize the future
+wide-net live run, Calendar app connector use, credential handling, or
+external mutation.
+
 The validator returns only `report_matches_inert_contract=true` or
 `report_matches_inert_contract=false`. It never emits ready, approved,
 authorized, activated, executed, or live status.
@@ -139,6 +155,7 @@ runtime/operator scaffolding.
 - the report builder accepts no caller input
 - the default report is inert and `blocked_by_human_gates`
 - the MVP readiness gap report remains composed and valid
+- the nested MVP wide-net readiness gates remain blocked
 - the packet plan has five safe audited packet slots
 - human gates and blocked live rails are explicit
 - non-authorization flags remain false

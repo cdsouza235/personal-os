@@ -57,6 +57,19 @@ class NonhumanClosurePlanReportTest(unittest.TestCase):
         self.assertFalse(mvp_readiness["live_mvp_ready"])
         self.assertTrue(mvp_readiness["candidate_review_tracking_only"])
         self.assertTrue(mvp_readiness["phase14_c_blocked"])
+        self.assertTrue(mvp_readiness["wide_net_rollup_contract_valid"])
+        self.assertFalse(mvp_readiness["wide_net_ready_for_live_execution"])
+        self.assertFalse(
+            mvp_readiness["wide_net_live_run_authorized_by_this_report"]
+        )
+        self.assertFalse(
+            mvp_readiness["wide_net_calendar_cli_connector_wiring_present"]
+        )
+        self.assertFalse(mvp_readiness["wide_net_credential_values_read"])
+        self.assertFalse(mvp_readiness["wide_net_external_mutation"])
+        self.assertEqual(mvp_readiness["wide_net_readiness_status"], "not_ready")
+        self.assertFalse(mvp_readiness["wide_net_live_rails_activated"])
+        self.assertGreaterEqual(mvp_readiness["wide_net_remaining_gate_count"], 1)
 
     def test_packet_plan_records_five_safe_merged_audited_packets(self) -> None:
         report = build_nonhuman_closure_plan_report()
@@ -196,6 +209,48 @@ class NonhumanClosurePlanReportTest(unittest.TestCase):
             "Non-human closure report MVP readiness field contract_valid drifted.",
             validation.reasons,
         )
+
+    def test_validator_blocks_mvp_wide_net_drift_without_echo(self) -> None:
+        cases = (
+            (
+                "wide_net_ready_for_live_execution",
+                True,
+                (
+                    "Non-human closure report MVP readiness field "
+                    "wide_net_ready_for_live_execution drifted."
+                ),
+                "matrix-secret-unused-live-execution",
+            ),
+            (
+                "wide_net_readiness_status",
+                "matrix-secret-wide-net-status",
+                (
+                    "Non-human closure report MVP readiness field "
+                    "wide_net_readiness_status drifted."
+                ),
+                "matrix-secret-wide-net-status",
+            ),
+            (
+                "wide_net_remaining_gate_count",
+                0,
+                (
+                    "Non-human closure report MVP readiness wide-net gates must "
+                    "stay explicit."
+                ),
+                "matrix-secret-unused-gate-count",
+            ),
+        )
+        for field, value, expected_reason, unsafe_token in cases:
+            with self.subTest(field=field):
+                report = build_nonhuman_closure_plan_report()
+                report["mvp_readiness"][field] = value
+
+                validation = validate_nonhuman_closure_plan_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_token, serialized_validation)
 
     def test_validator_blocks_packet_flags_that_cross_boundaries(self) -> None:
         cases = (

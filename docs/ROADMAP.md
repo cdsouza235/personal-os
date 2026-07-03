@@ -103,9 +103,11 @@ exact nested payload shapes, and fails closed on drift without echoing
 caller-controlled values.
 The non-human closure plan records a three-to-five-packet Codex/Fable +
 Claude Code loop for finishing remaining repo-local non-human work while
+surfacing nested MVP wide-net readiness gates as blocked status evidence and
 preserving human gates for candidate approval, Phase 14-C authorization,
-live-service access, credentials, production DB, scheduler/background,
-OpenClaw, live-service testing, and go/no-go launch approval.
+live-service access, credentials, Calendar app connector live use, production
+DB, scheduler/background, OpenClaw, live-service testing, and go/no-go launch
+approval.
 The weekend test readiness runbook records manual test categories, evidence
 templates, no-go criteria, and rollback tabletop templates for a future
 weekend testing pass while keeping testing not started, live testing not

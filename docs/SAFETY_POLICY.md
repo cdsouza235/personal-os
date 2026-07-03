@@ -356,12 +356,14 @@ implement dynamic cleaning, adopt Watch Tower, add `.agent/`, add
 
 The [non-human closure plan](NON_HUMAN_CLOSURE_PLAN.md) may record a
 three-to-five-packet Codex/Fable + Claude Code loop for closing remaining
-repo-local, inert, deterministic work. It must keep every packet non-human and
-non-live: no human decision, no live-service access, no credentials, no
-production DB activation, no scheduler/background activation, no OpenClaw
-invocation, no protected path access, no dynamic cleaning implementation, no
-Watch Tower adoption, no `.agent/`, no `CLAUDE.md`, and no runtime/operator
-scaffolding. It does not weaken any human gate.
+repo-local, inert, deterministic work. It may surface nested MVP wide-net
+readiness gates as blocked status evidence only. It must keep every packet
+non-human and non-live: no human decision, no live-service access, no
+credentials, no Calendar app connector live use, no production DB activation,
+no scheduler/background activation, no OpenClaw invocation, no protected path
+access, no dynamic cleaning implementation, no Watch Tower adoption, no
+`.agent/`, no `CLAUDE.md`, and no runtime/operator scaffolding. It does not
+weaken any human gate.
 
 The [weekend test readiness runbook](WEEKEND_TEST_READINESS_RUNBOOK.md) may
 prepare manual test categories, evidence templates, no-go criteria, and

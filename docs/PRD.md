@@ -1566,7 +1566,8 @@ Current validated state:
   non-authorizing, composes the current Phase 14-C wide-net readiness rollup
   contract as a status summary, and keeps live MVP readiness blocked
 - Non-human closure planning is inert, argument-free, source/test/docs-only,
-  non-authorizing, and keeps human gates explicit
+  non-authorizing, surfaces nested MVP wide-net readiness gates as blocked
+  status evidence, and keeps human gates explicit
 - Weekend test readiness planning is inert, argument-free, source/test/docs-only,
   non-authorizing, and keeps weekend testing not started
 - Dry-run evidence planning is inert, argument-free, source/test/docs-only,

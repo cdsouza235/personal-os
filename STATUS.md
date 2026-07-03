@@ -443,7 +443,7 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 84 tests OK
 - Targeted MVP readiness gap report suite: 12 tests OK
 - Targeted MVP readiness docs suite: 7 tests OK
-- Targeted non-human closure plan suite: 11 tests OK
+- Targeted non-human closure plan suite: 12 tests OK
 - Targeted non-human closure docs suite: 5 tests OK
 - Targeted weekend test readiness suite: 12 tests OK
 - Targeted weekend test readiness docs suite: 5 tests OK
@@ -790,13 +790,19 @@ Codex/Fable + Claude Code loop for closing remaining repo-local non-human
 work while keeping `status=blocked_by_human_gates`,
 `nonhuman_closure_complete=false`, `live_mvp_ready=false`,
 `human_gates_remaining=true`, `readiness.status=not_ready`,
-`inert_report_only=true`, and `live_rails_activated=false`. Each packet slot
-keeps `claude_code_audit_required=true`, `contains_human_decision=false`, and
+`inert_report_only=true`, and `live_rails_activated=false`. It surfaces the
+nested MVP wide-net readiness gates while keeping
+`wide_net_ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`,
+`wide_net_calendar_cli_connector_wiring_present=false`,
+`wide_net_credential_values_read=false`, `wide_net_external_mutation=false`,
+and `wide_net_readiness_status=not_ready`. Each packet slot keeps
+`claude_code_audit_required=true`, `contains_human_decision=false`, and
 `contains_live_access=false`. The closure plan keeps candidate approval,
 Phase 14-C authorization, live-service access, credential/auth handling,
 production DB activation, scheduler/background activation, OpenClaw handoff
-or invocation, actual live-service testing, and go/no-go launch approval as
-separate human gates.
+or invocation, actual live-service testing, Calendar app connector use, and
+go/no-go launch approval as separate human gates.
 The weekend test readiness runbook is an inert source/test/docs report
 contract in
 [docs/WEEKEND_TEST_READINESS_RUNBOOK.md](docs/WEEKEND_TEST_READINESS_RUNBOOK.md)
@@ -1113,8 +1119,9 @@ production runtime state.
   contract. Its validator keeps the report `not_ready`, exact-shaped,
   non-authorizing, and non-echoing.
   The non-human closure plan records a three-to-five-packet repo-local
-  Codex/Fable + Claude Code loop for closing non-human work and keeps every
-  planned packet audited, non-human, and non-live.
+  Codex/Fable + Claude Code loop for closing non-human work, surfaces the
+  nested MVP wide-net readiness gates as blocked status evidence, and keeps
+  every planned packet audited, non-human, and non-live.
   The weekend test readiness runbook records manual test categories,
   evidence templates, no-go criteria, and rollback tabletop templates for a
   future weekend testing pass while keeping weekend testing not started, live

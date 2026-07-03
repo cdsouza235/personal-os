@@ -17,6 +17,10 @@ from personalos.nonhuman_closure import (
     validate_nonhuman_closure_plan_report_contract,
 )
 from personalos.phase14_pilot_prep import SAFETY_POSTURE
+from personalos.phase14c_wide_net_human_gate_packet import (
+    build_phase14c_wide_net_human_gate_packet_report,
+    validate_phase14c_wide_net_human_gate_packet_report_contract,
+)
 
 
 FINAL_NONHUMAN_HANDOFF_SCHEMA_VERSION = "personal_os_final_nonhuman_handoff.v1"
@@ -36,6 +40,7 @@ FINAL_NONHUMAN_HANDOFF_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "readiness",
     "dry_run_evidence",
     "nonhuman_closure",
+    "wide_net_human_gate_packet",
     "closure_packet_statuses",
     "human_gate_checklist",
     "blocked_live_rails",
@@ -75,6 +80,22 @@ NONHUMAN_CLOSURE_PAYLOAD_FIELDS: tuple[str, ...] = (
     "wide_net_readiness_status",
     "wide_net_live_rails_activated",
     "wide_net_remaining_gate_count",
+)
+
+WIDE_NET_HUMAN_GATE_PACKET_PAYLOAD_FIELDS: tuple[str, ...] = (
+    "status",
+    "contract_valid",
+    "repo_local_preconditions_met",
+    "ready_for_live_execution",
+    "wide_net_live_run_authorized_by_this_report",
+    "human_live_approval_still_required",
+    "claude_code_audit_required_before_live_run",
+    "calendar_cli_connector_wiring_present",
+    "credential_values_read",
+    "external_mutation",
+    "approval_request_template_is_not_approval",
+    "fresh_human_message_required",
+    "remaining_gate_count",
 )
 
 CLOSURE_PACKET_STATUS_FIELDS: tuple[str, ...] = (
@@ -308,6 +329,12 @@ def build_final_nonhuman_handoff_report() -> dict[str, Any]:
     closure_validation = validate_nonhuman_closure_plan_report_contract(
         closure_report
     )
+    human_gate_packet = build_phase14c_wide_net_human_gate_packet_report()
+    human_gate_packet_validation = (
+        validate_phase14c_wide_net_human_gate_packet_report_contract(
+            human_gate_packet
+        )
+    )
     mvp_readiness = closure_report["mvp_readiness"]
 
     return {
@@ -374,6 +401,41 @@ def build_final_nonhuman_handoff_report() -> dict[str, Any]:
             "wide_net_remaining_gate_count": mvp_readiness[
                 "wide_net_remaining_gate_count"
             ],
+        },
+        "wide_net_human_gate_packet": {
+            "status": human_gate_packet["status"],
+            "contract_valid": (
+                human_gate_packet_validation.report_matches_inert_contract
+            ),
+            "repo_local_preconditions_met": human_gate_packet[
+                "repo_local_preconditions_met"
+            ],
+            "ready_for_live_execution": human_gate_packet[
+                "ready_for_live_execution"
+            ],
+            "wide_net_live_run_authorized_by_this_report": human_gate_packet[
+                "wide_net_live_run_authorized_by_this_report"
+            ],
+            "human_live_approval_still_required": human_gate_packet[
+                "human_live_approval_still_required"
+            ],
+            "claude_code_audit_required_before_live_run": human_gate_packet[
+                "claude_code_audit_required_before_live_run"
+            ],
+            "calendar_cli_connector_wiring_present": human_gate_packet[
+                "calendar_cli_connector_wiring_present"
+            ],
+            "credential_values_read": human_gate_packet["credential_values_read"],
+            "external_mutation": human_gate_packet["external_mutation"],
+            "approval_request_template_is_not_approval": human_gate_packet[
+                "human_approval_request_template"
+            ]["template_is_not_approval"],
+            "fresh_human_message_required": human_gate_packet[
+                "human_approval_request_template"
+            ]["fresh_human_message_required"],
+            "remaining_gate_count": len(
+                human_gate_packet["remaining_gates_before_live"]
+            ),
         },
         "closure_packet_statuses": _materialize_records(
             FINAL_NONHUMAN_CLOSURE_PACKET_STATUSES
@@ -459,6 +521,10 @@ def _blocked_final_handoff_reasons(report: Mapping[str, Any]) -> list[str]:
     _check_readiness(report.get("readiness"), reasons)
     _check_dry_run_evidence(report.get("dry_run_evidence"), reasons)
     _check_nonhuman_closure(report.get("nonhuman_closure"), reasons)
+    _check_wide_net_human_gate_packet(
+        report.get("wide_net_human_gate_packet"),
+        reasons,
+    )
     _check_closure_packet_statuses(report.get("closure_packet_statuses"), reasons)
     _check_human_gate_checklist(report.get("human_gate_checklist"), reasons)
 
@@ -558,6 +624,49 @@ def _check_nonhuman_closure(value: Any, reasons: list[str]) -> None:
     if not isinstance(gate_count, int) or gate_count < 1:
         reasons.append(
             "Final non-human handoff report non-human closure wide-net gates must remain blocked."
+        )
+
+
+def _check_wide_net_human_gate_packet(value: Any, reasons: list[str]) -> None:
+    if not isinstance(value, Mapping):
+        reasons.append(
+            "Final non-human handoff report wide-net human gate payload is missing."
+        )
+        return
+    if tuple(value) != WIDE_NET_HUMAN_GATE_PACKET_PAYLOAD_FIELDS:
+        reasons.append(
+            "Final non-human handoff report wide-net human gate fields do not match the contract."
+        )
+
+    expected = {
+        "contract_valid": True,
+        "repo_local_preconditions_met": False,
+        "ready_for_live_execution": False,
+        "wide_net_live_run_authorized_by_this_report": False,
+        "human_live_approval_still_required": True,
+        "claude_code_audit_required_before_live_run": True,
+        "calendar_cli_connector_wiring_present": False,
+        "credential_values_read": False,
+        "external_mutation": False,
+        "approval_request_template_is_not_approval": True,
+        "fresh_human_message_required": True,
+    }
+    for field, expected_value in expected.items():
+        if not _matches_expected_value(value.get(field), expected_value):
+            reasons.append(
+                f"Final non-human handoff report wide-net human gate field {field} drifted."
+            )
+    status = value.get("status")
+    if not isinstance(status, str) or not status.startswith(
+        "phase14c_wide_net_human_gate_packet_"
+    ):
+        reasons.append(
+            "Final non-human handoff report wide-net human gate status drifted."
+        )
+    gate_count = value.get("remaining_gate_count")
+    if not isinstance(gate_count, int) or gate_count < 1:
+        reasons.append(
+            "Final non-human handoff report wide-net human gates must remain blocked."
         )
 
 

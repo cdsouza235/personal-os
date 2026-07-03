@@ -90,6 +90,7 @@ class NonhumanClosurePlanReportTest(unittest.TestCase):
             "packet_5_final_nonhuman_handoff",
         )
         self.assertIn("wide-net blocked gate summary", final_handoff_packet["scope"])
+        self.assertIn("wide-net human-gate packet summary", final_handoff_packet["scope"])
         self.assertIn("exact human gate checklist", final_handoff_packet["scope"])
 
     def test_report_keeps_human_gates_and_blocked_live_rails_explicit(self) -> None:

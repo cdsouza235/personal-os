@@ -84,6 +84,12 @@ from personalos.phase14c_wide_net_execution_handoff import (
     crosscheck_phase14c_wide_net_evidence,
     validate_phase14c_wide_net_evidence_report,
 )
+from personalos.phase14c_wide_net_human_gate_packet import (
+    PHASE14C_WIDE_NET_HUMAN_GATE_PACKET_CONTRACT_BLOCKED,
+    PHASE14C_WIDE_NET_HUMAN_GATE_PACKET_CONTRACT_VALID,
+    build_phase14c_wide_net_human_gate_packet_report,
+    validate_phase14c_wide_net_human_gate_packet_report_contract,
+)
 from personalos.phase14c_wide_net_local_preflight import (
     build_phase14c_wide_net_local_preflight_report,
 )
@@ -500,6 +506,28 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "builds and validates the checklist; no services called; no files written"
         ),
         "output": "stdout wide-net pre-run checklist contract JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net human gate packet",
+        "safe_local_action": "Report the next human gate packet for wide-net live review",
+        "command": "personalos phase14c wide-net-human-gate-packet [--json]",
+        "mode": "repo-local human-gate packet / no live clients / no authorization",
+        "local_effect": (
+            "reads environment key names and CA bundle file metadata only; "
+            "does not read values, call connectors, or authorize live execution"
+        ),
+        "output": "stdout wide-net human-gate packet JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net human gate packet contract",
+        "safe_local_action": "Validate the wide-net human gate packet contract",
+        "command": "personalos phase14c wide-net-human-gate-packet-contract [--json]",
+        "mode": "repo-local contract validation / no live clients",
+        "local_effect": (
+            "builds and validates the human-gate packet; no services called; "
+            "no files written"
+        ),
+        "output": "stdout wide-net human-gate packet contract JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net readiness rollup",
@@ -1106,6 +1134,37 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_pre_run_contract_parser)
     phase14c_wide_net_pre_run_contract_parser.set_defaults(
         func=_command_phase14c_wide_net_pre_run_checklist_contract
+    )
+
+    phase14c_wide_net_human_gate_parser = phase14c_subparsers.add_parser(
+        "wide-net-human-gate-packet",
+        help="Report the next wide-net human-gate packet without live calls.",
+        description=(
+            "Compose the pre-run checklist and execution handoff into one "
+            "non-authorizing human-gate packet. This reads environment key names "
+            "and CA bundle file metadata only; it does not read credential values, "
+            "initialize live clients, call connectors, write files, or authorize a "
+            "live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_human_gate_parser)
+    phase14c_wide_net_human_gate_parser.set_defaults(
+        func=_command_phase14c_wide_net_human_gate_packet
+    )
+
+    phase14c_wide_net_human_gate_contract_parser = phase14c_subparsers.add_parser(
+        "wide-net-human-gate-packet-contract",
+        help="Validate the wide-net human-gate packet contract.",
+        description=(
+            "Build and validate the wide-net human-gate packet against its inert "
+            "contract. This reads environment key names and CA bundle file "
+            "metadata only; it does not read credential values, initialize live "
+            "clients, call connectors, write files, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_human_gate_contract_parser)
+    phase14c_wide_net_human_gate_contract_parser.set_defaults(
+        func=_command_phase14c_wide_net_human_gate_packet_contract
     )
 
     phase14c_wide_net_readiness_rollup_parser = phase14c_subparsers.add_parser(
@@ -2677,6 +2736,96 @@ def _command_phase14c_wide_net_pre_run_checklist_contract(
             "wide_net_pre_run_checklist_contract": validation.to_dict(),
         },
         workflow_name="Phase 14-C wide-net pre-run checklist contract",
+        workflow_mode="repo-local contract validation / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review contract reasons if validation did not pass.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if valid else 1
+
+
+def _build_current_wide_net_human_gate_packet() -> dict[str, Any]:
+    checklist = _build_current_wide_net_pre_run_checklist()
+    return build_phase14c_wide_net_human_gate_packet_report(
+        pre_run_checklist_report=checklist
+    )
+
+
+def _command_phase14c_wide_net_human_gate_packet(
+    args: argparse.Namespace,
+) -> int:
+    packet = _build_current_wide_net_human_gate_packet()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-human-gate-packet",
+            "status": packet["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_human_gate_packet": packet,
+        },
+        workflow_name="Phase 14-C wide-net human gate packet",
+        workflow_mode="repo-local human-gate packet / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the human-gate packet and remaining live-run gates.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_human_gate_packet_contract(
+    args: argparse.Namespace,
+) -> int:
+    packet = _build_current_wide_net_human_gate_packet()
+    validation = validate_phase14c_wide_net_human_gate_packet_report_contract(packet)
+    valid = validation.report_matches_inert_contract
+    status = (
+        PHASE14C_WIDE_NET_HUMAN_GATE_PACKET_CONTRACT_VALID
+        if valid
+        else PHASE14C_WIDE_NET_HUMAN_GATE_PACKET_CONTRACT_BLOCKED
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-human-gate-packet-contract",
+            "status": status,
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_human_gate_packet_contract": validation.to_dict(),
+        },
+        workflow_name="Phase 14-C wide-net human gate packet contract",
         workflow_mode="repo-local contract validation / no connector call",
         database_access="not_applicable_no_db_opened",
         local_sqlite_read=False,

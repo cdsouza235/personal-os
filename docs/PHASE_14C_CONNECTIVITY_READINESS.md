@@ -312,6 +312,12 @@ calling connectors, or authorizing a live run. The
 `phase14c wide-net-pre-run-checklist-contract --json` commands compose that
 local preflight with the pinned rollup contract, report remaining human and
 external gates, and still cannot authorize a live run.
+The `phase14c wide-net-human-gate-packet --json` and
+`phase14c wide-net-human-gate-packet-contract --json` commands compose the
+pre-run checklist and execution handoff into one non-authorizing human-gate
+packet. The packet includes an approval request template, but the approval
+request template is not approval; a fresh human message is required, and
+Calendar connector wiring remains required.
 
 Wide-net rehearsal executable gate:
 

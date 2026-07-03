@@ -39,6 +39,7 @@ class NonhumanClosureDocsTest(unittest.TestCase):
             "dry-run evidence bundle",
             "final non-human handoff",
             "wide-net blocked gate summary",
+            "wide-net human-gate packet summary",
             "exact human gate checklist",
             "`claude_code_audit_required=true`",
             "`contains_human_decision=false`",

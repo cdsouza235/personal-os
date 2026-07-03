@@ -19,6 +19,7 @@ class FinalNonhumanHandoffDocsTest(unittest.TestCase):
             "final_nonhuman_handoff_top_level_fields",
             "final_nonhuman_closure_packet_statuses",
             "nonhuman_closure_payload_fields",
+            "wide_net_human_gate_packet_payload_fields",
             "human_gate_checklist",
             "next_human_work_plan",
             "non_authorization_false_fields",
@@ -106,6 +107,30 @@ class FinalNonhumanHandoffDocsTest(unittest.TestCase):
             "credential handling",
             "external mutation",
             "any live-service call",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def test_handoff_doc_records_wide_net_human_gate_packet_boundaries(self) -> None:
+        text = _normalized_doc_text(HANDOFF_DOC)
+
+        required_phrases = (
+            "wide-net human-gate packet summary",
+            "`ready_for_live_execution=false`",
+            "`wide_net_live_run_authorized_by_this_report=false`",
+            "`human_live_approval_still_required=true`",
+            "`claude_code_audit_required_before_live_run=true`",
+            "`calendar_cli_connector_wiring_present=false`",
+            "`credential_values_read=false`",
+            "`external_mutation=false`",
+            "`approval_request_template_is_not_approval=true`",
+            "`fresh_human_message_required=true`",
+            "phase14c wide-net-human-gate-packet --json",
+            "phase14c wide-net-human-gate-packet-contract --json",
+            "approval request template is not approval",
+            "does not clear any human gate by itself",
+            "calendar connector wiring remains required",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

@@ -24,6 +24,7 @@ The source module exposes:
 - `FINAL_NONHUMAN_HANDOFF_TOP_LEVEL_FIELDS`
 - `FINAL_NONHUMAN_CLOSURE_PACKET_STATUSES`
 - `NONHUMAN_CLOSURE_PAYLOAD_FIELDS`
+- `WIDE_NET_HUMAN_GATE_PACKET_PAYLOAD_FIELDS`
 - `HUMAN_GATE_CHECKLIST`
 - `NEXT_HUMAN_WORK_PLAN`
 - `NON_AUTHORIZATION_FALSE_FIELDS`
@@ -104,6 +105,37 @@ Those fields are blocked-status evidence only. They do not authorize the
 future wide-net live run, Calendar app connector use, credential handling,
 external mutation, or any live-service call.
 
+## Wide-Net Human-Gate Packet Summary
+
+The final handoff also composes the wide-net human-gate packet as a reduced
+contract-validated payload. That nested packet summary keeps:
+
+- `contract_valid=true`
+- `repo_local_preconditions_met=false`
+- `ready_for_live_execution=false`
+- `wide_net_live_run_authorized_by_this_report=false`
+- `human_live_approval_still_required=true`
+- `claude_code_audit_required_before_live_run=true`
+- `calendar_cli_connector_wiring_present=false`
+- `credential_values_read=false`
+- `external_mutation=false`
+- `approval_request_template_is_not_approval=true`
+- `fresh_human_message_required=true`
+
+The wide-net human-gate packet is available through:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-human-gate-packet --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-human-gate-packet-contract --json
+```
+
+The packet can summarize repo-local checks and show an approval request
+template, but the approval request template is not approval. It does not clear
+any human gate by itself. Calendar connector wiring remains required, and the
+future live run still requires a fresh human message, Claude Code audit,
+OpenRouter budget confirmation, sanitized Calendar transcript recording,
+sanitized wide-net evidence recording, and evidence crosscheck.
+
 ## Human Gate Checklist
 
 The handoff keeps these gates pending:
@@ -162,6 +194,7 @@ Tower adoption, `.agent`, `CLAUDE.md`, and runtime/operator scaffolding.
 - the default report is inert and human-gated
 - dry-run evidence is composed without starting dry-run execution
 - non-human closure and wide-net readiness gates remain blocked
+- the wide-net human-gate packet remains non-authorizing
 - the packet status list records five merged packets and retained Claude Code
   audit requirements
 - human gates remain exact and pending

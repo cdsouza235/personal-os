@@ -168,8 +168,9 @@ The dry-run evidence track keeps the human gates explicit:
 Those gates are not completed by this bundle.
 
 The final repo-local handoff for those gates is recorded in
-[FINAL_NONHUMAN_HANDOFF.md](FINAL_NONHUMAN_HANDOFF.md). That handoff remains
-inert and does not clear any gate by itself.
+[FINAL_NONHUMAN_HANDOFF.md](FINAL_NONHUMAN_HANDOFF.md). That handoff records
+the reduced non-human closure wide-net blocked gate summary, remains inert,
+and does not clear any gate by itself.
 
 ## Non-Authorization
 

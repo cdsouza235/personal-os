@@ -145,7 +145,10 @@ NONHUMAN_CLOSURE_PACKET_PLAN: tuple[dict[str, Any], ...] = (
         "packet_id": "packet_5_final_nonhuman_handoff",
         "label": "Final non-human handoff",
         "status": "merged_on_main",
-        "scope": "final non-human closure report and exact human gate checklist",
+        "scope": (
+            "final non-human closure report, wide-net blocked gate summary, "
+            "and exact human gate checklist"
+        ),
         "allowed_surface": "repo-local docs/tests/report-only helpers",
         "claude_code_audit_required": True,
         "contains_human_decision": False,

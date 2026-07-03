@@ -83,8 +83,8 @@ The current report records five packet slots:
    after Claude Code audit, covering local no-send smoke commands, fake/local
    fixtures, and report validators.
 5. [Final non-human handoff](FINAL_NONHUMAN_HANDOFF.md): merged on `main`
-   after Claude Code audit, covering final non-human closure report and exact
-   human gate checklist.
+   after Claude Code audit, covering final non-human closure report, the
+   wide-net blocked gate summary, and exact human gate checklist.
 
 Every packet in this plan has:
 

@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #115:
-  `56a7f7d0206e44bda36688b44802ed2a9eec6207`
-- Latest merged PR at that baseline: PR #115, non-human closure wide-net
-  readiness refresh
+- Last validated main baseline after PR #116:
+  `bc3f96c96d704a7dbaea1312f7a19a4c24669afe`
+- Latest merged PR at that baseline: PR #116, final non-human handoff
+  wide-net gate summary refresh
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -150,7 +150,8 @@ Last updated: 2026-07-02
   rollup contract, plus an inert non-human closure plan and validator, plus an
   inert weekend test readiness runbook and validator, plus an inert dry-run
   evidence bundle and no-send completion-report validator, plus an inert final
-  non-human handoff report and validator, plus Phase 14-C supervised
+  non-human handoff report and validator refreshed to compose the non-human
+  closure wide-net gate summary, plus Phase 14-C supervised
   multi-rail smoke-test preparation with one-object-per-rail guardrails, plus
   Phase 14-C supervised smoke-test dry-run rehearsal with fake clients and
   redacted safe-temp artifacts, plus Phase 14-C executor report redaction

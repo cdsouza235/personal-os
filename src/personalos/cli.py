@@ -64,6 +64,12 @@ from personalos.phase14c_todoist_live_smoke import (
 from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
+from personalos.phase14c_wide_net_calendar_operator_packet import (
+    PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_CONTRACT_BLOCKED,
+    PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_CONTRACT_VALID,
+    build_phase14c_wide_net_calendar_operator_packet_report,
+    validate_phase14c_wide_net_calendar_operator_packet_report_contract,
+)
 from personalos.phase14c_wide_net_calendar_transcript import (
     PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_VALID,
@@ -420,6 +426,26 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local transcript validation / redacted report / no connector call",
         "local_effect": "reads one explicit safe JSON file; no DB opened; no services called",
         "output": "stdout Calendar transcript validation JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net Calendar operator packet",
+        "safe_local_action": "Inspect the Calendar connector operator packet",
+        "command": "personalos phase14c wide-net-calendar-operator-packet [--json]",
+        "mode": "repo-local Calendar operator packet / no connector call / no authorization",
+        "local_effect": "no env read; no DB opened; no files written; no app connector called",
+        "output": "stdout Calendar operator packet JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net Calendar operator packet contract",
+        "safe_local_action": "Validate the Calendar operator packet contract",
+        "command": (
+            "personalos phase14c wide-net-calendar-operator-packet-contract [--json]"
+        ),
+        "mode": "repo-local contract validation / no connector call",
+        "local_effect": (
+            "builds and validates the packet; no services called; no files written"
+        ),
+        "output": "stdout Calendar operator packet contract JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net execution handoff",
@@ -1006,6 +1032,40 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_calendar_transcript_validate_parser)
     phase14c_wide_net_calendar_transcript_validate_parser.set_defaults(
         func=_command_phase14c_wide_net_calendar_transcript_validate
+    )
+
+    phase14c_wide_net_calendar_operator_packet_parser = (
+        phase14c_subparsers.add_parser(
+            "wide-net-calendar-operator-packet",
+            help="Report the wide-net Calendar operator packet without live calls.",
+            description=(
+                "Compose the Calendar bridge payloads, sanitized transcript "
+                "requirements, human-gate summary, and post-run checks into one "
+                "repo-local operator packet. This does not read credentials, call "
+                "connectors, initialize live clients, write files, or authorize a "
+                "live run."
+            ),
+        )
+    )
+    _add_json_arg(phase14c_wide_net_calendar_operator_packet_parser)
+    phase14c_wide_net_calendar_operator_packet_parser.set_defaults(
+        func=_command_phase14c_wide_net_calendar_operator_packet
+    )
+
+    phase14c_wide_net_calendar_operator_packet_contract_parser = (
+        phase14c_subparsers.add_parser(
+            "wide-net-calendar-operator-packet-contract",
+            help="Validate the wide-net Calendar operator packet contract.",
+            description=(
+                "Build and validate the Calendar operator packet against its "
+                "inert contract. This does not read credentials, call connectors, "
+                "initialize live clients, write files, or authorize a live run."
+            ),
+        )
+    )
+    _add_json_arg(phase14c_wide_net_calendar_operator_packet_contract_parser)
+    phase14c_wide_net_calendar_operator_packet_contract_parser.set_defaults(
+        func=_command_phase14c_wide_net_calendar_operator_packet_contract
     )
 
     phase14c_wide_net_handoff_parser = phase14c_subparsers.add_parser(
@@ -2373,6 +2433,91 @@ def _command_phase14c_wide_net_calendar_transcript_validate(
     )
     _emit_report(report, json_output=args.json)
     return 0 if accepted else 1
+
+
+def _command_phase14c_wide_net_calendar_operator_packet(
+    args: argparse.Namespace,
+) -> int:
+    packet = build_phase14c_wide_net_calendar_operator_packet_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-calendar-operator-packet",
+            "status": packet["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_calendar_operator_packet": packet,
+        },
+        workflow_name="Phase 14-C wide-net Calendar operator packet",
+        workflow_mode="repo-local Calendar operator packet / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the Calendar operator packet before connector wiring.",
+            "Run Claude Code audit before any live connector execution.",
+            "Do not paste raw Calendar event details, attendee addresses, or credentials.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_calendar_operator_packet_contract(
+    args: argparse.Namespace,
+) -> int:
+    packet = build_phase14c_wide_net_calendar_operator_packet_report()
+    validation = validate_phase14c_wide_net_calendar_operator_packet_report_contract(
+        packet
+    )
+    valid = validation.report_matches_inert_contract
+    status = (
+        PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_CONTRACT_VALID
+        if valid
+        else PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_CONTRACT_BLOCKED
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-calendar-operator-packet-contract",
+            "status": status,
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_calendar_operator_packet_contract": validation.to_dict(),
+        },
+        workflow_name="Phase 14-C wide-net Calendar operator packet contract",
+        workflow_mode="repo-local contract validation / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review contract reasons if validation did not pass.",
+            "Run Claude Code audit before any live connector execution.",
+            "Do not paste raw Calendar event details, attendee addresses, or credentials.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if valid else 1
 
 
 def _command_phase14c_wide_net_execution_handoff(

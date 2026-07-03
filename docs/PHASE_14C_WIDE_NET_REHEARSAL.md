@@ -15,18 +15,21 @@ Calendar app connector arguments for the duplicate precheck and self-only
 create step without calling the connector. The repo also has no-live Calendar
 transcript template and validator commands so a future app-connector precheck
 or create transcript can be checked as sanitized JSON without echoing raw event
-details or attendee addresses. The repo also has a no-live execution-handoff
-command, fillable evidence-template command, and redacted evidence validator so
-the next operator can inspect the bounded command, Calendar connector handoff
-contract, call budgets, post-run evidence shape, and post-run evidence
-requirements without reading credentials or calling live services. It also has
-a post-run crosscheck command to verify that sanitized Calendar transcript
-evidence and sanitized wide-net evidence agree without echoing raw inputs, plus
-a synthetic evidence rehearsal command that exercises the full validator chain
-without returning raw fixture payloads or producing live evidence. The repo
-also has a wide-net local preflight command that checks required config entry
-names and the fixed CA-bundle path metadata without reading credential values
-or CA file contents.
+details or attendee addresses. The repo also has a no-live Calendar operator
+packet that composes the Calendar payloads, sanitized transcript requirements,
+human-gate summary, and post-run validation sequence into one
+non-authorizing report. The no-live execution-handoff command, fillable
+evidence-template command, and redacted evidence validator let the next
+operator inspect the bounded command, Calendar connector handoff contract,
+call budgets, post-run evidence shape, and post-run evidence requirements
+without reading credentials or calling live services. It also has a post-run
+crosscheck command to verify that sanitized Calendar transcript evidence and
+sanitized wide-net evidence agree without echoing raw inputs, plus a synthetic
+evidence rehearsal command that exercises the full validator chain without
+returning raw fixture payloads or producing live evidence. The repo also has a
+wide-net local preflight command that checks required config entry names and
+the fixed CA-bundle path metadata without reading credential values or CA file
+contents.
 
 CLI report:
 
@@ -97,6 +100,26 @@ transcript only when the connector action and args match the approved
 attendee addresses were logged. It accepts a post-create transcript only after
 that clear precheck and only with the approved `create_event` payload and
 sanitized result keys.
+
+Calendar operator packet:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-operator-packet --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-operator-packet-contract --json
+```
+
+The Calendar operator packet is repo-local/report-only. It composes the
+Calendar app-bridge payloads, sanitized transcript requirements, human-gate
+summary, and post-run validation sequence into one operator-facing packet
+without calling the Calendar connector. It keeps
+`ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`,
+`calendar_connector_use_authorized=false`,
+`calendar_app_connector_called=false`, `credential_values_read=false`, and
+`external_mutation=false`. The contract command validates those flags and the
+expected Calendar precheck/create shapes with fixed reason codes only. The
+packet is not live authorization and does not inject a Calendar client into
+the wide-net runner.
 
 Execution handoff:
 

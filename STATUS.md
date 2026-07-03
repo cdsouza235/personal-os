@@ -6,9 +6,9 @@ Last updated: 2026-07-03
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #119:
-  `03de0fb5f103e24c5748e0404668c7a961514f62`
-- Latest merged PR at that baseline: PR #119, wide-net pre-run checklist
+- Last validated main baseline after PR #120:
+  `5d1e37c9e9f0a8d6c2a1ae2f03daf1e0b8b865fa`
+- Latest merged PR at that baseline: PR #120, wide-net human-gate packet
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -124,7 +124,12 @@ Last updated: 2026-07-03
   approval, keeps `ready_for_live_execution=false`, keeps
   `wide_net_live_run_authorized_by_this_report=false`, records that a fresh
   human message is required, and records that Calendar connector wiring
-  remains required; Phase 14-C shared
+  remains required; the wide-net Calendar operator packet now composes the
+  Calendar app-bridge payloads, sanitized transcript requirements, human-gate
+  summary, and post-run validation sequence into one non-authorizing report
+  while keeping `calendar_connector_use_authorized=false`,
+  `calendar_app_connector_called=false`, and
+  `ready_for_live_execution=false`; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
   scans across the live-gated and report-only modules; the wide-net evidence
@@ -391,6 +396,15 @@ Last updated: 2026-07-03
   commands inspect and validate sanitized Calendar connector transcripts
   without reading credentials, calling the connector, or echoing raw event
   details, attendee addresses, credential values, or unmasked emails. The
+  `phase14c wide-net-calendar-operator-packet --json` command composes the
+  Calendar app-bridge payloads, sanitized transcript requirements, human-gate
+  summary, and post-run validation sequence into one operator-facing no-live
+  packet while keeping `ready_for_live_execution=false`,
+  `calendar_connector_use_authorized=false`,
+  `calendar_app_connector_called=false`, and `credential_values_read=false`;
+  the `phase14c wide-net-calendar-operator-packet-contract --json` command
+  validates that packet with fixed reason codes only and cannot authorize live
+  execution. The
   `phase14c wide-net-execution-handoff --json` command reports the future
   bounded command template, Calendar connector handoff, call budgets, and
   post-run evidence requirements without wiring a connector or reading
@@ -455,8 +469,8 @@ Last updated: 2026-07-03
 
 ## Validated State
 
-- Full suite: 872 tests OK
-- ResourceWarning-sensitive suite: 872 tests OK
+- Full suite: 880 tests OK
+- ResourceWarning-sensitive suite: 880 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -480,6 +494,8 @@ Last updated: 2026-07-03
   status/model suite: 124 tests OK
 - Targeted Phase 14-C wide-net human-gate packet/final-handoff/
   non-human-closure/CLI/docs suite: 175 tests OK
+- Targeted Phase 14-C wide-net Calendar operator packet/transcript/handoff/
+  rollup/CLI suite: 129 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK

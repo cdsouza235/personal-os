@@ -398,6 +398,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C connected rehearsal plan",
             "Phase 14-C connected rehearsal gate",
             "Phase 14-C wide-net Calendar bridge payloads",
+            "Phase 14-C wide-net Calendar operator packet",
+            "Phase 14-C wide-net Calendar operator packet contract",
             "Phase 14-C wide-net execution handoff",
             "Phase 14-C wide-net evidence validator",
             "Phase 14-C wide-net local preflight",
@@ -463,6 +465,11 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C connected rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C connected rehearsal gate", workflow_names)
         self.assertIn("Phase 14-C wide-net Calendar bridge payloads", workflow_names)
+        self.assertIn("Phase 14-C wide-net Calendar operator packet", workflow_names)
+        self.assertIn(
+            "Phase 14-C wide-net Calendar operator packet contract",
+            workflow_names,
+        )
         self.assertIn("Phase 14-C wide-net execution handoff", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence template", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
@@ -2237,6 +2244,106 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(
             contract["reasons"],
             ["wide_net_human_gate_packet_remains_non_authorizing"],
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_calendar_operator_packet_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                ["phase14c", "wide-net-calendar-operator-packet", "--json"]
+            )
+
+        payload = json.loads(result.stdout)
+        packet = payload["wide_net_calendar_operator_packet"]
+        precheck = packet["calendar_duplicate_precheck"]
+        create = packet["calendar_create"]
+        transcript = packet["calendar_transcript_summary"]
+        human_gate = packet["human_gate_summary"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-calendar-operator-packet",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_operator_packet_ready",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(packet["ready_for_live_execution"])
+        self.assertFalse(packet["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(packet["calendar_cli_connector_wiring_present"])
+        self.assertFalse(packet["calendar_connector_use_authorized"])
+        self.assertFalse(packet["calendar_app_connector_called"])
+        self.assertFalse(packet["credential_values_read"])
+        self.assertFalse(packet["external_mutation"])
+        self.assertEqual(precheck["connector_action"], "search_events")
+        self.assertEqual(precheck["matching_event_count_must_equal"], 0)
+        self.assertFalse(precheck["event_details_logged"])
+        self.assertFalse(precheck["attendee_addresses_logged"])
+        self.assertEqual(create["connector_action"], "create_event")
+        self.assertEqual(create["attendee_count"], 0)
+        self.assertFalse(create["conference_link"])
+        self.assertIsNone(create["recurrence"])
+        self.assertTrue(transcript["calendar_transcript_template_available"])
+        self.assertFalse(transcript["raw_event_details_allowed"])
+        self.assertFalse(transcript["attendee_addresses_allowed"])
+        self.assertTrue(human_gate["human_gate_packet_contract_valid"])
+        self.assertFalse(human_gate["ready_for_live_execution"])
+        self.assertFalse(human_gate["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(packet["non_authorization"]["calendar_write_authorized"])
+        self.assertFalse(packet["safety_assertions"]["calendar_app_connector_called"])
+        self.assertFalse(packet["safety_assertions"]["calendar_event_created"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_calendar_operator_packet_contract_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "SUPERSECRET_LEAK_CANARY_121",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-calendar-operator-packet-contract",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        contract = payload["wide_net_calendar_operator_packet_contract"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-calendar-operator-packet-contract",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_operator_packet_contract_valid",
+        )
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(contract["report_matches_inert_contract"])
+        self.assertEqual(
+            contract["reasons"],
+            ["wide_net_calendar_operator_packet_remains_non_authorizing"],
         )
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)

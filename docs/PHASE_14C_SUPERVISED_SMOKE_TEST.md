@@ -328,7 +328,11 @@ sanitized wide-net evidence report and verifies that the marker, precheck
 count, and Calendar create count agree without echoing raw inputs.
 The evidence rehearsal command constructs synthetic sanitized inputs in memory
 and runs the transcript validator, evidence validator, and crosscheck chain
-without returning raw fixture payloads or producing live evidence.
+without returning raw fixture payloads or producing live evidence. The
+`phase14c wide-net-local-preflight --json` command checks required wide-net
+config entry names and the fixed CA-bundle path metadata without reading
+credential values, reporting present config names, reading CA file contents,
+calling connectors, or authorizing a live run.
 
 Wide-net rehearsal executable gate:
 

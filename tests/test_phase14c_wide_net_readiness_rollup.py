@@ -124,6 +124,11 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
             statuses["evidence_rehearsal"],
             "phase14c_wide_net_evidence_rehearsal_passed",
         )
+        self.assertEqual(
+            statuses["local_preflight"],
+            "phase14c_wide_net_local_preflight_reported",
+        )
+        self.assertTrue(readiness["local_preflight_report_available"])
         self.assertTrue(readiness["synthetic_evidence_rehearsal_passed"])
         self.assertTrue(readiness["wide_net_runner_available_but_fail_closed"])
         self.assertFalse(readiness["calendar_cli_connector_wiring_present"])
@@ -284,6 +289,7 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
                 "execution_handoff",
                 "evidence_template",
                 "evidence_rehearsal",
+                "local_preflight",
                 "wide_net_gate_default",
             },
         )
@@ -332,7 +338,9 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
         required_phrases = (
             "phase14c wide-net-readiness-rollup --json",
             "phase14c wide-net-readiness-rollup-contract",
+            "phase14c wide-net-local-preflight --json",
             "wide-net readiness rollup",
+            "wide-net local preflight",
             "does not read credentials",
             "does not call connectors",
             "does not authorize a live run",

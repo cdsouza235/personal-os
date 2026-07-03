@@ -135,13 +135,17 @@ raw inputs. Use `personalos phase14c wide-net-evidence-rehearsal --json` to
 run a repo-local rehearsal with synthetic sanitized inputs through the Calendar
 transcript validator, wide-net evidence validator, and crosscheck chain
 without returning raw fixture payloads or producing live evidence.
+Use `personalos phase14c wide-net-local-preflight --json` to check required
+wide-net config entry names and the fixed CA-bundle path metadata without
+reading credential values, reading the CA file contents, calling connectors,
+or authorizing a live run.
 Use `personalos phase14c wide-net-readiness-rollup --json` to inspect one
 repo-local wide-net readiness rollup that summarizes the plan, Calendar
-payload/transcript surfaces, execution handoff, evidence template, and
-synthetic evidence rehearsal. The rollup does not read credentials, does not
-call connectors, does not initialize live clients, does not write files, does
-not produce live evidence, and does not authorize a live run; it records
-remaining human and connector gates. Use
+payload/transcript surfaces, execution handoff, evidence template, synthetic
+evidence rehearsal, and local preflight report surface. The rollup does not
+read credentials, does not call connectors, does not initialize live clients,
+does not write files, does not produce live evidence, and does not authorize a
+live run; it records remaining human and connector gates. Use
 `personalos phase14c wide-net-readiness-rollup-contract --json` to validate
 that rollup against a fixed inert contract and fixed reason-code output without
 reading credentials, calling connectors, initializing live clients, writing

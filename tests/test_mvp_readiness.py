@@ -13,6 +13,7 @@ from personalos.mvp_readiness import (
     NON_AUTHORIZATION_FALSE_FIELDS,
     PENDING_HUMAN_DECISIONS,
     PHASE14C_DECISION_SUPPORT_PAYLOAD_FIELDS,
+    PHASE14C_WIDE_NET_READINESS_PAYLOAD_FIELDS,
     READINESS_PAYLOAD_FIELDS,
     build_mvp_readiness_gap_report,
     validate_mvp_readiness_gap_report_contract,
@@ -43,6 +44,10 @@ class MvpReadinessGapReportTest(unittest.TestCase):
         self.assertEqual(
             tuple(report["phase14c_decision_support"]),
             PHASE14C_DECISION_SUPPORT_PAYLOAD_FIELDS,
+        )
+        self.assertEqual(
+            tuple(report["phase14c_wide_net_readiness"]),
+            PHASE14C_WIDE_NET_READINESS_PAYLOAD_FIELDS,
         )
         self.assertEqual(tuple(report["non_authorization"]), NON_AUTHORIZATION_FIELDS)
         self.assertTrue(validation.report_matches_inert_contract)
@@ -89,11 +94,53 @@ class MvpReadinessGapReportTest(unittest.TestCase):
             report["completed_inert_capabilities"],
         )
         self.assertIn(
+            "Phase 14-C supervised smoke and connectivity readiness evidence",
+            report["completed_inert_capabilities"],
+        )
+        self.assertIn(
+            (
+                "Phase 14-C wide-net rehearsal plan, fail-closed gate, evidence "
+                "validators, readiness rollup, and contract guardrails"
+            ),
+            report["completed_inert_capabilities"],
+        )
+        self.assertIn(
             "candidate approval remains a separate human decision",
+            report["pending_human_decisions"],
+        )
+        self.assertIn(
+            (
+                "Phase 14-C wide-net live rehearsal approval remains a separate "
+                "human decision"
+            ),
+            report["pending_human_decisions"],
+        )
+        self.assertIn(
+            "Calendar app connector live use remains a separate human decision",
             report["pending_human_decisions"],
         )
         self.assertIn("todoist", report["blocked_live_rails"])
         self.assertIn("openclaw", report["blocked_live_rails"])
+
+    def test_report_composes_wide_net_rollup_without_live_readiness(self) -> None:
+        wide_net = build_mvp_readiness_gap_report()["phase14c_wide_net_readiness"]
+
+        self.assertEqual(
+            wide_net["rollup_status"],
+            "phase14c_wide_net_readiness_rollup_ready",
+        )
+        self.assertTrue(wide_net["rollup_contract_valid"])
+        self.assertTrue(wide_net["repo_local_rollup_complete"])
+        self.assertTrue(wide_net["synthetic_evidence_rehearsal_passed"])
+        self.assertFalse(wide_net["ready_for_live_execution"])
+        self.assertFalse(wide_net["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(wide_net["calendar_cli_connector_wiring_present"])
+        self.assertFalse(wide_net["credential_values_read"])
+        self.assertFalse(wide_net["external_mutation"])
+        self.assertEqual(wide_net["readiness_status"], "not_ready")
+        self.assertTrue(wide_net["inert_report_only"])
+        self.assertFalse(wide_net["live_rails_activated"])
+        self.assertGreaterEqual(wide_net["remaining_gate_count"], 1)
 
     def test_non_authorization_flags_remain_false(self) -> None:
         report = build_mvp_readiness_gap_report()
@@ -170,6 +217,13 @@ class MvpReadinessGapReportTest(unittest.TestCase):
                 ),
                 "MVP readiness report non_authorization fields do not match the contract.",
             ),
+            (
+                "wide_net",
+                lambda report, token: report["phase14c_wide_net_readiness"].update(
+                    {token: token}
+                ),
+                "MVP readiness report Phase 14-C wide-net fields do not match the contract.",
+            ),
         )
         for label, mutate, expected_reason in cases:
             with self.subTest(label=label):
@@ -204,6 +258,49 @@ class MvpReadinessGapReportTest(unittest.TestCase):
                 unsafe_value = f"matrix-secret-phase14c-{field}"
                 report = build_mvp_readiness_gap_report()
                 report["phase14c_decision_support"][field] = unsafe_value
+
+                validation = validate_mvp_readiness_gap_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(unsafe_value, serialized_validation)
+
+    def test_validator_blocks_wide_net_drift_without_echo(self) -> None:
+        cases = (
+            (
+                "rollup_status",
+                "MVP readiness report Phase 14-C wide-net rollup status drifted.",
+            ),
+            (
+                "ready_for_live_execution",
+                (
+                    "MVP readiness report Phase 14-C wide-net field "
+                    "ready_for_live_execution drifted."
+                ),
+            ),
+            (
+                "readiness_status",
+                (
+                    "MVP readiness report Phase 14-C wide-net readiness must "
+                    "remain not_ready."
+                ),
+            ),
+            (
+                "remaining_gate_count",
+                (
+                    "MVP readiness report Phase 14-C wide-net remaining gates "
+                    "must stay explicit."
+                ),
+            ),
+        )
+        for field, expected_reason in cases:
+            with self.subTest(field=field):
+                unsafe_value = f"matrix-secret-wide-net-{field}"
+                report = build_mvp_readiness_gap_report()
+                report["phase14c_wide_net_readiness"][field] = (
+                    0 if field == "remaining_gate_count" else unsafe_value
+                )
 
                 validation = validate_mvp_readiness_gap_report_contract(report)
                 serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)

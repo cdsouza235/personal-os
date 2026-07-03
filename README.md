@@ -20,7 +20,9 @@ Markdown documentation. The current project snapshot lives in
 - [docs/SAFETY_POLICY.md](docs/SAFETY_POLICY.md): safety posture, protected
   systems, readiness gates, and prohibited work.
 - [docs/MVP_READINESS_GAP_REPORT.md](docs/MVP_READINESS_GAP_REPORT.md):
-  inert MVP readiness/gap report contract and blocked human-decision surface.
+  inert MVP readiness/gap report contract, non-authorizing current Phase 14-C
+  wide-net readiness summary, `not_ready` posture, and blocked human-decision
+  surface.
 - [docs/NON_HUMAN_CLOSURE_PLAN.md](docs/NON_HUMAN_CLOSURE_PLAN.md):
   accelerated non-human repo-local closure packet plan and human-gate split.
 - [docs/WEEKEND_TEST_READINESS_RUNBOOK.md](docs/WEEKEND_TEST_READINESS_RUNBOOK.md):

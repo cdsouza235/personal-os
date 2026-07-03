@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #112:
-  `9a8bffae0a6e0e8ed24eb025f23754fe37811ffc`
-- Latest merged PR at that baseline: PR #112, Phase 14-C wide-net readiness
-  rollup
+- Last validated main baseline after PR #113:
+  `ec1825dfee6615e8401b7ee71767e5170f3cd393`
+- Latest merged PR at that baseline: PR #113, Phase 14-C wide-net readiness
+  rollup contract validator
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -36,9 +36,11 @@ Last updated: 2026-07-02
   coverage, report-contract posture matrix coverage, report-payload contract
   hardening, and report-payload contract matrix tests are merged on `main`;
   the inert MVP readiness gap report and contract validator are merged on
-  `main`; the inert non-human closure plan and contract validator are merged
-  on `main`; the inert weekend test readiness runbook and contract validator
-  are merged on `main`; the inert dry-run evidence bundle and completion-report
+  `main` and now compose the current Phase 14-C wide-net readiness rollup
+  contract while preserving `not_ready`; the inert non-human closure plan and
+  contract validator are merged on `main`; the inert weekend test readiness
+  runbook and contract validator are merged on `main`; the inert dry-run
+  evidence bundle and completion-report
   validator are merged on `main`; the inert final non-human handoff report and
   exact human-gate checklist are merged on `main`; the Phase 14-C supervised
   multi-rail smoke-test runbook, guardrail validator, injected-client
@@ -142,7 +144,8 @@ Last updated: 2026-07-02
   report-contract validator matrix coverage, plus report-contract posture
   matrix coverage, plus report-payload contract hardening, plus
   report-payload contract matrix tests, plus an inert MVP readiness gap report
-  and validator, plus an inert non-human closure plan and validator, plus an
+  and validator refreshed to compose the current Phase 14-C wide-net readiness
+  rollup contract, plus an inert non-human closure plan and validator, plus an
   inert weekend test readiness runbook and validator, plus an inert dry-run
   evidence bundle and no-send completion-report validator, plus an inert final
   non-human handoff report and validator, plus Phase 14-C supervised
@@ -438,8 +441,8 @@ Last updated: 2026-07-02
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK
 - Targeted OpenClaw model strategy suite: 11 tests OK
 - Targeted Phase 14-C gated live-smoke client/CLI/model suite: 84 tests OK
-- Targeted MVP readiness gap report suite: 10 tests OK
-- Targeted MVP readiness docs suite: 5 tests OK
+- Targeted MVP readiness gap report suite: 12 tests OK
+- Targeted MVP readiness docs suite: 7 tests OK
 - Targeted non-human closure plan suite: 11 tests OK
 - Targeted non-human closure docs suite: 5 tests OK
 - Targeted weekend test readiness suite: 12 tests OK
@@ -764,11 +767,17 @@ scaffolding, pending human decisions, and blocked live rails while keeping
 `readiness.status=not_ready`, `inert_report_only=true`,
 `live_rails_activated=false`, `live_mvp_ready=false`,
 `candidate_review_tracking_only=true`, and `phase14_c_blocked=true`. Its
-contract validator checks exact top-level and nested readiness, Phase 14-C,
-and non-authorization payload shapes, deterministic timestamp metadata,
-completed inert capability lists, pending human decision lists, blocked live
-rail lists, and safety posture without echoing caller-controlled values in
-validator output. The report does not approve Phase 14-C, approve a
+contract validator checks exact top-level and nested readiness, Phase 14-C
+decision-support, Phase 14-C wide-net readiness, and non-authorization payload
+shapes, deterministic timestamp metadata, completed inert capability lists,
+pending human decision lists, blocked live rail lists, and safety posture
+without echoing caller-controlled values in validator output. The wide-net
+payload records that the rollup contract is valid and repo-local while
+`ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`,
+`calendar_cli_connector_wiring_present=false`, `credential_values_read=false`,
+`external_mutation=false`, and `readiness_status=not_ready`. The report does
+not approve Phase 14-C, approve a
 candidate, authorize a candidate, activate or run a candidate, authorize
 live-service access, handle credentials, activate production DB, activate
 scheduler/background behavior, invoke OpenClaw, touch protected paths,
@@ -1099,9 +1108,10 @@ production runtime state.
   checklist type drift without echoing caller-controlled values in validator
   output.
   The MVP readiness gap report summarizes completed inert repo-local
-  capabilities, pending human decisions, and blocked live rails in a
-  deterministic report-only contract. Its validator keeps the report
-  `not_ready`, exact-shaped, non-authorizing, and non-echoing.
+  capabilities, pending human decisions, blocked live rails, and the current
+  Phase 14-C wide-net readiness rollup contract in a deterministic report-only
+  contract. Its validator keeps the report `not_ready`, exact-shaped,
+  non-authorizing, and non-echoing.
   The non-human closure plan records a three-to-five-packet repo-local
   Codex/Fable + Claude Code loop for closing non-human work and keeps every
   planned packet audited, non-human, and non-live.

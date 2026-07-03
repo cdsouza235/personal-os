@@ -383,14 +383,15 @@ scheduler/background, OpenClaw, protected-path, and external-write surfaces
 blocked unless a separate future human gate explicitly approves them.
 
 The [final non-human handoff](FINAL_NONHUMAN_HANDOFF.md) may record that the
-safe repo-local non-human packet artifacts are assembled for review, but it
-must keep Claude Code audit required for the current packet, keep
-`readiness.status=not_ready`, keep `live_mvp_ready=false`, keep live rails
-disabled, and keep candidate approval, Phase 14-C authorization,
-live-service access, credential/auth handling, production DB activation,
-scheduler/background activation, OpenClaw handoff or invocation, actual
-live-service testing, and go/no-go launch approval as separate pending human
-gates.
+safe repo-local non-human packet artifacts are assembled for review and may
+surface reduced non-human closure wide-net gate status, but it must keep
+Claude Code audit required for the current packet, keep
+`readiness.status=not_ready`, keep `live_mvp_ready=false`, keep
+`wide_net_ready_for_live_execution=false`, keep live rails disabled, and keep
+candidate approval, Phase 14-C authorization, live-service access,
+credential/auth handling, production DB activation, scheduler/background
+activation, OpenClaw handoff or invocation, actual live-service testing, and
+go/no-go launch approval as separate pending human gates.
 
 ## High-Stakes Domains
 

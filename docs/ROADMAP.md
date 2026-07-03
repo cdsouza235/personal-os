@@ -116,9 +116,10 @@ The dry-run evidence bundle records temp-only no-send smoke command
 templates, fake/local fixture surfaces, and a completion-report validator for
 the existing Phase 13E-D no-send demo while keeping repo evidence artifacts
 unwritten by default and live rails disabled.
-The final non-human handoff records the closure packet statuses, exact
-pending human gate checklist, and next-human-work plan while keeping the MVP
-not live-ready, live rails disabled, and every live/product gate unresolved.
+The final non-human handoff records the closure packet statuses, reduced
+non-human closure wide-net gate summary, exact pending human gate checklist,
+and next-human-work plan while keeping the MVP not live-ready, live rails
+disabled, and every live/product gate unresolved.
 The Phase 14-C supervised multi-rail smoke-test runbook in
 [PHASE_14C_SUPERVISED_SMOKE_TEST.md](PHASE_14C_SUPERVISED_SMOKE_TEST.md)
 is now the integration-learning surface for the bounded smoke loop. It treats

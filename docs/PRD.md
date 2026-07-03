@@ -121,9 +121,10 @@ Key changes from v0.1:
   for the existing Phase 13E-D no-send demo.
 - Records [FINAL_NONHUMAN_HANDOFF.md](FINAL_NONHUMAN_HANDOFF.md) as an inert
   source/test/docs report contract for the final non-human handoff, exact
-  pending human gate checklist, and next-human-work plan while preserving
-  `readiness.status=not_ready`, `live_mvp_ready=false`, and unresolved human
-  gates.
+  pending human gate checklist, reduced non-human closure wide-net gate
+  summary, and next-human-work plan while preserving
+  `readiness.status=not_ready`, `live_mvp_ready=false`,
+  `wide_net_ready_for_live_execution=false`, and unresolved human gates.
 - Adds a repository documentation standard: keep the canonical PRD as Markdown
   inside `docs/`, keep a concise `AGENTS.md` in the repo root for Codex/Fable
   operating instructions, and use DOCX as a review/export artifact rather than
@@ -1573,7 +1574,8 @@ Current validated state:
 - Dry-run evidence planning is inert, argument-free, source/test/docs-only,
   non-authorizing, and keeps dry-run execution not started by default
 - Final non-human handoff reporting is inert, argument-free, source/test/docs-only,
-  non-authorizing, and keeps human gates explicit and unresolved
+  non-authorizing, surfaces non-human closure wide-net readiness gates as
+  blocked status evidence, and keeps human gates explicit and unresolved
 - PR #45 Claude Code audit passed with no required fixes
 - PR #46 anti-micro-loop workflow and checkpoint refresh is merged
 - PR #47 Phase 14-C candidate decision support bundle is merged

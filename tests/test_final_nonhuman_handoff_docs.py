@@ -18,6 +18,7 @@ class FinalNonhumanHandoffDocsTest(unittest.TestCase):
             "final_nonhuman_handoff_status",
             "final_nonhuman_handoff_top_level_fields",
             "final_nonhuman_closure_packet_statuses",
+            "nonhuman_closure_payload_fields",
             "human_gate_checklist",
             "next_human_work_plan",
             "non_authorization_false_fields",
@@ -78,6 +79,33 @@ class FinalNonhumanHandoffDocsTest(unittest.TestCase):
             "`temp_only_smoke_supported=true`",
             "does not execute the dry run",
             "does not write a repo evidence bundle by default",
+        )
+        for phrase in required_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def test_handoff_doc_records_nonhuman_closure_wide_net_boundaries(self) -> None:
+        text = _normalized_doc_text(HANDOFF_DOC)
+
+        required_phrases = (
+            "non-human closure and wide-net summary",
+            "`status=blocked_by_human_gates`",
+            "`contract_valid=true`",
+            "`nonhuman_closure_complete=false`",
+            "`wide_net_rollup_contract_valid=true`",
+            "`wide_net_ready_for_live_execution=false`",
+            "`wide_net_live_run_authorized_by_this_report=false`",
+            "`wide_net_calendar_cli_connector_wiring_present=false`",
+            "`wide_net_credential_values_read=false`",
+            "`wide_net_external_mutation=false`",
+            "`wide_net_readiness_status=not_ready`",
+            "`wide_net_live_rails_activated=false`",
+            "blocked-status evidence only",
+            "do not authorize the future wide-net live run",
+            "calendar app connector use",
+            "credential handling",
+            "external mutation",
+            "any live-service call",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

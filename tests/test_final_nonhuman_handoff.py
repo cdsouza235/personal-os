@@ -15,6 +15,7 @@ from personalos.final_nonhuman_handoff import (
     HUMAN_GATE_CHECKLIST_FIELDS,
     NEXT_HUMAN_WORK_FIELDS,
     NEXT_HUMAN_WORK_PLAN,
+    NONHUMAN_CLOSURE_PAYLOAD_FIELDS,
     NON_AUTHORIZATION_FALSE_FIELDS,
     NON_AUTHORIZATION_FIELDS,
     NON_AUTHORIZATION_TRUE_FIELDS,
@@ -70,6 +71,29 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
         self.assertTrue(dry_run["temp_only_smoke_supported"])
         self.assertFalse(dry_run["live_mvp_ready"])
         self.assertTrue(dry_run["human_gates_remaining"])
+
+    def test_report_composes_nonhuman_closure_wide_net_gates(self) -> None:
+        closure = build_final_nonhuman_handoff_report()["nonhuman_closure"]
+
+        self.assertEqual(tuple(closure), NONHUMAN_CLOSURE_PAYLOAD_FIELDS)
+        self.assertEqual(closure["status"], "blocked_by_human_gates")
+        self.assertTrue(closure["contract_valid"])
+        self.assertFalse(closure["nonhuman_closure_complete"])
+        self.assertFalse(closure["live_mvp_ready"])
+        self.assertTrue(closure["human_gates_remaining"])
+        self.assertTrue(closure["wide_net_rollup_contract_valid"])
+        self.assertFalse(closure["wide_net_ready_for_live_execution"])
+        self.assertFalse(
+            closure["wide_net_live_run_authorized_by_this_report"]
+        )
+        self.assertFalse(
+            closure["wide_net_calendar_cli_connector_wiring_present"]
+        )
+        self.assertFalse(closure["wide_net_credential_values_read"])
+        self.assertFalse(closure["wide_net_external_mutation"])
+        self.assertEqual(closure["wide_net_readiness_status"], "not_ready")
+        self.assertFalse(closure["wide_net_live_rails_activated"])
+        self.assertGreaterEqual(closure["wide_net_remaining_gate_count"], 1)
 
     def test_packet_statuses_record_five_merged_packets(self) -> None:
         report = build_final_nonhuman_handoff_report()
@@ -197,6 +221,13 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
                 "Final non-human handoff report dry-run field status drifted.",
             ),
             (
+                "nonhuman_closure",
+                lambda report, token: report["nonhuman_closure"].update(
+                    {"wide_net_readiness_status": token}
+                ),
+                "Final non-human handoff report non-human closure field wide_net_readiness_status drifted.",
+            ),
+            (
                 "packet",
                 lambda report, token: report["closure_packet_statuses"][0].update(
                     {"packet_id": token}
@@ -270,6 +301,53 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
                 self.assertIn(expected_reason, validation.reasons)
                 self.assertNotIn(str(value), serialized_validation)
 
+    def test_validator_blocks_nonhuman_closure_wide_net_drift_without_echo(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "ready",
+                "wide_net_ready_for_live_execution",
+                True,
+                "Final non-human handoff report non-human closure field wide_net_ready_for_live_execution drifted.",
+            ),
+            (
+                "authorized",
+                "wide_net_live_run_authorized_by_this_report",
+                True,
+                "Final non-human handoff report non-human closure field wide_net_live_run_authorized_by_this_report drifted.",
+            ),
+            (
+                "credential",
+                "wide_net_credential_values_read",
+                True,
+                "Final non-human handoff report non-human closure field wide_net_credential_values_read drifted.",
+            ),
+            (
+                "readiness",
+                "wide_net_readiness_status",
+                "ready",
+                "Final non-human handoff report non-human closure field wide_net_readiness_status drifted.",
+            ),
+            (
+                "gates",
+                "wide_net_remaining_gate_count",
+                0,
+                "Final non-human handoff report non-human closure wide-net gates must remain blocked.",
+            ),
+        )
+        for label, field, value, expected_reason in cases:
+            with self.subTest(label=label):
+                report = build_final_nonhuman_handoff_report()
+                report["nonhuman_closure"][field] = value
+
+                validation = validate_final_nonhuman_handoff_report_contract(report)
+                serialized_validation = json.dumps(validation.to_dict(), sort_keys=True)
+
+                self.assertFalse(validation.report_matches_inert_contract)
+                self.assertIn(expected_reason, validation.reasons)
+                self.assertNotIn(str(value), serialized_validation)
+
     def test_validator_blocks_boolean_lookalike_values(self) -> None:
         cases = (
             (
@@ -285,6 +363,13 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
                     {"dry_run_execution_started": 0}
                 ),
                 "Final non-human handoff report dry-run field dry_run_execution_started drifted.",
+            ),
+            (
+                "nonhuman_closure_false",
+                lambda report: report["nonhuman_closure"].update(
+                    {"wide_net_ready_for_live_execution": 0}
+                ),
+                "Final non-human handoff report non-human closure field wide_net_ready_for_live_execution drifted.",
             ),
             (
                 "packet_false",

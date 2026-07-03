@@ -139,6 +139,14 @@ Use `personalos phase14c wide-net-local-preflight --json` to check required
 wide-net config entry names and the fixed CA-bundle path metadata without
 reading credential values, reading the CA file contents, calling connectors,
 or authorizing a live run.
+Use `personalos phase14c wide-net-pre-run-checklist --json` to combine that
+local preflight with the pinned wide-net rollup contract and report whether
+repo-local checks pass while still blocking on fresh human approval, Claude
+Code audit, Calendar connector wiring, OpenRouter budget confirmation, and
+post-run evidence/transcript gates. Use
+`personalos phase14c wide-net-pre-run-checklist-contract --json` to validate
+that checklist against its non-authorizing contract without reading credential
+values or calling services.
 Use `personalos phase14c wide-net-readiness-rollup --json` to inspect one
 repo-local wide-net readiness rollup that summarizes the plan, Calendar
 payload/transcript surfaces, execution handoff, evidence template, synthetic

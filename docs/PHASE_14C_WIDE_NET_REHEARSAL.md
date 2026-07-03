@@ -190,6 +190,38 @@ names are present and the CA bundle exists, it keeps
 connector wiring, OpenRouter budget confirmation, fresh human approval, and
 Claude Code audit remain required.
 
+Wide-net pre-run checklist:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-pre-run-checklist --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-pre-run-checklist-contract --json
+```
+
+The pre-run checklist is repo-local/report-only. It composes the local
+preflight with the pinned wide-net readiness rollup contract and returns a
+single checklist of repo-local checks and remaining human or external gates. It
+reads environment key names only and checks the fixed CA-bundle path metadata
+only; it does not read credential values, report present config names, read CA
+file contents, initialize live clients, call connectors, call OpenRouter,
+create Todoist tasks, send Gmail, write Calendar, invoke OpenClaw, open a
+database, write files, or touch protected paths.
+
+If all required config entry names are present and the CA bundle exists, the
+checklist may return
+`phase14c_wide_net_pre_run_checklist_local_checks_passed_human_gates_remain`.
+That status still keeps `ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`, and
+`live_execution_authorized=false`. It records that fresh human live approval,
+Claude Code read-only audit, audited Calendar connector wiring, OpenRouter
+budget confirmation, sanitized Calendar transcript recording, sanitized
+wide-net evidence recording, and evidence crosscheck remain required.
+
+The checklist contract command validates that non-authorizing shape with fixed
+reason codes only. It does not echo drifted values, read credentials, initialize
+live clients, call connectors, write files, or authorize a live run. The
+checklist can show repo-local checks pass, but it still cannot authorize a live
+run.
+
 Readiness rollup:
 
 ```bash

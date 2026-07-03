@@ -307,7 +307,11 @@ or producing live evidence. The
 `phase14c wide-net-local-preflight --json` command checks required wide-net
 config entry names and the fixed CA-bundle path metadata without reading
 credential values, reporting present config names, reading CA file contents,
-calling connectors, or authorizing a live run.
+calling connectors, or authorizing a live run. The
+`phase14c wide-net-pre-run-checklist --json` and
+`phase14c wide-net-pre-run-checklist-contract --json` commands compose that
+local preflight with the pinned rollup contract, report remaining human and
+external gates, and still cannot authorize a live run.
 
 Wide-net rehearsal executable gate:
 

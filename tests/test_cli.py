@@ -401,6 +401,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C wide-net execution handoff",
             "Phase 14-C wide-net evidence validator",
             "Phase 14-C wide-net local preflight",
+            "Phase 14-C wide-net pre-run checklist",
+            "Phase 14-C wide-net pre-run checklist contract",
             "Phase 14-C wide-net readiness rollup",
             "Phase 14-C wide-net readiness rollup contract",
             "Phase 14-C wide-net rehearsal plan",
@@ -467,6 +469,11 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C wide-net evidence crosscheck", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence rehearsal", workflow_names)
         self.assertIn("Phase 14-C wide-net local preflight", workflow_names)
+        self.assertIn("Phase 14-C wide-net pre-run checklist", workflow_names)
+        self.assertIn(
+            "Phase 14-C wide-net pre-run checklist contract",
+            workflow_names,
+        )
         self.assertIn("Phase 14-C wide-net readiness rollup", workflow_names)
         self.assertIn(
             "Phase 14-C wide-net readiness rollup contract",
@@ -2030,6 +2037,119 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         )
         self.assertTrue(
             preflight["local_preflight"]["fresh_human_live_approval_still_required"]
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_pre_run_checklist_is_names_only(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "SUPERSECRET_LEAK_CANARY_456",
+            "UNRELATED_SECRET_TOKEN": "sk-secret-pre-run-cli",
+        }
+        with (
+            mock.patch.dict(os.environ, secret_environment, clear=True),
+            mock.patch("personalos.cli.Path.is_file", return_value=False),
+        ):
+            result = _run_cli(["phase14c", "wide-net-pre-run-checklist", "--json"])
+
+        payload = json.loads(result.stdout)
+        checklist = payload["wide_net_pre_run_checklist"]
+        local = checklist["local_preflight_summary"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-pre-run-checklist")
+        self.assertEqual(payload["status"], "phase14c_wide_net_pre_run_checklist_blocked")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_credential_values_logged"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertFalse(checklist["ready_for_live_execution"])
+        self.assertFalse(checklist["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(checklist["credential_values_read"])
+        self.assertFalse(checklist["external_mutation"])
+        self.assertFalse(local["present_config_names_reported"])
+        self.assertFalse(local["available_config_entry_names_reported"])
+        self.assertFalse(local["credential_values_read"])
+        self.assertFalse(local["config_values_reported"])
+        self.assertFalse(local["local_preflight_passed"])
+        self.assertFalse(checklist["pre_run_decision"]["live_execution_authorized"])
+        self.assertTrue(checklist["pre_run_decision"]["fresh_human_approval_required"])
+        self.assertFalse(checklist["safety_assertions"]["credential_values_read"])
+        self.assertFalse(checklist["safety_assertions"]["calendar_app_connector_called"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+        self.assertNotIn("UNRELATED_SECRET_TOKEN", result.stdout)
+
+    def test_phase14c_wide_net_pre_run_checklist_local_pass_still_blocks_live(
+        self,
+    ) -> None:
+        secret_environment = {
+            name: f"secret-value-for-{name}" for name in WIDE_NET_REQUIRED_CONFIG_NAMES
+        }
+        with (
+            mock.patch.dict(os.environ, secret_environment, clear=True),
+            mock.patch("personalos.cli.Path.is_file", return_value=True),
+        ):
+            result = _run_cli(["phase14c", "wide-net-pre-run-checklist", "--json"])
+
+        payload = json.loads(result.stdout)
+        checklist = payload["wide_net_pre_run_checklist"]
+        local = checklist["local_preflight_summary"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_pre_run_checklist_local_checks_passed_human_gates_remain",
+        )
+        self.assertTrue(checklist["repo_local_preconditions_met"])
+        self.assertTrue(local["local_preflight_passed"])
+        self.assertTrue(local["config_names_present"])
+        self.assertTrue(local["ssl_cert_file_available"])
+        self.assertFalse(checklist["ready_for_live_execution"])
+        self.assertFalse(checklist["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(checklist["calendar_cli_connector_wiring_present"])
+        self.assertFalse(checklist["pre_run_decision"]["live_execution_authorized"])
+        self.assertTrue(checklist["pre_run_decision"]["fresh_human_approval_required"])
+        self.assertTrue(checklist["pre_run_decision"]["calendar_connector_wiring_required"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_pre_run_checklist_contract_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "SUPERSECRET_LEAK_CANARY_789",
+        }
+        with (
+            mock.patch.dict(os.environ, secret_environment, clear=True),
+            mock.patch("personalos.cli.Path.is_file", return_value=False),
+        ):
+            result = _run_cli(
+                ["phase14c", "wide-net-pre-run-checklist-contract", "--json"]
+            )
+
+        payload = json.loads(result.stdout)
+        contract = payload["wide_net_pre_run_checklist_contract"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-pre-run-checklist-contract",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_pre_run_checklist_contract_valid",
+        )
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(contract["report_matches_inert_contract"])
+        self.assertEqual(
+            contract["reasons"],
+            ["wide_net_pre_run_checklist_remains_non_authorizing"],
         )
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)

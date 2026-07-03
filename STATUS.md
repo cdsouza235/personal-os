@@ -6,10 +6,9 @@ Last updated: 2026-07-03
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #117:
-  `ff33b89f5f8765c309170d9a615ef784684ed85e`
-- Latest merged PR at that baseline: PR #117, closure packet-5 final handoff
-  scope refresh
+- Last validated main baseline after PR #118:
+  `c1dd2288feefa2f4eed809766b800a88d15428f8`
+- Latest merged PR at that baseline: PR #118, wide-net local preflight report
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -117,7 +116,9 @@ Last updated: 2026-07-03
   raw evidence; the local preflight checks required config entry names and the
   fixed CA-bundle path metadata without reading credential values, reporting
   present config names, reading CA file contents, calling connectors, or
-  authorizing a live run; Phase 14-C shared
+  authorizing a live run; the pre-run checklist composes that local preflight
+  with the pinned wide-net rollup contract and reports remaining human and
+  external gates while keeping live authorization false; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
   scans across the live-gated and report-only modules; the wide-net evidence
@@ -193,8 +194,10 @@ Last updated: 2026-07-03
   input-size gates, the evidence validator uses bounded shared redaction scans,
   the evidence rehearsal exercises the validator chain with synthetic
   sanitized inputs only, the local preflight checks names-only config and CA
-  path metadata without values or file contents, and the readiness rollup plus
-  contract validator summarize and pin remaining human and connector gates.
+  path metadata without values or file contents, the pre-run checklist composes
+  local checks with the pinned rollup contract while keeping human and external
+  gates blocked, and the readiness rollup plus contract validator summarize and
+  pin remaining human and connector gates.
   Calendar creation and protected OpenClaw runtime invocation remain excluded
   unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
@@ -404,6 +407,15 @@ Last updated: 2026-07-03
   checks required wide-net config entry names and the fixed CA-bundle path
   metadata without reading credential values, reporting present config names,
   reading CA file contents, calling connectors, or authorizing a live run. The
+  `phase14c wide-net-pre-run-checklist --json` command composes that local
+  preflight with the pinned wide-net rollup contract and reports whether
+  repo-local checks pass while still requiring fresh human live approval,
+  Claude Code audit, audited Calendar connector wiring, OpenRouter budget
+  confirmation, sanitized Calendar transcript recording, sanitized wide-net
+  evidence recording, and evidence crosscheck. The
+  `phase14c wide-net-pre-run-checklist-contract --json` command validates that
+  checklist with fixed reason codes only and cannot authorize live execution.
+  The
   `phase14c wide-net-readiness-rollup --json` command
   composes the plan, Calendar payload/transcript surfaces, execution handoff,
   evidence template, synthetic evidence rehearsal, and local preflight report
@@ -428,8 +440,8 @@ Last updated: 2026-07-03
 
 ## Validated State
 
-- Full suite: 851 tests OK
-- ResourceWarning-sensitive suite: 851 tests OK
+- Full suite: 861 tests OK
+- ResourceWarning-sensitive suite: 861 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -449,6 +461,8 @@ Last updated: 2026-07-03
   docs/model suite: 143 tests OK
 - Targeted Phase 14-C wide-net local-preflight/rollup/CLI/non-human-closure
   suite: 179 tests OK
+- Targeted Phase 14-C wide-net pre-run checklist/local-preflight/rollup/CLI/
+  status/model suite: 124 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK

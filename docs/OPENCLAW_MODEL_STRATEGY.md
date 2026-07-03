@@ -232,7 +232,11 @@ credentials. The
 `phase14c wide-net-evidence-validate --input-file <file> --json` command
 validates sanitized evidence and rejects raw provider responses, full prompts,
 configured model IDs, credential values, and unmasked emails without echoing
-the raw evidence payload.
+the raw evidence payload. The
+`phase14c wide-net-pre-run-checklist --json` command composes the local
+names-only preflight with the pinned wide-net rollup contract and records that
+OpenRouter budget confirmation remains a human/external gate before any future
+wide-net live run.
 
 ## Non-Goals
 

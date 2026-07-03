@@ -32,8 +32,8 @@ Markdown documentation. The current project snapshot lives in
   inert dry-run evidence contract, no-send demo report validator, and
   fake/local fixture surface map.
 - [docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md):
-  final inert non-human handoff report, exact human gates, and next human
-  work checklist.
+  final inert non-human handoff report, non-human closure wide-net gate
+  summary, exact human gates, and next human work checklist.
 - [docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md](docs/PHASE_14C_SUPERVISED_SMOKE_TEST.md):
   guarded supervised smoke-test runbook for Todoist, Google Calendar, Gmail,
   and OpenClaw.

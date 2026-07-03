@@ -84,6 +84,13 @@ class NonhumanClosurePlanReportTest(unittest.TestCase):
                 self.assertTrue(packet["claude_code_audit_required"])
                 self.assertFalse(packet["contains_human_decision"])
                 self.assertFalse(packet["contains_live_access"])
+        final_handoff_packet = report["packet_plan"][-1]
+        self.assertEqual(
+            final_handoff_packet["packet_id"],
+            "packet_5_final_nonhuman_handoff",
+        )
+        self.assertIn("wide-net blocked gate summary", final_handoff_packet["scope"])
+        self.assertIn("exact human gate checklist", final_handoff_packet["scope"])
 
     def test_report_keeps_human_gates_and_blocked_live_rails_explicit(self) -> None:
         report = build_nonhuman_closure_plan_report()

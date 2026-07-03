@@ -51,6 +51,8 @@ class DryRunEvidenceDocsTest(unittest.TestCase):
             "does not activate production db",
             "does not activate scheduler/background behavior",
             "does not invoke openclaw",
+            "reduced non-human closure wide-net blocked gate summary",
+            "does not clear any gate by itself",
         )
         for phrase in required_phrases:
             with self.subTest(phrase=phrase):

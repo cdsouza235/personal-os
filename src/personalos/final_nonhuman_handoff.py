@@ -11,7 +11,11 @@ from personalos.dry_run_evidence import (
     build_dry_run_evidence_bundle_report,
     validate_dry_run_evidence_bundle_report_contract,
 )
-from personalos.nonhuman_closure import HUMAN_REQUIRED_GATES
+from personalos.nonhuman_closure import (
+    HUMAN_REQUIRED_GATES,
+    build_nonhuman_closure_plan_report,
+    validate_nonhuman_closure_plan_report_contract,
+)
 from personalos.phase14_pilot_prep import SAFETY_POSTURE
 
 
@@ -31,6 +35,7 @@ FINAL_NONHUMAN_HANDOFF_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "human_gates_remaining",
     "readiness",
     "dry_run_evidence",
+    "nonhuman_closure",
     "closure_packet_statuses",
     "human_gate_checklist",
     "blocked_live_rails",
@@ -53,6 +58,23 @@ DRY_RUN_EVIDENCE_PAYLOAD_FIELDS: tuple[str, ...] = (
     "temp_only_smoke_supported",
     "live_mvp_ready",
     "human_gates_remaining",
+)
+
+NONHUMAN_CLOSURE_PAYLOAD_FIELDS: tuple[str, ...] = (
+    "status",
+    "contract_valid",
+    "nonhuman_closure_complete",
+    "live_mvp_ready",
+    "human_gates_remaining",
+    "wide_net_rollup_contract_valid",
+    "wide_net_ready_for_live_execution",
+    "wide_net_live_run_authorized_by_this_report",
+    "wide_net_calendar_cli_connector_wiring_present",
+    "wide_net_credential_values_read",
+    "wide_net_external_mutation",
+    "wide_net_readiness_status",
+    "wide_net_live_rails_activated",
+    "wide_net_remaining_gate_count",
 )
 
 CLOSURE_PACKET_STATUS_FIELDS: tuple[str, ...] = (
@@ -282,6 +304,11 @@ def build_final_nonhuman_handoff_report() -> dict[str, Any]:
     dry_run_validation = validate_dry_run_evidence_bundle_report_contract(
         dry_run_report
     )
+    closure_report = build_nonhuman_closure_plan_report()
+    closure_validation = validate_nonhuman_closure_plan_report_contract(
+        closure_report
+    )
+    mvp_readiness = closure_report["mvp_readiness"]
 
     return {
         "schema_version": FINAL_NONHUMAN_HANDOFF_SCHEMA_VERSION,
@@ -311,6 +338,42 @@ def build_final_nonhuman_handoff_report() -> dict[str, Any]:
             ],
             "live_mvp_ready": dry_run_report["live_mvp_ready"],
             "human_gates_remaining": dry_run_report["human_gates_remaining"],
+        },
+        "nonhuman_closure": {
+            "status": closure_report["status"],
+            "contract_valid": closure_validation.report_matches_inert_contract,
+            "nonhuman_closure_complete": closure_report[
+                "nonhuman_closure_complete"
+            ],
+            "live_mvp_ready": closure_report["live_mvp_ready"],
+            "human_gates_remaining": closure_report["human_gates_remaining"],
+            "wide_net_rollup_contract_valid": mvp_readiness[
+                "wide_net_rollup_contract_valid"
+            ],
+            "wide_net_ready_for_live_execution": mvp_readiness[
+                "wide_net_ready_for_live_execution"
+            ],
+            "wide_net_live_run_authorized_by_this_report": mvp_readiness[
+                "wide_net_live_run_authorized_by_this_report"
+            ],
+            "wide_net_calendar_cli_connector_wiring_present": mvp_readiness[
+                "wide_net_calendar_cli_connector_wiring_present"
+            ],
+            "wide_net_credential_values_read": mvp_readiness[
+                "wide_net_credential_values_read"
+            ],
+            "wide_net_external_mutation": mvp_readiness[
+                "wide_net_external_mutation"
+            ],
+            "wide_net_readiness_status": mvp_readiness[
+                "wide_net_readiness_status"
+            ],
+            "wide_net_live_rails_activated": mvp_readiness[
+                "wide_net_live_rails_activated"
+            ],
+            "wide_net_remaining_gate_count": mvp_readiness[
+                "wide_net_remaining_gate_count"
+            ],
         },
         "closure_packet_statuses": _materialize_records(
             FINAL_NONHUMAN_CLOSURE_PACKET_STATUSES
@@ -395,6 +458,7 @@ def _blocked_final_handoff_reasons(report: Mapping[str, Any]) -> list[str]:
 
     _check_readiness(report.get("readiness"), reasons)
     _check_dry_run_evidence(report.get("dry_run_evidence"), reasons)
+    _check_nonhuman_closure(report.get("nonhuman_closure"), reasons)
     _check_closure_packet_statuses(report.get("closure_packet_statuses"), reasons)
     _check_human_gate_checklist(report.get("human_gate_checklist"), reasons)
 
@@ -458,6 +522,43 @@ def _check_dry_run_evidence(value: Any, reasons: list[str]) -> None:
             reasons.append(
                 f"Final non-human handoff report dry-run field {field} drifted."
             )
+
+
+def _check_nonhuman_closure(value: Any, reasons: list[str]) -> None:
+    if not isinstance(value, Mapping):
+        reasons.append(
+            "Final non-human handoff report non-human closure payload is missing."
+        )
+        return
+    if tuple(value) != NONHUMAN_CLOSURE_PAYLOAD_FIELDS:
+        reasons.append(
+            "Final non-human handoff report non-human closure fields do not match the contract."
+        )
+    expected = {
+        "status": "blocked_by_human_gates",
+        "contract_valid": True,
+        "nonhuman_closure_complete": False,
+        "live_mvp_ready": False,
+        "human_gates_remaining": True,
+        "wide_net_rollup_contract_valid": True,
+        "wide_net_ready_for_live_execution": False,
+        "wide_net_live_run_authorized_by_this_report": False,
+        "wide_net_calendar_cli_connector_wiring_present": False,
+        "wide_net_credential_values_read": False,
+        "wide_net_external_mutation": False,
+        "wide_net_readiness_status": "not_ready",
+        "wide_net_live_rails_activated": False,
+    }
+    for field, expected_value in expected.items():
+        if not _matches_expected_value(value.get(field), expected_value):
+            reasons.append(
+                f"Final non-human handoff report non-human closure field {field} drifted."
+            )
+    gate_count = value.get("wide_net_remaining_gate_count")
+    if not isinstance(gate_count, int) or gate_count < 1:
+        reasons.append(
+            "Final non-human handoff report non-human closure wide-net gates must remain blocked."
+        )
 
 
 def _check_closure_packet_statuses(value: Any, reasons: list[str]) -> None:

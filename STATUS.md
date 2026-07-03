@@ -6,10 +6,10 @@ Last updated: 2026-07-02
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #113:
-  `ec1825dfee6615e8401b7ee71767e5170f3cd393`
-- Latest merged PR at that baseline: PR #113, Phase 14-C wide-net readiness
-  rollup contract validator
+- Last validated main baseline after PR #115:
+  `56a7f7d0206e44bda36688b44802ed2a9eec6207`
+- Latest merged PR at that baseline: PR #115, non-human closure wide-net
+  readiness refresh
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -42,7 +42,9 @@ Last updated: 2026-07-02
   runbook and contract validator are merged on `main`; the inert dry-run
   evidence bundle and completion-report
   validator are merged on `main`; the inert final non-human handoff report and
-  exact human-gate checklist are merged on `main`; the Phase 14-C supervised
+  exact human-gate checklist are merged on `main` and now compose the
+  non-human closure wide-net gate summary as blocked status evidence; the
+  Phase 14-C supervised
   multi-rail smoke-test runbook, guardrail validator, injected-client
   execution path, credential-name-only preflight, and CLI runbook surface are
   prepared for one bounded future supervised smoke test across Todoist, Google
@@ -417,8 +419,8 @@ Last updated: 2026-07-02
 
 ## Validated State
 
-- Full suite: 833 tests OK
-- ResourceWarning-sensitive suite: 833 tests OK
+- Full suite: 846 tests OK
+- ResourceWarning-sensitive suite: 846 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -449,8 +451,8 @@ Last updated: 2026-07-02
 - Targeted weekend test readiness docs suite: 5 tests OK
 - Targeted dry-run evidence bundle suite: 14 tests OK
 - Targeted dry-run evidence docs suite: 5 tests OK
-- Targeted final non-human handoff suite: 12 tests OK
-- Targeted final non-human handoff docs suite: 5 tests OK
+- Targeted final non-human handoff suite: 14 tests OK
+- Targeted final non-human handoff docs suite: 6 tests OK
 - Hygiene: clean
 - Repo-local `var/`: none found
 - SQLite/DB artifacts outside `.git`: none found
@@ -837,16 +839,23 @@ OpenClaw, protected-path, and external-write assertions false.
 The final non-human handoff is an inert source/test/docs report contract in
 [docs/FINAL_NONHUMAN_HANDOFF.md](docs/FINAL_NONHUMAN_HANDOFF.md) and
 `src/personalos/final_nonhuman_handoff.py`. It records the five packet
-closure statuses, exact pending human gate checklist, blocked live rails, and
-next-human-work plan while keeping
+closure statuses, non-human closure wide-net gate summary, exact pending
+human gate checklist, blocked live rails, and next-human-work plan while
+keeping
 `status=nonhuman_handoff_recorded_human_gates_remain`,
 `safe_nonhuman_packet_artifacts_complete=true`,
 `final_packet_claude_code_audit_passed=true`, `live_mvp_ready=false`,
 `human_gates_remaining=true`, `readiness.status=not_ready`,
-`inert_report_only=true`, and `live_rails_activated=false`. Its validator
-checks exact top-level and nested readiness, dry-run evidence, packet status,
-human gate, blocked rail, next-human-work, non-authorization, and safety
-posture surfaces without echoing caller-controlled values in validator output.
+`inert_report_only=true`, `live_rails_activated=false`,
+`wide_net_ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`,
+`wide_net_calendar_cli_connector_wiring_present=false`,
+`wide_net_credential_values_read=false`, `wide_net_external_mutation=false`,
+and `wide_net_readiness_status=not_ready`. Its validator checks exact
+top-level and nested readiness, dry-run evidence, non-human closure
+wide-net status, packet status, human gate, blocked rail, next-human-work,
+non-authorization, and safety posture surfaces without echoing
+caller-controlled values in validator output.
 The handoff does not approve Phase 14-C, approve a candidate, authorize a
 candidate, activate or run a candidate, start live-service testing, handle
 credentials, activate production DB, activate scheduler/background behavior,

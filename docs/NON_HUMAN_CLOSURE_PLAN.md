@@ -84,7 +84,8 @@ The current report records five packet slots:
    fixtures, and report validators.
 5. [Final non-human handoff](FINAL_NONHUMAN_HANDOFF.md): merged on `main`
    after Claude Code audit, covering final non-human closure report, the
-   wide-net blocked gate summary, and exact human gate checklist.
+   wide-net blocked gate summary, the wide-net human-gate packet summary, and
+   exact human gate checklist.
 
 Every packet in this plan has:
 

@@ -147,6 +147,17 @@ post-run evidence/transcript gates. Use
 `personalos phase14c wide-net-pre-run-checklist-contract --json` to validate
 that checklist against its non-authorizing contract without reading credential
 values or calling services.
+Use `personalos phase14c wide-net-human-gate-packet --json` to compose the
+pre-run checklist and execution handoff into one non-authorizing human-gate
+packet for review. The packet includes an approval request template, but the
+approval request template is not approval; a fresh human message is still
+required. In short: fresh human message required. It keeps
+`ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`, and records that Calendar
+connector wiring remains required. Use
+`personalos phase14c wide-net-human-gate-packet-contract --json` to validate
+that packet against its inert contract without reading credential values,
+calling services, or authorizing live execution.
 Use `personalos phase14c wide-net-readiness-rollup --json` to inspect one
 repo-local wide-net readiness rollup that summarizes the plan, Calendar
 payload/transcript surfaces, execution handoff, evidence template, synthetic

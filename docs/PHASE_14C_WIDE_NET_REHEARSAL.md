@@ -222,6 +222,31 @@ live clients, call connectors, write files, or authorize a live run. The
 checklist can show repo-local checks pass, but it still cannot authorize a live
 run.
 
+Wide-net human-gate packet:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-human-gate-packet --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-human-gate-packet-contract --json
+```
+
+The human-gate packet is repo-local/report-only. It composes the pre-run
+checklist with the execution handoff and reports the remaining live-run gates
+in one packet. It reads environment key names only and checks the fixed
+CA-bundle path metadata only; it does not read credential values, report
+present config names, read CA file contents, initialize live clients, call
+connectors, call OpenRouter, create Todoist tasks, send Gmail, write Calendar,
+invoke OpenClaw, open a database, write files, or touch protected paths.
+
+The packet includes an approval request template for human review, but the
+approval request template is not approval. A fresh human message is required
+before any live run. The packet keeps `ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`,
+`live_execution_authorized=false`, and records that Calendar connector wiring
+remains required along with Claude Code audit, OpenRouter budget confirmation,
+sanitized Calendar transcript recording, sanitized wide-net evidence recording,
+and evidence crosscheck. The contract command validates that non-authorizing
+shape with fixed reason codes only and does not echo drifted values.
+
 Readiness rollup:
 
 ```bash

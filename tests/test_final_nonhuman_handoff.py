@@ -20,6 +20,7 @@ from personalos.final_nonhuman_handoff import (
     NON_AUTHORIZATION_FIELDS,
     NON_AUTHORIZATION_TRUE_FIELDS,
     READINESS_PAYLOAD_FIELDS,
+    WIDE_NET_HUMAN_GATE_PACKET_PAYLOAD_FIELDS,
     build_final_nonhuman_handoff_report,
     validate_final_nonhuman_handoff_report_contract,
 )
@@ -94,6 +95,23 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
         self.assertEqual(closure["wide_net_readiness_status"], "not_ready")
         self.assertFalse(closure["wide_net_live_rails_activated"])
         self.assertGreaterEqual(closure["wide_net_remaining_gate_count"], 1)
+
+    def test_report_composes_wide_net_human_gate_packet(self) -> None:
+        packet = build_final_nonhuman_handoff_report()["wide_net_human_gate_packet"]
+
+        self.assertEqual(tuple(packet), WIDE_NET_HUMAN_GATE_PACKET_PAYLOAD_FIELDS)
+        self.assertTrue(packet["contract_valid"])
+        self.assertFalse(packet["repo_local_preconditions_met"])
+        self.assertFalse(packet["ready_for_live_execution"])
+        self.assertFalse(packet["wide_net_live_run_authorized_by_this_report"])
+        self.assertTrue(packet["human_live_approval_still_required"])
+        self.assertTrue(packet["claude_code_audit_required_before_live_run"])
+        self.assertFalse(packet["calendar_cli_connector_wiring_present"])
+        self.assertFalse(packet["credential_values_read"])
+        self.assertFalse(packet["external_mutation"])
+        self.assertTrue(packet["approval_request_template_is_not_approval"])
+        self.assertTrue(packet["fresh_human_message_required"])
+        self.assertGreaterEqual(packet["remaining_gate_count"], 1)
 
     def test_packet_statuses_record_five_merged_packets(self) -> None:
         report = build_final_nonhuman_handoff_report()
@@ -226,6 +244,13 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
                     {"wide_net_readiness_status": token}
                 ),
                 "Final non-human handoff report non-human closure field wide_net_readiness_status drifted.",
+            ),
+            (
+                "wide_net_human_gate_packet",
+                lambda report, token: report["wide_net_human_gate_packet"].update(
+                    {"ready_for_live_execution": token}
+                ),
+                "Final non-human handoff report wide-net human gate field ready_for_live_execution drifted.",
             ),
             (
                 "packet",

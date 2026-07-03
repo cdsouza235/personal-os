@@ -2154,6 +2154,93 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
 
+    def test_phase14c_wide_net_human_gate_packet_local_pass_still_blocks_live(
+        self,
+    ) -> None:
+        secret_environment = {
+            name: f"secret-value-for-{name}" for name in WIDE_NET_REQUIRED_CONFIG_NAMES
+        }
+        with (
+            mock.patch.dict(os.environ, secret_environment, clear=True),
+            mock.patch("personalos.cli.Path.is_file", return_value=True),
+        ):
+            result = _run_cli(["phase14c", "wide-net-human-gate-packet", "--json"])
+
+        payload = json.loads(result.stdout)
+        packet = payload["wide_net_human_gate_packet"]
+        checklist = packet["pre_run_checklist_summary"]
+        approval_template = packet["human_approval_request_template"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-human-gate-packet")
+        self.assertEqual(
+            payload["status"],
+            (
+                "phase14c_wide_net_human_gate_packet_local_checks_passed_"
+                "human_approval_required"
+            ),
+        )
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(packet["repo_local_preconditions_met"])
+        self.assertFalse(packet["ready_for_live_execution"])
+        self.assertFalse(packet["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(packet["calendar_cli_connector_wiring_present"])
+        self.assertFalse(packet["credential_values_read"])
+        self.assertFalse(packet["external_mutation"])
+        self.assertTrue(checklist["local_preflight_passed"])
+        self.assertTrue(checklist["config_names_present"])
+        self.assertTrue(checklist["ssl_cert_file_available"])
+        self.assertFalse(checklist["present_config_names_reported"])
+        self.assertTrue(approval_template["template_is_not_approval"])
+        self.assertTrue(approval_template["fresh_human_message_required"])
+        self.assertIn(
+            "Approved: run exactly one Phase 14-C wide-net rehearsal",
+            approval_template["suggested_human_approval_text"],
+        )
+        self.assertFalse(packet["non_authorization"]["phase14c_authorized"])
+        self.assertFalse(packet["safety_assertions"]["calendar_app_connector_called"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_human_gate_packet_contract_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "SUPERSECRET_LEAK_CANARY_101",
+        }
+        with (
+            mock.patch.dict(os.environ, secret_environment, clear=True),
+            mock.patch("personalos.cli.Path.is_file", return_value=False),
+        ):
+            result = _run_cli(
+                ["phase14c", "wide-net-human-gate-packet-contract", "--json"]
+            )
+
+        payload = json.loads(result.stdout)
+        contract = payload["wide_net_human_gate_packet_contract"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-human-gate-packet-contract",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_human_gate_packet_contract_valid",
+        )
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(contract["report_matches_inert_contract"])
+        self.assertEqual(
+            contract["reasons"],
+            ["wide_net_human_gate_packet_remains_non_authorizing"],
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
     def test_phase14c_wide_net_readiness_rollup_is_no_live_report(self) -> None:
         secret_environment = {
             "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",

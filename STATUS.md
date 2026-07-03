@@ -6,9 +6,9 @@ Last updated: 2026-07-03
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #118:
-  `c1dd2288feefa2f4eed809766b800a88d15428f8`
-- Latest merged PR at that baseline: PR #118, wide-net local preflight report
+- Last validated main baseline after PR #119:
+  `03de0fb5f103e24c5748e0404668c7a961514f62`
+- Latest merged PR at that baseline: PR #119, wide-net pre-run checklist
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -118,7 +118,13 @@ Last updated: 2026-07-03
   present config names, reading CA file contents, calling connectors, or
   authorizing a live run; the pre-run checklist composes that local preflight
   with the pinned wide-net rollup contract and reports remaining human and
-  external gates while keeping live authorization false; Phase 14-C shared
+  external gates while keeping live authorization false; the wide-net
+  human-gate packet composes the pre-run checklist and execution handoff into
+  one non-authorizing packet with an approval request template that is not
+  approval, keeps `ready_for_live_execution=false`, keeps
+  `wide_net_live_run_authorized_by_this_report=false`, records that a fresh
+  human message is required, and records that Calendar connector wiring
+  remains required; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
   scans across the live-gated and report-only modules; the wide-net evidence
@@ -415,6 +421,15 @@ Last updated: 2026-07-03
   evidence recording, and evidence crosscheck. The
   `phase14c wide-net-pre-run-checklist-contract --json` command validates that
   checklist with fixed reason codes only and cannot authorize live execution.
+  The `phase14c wide-net-human-gate-packet --json` command composes the
+  pre-run checklist and execution handoff into one non-authorizing human-gate
+  packet. The packet can include an approval request template, but the approval
+  request template is not approval; a fresh human message is required before
+  any live run. It keeps `ready_for_live_execution=false`, keeps
+  `wide_net_live_run_authorized_by_this_report=false`, and records that
+  Calendar connector wiring remains required. The
+  `phase14c wide-net-human-gate-packet-contract --json` command validates that
+  packet with fixed reason codes only and cannot authorize live execution.
   The
   `phase14c wide-net-readiness-rollup --json` command
   composes the plan, Calendar payload/transcript surfaces, execution handoff,
@@ -440,8 +455,8 @@ Last updated: 2026-07-03
 
 ## Validated State
 
-- Full suite: 861 tests OK
-- ResourceWarning-sensitive suite: 861 tests OK
+- Full suite: 872 tests OK
+- ResourceWarning-sensitive suite: 872 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -463,6 +478,8 @@ Last updated: 2026-07-03
   suite: 179 tests OK
 - Targeted Phase 14-C wide-net pre-run checklist/local-preflight/rollup/CLI/
   status/model suite: 124 tests OK
+- Targeted Phase 14-C wide-net human-gate packet/final-handoff/
+  non-human-closure/CLI/docs suite: 175 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK

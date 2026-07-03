@@ -201,7 +201,10 @@ repo-local `phase14c wide-net-execution-handoff --json` command now reports
 the future bounded command template, Calendar connector handoff, call budgets,
 and evidence requirements without reading credentials or wiring a connector,
 and `phase14c wide-net-evidence-validate --input-file <file> --json` validates
-one sanitized evidence report without echoing raw evidence.
+one sanitized evidence report without echoing raw evidence. The repo-local
+`phase14c wide-net-pre-run-checklist --json` command now composes the local
+names-only preflight with the pinned wide-net rollup contract and reports
+remaining human and external gates while keeping live authorization false.
 
 ## Future Blocked Work
 

@@ -87,6 +87,12 @@ from personalos.phase14c_wide_net_execution_handoff import (
 from personalos.phase14c_wide_net_local_preflight import (
     build_phase14c_wide_net_local_preflight_report,
 )
+from personalos.phase14c_wide_net_pre_run_checklist import (
+    PHASE14C_WIDE_NET_PRE_RUN_CHECKLIST_CONTRACT_BLOCKED,
+    PHASE14C_WIDE_NET_PRE_RUN_CHECKLIST_CONTRACT_VALID,
+    build_phase14c_wide_net_pre_run_checklist_report,
+    validate_phase14c_wide_net_pre_run_checklist_report_contract,
+)
 from personalos.phase14c_wide_net_readiness_rollup import (
     PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_BLOCKED,
     PHASE14C_WIDE_NET_READINESS_ROLLUP_CONTRACT_VALID,
@@ -471,6 +477,29 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "no services called; no files written"
         ),
         "output": "stdout wide-net local preflight JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net pre-run checklist",
+        "safe_local_action": "Compose local wide-net checks and remaining gates",
+        "command": "personalos phase14c wide-net-pre-run-checklist [--json]",
+        "mode": "repo-local checklist / names-only / no live clients",
+        "local_effect": (
+            "reads environment key names and CA bundle file metadata only; "
+            "does not grant live authorization"
+        ),
+        "output": "stdout wide-net pre-run checklist JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net pre-run checklist contract",
+        "safe_local_action": "Validate the wide-net pre-run checklist contract",
+        "command": (
+            "personalos phase14c wide-net-pre-run-checklist-contract [--json]"
+        ),
+        "mode": "repo-local contract validation / no live clients",
+        "local_effect": (
+            "builds and validates the checklist; no services called; no files written"
+        ),
+        "output": "stdout wide-net pre-run checklist contract JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net readiness rollup",
@@ -1046,6 +1075,37 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_local_preflight_parser)
     phase14c_wide_net_local_preflight_parser.set_defaults(
         func=_command_phase14c_wide_net_local_preflight
+    )
+
+    phase14c_wide_net_pre_run_parser = phase14c_subparsers.add_parser(
+        "wide-net-pre-run-checklist",
+        help="Report wide-net local checks and remaining live gates.",
+        description=(
+            "Compose the wide-net local preflight with the readiness rollup "
+            "contract and print a non-authorizing checklist. This reads "
+            "environment key names and CA bundle file metadata only; it does not "
+            "read credential values, initialize live clients, call connectors, "
+            "write files, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_pre_run_parser)
+    phase14c_wide_net_pre_run_parser.set_defaults(
+        func=_command_phase14c_wide_net_pre_run_checklist
+    )
+
+    phase14c_wide_net_pre_run_contract_parser = phase14c_subparsers.add_parser(
+        "wide-net-pre-run-checklist-contract",
+        help="Validate the wide-net pre-run checklist contract.",
+        description=(
+            "Build and validate the wide-net pre-run checklist against its inert "
+            "contract. This reads environment key names and CA bundle file "
+            "metadata only; it does not read credential values, initialize live "
+            "clients, call connectors, write files, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_pre_run_contract_parser)
+    phase14c_wide_net_pre_run_contract_parser.set_defaults(
+        func=_command_phase14c_wide_net_pre_run_checklist_contract
     )
 
     phase14c_wide_net_readiness_rollup_parser = phase14c_subparsers.add_parser(
@@ -2536,6 +2596,100 @@ def _command_phase14c_wide_net_local_preflight(args: argparse.Namespace) -> int:
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _build_current_wide_net_pre_run_checklist() -> dict[str, Any]:
+    ssl_cert_file_is_file = Path(PHASE14C_WIDE_NET_REHEARSAL_SSL_CERT_FILE).is_file()
+    local_preflight = build_phase14c_wide_net_local_preflight_report(
+        available_config_names=os.environ.keys(),
+        ssl_cert_file_is_file=ssl_cert_file_is_file,
+    )
+    return build_phase14c_wide_net_pre_run_checklist_report(
+        local_preflight_report=local_preflight
+    )
+
+
+def _command_phase14c_wide_net_pre_run_checklist(args: argparse.Namespace) -> int:
+    checklist = _build_current_wide_net_pre_run_checklist()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-pre-run-checklist",
+            "status": checklist["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_pre_run_checklist": checklist,
+        },
+        workflow_name="Phase 14-C wide-net pre-run checklist",
+        workflow_mode="repo-local pre-run checklist / names-only / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review local preflight status and remaining human/external gates.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_pre_run_checklist_contract(
+    args: argparse.Namespace,
+) -> int:
+    checklist = _build_current_wide_net_pre_run_checklist()
+    validation = validate_phase14c_wide_net_pre_run_checklist_report_contract(
+        checklist
+    )
+    valid = validation.report_matches_inert_contract
+    status = (
+        PHASE14C_WIDE_NET_PRE_RUN_CHECKLIST_CONTRACT_VALID
+        if valid
+        else PHASE14C_WIDE_NET_PRE_RUN_CHECKLIST_CONTRACT_BLOCKED
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-pre-run-checklist-contract",
+            "status": status,
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_pre_run_checklist_contract": validation.to_dict(),
+        },
+        workflow_name="Phase 14-C wide-net pre-run checklist contract",
+        workflow_mode="repo-local contract validation / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review contract reasons if validation did not pass.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not paste or inspect credential values.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if valid else 1
 
 
 def _command_phase14c_wide_net_readiness_rollup(args: argparse.Namespace) -> int:

@@ -97,6 +97,8 @@ class FinalNonhumanHandoffDocsTest(unittest.TestCase):
             "`wide_net_ready_for_live_execution=false`",
             "`wide_net_live_run_authorized_by_this_report=false`",
             "`wide_net_calendar_cli_connector_wiring_present=false`",
+            "`wide_net_calendar_connector_readiness_available=true`",
+            "`wide_net_calendar_connector_readiness_contract_valid=true`",
             "`wide_net_calendar_operator_packet_available=true`",
             "`wide_net_calendar_operator_packet_contract_valid=true`",
             "`wide_net_credential_values_read=false`",

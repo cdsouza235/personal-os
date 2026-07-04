@@ -13,6 +13,11 @@ from personalos.phase14c_safety_utils import (
 from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
+from personalos.phase14c_wide_net_calendar_connector_readiness import (
+    PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_STATUS,
+    build_phase14c_wide_net_calendar_connector_readiness_report,
+    validate_phase14c_wide_net_calendar_connector_readiness_report_contract,
+)
 from personalos.phase14c_wide_net_calendar_operator_packet import (
     PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_STATUS,
     build_phase14c_wide_net_calendar_operator_packet_report,
@@ -101,6 +106,9 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_FALSE_FIELDS: tuple[str, ...] = (
 PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_STATUSES: dict[str, str] = {
     "wide_net_rehearsal_plan": "phase14c_wide_net_rehearsal_plan_ready",
     "calendar_bridge_payloads": "phase14c_wide_net_calendar_app_bridge_payloads_ready",
+    "calendar_connector_readiness": (
+        PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_STATUS
+    ),
     "calendar_transcript_template": (
         "phase14c_wide_net_calendar_transcript_template_ready"
     ),
@@ -114,6 +122,8 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_STATUSES: dict[str, str] = {
 PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS: dict[str, bool] = {
     "plan_available": True,
     "calendar_bridge_payload_report_available": True,
+    "calendar_connector_readiness_available": True,
+    "calendar_connector_readiness_contract_valid": True,
     "calendar_transcript_template_available": True,
     "calendar_operator_packet_available": True,
     "calendar_operator_packet_contract_valid": True,
@@ -193,6 +203,14 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
 
     plan = build_phase14c_wide_net_rehearsal_plan()
     bridge = build_phase14c_wide_net_calendar_app_bridge_report()
+    calendar_connector_readiness = (
+        build_phase14c_wide_net_calendar_connector_readiness_report()
+    )
+    calendar_connector_readiness_validation = (
+        validate_phase14c_wide_net_calendar_connector_readiness_report_contract(
+            calendar_connector_readiness
+        )
+    )
     transcript_template = build_phase14c_wide_net_calendar_transcript_template()
     calendar_operator_packet = build_phase14c_wide_net_calendar_operator_packet_report()
     calendar_operator_packet_validation = (
@@ -210,7 +228,14 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
     calendar_operator_packet_valid = (
         calendar_operator_packet_validation.report_matches_inert_contract
     )
-    repo_local_rollup_complete = rehearsal_passed and calendar_operator_packet_valid
+    calendar_connector_readiness_valid = (
+        calendar_connector_readiness_validation.report_matches_inert_contract
+    )
+    repo_local_rollup_complete = (
+        rehearsal_passed
+        and calendar_operator_packet_valid
+        and calendar_connector_readiness_valid
+    )
 
     return {
         "schema_version": PHASE14C_WIDE_NET_READINESS_ROLLUP_SCHEMA_VERSION,
@@ -231,6 +256,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
             **PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_STATUSES,
             "wide_net_rehearsal_plan": plan["status"],
             "calendar_bridge_payloads": bridge["status"],
+            "calendar_connector_readiness": calendar_connector_readiness["status"],
             "calendar_transcript_template": transcript_template["status"],
             "calendar_operator_packet": calendar_operator_packet["status"],
             "execution_handoff": handoff["status"],
@@ -241,6 +267,9 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
         "component_readiness": {
             **PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS,
             "synthetic_evidence_rehearsal_passed": rehearsal_passed,
+            "calendar_connector_readiness_contract_valid": (
+                calendar_connector_readiness_valid
+            ),
             "calendar_operator_packet_contract_valid": calendar_operator_packet_valid,
         },
         "commands": _commands(),
@@ -372,6 +401,22 @@ def _commands() -> tuple[dict[str, object], ...]:
             "command": (
                 "PYTHONPATH=src python3 -m personalos.cli phase14c "
                 "wide-net-calendar-bridge-payloads --json"
+            ),
+            "live_action": False,
+        },
+        {
+            "name": "calendar_connector_readiness",
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-calendar-connector-readiness --json"
+            ),
+            "live_action": False,
+        },
+        {
+            "name": "calendar_connector_readiness_contract",
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-calendar-connector-readiness-contract --json"
             ),
             "live_action": False,
         },

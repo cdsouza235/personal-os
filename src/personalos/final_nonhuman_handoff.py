@@ -72,6 +72,8 @@ NONHUMAN_CLOSURE_PAYLOAD_FIELDS: tuple[str, ...] = (
     "live_mvp_ready",
     "human_gates_remaining",
     "wide_net_rollup_contract_valid",
+    "wide_net_calendar_connector_readiness_available",
+    "wide_net_calendar_connector_readiness_contract_valid",
     "wide_net_calendar_operator_packet_available",
     "wide_net_calendar_operator_packet_contract_valid",
     "wide_net_ready_for_live_execution",
@@ -379,6 +381,12 @@ def build_final_nonhuman_handoff_report() -> dict[str, Any]:
             "wide_net_rollup_contract_valid": mvp_readiness[
                 "wide_net_rollup_contract_valid"
             ],
+            "wide_net_calendar_connector_readiness_available": mvp_readiness[
+                "wide_net_calendar_connector_readiness_available"
+            ],
+            "wide_net_calendar_connector_readiness_contract_valid": mvp_readiness[
+                "wide_net_calendar_connector_readiness_contract_valid"
+            ],
             "wide_net_calendar_operator_packet_available": mvp_readiness[
                 "wide_net_calendar_operator_packet_available"
             ],
@@ -615,6 +623,8 @@ def _check_nonhuman_closure(value: Any, reasons: list[str]) -> None:
         "live_mvp_ready": False,
         "human_gates_remaining": True,
         "wide_net_rollup_contract_valid": True,
+        "wide_net_calendar_connector_readiness_available": True,
+        "wide_net_calendar_connector_readiness_contract_valid": True,
         "wide_net_calendar_operator_packet_available": True,
         "wide_net_calendar_operator_packet_contract_valid": True,
         "wide_net_ready_for_live_execution": False,

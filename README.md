@@ -112,7 +112,17 @@ authorization. Use
 `personalos phase14c wide-net-calendar-bridge-payloads --json` to inspect the
 Google Calendar app connector payloads for the duplicate precheck and
 self-only create step; that command is report-only and does not call the
-connector. Use `personalos phase14c wide-net-execution-handoff --json` to
+connector. Use
+`personalos phase14c wide-net-calendar-connector-readiness --json` to inspect
+the wide-net Calendar connector readiness boundary without constructing a
+connector, calling Calendar, injecting a client into the runner, or reading
+credentials. It keeps `calendar_cli_connector_wiring_present=false`,
+`calendar_connector_use_authorized=false`,
+`calendar_app_connector_called=false`, and
+`calendar_client_injected_into_runner=false`. Use
+`personalos phase14c wide-net-calendar-connector-readiness-contract --json`
+to validate that report against its inert contract without live access. Use
+`personalos phase14c wide-net-execution-handoff --json` to
 inspect the future bounded live command template, Calendar connector handoff,
 call budgets, and post-run evidence requirements without wiring the connector
 or reading credentials. Use
@@ -169,9 +179,11 @@ that packet against its inert contract without reading credential values,
 calling services, or authorizing live execution.
 Use `personalos phase14c wide-net-readiness-rollup --json` to inspect one
 repo-local wide-net readiness rollup that summarizes the plan, Calendar
-payload/transcript surfaces, Calendar operator packet, execution handoff,
-evidence template, synthetic evidence rehearsal, and local preflight report
-surface. The rollup records
+payload/transcript surfaces, Calendar connector readiness, Calendar operator
+packet, execution handoff, evidence template, synthetic evidence rehearsal,
+and local preflight report surface. The rollup records
+`calendar_connector_readiness_available=true`,
+`calendar_connector_readiness_contract_valid=true`,
 `calendar_operator_packet_available=true` and
 `calendar_operator_packet_contract_valid=true` as repo-local blocked evidence
 only. It does not

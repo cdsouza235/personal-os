@@ -137,6 +137,8 @@ PHASE14C_WIDE_NET_READINESS_PAYLOAD_FIELDS: tuple[str, ...] = (
     "rollup_status",
     "rollup_contract_valid",
     "repo_local_rollup_complete",
+    "calendar_connector_readiness_available",
+    "calendar_connector_readiness_contract_valid",
     "calendar_operator_packet_available",
     "calendar_operator_packet_contract_valid",
     "ready_for_live_execution",
@@ -228,6 +230,12 @@ def build_mvp_readiness_gap_report() -> dict[str, Any]:
             "repo_local_rollup_complete": wide_net_report[
                 "repo_local_rollup_complete"
             ],
+            "calendar_connector_readiness_available": wide_net_report[
+                "component_readiness"
+            ]["calendar_connector_readiness_available"],
+            "calendar_connector_readiness_contract_valid": wide_net_report[
+                "component_readiness"
+            ]["calendar_connector_readiness_contract_valid"],
             "calendar_operator_packet_available": wide_net_report[
                 "component_readiness"
             ]["calendar_operator_packet_available"],
@@ -390,6 +398,8 @@ def _blocked_mvp_readiness_reasons(report: Mapping[str, Any]) -> list[str]:
         for field in (
             "rollup_contract_valid",
             "repo_local_rollup_complete",
+            "calendar_connector_readiness_available",
+            "calendar_connector_readiness_contract_valid",
             "calendar_operator_packet_available",
             "calendar_operator_packet_contract_valid",
             "synthetic_evidence_rehearsal_passed",

@@ -17,6 +17,11 @@ from personalos.phase14c_wide_net_calendar_app_bridge import (
 from personalos.phase14c_wide_net_calendar_bridge import (
     PHASE14C_WIDE_NET_CALENDAR_PRECHECK_CONTRACT,
 )
+from personalos.phase14c_wide_net_calendar_connector_readiness import (
+    PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_STATUS,
+    build_phase14c_wide_net_calendar_connector_readiness_report,
+    validate_phase14c_wide_net_calendar_connector_readiness_report_contract,
+)
 from personalos.phase14c_wide_net_calendar_transcript import (
     PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_INPUT_MAX_BYTES,
     PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_TEMPLATE_STATUS,
@@ -59,6 +64,7 @@ PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "calendar_app_connector_called",
     "credential_values_read",
     "external_mutation",
+    "calendar_connector_readiness_summary",
     "calendar_bridge_summary",
     "calendar_duplicate_precheck",
     "calendar_create",
@@ -148,6 +154,12 @@ def build_phase14c_wide_net_calendar_operator_packet_report() -> dict[str, Any]:
     """Build a no-live Calendar operator packet for the future wide-net run."""
 
     bridge = build_phase14c_wide_net_calendar_app_bridge_report()
+    connector_readiness = build_phase14c_wide_net_calendar_connector_readiness_report()
+    connector_readiness_validation = (
+        validate_phase14c_wide_net_calendar_connector_readiness_report_contract(
+            connector_readiness
+        )
+    )
     transcript = build_phase14c_wide_net_calendar_transcript_template()
 
     return {
@@ -167,6 +179,12 @@ def build_phase14c_wide_net_calendar_operator_packet_report() -> dict[str, Any]:
         "calendar_app_connector_called": False,
         "credential_values_read": False,
         "external_mutation": False,
+        "calendar_connector_readiness_summary": _calendar_connector_readiness_summary(
+            connector_readiness=connector_readiness,
+            connector_readiness_contract_valid=(
+                connector_readiness_validation.report_matches_inert_contract
+            ),
+        ),
         "calendar_bridge_summary": _calendar_bridge_summary(bridge),
         "calendar_duplicate_precheck": _calendar_duplicate_precheck(bridge),
         "calendar_create": _calendar_create(bridge),
@@ -207,6 +225,59 @@ def validate_phase14c_wide_net_calendar_operator_packet_report_contract(
         report_matches_inert_contract=True,
         reasons=("wide_net_calendar_operator_packet_remains_non_authorizing",),
     )
+
+
+def _calendar_connector_readiness_summary(
+    *,
+    connector_readiness: Mapping[str, Any],
+    connector_readiness_contract_valid: bool,
+) -> dict[str, object]:
+    bridge_contract = _mapping(connector_readiness.get("bridge_injection_contract"))
+    return {
+        "status": connector_readiness.get("status"),
+        "calendar_connector_readiness_available": (
+            connector_readiness.get("status")
+            == PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_STATUS
+        ),
+        "calendar_connector_readiness_contract_valid": (
+            connector_readiness_contract_valid
+        ),
+        "requires_injected_search_events_callable": bridge_contract.get(
+            "requires_injected_search_events_callable"
+        )
+        is True,
+        "requires_injected_create_event_callable": bridge_contract.get(
+            "requires_injected_create_event_callable"
+        )
+        is True,
+        "calendar_cli_connector_wiring_present": connector_readiness.get(
+            "calendar_cli_connector_wiring_present"
+        )
+        is True,
+        "calendar_connector_use_authorized": connector_readiness.get(
+            "calendar_connector_use_authorized"
+        )
+        is True,
+        "calendar_app_connector_called": connector_readiness.get(
+            "calendar_app_connector_called"
+        )
+        is True,
+        "calendar_client_injected_into_runner": connector_readiness.get(
+            "calendar_client_injected_into_runner"
+        )
+        is True,
+        "ready_for_live_execution": connector_readiness.get(
+            "ready_for_live_execution"
+        )
+        is True,
+        "wide_net_live_run_authorized_by_this_report": connector_readiness.get(
+            "wide_net_live_run_authorized_by_this_report"
+        )
+        is True,
+        "remaining_gate_count": len(
+            _records(connector_readiness.get("remaining_gates_before_live"))
+        ),
+    }
 
 
 def _calendar_bridge_summary(bridge: Mapping[str, Any]) -> dict[str, object]:
@@ -409,6 +480,7 @@ def _blocked_wide_net_calendar_operator_packet_reasons(
 
     expected = build_phase14c_wide_net_calendar_operator_packet_report()
     for field in (
+        "calendar_connector_readiness_summary",
         "calendar_bridge_summary",
         "calendar_duplicate_precheck",
         "calendar_create",

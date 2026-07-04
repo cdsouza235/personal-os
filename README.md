@@ -169,8 +169,12 @@ that packet against its inert contract without reading credential values,
 calling services, or authorizing live execution.
 Use `personalos phase14c wide-net-readiness-rollup --json` to inspect one
 repo-local wide-net readiness rollup that summarizes the plan, Calendar
-payload/transcript surfaces, execution handoff, evidence template, synthetic
-evidence rehearsal, and local preflight report surface. The rollup does not
+payload/transcript surfaces, Calendar operator packet, execution handoff,
+evidence template, synthetic evidence rehearsal, and local preflight report
+surface. The rollup records
+`calendar_operator_packet_available=true` and
+`calendar_operator_packet_contract_valid=true` as repo-local blocked evidence
+only. It does not
 read credentials, does not call connectors, does not initialize live clients,
 does not write files, does not produce live evidence, and does not authorize a
 live run; it records remaining human and connector gates. Use

@@ -339,7 +339,8 @@ inert, not-ready posture.
 The [MVP readiness gap report](MVP_READINESS_GAP_REPORT.md) is an inert,
 repo-local audit surface. It may summarize completed repo-local scaffolding,
 pending human decisions, blocked live rails, and the current Phase 14-C
-wide-net readiness rollup contract, but it must keep
+wide-net readiness rollup contract, including Calendar operator packet
+availability and contract validity as blocked evidence only, but it must keep
 `readiness.status=not_ready`, `inert_report_only=true`, and
 `live_rails_activated=false`. It remains non-authorizing. Its source contract
 must remain deterministic, pure in-memory, and report-only. Its validator must

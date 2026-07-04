@@ -22,11 +22,6 @@ from personalos.phase14c_wide_net_calendar_transcript import (
     PHASE14C_WIDE_NET_CALENDAR_TRANSCRIPT_TEMPLATE_STATUS,
     build_phase14c_wide_net_calendar_transcript_template,
 )
-from personalos.phase14c_wide_net_human_gate_packet import (
-    PHASE14C_WIDE_NET_HUMAN_GATE_PACKET_ALLOWED_STATUSES,
-    build_phase14c_wide_net_human_gate_packet_report,
-    validate_phase14c_wide_net_human_gate_packet_report_contract,
-)
 from personalos.phase14c_wide_net_rehearsal import (
     PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
     PHASE14C_WIDE_NET_REHEARSAL_MARKER,
@@ -154,10 +149,6 @@ def build_phase14c_wide_net_calendar_operator_packet_report() -> dict[str, Any]:
 
     bridge = build_phase14c_wide_net_calendar_app_bridge_report()
     transcript = build_phase14c_wide_net_calendar_transcript_template()
-    human_gate = build_phase14c_wide_net_human_gate_packet_report()
-    human_gate_validation = validate_phase14c_wide_net_human_gate_packet_report_contract(
-        human_gate
-    )
 
     return {
         "schema_version": PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_SCHEMA_VERSION,
@@ -180,12 +171,7 @@ def build_phase14c_wide_net_calendar_operator_packet_report() -> dict[str, Any]:
         "calendar_duplicate_precheck": _calendar_duplicate_precheck(bridge),
         "calendar_create": _calendar_create(bridge),
         "calendar_transcript_summary": _calendar_transcript_summary(transcript),
-        "human_gate_summary": _human_gate_summary(
-            human_gate=human_gate,
-            human_gate_contract_valid=(
-                human_gate_validation.report_matches_inert_contract
-            ),
-        ),
+        "human_gate_summary": _human_gate_summary(),
         "operator_sequence": _operator_sequence(),
         "post_run_validation_sequence": _post_run_validation_sequence(),
         "non_authorization": dict(
@@ -311,35 +297,18 @@ def _calendar_transcript_summary(transcript: Mapping[str, Any]) -> dict[str, obj
     }
 
 
-def _human_gate_summary(
-    *,
-    human_gate: Mapping[str, Any],
-    human_gate_contract_valid: bool,
-) -> dict[str, object]:
-    approval_template = _mapping(human_gate.get("human_approval_request_template"))
+def _human_gate_summary() -> dict[str, object]:
     return {
-        "status": human_gate.get("status"),
-        "status_allowed": (
-            human_gate.get("status") in PHASE14C_WIDE_NET_HUMAN_GATE_PACKET_ALLOWED_STATUSES
-        ),
-        "human_gate_packet_contract_valid": human_gate_contract_valid,
-        "repo_local_preconditions_met": human_gate.get("repo_local_preconditions_met")
-        is True,
-        "fresh_human_message_required": approval_template.get(
-            "fresh_human_message_required"
-        )
-        is True,
-        "approval_request_template_is_not_approval": approval_template.get(
-            "template_is_not_approval"
-        )
-        is True,
+        "status": "phase14c_wide_net_human_gate_packet_blocked_or_check_required",
+        "human_gate_packet_command_available": True,
+        "human_gate_packet_contract_command_available": True,
+        "repo_local_preconditions_not_asserted_by_calendar_operator_packet": True,
+        "fresh_human_message_required": True,
+        "approval_request_template_is_not_approval": True,
         "approval_reference_to_request": PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
         "calendar_connector_wiring_still_required": True,
-        "ready_for_live_execution": human_gate.get("ready_for_live_execution") is True,
-        "wide_net_live_run_authorized_by_this_report": human_gate.get(
-            "wide_net_live_run_authorized_by_this_report"
-        )
-        is True,
+        "ready_for_live_execution": False,
+        "wide_net_live_run_authorized_by_this_report": False,
     }
 
 

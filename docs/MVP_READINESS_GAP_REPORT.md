@@ -123,6 +123,8 @@ keeping:
 - `ready_for_live_execution=false`
 - `wide_net_live_run_authorized_by_this_report=false`
 - `calendar_cli_connector_wiring_present=false`
+- `calendar_operator_packet_available=true`
+- `calendar_operator_packet_contract_valid=true`
 - `credential_values_read=false`
 - `external_mutation=false`
 - `readiness_status=not_ready`

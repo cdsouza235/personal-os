@@ -51,6 +51,8 @@ MVP_READINESS_PAYLOAD_FIELDS: tuple[str, ...] = (
     "candidate_review_tracking_only",
     "phase14_c_blocked",
     "wide_net_rollup_contract_valid",
+    "wide_net_calendar_operator_packet_available",
+    "wide_net_calendar_operator_packet_contract_valid",
     "wide_net_ready_for_live_execution",
     "wide_net_live_run_authorized_by_this_report",
     "wide_net_calendar_cli_connector_wiring_present",
@@ -205,6 +207,12 @@ def build_nonhuman_closure_plan_report() -> dict[str, Any]:
             "wide_net_rollup_contract_valid": mvp_report[
                 "phase14c_wide_net_readiness"
             ]["rollup_contract_valid"],
+            "wide_net_calendar_operator_packet_available": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["calendar_operator_packet_available"],
+            "wide_net_calendar_operator_packet_contract_valid": mvp_report[
+                "phase14c_wide_net_readiness"
+            ]["calendar_operator_packet_contract_valid"],
             "wide_net_ready_for_live_execution": mvp_report[
                 "phase14c_wide_net_readiness"
             ]["ready_for_live_execution"],
@@ -360,6 +368,8 @@ def _check_mvp_readiness(value: Any, reasons: list[str]) -> None:
         "candidate_review_tracking_only": True,
         "phase14_c_blocked": True,
         "wide_net_rollup_contract_valid": True,
+        "wide_net_calendar_operator_packet_available": True,
+        "wide_net_calendar_operator_packet_contract_valid": True,
         "wide_net_ready_for_live_execution": False,
         "wide_net_live_run_authorized_by_this_report": False,
         "wide_net_calendar_cli_connector_wiring_present": False,

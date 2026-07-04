@@ -197,6 +197,10 @@ before model, Todoist, Gmail, or Calendar create, and the Calendar bridge
 scaffold fails closed on unrecognized precheck response shapes. The repo-local
 `phase14c wide-net-calendar-bridge-payloads --json` command now reports the
 Google Calendar app connector payloads without calling the connector. The
+repo-local `phase14c wide-net-calendar-operator-packet --json` command now
+composes those payloads with sanitized transcript requirements, a reduced
+human-gate summary, and post-run validation sequence while keeping Calendar
+connector use unauthorized. The
 repo-local `phase14c wide-net-execution-handoff --json` command now reports
 the future bounded command template, Calendar connector handoff, call budgets,
 and evidence requirements without reading credentials or wiring a connector,

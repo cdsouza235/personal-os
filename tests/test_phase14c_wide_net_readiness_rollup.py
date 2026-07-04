@@ -113,6 +113,10 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
             "phase14c_wide_net_calendar_transcript_template_ready",
         )
         self.assertEqual(
+            statuses["calendar_operator_packet"],
+            "phase14c_wide_net_calendar_operator_packet_ready",
+        )
+        self.assertEqual(
             statuses["execution_handoff"],
             "phase14c_wide_net_execution_handoff_ready",
         )
@@ -129,6 +133,8 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
             "phase14c_wide_net_local_preflight_reported",
         )
         self.assertTrue(readiness["local_preflight_report_available"])
+        self.assertTrue(readiness["calendar_operator_packet_available"])
+        self.assertTrue(readiness["calendar_operator_packet_contract_valid"])
         self.assertTrue(readiness["synthetic_evidence_rehearsal_passed"])
         self.assertTrue(readiness["wide_net_runner_available_but_fail_closed"])
         self.assertFalse(readiness["calendar_cli_connector_wiring_present"])
@@ -286,6 +292,8 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
                 "plan",
                 "calendar_bridge_payloads",
                 "calendar_transcript_template",
+                "calendar_operator_packet",
+                "calendar_operator_packet_contract",
                 "execution_handoff",
                 "evidence_template",
                 "evidence_rehearsal",

@@ -120,6 +120,15 @@ or reading credentials. Use
 `personalos phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
 to inspect and validate sanitized Calendar connector precheck/create
 transcripts without calling the connector or echoing raw event details. Use
+`personalos phase14c wide-net-calendar-operator-packet --json` to inspect one
+wide-net Calendar operator packet that composes the connector payloads,
+sanitized transcript requirements, human-gate summary, and post-run evidence
+checks without calling the connector. It keeps
+`ready_for_live_execution=false`, `calendar_connector_use_authorized=false`,
+and `calendar_app_connector_called=false`. Use
+`personalos phase14c wide-net-calendar-operator-packet-contract --json` to
+validate that packet against its inert contract without reading credentials,
+calling connectors, or authorizing live execution. Use
 `personalos phase14c wide-net-evidence-template --json` to inspect the
 fillable sanitized post-run evidence shape; the template is not accepted
 evidence until a separately approved run fills it with observed counts and

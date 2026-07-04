@@ -13,6 +13,11 @@ from personalos.phase14c_safety_utils import (
 from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
+from personalos.phase14c_wide_net_calendar_operator_packet import (
+    PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_STATUS,
+    build_phase14c_wide_net_calendar_operator_packet_report,
+    validate_phase14c_wide_net_calendar_operator_packet_report_contract,
+)
 from personalos.phase14c_wide_net_calendar_transcript import (
     build_phase14c_wide_net_calendar_transcript_template,
 )
@@ -99,6 +104,7 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_STATUSES: dict[str, str] = {
     "calendar_transcript_template": (
         "phase14c_wide_net_calendar_transcript_template_ready"
     ),
+    "calendar_operator_packet": PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_STATUS,
     "execution_handoff": "phase14c_wide_net_execution_handoff_ready",
     "evidence_template": "phase14c_wide_net_evidence_template_ready",
     "evidence_rehearsal": "phase14c_wide_net_evidence_rehearsal_passed",
@@ -109,6 +115,8 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS: dict[str, bool] = {
     "plan_available": True,
     "calendar_bridge_payload_report_available": True,
     "calendar_transcript_template_available": True,
+    "calendar_operator_packet_available": True,
+    "calendar_operator_packet_contract_valid": True,
     "execution_handoff_available": True,
     "evidence_template_available": True,
     "evidence_validator_available": True,
@@ -186,6 +194,12 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
     plan = build_phase14c_wide_net_rehearsal_plan()
     bridge = build_phase14c_wide_net_calendar_app_bridge_report()
     transcript_template = build_phase14c_wide_net_calendar_transcript_template()
+    calendar_operator_packet = build_phase14c_wide_net_calendar_operator_packet_report()
+    calendar_operator_packet_validation = (
+        validate_phase14c_wide_net_calendar_operator_packet_report_contract(
+            calendar_operator_packet
+        )
+    )
     handoff = build_phase14c_wide_net_execution_handoff_report()
     evidence_template = build_phase14c_wide_net_evidence_template_report()
     evidence_rehearsal = build_phase14c_wide_net_evidence_rehearsal_report()
@@ -193,6 +207,10 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
     rehearsal_passed = (
         evidence_rehearsal["status"] == PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED
     )
+    calendar_operator_packet_valid = (
+        calendar_operator_packet_validation.report_matches_inert_contract
+    )
+    repo_local_rollup_complete = rehearsal_passed and calendar_operator_packet_valid
 
     return {
         "schema_version": PHASE14C_WIDE_NET_READINESS_ROLLUP_SCHEMA_VERSION,
@@ -200,7 +218,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
         "marker": PHASE14C_WIDE_NET_REHEARSAL_MARKER,
         "approval_reference_to_request": PHASE14C_WIDE_NET_REHEARSAL_APPROVAL_REFERENCE,
         "ssl_cert_file_required": PHASE14C_WIDE_NET_REHEARSAL_SSL_CERT_FILE,
-        "repo_local_rollup_complete": rehearsal_passed,
+        "repo_local_rollup_complete": repo_local_rollup_complete,
         "ready_for_live_execution": False,
         "template_only_not_authorization": True,
         "human_live_approval_still_required": True,
@@ -214,6 +232,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
             "wide_net_rehearsal_plan": plan["status"],
             "calendar_bridge_payloads": bridge["status"],
             "calendar_transcript_template": transcript_template["status"],
+            "calendar_operator_packet": calendar_operator_packet["status"],
             "execution_handoff": handoff["status"],
             "evidence_template": evidence_template["status"],
             "evidence_rehearsal": evidence_rehearsal["status"],
@@ -222,6 +241,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
         "component_readiness": {
             **PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS,
             "synthetic_evidence_rehearsal_passed": rehearsal_passed,
+            "calendar_operator_packet_contract_valid": calendar_operator_packet_valid,
         },
         "commands": _commands(),
         "required_config_entry_names": tuple(WIDE_NET_REQUIRED_CONFIG_NAMES),
@@ -231,7 +251,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
         "evidence_rehearsal_summary": _evidence_rehearsal_summary(evidence_rehearsal),
         "readiness": {
             **PHASE14C_WIDE_NET_READINESS_ROLLUP_READINESS,
-            "repo_local_wide_net_rollup_ready": rehearsal_passed,
+            "repo_local_wide_net_rollup_ready": repo_local_rollup_complete,
         },
         "non_authorization": dict(
             PHASE14C_WIDE_NET_READINESS_ROLLUP_NON_AUTHORIZATION
@@ -360,6 +380,22 @@ def _commands() -> tuple[dict[str, object], ...]:
             "command": (
                 "PYTHONPATH=src python3 -m personalos.cli phase14c "
                 "wide-net-calendar-transcript-template --json"
+            ),
+            "live_action": False,
+        },
+        {
+            "name": "calendar_operator_packet",
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-calendar-operator-packet --json"
+            ),
+            "live_action": False,
+        },
+        {
+            "name": "calendar_operator_packet_contract",
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-calendar-operator-packet-contract --json"
             ),
             "live_action": False,
         },

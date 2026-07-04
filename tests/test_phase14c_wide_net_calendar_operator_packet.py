@@ -66,7 +66,13 @@ class Phase14CWideNetCalendarOperatorPacketTest(unittest.TestCase):
         self.assertTrue(transcript["calendar_transcript_template_available"])
         self.assertFalse(transcript["raw_event_details_allowed"])
         self.assertFalse(transcript["attendee_addresses_allowed"])
-        self.assertTrue(human_gate["human_gate_packet_contract_valid"])
+        self.assertTrue(human_gate["human_gate_packet_command_available"])
+        self.assertTrue(human_gate["human_gate_packet_contract_command_available"])
+        self.assertTrue(
+            human_gate[
+                "repo_local_preconditions_not_asserted_by_calendar_operator_packet"
+            ]
+        )
         self.assertTrue(human_gate["fresh_human_message_required"])
         self.assertTrue(human_gate["approval_request_template_is_not_approval"])
         self.assertTrue(human_gate["calendar_connector_wiring_still_required"])

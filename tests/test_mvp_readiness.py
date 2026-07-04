@@ -131,6 +131,8 @@ class MvpReadinessGapReportTest(unittest.TestCase):
         )
         self.assertTrue(wide_net["rollup_contract_valid"])
         self.assertTrue(wide_net["repo_local_rollup_complete"])
+        self.assertTrue(wide_net["calendar_operator_packet_available"])
+        self.assertTrue(wide_net["calendar_operator_packet_contract_valid"])
         self.assertTrue(wide_net["synthetic_evidence_rehearsal_passed"])
         self.assertFalse(wide_net["ready_for_live_execution"])
         self.assertFalse(wide_net["wide_net_live_run_authorized_by_this_report"])
@@ -277,6 +279,13 @@ class MvpReadinessGapReportTest(unittest.TestCase):
                 (
                     "MVP readiness report Phase 14-C wide-net field "
                     "ready_for_live_execution drifted."
+                ),
+            ),
+            (
+                "calendar_operator_packet_contract_valid",
+                (
+                    "MVP readiness report Phase 14-C wide-net field "
+                    "calendar_operator_packet_contract_valid drifted."
                 ),
             ),
             (

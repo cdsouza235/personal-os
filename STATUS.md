@@ -1,14 +1,14 @@
 # Personal OS Status
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #120:
-  `5d1e37c9e9f0a8d6c2a1ae2f03daf1e0b8b865fa`
-- Latest merged PR at that baseline: PR #120, wide-net human-gate packet
+- Last validated main baseline after PR #121:
+  `05cfd3f8d0f7b3787933ed5537b72a7b10f44424`
+- Latest merged PR at that baseline: PR #121, wide-net Calendar operator packet
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -129,7 +129,10 @@ Last updated: 2026-07-03
   summary, and post-run validation sequence into one non-authorizing report
   while keeping `calendar_connector_use_authorized=false`,
   `calendar_app_connector_called=false`, and
-  `ready_for_live_execution=false`; Phase 14-C shared
+  `ready_for_live_execution=false`; the wide-net readiness rollup, MVP
+  readiness report, non-human closure report, and final non-human handoff now
+  surface that Calendar operator packet availability and contract validity as
+  blocked, repo-local, non-authorizing evidence only; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
   scans across the live-gated and report-only modules; the wide-net evidence
@@ -188,19 +191,19 @@ Last updated: 2026-07-03
   evidence confirming Todoist and OpenRouter connectivity, plus the connected
   rehearsal plan/executable gate/live evidence, plus the wide-net rehearsal
   plan, fail-closed executable gate, Calendar duplicate-precheck contract,
-  Calendar app-bridge payload report, execution handoff, redacted evidence
-  validator, fillable evidence template, evidence crosscheck, evidence
-  rehearsal, readiness rollup, readiness-rollup contract validator, and shared
-  Phase 14-C safety-helper hardening
+  Calendar app-bridge payload report, Calendar operator packet, execution
+  handoff, redacted evidence validator, fillable evidence template, evidence
+  crosscheck, evidence rehearsal, readiness rollup, readiness-rollup contract
+  validator, and shared Phase 14-C safety-helper hardening
 - Current / next phase: Phase 14-C wide-net rehearsal planning after the first
   approved model-to-task-to-email rehearsal stopped at model validation. The
   connected live evidence is recorded in
   [docs/PHASE_14C_CONNECTED_REHEARSAL.md](docs/PHASE_14C_CONNECTED_REHEARSAL.md),
   and the next inert wider plan is recorded in
   [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md).
-  The wide-net execution handoff, evidence template, evidence validator,
-  evidence crosscheck, evidence rehearsal, local preflight, readiness rollup,
-  and readiness-rollup contract validator are repo-local
+  The wide-net Calendar operator packet, execution handoff, evidence template,
+  evidence validator, evidence crosscheck, evidence rehearsal, local preflight,
+  readiness rollup, and readiness-rollup contract validator are repo-local
   and inert; the evidence validator and evidence crosscheck have explicit local
   input-size gates, the evidence validator uses bounded shared redaction scans,
   the evidence rehearsal exercises the validator chain with synthetic
@@ -208,7 +211,8 @@ Last updated: 2026-07-03
   path metadata without values or file contents, the pre-run checklist composes
   local checks with the pinned rollup contract while keeping human and external
   gates blocked, and the readiness rollup plus contract validator summarize and
-  pin remaining human and connector gates.
+  pin the Calendar operator packet contract plus remaining human and connector
+  gates.
   Calendar creation and protected OpenClaw runtime invocation remain excluded
   unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
@@ -495,7 +499,7 @@ Last updated: 2026-07-03
 - Targeted Phase 14-C wide-net human-gate packet/final-handoff/
   non-human-closure/CLI/docs suite: 175 tests OK
 - Targeted Phase 14-C wide-net Calendar operator packet/transcript/handoff/
-  rollup/CLI suite: 129 tests OK
+  rollup/MVP/non-human-closure/final-handoff/CLI/docs suite: 170 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK

@@ -83,6 +83,8 @@ class FinalNonhumanHandoffReportTest(unittest.TestCase):
         self.assertFalse(closure["live_mvp_ready"])
         self.assertTrue(closure["human_gates_remaining"])
         self.assertTrue(closure["wide_net_rollup_contract_valid"])
+        self.assertTrue(closure["wide_net_calendar_operator_packet_available"])
+        self.assertTrue(closure["wide_net_calendar_operator_packet_contract_valid"])
         self.assertFalse(closure["wide_net_ready_for_live_execution"])
         self.assertFalse(
             closure["wide_net_live_run_authorized_by_this_report"]

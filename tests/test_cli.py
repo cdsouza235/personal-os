@@ -2301,7 +2301,13 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertTrue(transcript["calendar_transcript_template_available"])
         self.assertFalse(transcript["raw_event_details_allowed"])
         self.assertFalse(transcript["attendee_addresses_allowed"])
-        self.assertTrue(human_gate["human_gate_packet_contract_valid"])
+        self.assertTrue(human_gate["human_gate_packet_command_available"])
+        self.assertTrue(human_gate["human_gate_packet_contract_command_available"])
+        self.assertTrue(
+            human_gate[
+                "repo_local_preconditions_not_asserted_by_calendar_operator_packet"
+            ]
+        )
         self.assertFalse(human_gate["ready_for_live_execution"])
         self.assertFalse(human_gate["wide_net_live_run_authorized_by_this_report"])
         self.assertFalse(packet["non_authorization"]["calendar_write_authorized"])

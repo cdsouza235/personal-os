@@ -28,6 +28,7 @@ class Phase14CWideNetCalendarOperatorPacketTest(unittest.TestCase):
         validation = validate_phase14c_wide_net_calendar_operator_packet_report_contract(
             report
         )
+        connector_readiness = report["calendar_connector_readiness_summary"]
         bridge = report["calendar_bridge_summary"]
         precheck = report["calendar_duplicate_precheck"]
         create = report["calendar_create"]
@@ -52,6 +53,26 @@ class Phase14CWideNetCalendarOperatorPacketTest(unittest.TestCase):
         self.assertFalse(report["calendar_app_connector_called"])
         self.assertFalse(report["credential_values_read"])
         self.assertFalse(report["external_mutation"])
+        self.assertTrue(
+            connector_readiness["calendar_connector_readiness_available"]
+        )
+        self.assertTrue(
+            connector_readiness["calendar_connector_readiness_contract_valid"]
+        )
+        self.assertTrue(
+            connector_readiness["requires_injected_search_events_callable"]
+        )
+        self.assertTrue(
+            connector_readiness["requires_injected_create_event_callable"]
+        )
+        self.assertFalse(connector_readiness["calendar_cli_connector_wiring_present"])
+        self.assertFalse(connector_readiness["calendar_connector_use_authorized"])
+        self.assertFalse(connector_readiness["calendar_app_connector_called"])
+        self.assertFalse(connector_readiness["calendar_client_injected_into_runner"])
+        self.assertFalse(connector_readiness["ready_for_live_execution"])
+        self.assertFalse(
+            connector_readiness["wide_net_live_run_authorized_by_this_report"]
+        )
         self.assertTrue(bridge["calendar_bridge_payloads_available"])
         self.assertFalse(bridge["repo_cli_constructs_connector"])
         self.assertFalse(bridge["repo_cli_calls_connector"])
@@ -171,6 +192,7 @@ class Phase14CWideNetCalendarOperatorPacketTest(unittest.TestCase):
         required_phrases = (
             "phase14c wide-net-calendar-operator-packet --json",
             "phase14c wide-net-calendar-operator-packet-contract --json",
+            "wide-net calendar connector readiness",
             "wide-net calendar operator packet",
             "calendar_connector_use_authorized=false",
             "ready_for_live_execution=false",

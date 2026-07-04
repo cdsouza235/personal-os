@@ -64,6 +64,12 @@ from personalos.phase14c_todoist_live_smoke import (
 from personalos.phase14c_wide_net_calendar_app_bridge import (
     build_phase14c_wide_net_calendar_app_bridge_report,
 )
+from personalos.phase14c_wide_net_calendar_connector_readiness import (
+    PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_CONTRACT_BLOCKED,
+    PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_CONTRACT_VALID,
+    build_phase14c_wide_net_calendar_connector_readiness_report,
+    validate_phase14c_wide_net_calendar_connector_readiness_report_contract,
+)
 from personalos.phase14c_wide_net_calendar_operator_packet import (
     PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_CONTRACT_BLOCKED,
     PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_CONTRACT_VALID,
@@ -407,6 +413,27 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "mode": "repo-local app-bridge payload report / no connector call",
         "local_effect": "no env read; no DB opened; no files written; no app connector called",
         "output": "stdout bridge payload JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net Calendar connector readiness",
+        "safe_local_action": "Inspect the Calendar connector wiring boundary",
+        "command": (
+            "personalos phase14c wide-net-calendar-connector-readiness [--json]"
+        ),
+        "mode": "repo-local connector readiness report / no connector call",
+        "local_effect": "no env read; no DB opened; no files written; no connector constructed",
+        "output": "stdout Calendar connector readiness JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net Calendar connector readiness contract",
+        "safe_local_action": "Validate the Calendar connector readiness contract",
+        "command": (
+            "personalos phase14c wide-net-calendar-connector-readiness-contract "
+            "[--json]"
+        ),
+        "mode": "repo-local contract validation / no connector call",
+        "local_effect": "no env read; no DB opened; no files written; no connector constructed",
+        "output": "stdout Calendar connector readiness contract JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net Calendar transcript template",
@@ -995,6 +1022,40 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_calendar_bridge_parser)
     phase14c_wide_net_calendar_bridge_parser.set_defaults(
         func=_command_phase14c_wide_net_calendar_bridge_payloads
+    )
+
+    phase14c_wide_net_calendar_connector_readiness_parser = (
+        phase14c_subparsers.add_parser(
+            "wide-net-calendar-connector-readiness",
+            help="Report the wide-net Calendar connector wiring boundary.",
+            description=(
+                "Print a repo-local Calendar connector wiring readiness report "
+                "for the future wide-net bridge. This does not read credentials, "
+                "construct a connector, call Calendar, inject a client into the "
+                "runner, or authorize a live run."
+            ),
+        )
+    )
+    _add_json_arg(phase14c_wide_net_calendar_connector_readiness_parser)
+    phase14c_wide_net_calendar_connector_readiness_parser.set_defaults(
+        func=_command_phase14c_wide_net_calendar_connector_readiness
+    )
+
+    phase14c_wide_net_calendar_connector_readiness_contract_parser = (
+        phase14c_subparsers.add_parser(
+            "wide-net-calendar-connector-readiness-contract",
+            help="Validate the wide-net Calendar connector readiness contract.",
+            description=(
+                "Build and validate the Calendar connector wiring readiness report "
+                "against its inert contract. This does not read credentials, "
+                "construct a connector, call Calendar, inject a client into the "
+                "runner, or authorize a live run."
+            ),
+        )
+    )
+    _add_json_arg(phase14c_wide_net_calendar_connector_readiness_contract_parser)
+    phase14c_wide_net_calendar_connector_readiness_contract_parser.set_defaults(
+        func=_command_phase14c_wide_net_calendar_connector_readiness_contract
     )
 
     phase14c_wide_net_calendar_transcript_template_parser = (
@@ -2342,6 +2403,95 @@ def _command_phase14c_wide_net_calendar_bridge_payloads(
     )
     _emit_report(report, json_output=args.json)
     return 0
+
+
+def _command_phase14c_wide_net_calendar_connector_readiness(
+    args: argparse.Namespace,
+) -> int:
+    readiness = build_phase14c_wide_net_calendar_connector_readiness_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-calendar-connector-readiness",
+            "status": readiness["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_calendar_connector_readiness": readiness,
+        },
+        workflow_name="Phase 14-C wide-net Calendar connector readiness",
+        workflow_mode="repo-local connector readiness / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the connector readiness report before any wiring PR.",
+            "Run Claude Code audit before any live connector execution.",
+            "Do not paste credential values or raw Calendar event details.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_calendar_connector_readiness_contract(
+    args: argparse.Namespace,
+) -> int:
+    readiness = build_phase14c_wide_net_calendar_connector_readiness_report()
+    validation = (
+        validate_phase14c_wide_net_calendar_connector_readiness_report_contract(
+            readiness
+        )
+    )
+    valid = validation.report_matches_inert_contract
+    status = (
+        PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_CONTRACT_VALID
+        if valid
+        else PHASE14C_WIDE_NET_CALENDAR_CONNECTOR_READINESS_CONTRACT_BLOCKED
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-calendar-connector-readiness-contract",
+            "status": status,
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_calendar_connector_readiness_contract": (
+                validation.to_dict()
+            ),
+        },
+        workflow_name="Phase 14-C wide-net Calendar connector readiness contract",
+        workflow_mode="repo-local contract validation / no connector call",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review contract reasons if validation did not pass.",
+            "Run Claude Code audit before any live connector execution.",
+            "Do not paste credential values or raw Calendar event details.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if valid else 1
 
 
 def _command_phase14c_wide_net_calendar_transcript_template(

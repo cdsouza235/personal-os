@@ -398,6 +398,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C connected rehearsal plan",
             "Phase 14-C connected rehearsal gate",
             "Phase 14-C wide-net Calendar bridge payloads",
+            "Phase 14-C wide-net Calendar connector readiness",
+            "Phase 14-C wide-net Calendar connector readiness contract",
             "Phase 14-C wide-net Calendar operator packet",
             "Phase 14-C wide-net Calendar operator packet contract",
             "Phase 14-C wide-net execution handoff",
@@ -465,6 +467,14 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("Phase 14-C connected rehearsal plan", workflow_names)
         self.assertIn("Phase 14-C connected rehearsal gate", workflow_names)
         self.assertIn("Phase 14-C wide-net Calendar bridge payloads", workflow_names)
+        self.assertIn(
+            "Phase 14-C wide-net Calendar connector readiness",
+            workflow_names,
+        )
+        self.assertIn(
+            "Phase 14-C wide-net Calendar connector readiness contract",
+            workflow_names,
+        )
         self.assertIn("Phase 14-C wide-net Calendar operator packet", workflow_names)
         self.assertIn(
             "Phase 14-C wide-net Calendar operator packet contract",
@@ -2263,6 +2273,7 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
 
         payload = json.loads(result.stdout)
         packet = payload["wide_net_calendar_operator_packet"]
+        connector_readiness = packet["calendar_connector_readiness_summary"]
         precheck = packet["calendar_duplicate_precheck"]
         create = packet["calendar_create"]
         transcript = packet["calendar_transcript_summary"]
@@ -2290,6 +2301,16 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(packet["calendar_app_connector_called"])
         self.assertFalse(packet["credential_values_read"])
         self.assertFalse(packet["external_mutation"])
+        self.assertTrue(
+            connector_readiness["calendar_connector_readiness_available"]
+        )
+        self.assertTrue(
+            connector_readiness["calendar_connector_readiness_contract_valid"]
+        )
+        self.assertFalse(connector_readiness["calendar_cli_connector_wiring_present"])
+        self.assertFalse(connector_readiness["calendar_connector_use_authorized"])
+        self.assertFalse(connector_readiness["calendar_app_connector_called"])
+        self.assertFalse(connector_readiness["calendar_client_injected_into_runner"])
         self.assertEqual(precheck["connector_action"], "search_events")
         self.assertEqual(precheck["matching_event_count_must_equal"], 0)
         self.assertFalse(precheck["event_details_logged"])
@@ -2313,6 +2334,106 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(packet["non_authorization"]["calendar_write_authorized"])
         self.assertFalse(packet["safety_assertions"]["calendar_app_connector_called"])
         self.assertFalse(packet["safety_assertions"]["calendar_event_created"])
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_calendar_connector_readiness_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "secret-openrouter-key",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                ["phase14c", "wide-net-calendar-connector-readiness", "--json"]
+            )
+
+        payload = json.loads(result.stdout)
+        readiness = payload["wide_net_calendar_connector_readiness"]
+        injection = readiness["bridge_injection_contract"]
+        precheck = readiness["precheck_wiring_contract"]
+        create = readiness["create_wiring_contract"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-calendar-connector-readiness",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_connector_readiness_reported",
+        )
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertFalse(readiness["ready_for_live_execution"])
+        self.assertFalse(readiness["wide_net_live_run_authorized_by_this_report"])
+        self.assertFalse(readiness["calendar_cli_connector_wiring_present"])
+        self.assertFalse(readiness["calendar_connector_use_authorized"])
+        self.assertFalse(readiness["calendar_app_connector_called"])
+        self.assertFalse(readiness["calendar_client_constructed"])
+        self.assertFalse(readiness["calendar_client_injected_into_runner"])
+        self.assertFalse(readiness["credential_values_read"])
+        self.assertFalse(readiness["external_mutation"])
+        self.assertTrue(injection["requires_injected_search_events_callable"])
+        self.assertTrue(injection["requires_injected_create_event_callable"])
+        self.assertFalse(injection["wide_net_runner_calendar_client_available"])
+        self.assertEqual(precheck["connector_action"], "search_events")
+        self.assertEqual(precheck["matching_event_count_must_equal"], 0)
+        self.assertEqual(create["connector_action"], "create_event")
+        self.assertEqual(create["attendee_count"], 0)
+        self.assertFalse(create["conference_link"])
+        self.assertIsNone(create["recurrence"])
+        self.assertFalse(
+            readiness["non_authorization"]["calendar_connector_use_authorized"]
+        )
+        self.assertFalse(readiness["safety_assertions"]["calendar_app_connector_called"])
+        self.assertFalse(readiness["safety_assertions"]["calendar_client_constructed"])
+        self.assertFalse(
+            readiness["safety_assertions"]["calendar_client_injected_into_runner"]
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_calendar_connector_readiness_contract_is_no_live_report(
+        self,
+    ) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "SUPERSECRET_LEAK_CANARY_123",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(
+                [
+                    "phase14c",
+                    "wide-net-calendar-connector-readiness-contract",
+                    "--json",
+                ]
+            )
+
+        payload = json.loads(result.stdout)
+        contract = payload["wide_net_calendar_connector_readiness_contract"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(
+            payload["command"],
+            "phase14c wide-net-calendar-connector-readiness-contract",
+        )
+        self.assertEqual(
+            payload["status"],
+            "phase14c_wide_net_calendar_connector_readiness_contract_valid",
+        )
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(contract["report_matches_inert_contract"])
+        self.assertEqual(
+            contract["reasons"],
+            ["wide_net_calendar_connector_readiness_remains_non_authorizing"],
+        )
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
 

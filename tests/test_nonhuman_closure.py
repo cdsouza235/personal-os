@@ -58,6 +58,12 @@ class NonhumanClosurePlanReportTest(unittest.TestCase):
         self.assertTrue(mvp_readiness["candidate_review_tracking_only"])
         self.assertTrue(mvp_readiness["phase14_c_blocked"])
         self.assertTrue(mvp_readiness["wide_net_rollup_contract_valid"])
+        self.assertTrue(
+            mvp_readiness["wide_net_calendar_connector_readiness_available"]
+        )
+        self.assertTrue(
+            mvp_readiness["wide_net_calendar_connector_readiness_contract_valid"]
+        )
         self.assertTrue(mvp_readiness["wide_net_calendar_operator_packet_available"])
         self.assertTrue(
             mvp_readiness["wide_net_calendar_operator_packet_contract_valid"]

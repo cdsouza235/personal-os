@@ -12,12 +12,15 @@ Calendar bridge scaffold that normalizes connector search responses into an
 explicit precheck contract; unrecognized precheck response shapes fail closed.
 The repo-local Calendar app-bridge payload command now prints the exact Google
 Calendar app connector arguments for the duplicate precheck and self-only
-create step without calling the connector. The repo also has no-live Calendar
-transcript template and validator commands so a future app-connector precheck
-or create transcript can be checked as sanitized JSON without echoing raw event
-details or attendee addresses. The repo also has a no-live Calendar operator
-packet that composes the Calendar payloads, sanitized transcript requirements,
-human-gate summary, and post-run validation sequence into one
+create step without calling the connector. The repo-local Calendar connector
+readiness command now reports the future injection boundary without
+constructing a connector, calling Calendar, injecting a client, or reading
+credentials. The repo also has no-live Calendar transcript template and
+validator commands so a future app-connector precheck or create transcript can
+be checked as sanitized JSON without echoing raw event details or attendee
+addresses. The repo also has a no-live Calendar operator packet that composes
+the Calendar payloads, connector-readiness summary, sanitized transcript
+requirements, human-gate summary, and post-run validation sequence into one
 non-authorizing report. The no-live execution-handoff command, fillable
 evidence-template command, and redacted evidence validator let the next
 operator inspect the bounded command, Calendar connector handoff contract,
@@ -79,6 +82,29 @@ for `search_events` and `create_event`, plus the normalized precheck response
 contract required by the runner. It is not live authorization and does not
 inject a Calendar client into the wide-net runner.
 
+Calendar connector readiness:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-connector-readiness --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-connector-readiness-contract --json
+```
+
+The Calendar connector readiness command is repo-local/report-only. It does
+not read `.env.local`, read environment variables, load credentials,
+initialize live clients, construct a Calendar connector, call Calendar, create
+events, call OpenRouter, create Todoist tasks, send Gmail, invoke OpenClaw,
+open a database, write files, or touch protected paths. It reports the future
+bridge injection boundary for the injected `search_events` and `create_event`
+callables, the duplicate-precheck contract, and the bounded create contract
+while keeping `calendar_cli_connector_wiring_present=false`,
+`calendar_connector_use_authorized=false`,
+`calendar_app_connector_called=false`,
+`calendar_client_injected_into_runner=false`,
+`ready_for_live_execution=false`, and
+`wide_net_live_run_authorized_by_this_report=false`. The contract command
+validates those fields and emits fixed reason codes only. It does not wire a
+Calendar client into the wide-net runner.
+
 Calendar connector transcript template and validator:
 
 ```bash
@@ -109,9 +135,10 @@ PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-calendar-operator-pac
 ```
 
 The Calendar operator packet is repo-local/report-only. It composes the
-Calendar app-bridge payloads, sanitized transcript requirements, human-gate
-summary, and post-run validation sequence into one operator-facing packet
-without calling the Calendar connector. It keeps
+Calendar app-bridge payloads, Calendar connector readiness summary, sanitized
+transcript requirements, human-gate summary, and post-run validation sequence
+into one operator-facing packet without calling the Calendar connector. It
+keeps
 `ready_for_live_execution=false`,
 `wide_net_live_run_authorized_by_this_report=false`,
 `calendar_connector_use_authorized=false`,
@@ -278,9 +305,11 @@ PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-readiness-rollup --js
 
 The readiness rollup command is repo-local/report-only. It composes the
 wide-net plan, Calendar bridge payload surface, sanitized Calendar transcript
-template, Calendar operator packet, execution handoff, fillable evidence
-template, synthetic evidence rehearsal, and local preflight report surface into
-one summary report. It records
+template, Calendar connector readiness, Calendar operator packet, execution
+handoff, fillable evidence template, synthetic evidence rehearsal, and local
+preflight report surface into one summary report. It records
+`calendar_connector_readiness_available=true`,
+`calendar_connector_readiness_contract_valid=true`,
 `calendar_operator_packet_available=true` and
 `calendar_operator_packet_contract_valid=true` as repo-local blocked evidence
 only. It does not read `.env.local`, read credentials, initialize live
@@ -324,9 +353,12 @@ database, write files, or authorize a live run.
   proceed; malformed or unrecognized precheck responses stop the sequence. The
   `phase14c wide-net-calendar-bridge-payloads --json` command reports the
   Google Calendar app connector payloads for the future audited bridge without
-  calling the connector. The `phase14c wide-net-execution-handoff --json`
-  command reports the bounded future command and evidence checks without
-  wiring the connector, and
+  calling the connector. The
+  `phase14c wide-net-calendar-connector-readiness --json` command reports the
+  connector injection boundary without constructing a connector, injecting a
+  client, or reading credentials. The
+  `phase14c wide-net-execution-handoff --json` command reports the bounded
+  future command and evidence checks without wiring the connector, and
   `phase14c wide-net-calendar-transcript-template --json` plus
   `phase14c wide-net-calendar-transcript-validate --input-file <file> --json`
   validate sanitized Calendar connector transcripts without calling the
@@ -345,9 +377,10 @@ database, write files, or authorize a live run.
   not live evidence. The validator rejects oversized files before JSON parsing
   and uses shared bounded redaction checks with explicit depth and node limits.
   The `phase14c wide-net-readiness-rollup --json` command summarizes those
-  report-only surfaces, including the Calendar operator packet contract, and
-  the remaining human and connector gates without reading credentials, calling
-  connectors, or authorizing a live run.
+  report-only surfaces, including the Calendar connector readiness and
+  Calendar operator packet contracts, and the remaining human and connector
+  gates without reading credentials, calling connectors, or authorizing a live
+  run.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 

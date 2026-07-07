@@ -83,6 +83,12 @@ from personalos.phase14c_wide_net_calendar_transcript import (
     build_phase14c_wide_net_calendar_transcript_template,
     validate_phase14c_wide_net_calendar_transcript,
 )
+from personalos.phase14c_wide_net_dry_run import (
+    PHASE14C_WIDE_NET_DRY_RUN_CONTRACT_BLOCKED,
+    PHASE14C_WIDE_NET_DRY_RUN_CONTRACT_VALID,
+    build_phase14c_wide_net_dry_run_report,
+    validate_phase14c_wide_net_dry_run_report_contract,
+)
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_CROSSCHECK_VALID,
     PHASE14C_WIDE_NET_EVIDENCE_INPUT_MAX_BYTES,
@@ -473,6 +479,22 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
             "builds and validates the packet; no services called; no files written"
         ),
         "output": "stdout Calendar operator packet contract JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net dry run",
+        "safe_local_action": "Exercise the wide-net runner with deterministic fake clients",
+        "command": "personalos phase14c wide-net-dry-run [--json]",
+        "mode": "repo-local dry run / fake clients / no live clients",
+        "local_effect": "no env read; no DB opened; no files written; no services called",
+        "output": "stdout dry-run proof JSON or human summary",
+    },
+    {
+        "name": "Phase 14-C wide-net dry run contract",
+        "safe_local_action": "Validate the wide-net dry-run proof contract",
+        "command": "personalos phase14c wide-net-dry-run-contract [--json]",
+        "mode": "repo-local contract validation / fake clients / no live clients",
+        "local_effect": "builds and validates fake-client proof; no services called",
+        "output": "stdout dry-run contract JSON or human summary",
     },
     {
         "name": "Phase 14-C wide-net execution handoff",
@@ -1127,6 +1149,39 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(phase14c_wide_net_calendar_operator_packet_contract_parser)
     phase14c_wide_net_calendar_operator_packet_contract_parser.set_defaults(
         func=_command_phase14c_wide_net_calendar_operator_packet_contract
+    )
+
+    phase14c_wide_net_dry_run_parser = phase14c_subparsers.add_parser(
+        "wide-net-dry-run",
+        help="Run a no-live fake-client dry run of the wide-net runner.",
+        description=(
+            "Exercise the Phase 14-C wide-net runner with deterministic fake "
+            "model, Todoist, Gmail, and Calendar clients. This does not read "
+            "environment variables, read credential values, initialize live "
+            "clients, call connectors, call OpenRouter, create Todoist tasks, "
+            "send Gmail, write Calendar, invoke OpenClaw, open a DB, write "
+            "files, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_dry_run_parser)
+    phase14c_wide_net_dry_run_parser.set_defaults(
+        func=_command_phase14c_wide_net_dry_run
+    )
+
+    phase14c_wide_net_dry_run_contract_parser = phase14c_subparsers.add_parser(
+        "wide-net-dry-run-contract",
+        help="Validate the wide-net fake-client dry-run contract.",
+        description=(
+            "Build and validate the Phase 14-C wide-net fake-client dry run "
+            "against its no-live contract. This does not read credentials, "
+            "initialize live clients, call connectors, call OpenRouter, create "
+            "Todoist tasks, send Gmail, write Calendar, invoke OpenClaw, open a "
+            "DB, write files, or authorize a live run."
+        ),
+    )
+    _add_json_arg(phase14c_wide_net_dry_run_contract_parser)
+    phase14c_wide_net_dry_run_contract_parser.set_defaults(
+        func=_command_phase14c_wide_net_dry_run_contract
     )
 
     phase14c_wide_net_handoff_parser = phase14c_subparsers.add_parser(
@@ -2664,6 +2719,85 @@ def _command_phase14c_wide_net_calendar_operator_packet_contract(
             "Review contract reasons if validation did not pass.",
             "Run Claude Code audit before any live connector execution.",
             "Do not paste raw Calendar event details, attendee addresses, or credentials.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if valid else 1
+
+
+def _command_phase14c_wide_net_dry_run(args: argparse.Namespace) -> int:
+    dry_run = build_phase14c_wide_net_dry_run_report()
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-dry-run",
+            "status": dry_run["status"],
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_dry_run": dry_run,
+        },
+        workflow_name="Phase 14-C wide-net dry run",
+        workflow_mode="repo-local fake-client dry run / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the fake-client scenario summaries.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not treat this dry run as live evidence.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_phase14c_wide_net_dry_run_contract(args: argparse.Namespace) -> int:
+    dry_run = build_phase14c_wide_net_dry_run_report()
+    validation = validate_phase14c_wide_net_dry_run_report_contract(dry_run)
+    valid = validation.report_matches_inert_contract
+    status = (
+        PHASE14C_WIDE_NET_DRY_RUN_CONTRACT_VALID
+        if valid
+        else PHASE14C_WIDE_NET_DRY_RUN_CONTRACT_BLOCKED
+    )
+    report = _with_workflow_context(
+        {
+            "command": "phase14c wide-net-dry-run-contract",
+            "status": status,
+            "database_write": False,
+            "external_mutation": False,
+            "external_writes": "none",
+            "file_write": False,
+            "no_external_writes": True,
+            "no_credentials_loaded": True,
+            "no_credential_values_read": True,
+            "no_credential_values_logged": True,
+            "no_live_clients_initialized": True,
+            "no_live_rails_activated": True,
+            "no_model_provider_call": True,
+            "credentials": "not_loaded",
+            "wide_net_dry_run_contract": validation.to_dict(),
+        },
+        workflow_name="Phase 14-C wide-net dry run contract",
+        workflow_mode="repo-local contract validation / no live clients",
+        database_access="not_applicable_no_db_opened",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review contract reasons if validation did not pass.",
+            "Run Claude Code audit before wiring or running live connector execution.",
+            "Do not treat this dry run as live evidence.",
         ),
     )
     _emit_report(report, json_output=args.json)

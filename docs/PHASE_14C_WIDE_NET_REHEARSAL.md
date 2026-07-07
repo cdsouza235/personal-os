@@ -30,9 +30,11 @@ crosscheck command to verify that sanitized Calendar transcript evidence and
 sanitized wide-net evidence agree without echoing raw inputs, plus a synthetic
 evidence rehearsal command that exercises the full validator chain without
 returning raw fixture payloads or producing live evidence. The repo also has a
-wide-net local preflight command that checks required config entry names and
-the fixed CA-bundle path metadata without reading credential values or CA file
-contents.
+deterministic fake-client wide-net dry run that exercises the injected
+runner's all-pass, model-diagnostic-failure, and duplicate-calendar-marker
+paths without live services or live evidence. The repo also has a wide-net
+local preflight command that checks required config entry names and the fixed
+CA-bundle path metadata without reading credential values or CA file contents.
 
 CLI report:
 
@@ -147,6 +149,38 @@ keeps
 expected Calendar precheck/create shapes with fixed reason codes only. The
 packet is not live authorization and does not inject a Calendar client into
 the wide-net runner.
+
+Wide-net dry run:
+
+```bash
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-dry-run --json
+PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-dry-run-contract --json
+```
+
+The wide-net dry-run command is repo-local/report-only. It drives the injected
+wide-net runner with deterministic fake clients and placeholder values across
+three scenarios: all-pass, model-diagnostic-failure, and
+duplicate-calendar-marker. It does not read `.env.local`, read environment
+variables, load credentials, initialize live clients, call OpenRouter, create
+Todoist tasks, send Gmail, write Calendar, invoke OpenClaw, open a database,
+write files, or touch protected paths.
+
+The all-pass dry-run scenario proves the runner can simulate one model primary
+call, one Todoist marker task, one Gmail controlled self-send, and one Calendar
+create after a clear duplicate-marker precheck. The model-diagnostic-failure
+scenario proves the diagnostic-only model lane can fail primary and fallback
+validation while the fixed marker writes still simulate successfully. The
+duplicate-calendar-marker scenario proves the precheck stops before model,
+Todoist, Gmail, or Calendar create when a matching marker exists. All three
+paths use fake clients only; `wide_net_dry_run_passed=true` is not live
+evidence and does not authorize a live run.
+
+The contract command validates that dry-run report against a fixed inert
+contract. It keeps `ready_for_live_execution=false`,
+`wide_net_live_run_authorized_by_this_report=false`,
+`credential_values_read=false`, `external_mutation=false`,
+`calendar_app_connector_called=false`, and `model_provider_called=false`, and
+returns fixed reason codes only on drift.
 
 Execution handoff:
 
@@ -305,14 +339,17 @@ PYTHONPATH=src python3 -m personalos.cli phase14c wide-net-readiness-rollup --js
 
 The readiness rollup command is repo-local/report-only. It composes the
 wide-net plan, Calendar bridge payload surface, sanitized Calendar transcript
-template, Calendar connector readiness, Calendar operator packet, execution
-handoff, fillable evidence template, synthetic evidence rehearsal, and local
-preflight report surface into one summary report. It records
+template, Calendar connector readiness, Calendar operator packet,
+deterministic fake-client dry run, execution handoff, fillable evidence
+template, synthetic evidence rehearsal, and local preflight report surface into
+one summary report. It records
 `calendar_connector_readiness_available=true`,
 `calendar_connector_readiness_contract_valid=true`,
 `calendar_operator_packet_available=true` and
-`calendar_operator_packet_contract_valid=true` as repo-local blocked evidence
-only. It does not read `.env.local`, read credentials, initialize live
+`calendar_operator_packet_contract_valid=true`,
+`wide_net_dry_run_passed=true`, and
+`wide_net_dry_run_contract_valid=true` as repo-local blocked evidence only. It
+does not read `.env.local`, read credentials, initialize live
 clients, create Todoist tasks, send Gmail, write Calendar, call OpenRouter,
 invoke OpenClaw, open a database, write files, or touch protected paths. It
 does not call connectors, does not authorize a live run, does not produce live
@@ -376,11 +413,15 @@ database, write files, or authorize a live run.
   validator chain with synthetic sanitized inputs and returns summaries only,
   not live evidence. The validator rejects oversized files before JSON parsing
   and uses shared bounded redaction checks with explicit depth and node limits.
-  The `phase14c wide-net-readiness-rollup --json` command summarizes those
-  report-only surfaces, including the Calendar connector readiness and
-  Calendar operator packet contracts, and the remaining human and connector
-  gates without reading credentials, calling connectors, or authorizing a live
-  run.
+  The `phase14c wide-net-dry-run --json` command exercises the injected
+  runner with deterministic fake clients across all-pass,
+  model-diagnostic-failure, and duplicate-calendar-marker scenarios without
+  live services or live evidence. The
+  `phase14c wide-net-readiness-rollup --json` command summarizes those
+  report-only surfaces, including the Calendar connector readiness, Calendar
+  operator packet contracts, deterministic fake-client dry run, and the
+  remaining human and connector gates without reading credentials, calling
+  connectors, or authorizing a live run.
 - Protected OpenClaw runtime remains uninvoked and is not part of this
   rehearsal.
 

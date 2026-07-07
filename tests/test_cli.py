@@ -402,6 +402,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C wide-net Calendar connector readiness contract",
             "Phase 14-C wide-net Calendar operator packet",
             "Phase 14-C wide-net Calendar operator packet contract",
+            "Phase 14-C wide-net dry run",
+            "Phase 14-C wide-net dry run contract",
             "Phase 14-C wide-net execution handoff",
             "Phase 14-C wide-net evidence validator",
             "Phase 14-C wide-net local preflight",
@@ -480,6 +482,8 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             "Phase 14-C wide-net Calendar operator packet contract",
             workflow_names,
         )
+        self.assertIn("Phase 14-C wide-net dry run", workflow_names)
+        self.assertIn("Phase 14-C wide-net dry run contract", workflow_names)
         self.assertIn("Phase 14-C wide-net execution handoff", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence template", workflow_names)
         self.assertIn("Phase 14-C wide-net evidence validator", workflow_names)
@@ -2475,6 +2479,79 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         for secret_value in secret_environment.values():
             self.assertNotIn(secret_value, result.stdout)
 
+    def test_phase14c_wide_net_dry_run_is_no_live_fake_client_report(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "SUPERSECRET_LEAK_CANARY_124",
+            "PERSONALOS_PHASE14C_TODOIST_TOKEN": "secret-todoist-token",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "wide-net-dry-run", "--json"])
+
+        payload = json.loads(result.stdout)
+        dry_run = payload["wide_net_dry_run"]
+        scenarios = {item["scenario"]: item for item in dry_run["scenario_results"]}
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-dry-run")
+        self.assertEqual(payload["status"], "phase14c_wide_net_dry_run_passed")
+        self.assertFalse(payload["database_write"])
+        self.assertFalse(payload["external_mutation"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertFalse(dry_run["ready_for_live_execution"])
+        self.assertFalse(dry_run["wide_net_live_run_authorized_by_this_report"])
+        self.assertTrue(dry_run["fake_clients_used"])
+        self.assertFalse(dry_run["real_credential_values_read"])
+        self.assertFalse(dry_run["external_mutation"])
+        self.assertEqual(
+            scenarios["all_pass"]["runner_status"],
+            "phase14c_wide_net_rehearsal_passed",
+        )
+        self.assertEqual(
+            scenarios["model_diagnostic_failure"]["runner_status"],
+            "phase14c_wide_net_rehearsal_passed_with_model_diagnostic_failure",
+        )
+        self.assertEqual(
+            scenarios["duplicate_calendar_marker"]["runner_status"],
+            "phase14c_wide_net_rehearsal_not_run_duplicate_calendar_marker",
+        )
+        self.assertFalse(
+            scenarios["duplicate_calendar_marker"]["simulated_runner_external_mutation"]
+        )
+        self.assertNotIn("placeholder-openrouter-key", result.stdout)
+        self.assertNotIn("phase14c@example.invalid", result.stdout)
+        self.assertNotIn("PHASE14C_WIDE_NET_DIAGNOSTIC_OK", result.stdout)
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
+    def test_phase14c_wide_net_dry_run_contract_is_no_live_report(self) -> None:
+        secret_environment = {
+            "PERSONALOS_OPENCLAW_MODEL_API_KEY": "SUPERSECRET_LEAK_CANARY_124",
+        }
+        with mock.patch.dict(os.environ, secret_environment, clear=True):
+            result = _run_cli(["phase14c", "wide-net-dry-run-contract", "--json"])
+
+        payload = json.loads(result.stdout)
+        contract = payload["wide_net_dry_run_contract"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["command"], "phase14c wide-net-dry-run-contract")
+        self.assertEqual(payload["status"], "phase14c_wide_net_dry_run_contract_valid")
+        self.assertTrue(payload["no_credentials_loaded"])
+        self.assertTrue(payload["no_credential_values_read"])
+        self.assertTrue(payload["no_live_clients_initialized"])
+        self.assertTrue(payload["no_live_rails_activated"])
+        self.assertTrue(payload["no_model_provider_call"])
+        self.assertTrue(contract["report_matches_inert_contract"])
+        self.assertEqual(
+            contract["reasons"],
+            ["wide_net_dry_run_remains_no_live_and_non_authorizing"],
+        )
+        for secret_value in secret_environment.values():
+            self.assertNotIn(secret_value, result.stdout)
+
     def test_phase14c_wide_net_readiness_rollup_is_no_live_report(self) -> None:
         secret_environment = {
             "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL": "secret-calendar-label",
@@ -2511,6 +2588,17 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
             rollup["evidence_rehearsal_summary"]["status"],
             "phase14c_wide_net_evidence_rehearsal_passed",
         )
+        self.assertTrue(rollup["component_readiness"]["wide_net_dry_run_passed"])
+        self.assertTrue(
+            rollup["component_readiness"]["wide_net_dry_run_contract_valid"]
+        )
+        self.assertEqual(
+            rollup["dry_run_summary"]["status"],
+            "phase14c_wide_net_dry_run_passed",
+        )
+        self.assertEqual(rollup["dry_run_summary"]["scenario_count"], 3)
+        self.assertFalse(rollup["dry_run_summary"]["dry_run_external_mutation"])
+        self.assertFalse(rollup["dry_run_summary"]["credential_values_read"])
         self.assertFalse(
             rollup["evidence_rehearsal_summary"][
                 "synthetic_fixture_payloads_returned"

@@ -149,6 +149,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "phase14c wide-net-calendar-transcript-template --json",
             "phase14c wide-net-calendar-transcript-validate --input-file",
             "phase14c wide-net-execution-handoff --json",
+            "phase14c wide-net-dry-run --json",
+            "phase14c wide-net-dry-run-contract --json",
             "phase14c wide-net-evidence-template --json",
             "phase14c wide-net-evidence-validate --input-file",
             "phase14c wide-net-evidence-crosscheck --calendar-transcript-file",
@@ -160,6 +162,11 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
             "`calendar_connector_readiness_contract_valid=true`",
             "`calendar_operator_packet_available=true`",
             "`calendar_operator_packet_contract_valid=true`",
+            "`wide_net_dry_run_passed=true`",
+            "`wide_net_dry_run_contract_valid=true`",
+            "deterministic fake-client wide-net dry run",
+            "all-pass, model-diagnostic-failure, and duplicate-calendar-marker",
+            "not live evidence",
             "redacted evidence validator",
             "does not wire or inject a calendar client",
             "does not call the google calendar app connector",
@@ -218,6 +225,8 @@ class Phase14CWideNetRehearsalTest(unittest.TestCase):
         self.assertIn("phase14c wide-net-calendar-bridge-payloads --json", text)
         self.assertIn("phase14c wide-net-calendar-transcript-template", text)
         self.assertIn("phase14c wide-net-calendar-transcript-validate", text)
+        self.assertIn("phase14c wide-net-dry-run --json", text)
+        self.assertIn("phase14c wide-net-dry-run-contract --json", text)
         self.assertIn("phase14c wide-net-execution-handoff --json", text)
         self.assertIn("phase14c wide-net-evidence-template --json", text)
         self.assertIn("phase14c wide-net-evidence-validate --input-file", text)

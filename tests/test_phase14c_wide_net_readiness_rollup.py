@@ -121,6 +121,10 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
             "phase14c_wide_net_calendar_operator_packet_ready",
         )
         self.assertEqual(
+            statuses["wide_net_dry_run"],
+            "phase14c_wide_net_dry_run_passed",
+        )
+        self.assertEqual(
             statuses["execution_handoff"],
             "phase14c_wide_net_execution_handoff_ready",
         )
@@ -141,9 +145,22 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
         self.assertTrue(readiness["calendar_connector_readiness_contract_valid"])
         self.assertTrue(readiness["calendar_operator_packet_available"])
         self.assertTrue(readiness["calendar_operator_packet_contract_valid"])
+        self.assertTrue(readiness["wide_net_dry_run_available"])
+        self.assertTrue(readiness["wide_net_dry_run_contract_valid"])
+        self.assertTrue(readiness["wide_net_dry_run_passed"])
         self.assertTrue(readiness["synthetic_evidence_rehearsal_passed"])
         self.assertTrue(readiness["wide_net_runner_available_but_fail_closed"])
         self.assertFalse(readiness["calendar_cli_connector_wiring_present"])
+        dry_run = report["dry_run_summary"]
+        self.assertEqual(dry_run["status"], "phase14c_wide_net_dry_run_passed")
+        self.assertTrue(dry_run["fake_clients_used"])
+        self.assertTrue(dry_run["not_live_evidence"])
+        self.assertEqual(dry_run["scenario_count"], 3)
+        self.assertEqual(dry_run["all_pass_calendar_event_create_calls"], 1)
+        self.assertEqual(dry_run["model_failure_fallback_calls"], 1)
+        self.assertFalse(dry_run["duplicate_marker_external_mutation"])
+        self.assertFalse(dry_run["dry_run_external_mutation"])
+        self.assertFalse(dry_run["credential_values_read"])
         self.assertTrue(rehearsal["accepted"])
         self.assertTrue(rehearsal["synthetic_fixture_only"])
         self.assertTrue(rehearsal["not_live_evidence"])
@@ -302,6 +319,8 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
                 "calendar_transcript_template",
                 "calendar_operator_packet",
                 "calendar_operator_packet_contract",
+                "wide_net_dry_run",
+                "wide_net_dry_run_contract",
                 "execution_handoff",
                 "evidence_template",
                 "evidence_rehearsal",
@@ -355,8 +374,13 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
             "phase14c wide-net-readiness-rollup --json",
             "phase14c wide-net-readiness-rollup-contract",
             "phase14c wide-net-local-preflight --json",
+            "phase14c wide-net-dry-run --json",
+            "phase14c wide-net-dry-run-contract --json",
             "wide-net readiness rollup",
             "wide-net local preflight",
+            "wide-net dry run",
+            "wide_net_dry_run_passed=true",
+            "wide_net_dry_run_contract_valid=true",
             "does not read credentials",
             "does not call connectors",
             "does not authorize a live run",

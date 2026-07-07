@@ -1,14 +1,14 @@
 # Personal OS Status
 
-Last updated: 2026-07-04
+Last updated: 2026-07-06
 
 ## Snapshot
 
 - Repo: `cdsouza235/personal-os`
 - Local path: `/Users/coldstake/dev/personal-os`
-- Last validated main baseline after PR #122:
-  `be8974ebd0e1df5ff242837ed08de6ba3aaf256b`
-- Latest merged PR at that baseline: PR #122, Calendar operator packet rollup
+- Last validated main baseline after PR #123:
+  `58fc27e76645ca540a5b54769db6b217c1214219`
+- Latest merged PR at that baseline: PR #123, Calendar connector readiness
 - Current repo state: pre-Phase-14-C candidate-selection preparation is
   implemented on `main` as inert process/template/validator scaffolding; the
   human candidate-review tracking outcome, long-run repo workflow protocol,
@@ -139,7 +139,11 @@ Last updated: 2026-07-04
   readiness report, non-human closure report, and final non-human handoff now
   surface Calendar connector readiness plus Calendar operator packet
   availability and contract validity as blocked, repo-local,
-  non-authorizing evidence only; Phase 14-C shared
+  non-authorizing evidence only; the repo-local wide-net dry-run surface now
+  exercises the injected wide-net runner with deterministic fake clients across
+  all-pass, model-diagnostic-failure, and duplicate-calendar-marker scenarios
+  without reading credentials, calling live services, writing files, or
+  producing live evidence; Phase 14-C shared
   safety helpers now centralize names-only config extraction, optional
   string/email parsing, safe error-kind reporting, and bounded redaction reason
   scans across the live-gated and report-only modules; the wide-net evidence
@@ -201,8 +205,9 @@ Last updated: 2026-07-04
   Calendar app-bridge payload report, Calendar connector readiness report,
   Calendar operator packet, execution handoff, redacted evidence validator,
   fillable evidence template, evidence crosscheck, evidence rehearsal,
-  readiness rollup, readiness-rollup contract validator, and shared Phase 14-C
-  safety-helper hardening
+  deterministic fake-client wide-net dry run, readiness rollup,
+  readiness-rollup contract validator, and shared Phase 14-C safety-helper
+  hardening
 - Current / next phase: Phase 14-C wide-net rehearsal planning after the first
   approved model-to-task-to-email rehearsal stopped at model validation. The
   connected live evidence is recorded in
@@ -210,9 +215,9 @@ Last updated: 2026-07-04
   and the next inert wider plan is recorded in
   [docs/PHASE_14C_WIDE_NET_REHEARSAL.md](docs/PHASE_14C_WIDE_NET_REHEARSAL.md).
   The wide-net Calendar connector readiness report, Calendar operator packet,
-  execution handoff, evidence template, evidence validator, evidence
-  crosscheck, evidence rehearsal, local preflight, readiness rollup, and
-  readiness-rollup contract validator are repo-local
+  deterministic fake-client dry run, execution handoff, evidence template,
+  evidence validator, evidence crosscheck, evidence rehearsal, local preflight,
+  readiness rollup, and readiness-rollup contract validator are repo-local
   and inert; the evidence validator and evidence crosscheck have explicit local
   input-size gates, the evidence validator uses bounded shared redaction scans,
   the evidence rehearsal exercises the validator chain with synthetic
@@ -221,7 +226,8 @@ Last updated: 2026-07-04
   local checks with the pinned rollup contract while keeping human and external
   gates blocked, and the readiness rollup plus contract validator summarize and
   pin the Calendar connector readiness contract, Calendar operator packet
-  contract, plus remaining human and connector gates.
+  contract, deterministic fake-client dry-run contract, plus remaining human
+  and connector gates.
   Calendar creation and protected OpenClaw runtime invocation remain excluded
   unless separately approved.
 - Phase 14-C supervised smoke test: one Google Calendar event passed:
@@ -417,7 +423,12 @@ Last updated: 2026-07-04
   `calendar_app_connector_called=false`, and `credential_values_read=false`;
   the `phase14c wide-net-calendar-operator-packet-contract --json` command
   validates that packet with fixed reason codes only and cannot authorize live
-  execution. The
+  execution. The `phase14c wide-net-dry-run --json` command drives the
+  injected wide-net runner with deterministic fake clients across all-pass,
+  model-diagnostic-failure, and duplicate-calendar-marker scenarios without
+  reading credentials, calling live services, writing files, or producing live
+  evidence; the `phase14c wide-net-dry-run-contract --json` command validates
+  that no-live fake-client report with fixed reason codes only. The
   `phase14c wide-net-execution-handoff --json` command reports the future
   bounded command template, Calendar connector handoff, call budgets, and
   post-run evidence requirements without wiring a connector or reading
@@ -459,11 +470,13 @@ Last updated: 2026-07-04
   packet with fixed reason codes only and cannot authorize live execution.
   The
   `phase14c wide-net-readiness-rollup --json` command
-  composes the plan, Calendar payload/transcript surfaces, execution handoff,
-  evidence template, synthetic evidence rehearsal, and local preflight report
-  surface into one repo-local readiness report, records remaining human and
-  connector gates, and does not read credentials, does not call connectors,
-  does not produce live evidence, and does not authorize a live run. The
+  composes the plan, Calendar payload/transcript surfaces, Calendar connector
+  readiness, Calendar operator packet, deterministic fake-client dry run,
+  execution handoff, evidence template, synthetic evidence rehearsal, and local
+  preflight report surface into one repo-local readiness report, records
+  remaining human and connector gates, and does not read credentials, does not
+  call connectors, does not produce live evidence, and does not authorize a
+  live run. The
   `phase14c wide-net-readiness-rollup-contract --json` command validates that
   rollup against fixed inert fields, non-authorization flags, safety
   assertions, and fixed reason-code output without echoing drifted values,
@@ -482,8 +495,8 @@ Last updated: 2026-07-04
 
 ## Validated State
 
-- Full suite: 880 tests OK
-- ResourceWarning-sensitive suite: 880 tests OK
+- Full suite: 893 tests OK
+- ResourceWarning-sensitive suite: 893 tests OK
 - Targeted Codex workflow docs suite: 13 tests OK
 - Targeted Phase 14-A/B pilot-prep suite: 8 tests OK
 - Targeted pre-Phase-14-C candidate-selection prep suite: 15 tests OK
@@ -510,6 +523,7 @@ Last updated: 2026-07-04
 - Targeted Phase 14-C wide-net Calendar connector readiness/operator packet/
   transcript/handoff/rollup/MVP/non-human-closure/final-handoff/CLI/docs
   suite: 177 tests OK
+- Targeted Phase 14-C wide-net dry-run/rollup/CLI/docs suite: 114 tests OK
 - Targeted Phase 14-C shared safety/wide-net hardening suite: 165 tests OK
 - Targeted Phase 14-C wide-net Calendar transcript validator suite: 101 tests OK
 - Targeted Phase 14-C live-smoke client ResourceWarning suite: 16 tests OK

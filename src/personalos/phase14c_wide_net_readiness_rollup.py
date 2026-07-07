@@ -26,6 +26,11 @@ from personalos.phase14c_wide_net_calendar_operator_packet import (
 from personalos.phase14c_wide_net_calendar_transcript import (
     build_phase14c_wide_net_calendar_transcript_template,
 )
+from personalos.phase14c_wide_net_dry_run import (
+    PHASE14C_WIDE_NET_DRY_RUN_PASSED,
+    build_phase14c_wide_net_dry_run_report,
+    validate_phase14c_wide_net_dry_run_report_contract,
+)
 from personalos.phase14c_wide_net_execution_handoff import (
     PHASE14C_WIDE_NET_EVIDENCE_REHEARSAL_PASSED,
     build_phase14c_wide_net_evidence_rehearsal_report,
@@ -81,6 +86,7 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_TOP_LEVEL_FIELDS: tuple[str, ...] = (
     "present_config_names_reported",
     "remaining_gates_before_live",
     "evidence_rehearsal_summary",
+    "dry_run_summary",
     "readiness",
     "non_authorization",
     "safety_assertions",
@@ -113,6 +119,7 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_STATUSES: dict[str, str] = {
         "phase14c_wide_net_calendar_transcript_template_ready"
     ),
     "calendar_operator_packet": PHASE14C_WIDE_NET_CALENDAR_OPERATOR_PACKET_STATUS,
+    "wide_net_dry_run": PHASE14C_WIDE_NET_DRY_RUN_PASSED,
     "execution_handoff": "phase14c_wide_net_execution_handoff_ready",
     "evidence_template": "phase14c_wide_net_evidence_template_ready",
     "evidence_rehearsal": "phase14c_wide_net_evidence_rehearsal_passed",
@@ -127,6 +134,9 @@ PHASE14C_WIDE_NET_READINESS_ROLLUP_COMPONENT_READINESS: dict[str, bool] = {
     "calendar_transcript_template_available": True,
     "calendar_operator_packet_available": True,
     "calendar_operator_packet_contract_valid": True,
+    "wide_net_dry_run_available": True,
+    "wide_net_dry_run_contract_valid": True,
+    "wide_net_dry_run_passed": True,
     "execution_handoff_available": True,
     "evidence_template_available": True,
     "evidence_validator_available": True,
@@ -218,6 +228,8 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
             calendar_operator_packet
         )
     )
+    dry_run = build_phase14c_wide_net_dry_run_report()
+    dry_run_validation = validate_phase14c_wide_net_dry_run_report_contract(dry_run)
     handoff = build_phase14c_wide_net_execution_handoff_report()
     evidence_template = build_phase14c_wide_net_evidence_template_report()
     evidence_rehearsal = build_phase14c_wide_net_evidence_rehearsal_report()
@@ -231,10 +243,14 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
     calendar_connector_readiness_valid = (
         calendar_connector_readiness_validation.report_matches_inert_contract
     )
+    dry_run_valid = dry_run_validation.report_matches_inert_contract
+    dry_run_passed = dry_run["status"] == PHASE14C_WIDE_NET_DRY_RUN_PASSED
     repo_local_rollup_complete = (
         rehearsal_passed
         and calendar_operator_packet_valid
         and calendar_connector_readiness_valid
+        and dry_run_valid
+        and dry_run_passed
     )
 
     return {
@@ -259,6 +275,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
             "calendar_connector_readiness": calendar_connector_readiness["status"],
             "calendar_transcript_template": transcript_template["status"],
             "calendar_operator_packet": calendar_operator_packet["status"],
+            "wide_net_dry_run": dry_run["status"],
             "execution_handoff": handoff["status"],
             "evidence_template": evidence_template["status"],
             "evidence_rehearsal": evidence_rehearsal["status"],
@@ -271,6 +288,8 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
                 calendar_connector_readiness_valid
             ),
             "calendar_operator_packet_contract_valid": calendar_operator_packet_valid,
+            "wide_net_dry_run_contract_valid": dry_run_valid,
+            "wide_net_dry_run_passed": dry_run_passed,
         },
         "commands": _commands(),
         "required_config_entry_names": tuple(WIDE_NET_REQUIRED_CONFIG_NAMES),
@@ -278,6 +297,7 @@ def build_phase14c_wide_net_readiness_rollup_report() -> dict[str, Any]:
         "present_config_names_reported": False,
         "remaining_gates_before_live": _remaining_gates_before_live(),
         "evidence_rehearsal_summary": _evidence_rehearsal_summary(evidence_rehearsal),
+        "dry_run_summary": _dry_run_summary(dry_run),
         "readiness": {
             **PHASE14C_WIDE_NET_READINESS_ROLLUP_READINESS,
             "repo_local_wide_net_rollup_ready": repo_local_rollup_complete,
@@ -370,6 +390,9 @@ def _blocked_wide_net_readiness_rollup_reasons(
     )
     if _mapping(report.get("evidence_rehearsal_summary")) != expected_evidence_summary:
         reasons.append("wide_net_readiness_rollup_evidence_summary_drifted")
+    expected_dry_run_summary = _dry_run_summary(build_phase14c_wide_net_dry_run_report())
+    if _mapping(report.get("dry_run_summary")) != expected_dry_run_summary:
+        reasons.append("wide_net_readiness_rollup_dry_run_summary_drifted")
     if _mapping(report.get("readiness")) != PHASE14C_WIDE_NET_READINESS_ROLLUP_READINESS:
         reasons.append("wide_net_readiness_rollup_readiness_drifted")
     if (
@@ -441,6 +464,22 @@ def _commands() -> tuple[dict[str, object], ...]:
             "command": (
                 "PYTHONPATH=src python3 -m personalos.cli phase14c "
                 "wide-net-calendar-operator-packet-contract --json"
+            ),
+            "live_action": False,
+        },
+        {
+            "name": "wide_net_dry_run",
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-dry-run --json"
+            ),
+            "live_action": False,
+        },
+        {
+            "name": "wide_net_dry_run_contract",
+            "command": (
+                "PYTHONPATH=src python3 -m personalos.cli phase14c "
+                "wide-net-dry-run-contract --json"
             ),
             "live_action": False,
         },
@@ -550,6 +589,73 @@ def _evidence_rehearsal_summary(
         "calendar_event_create_calls": summary["calendar_event_create_calls"],
         "precheck_matching_event_count": summary["precheck_matching_event_count"],
     }
+
+
+def _dry_run_summary(dry_run: Mapping[str, Any]) -> dict[str, object]:
+    scenarios = _records(dry_run.get("scenario_results"))
+    by_name = {str(scenario.get("scenario")): scenario for scenario in scenarios}
+    return {
+        "status": dry_run.get("status"),
+        "fake_clients_used": dry_run.get("fake_clients_used") is True,
+        "not_live_evidence": dry_run.get("template_only_not_authorization") is True,
+        "scenario_count": len(scenarios),
+        "all_pass_status": _scenario_status(by_name, "all_pass"),
+        "model_diagnostic_failure_status": _scenario_status(
+            by_name,
+            "model_diagnostic_failure",
+        ),
+        "duplicate_calendar_marker_status": _scenario_status(
+            by_name,
+            "duplicate_calendar_marker",
+        ),
+        "all_pass_calendar_event_create_calls": _scenario_call_count(
+            by_name,
+            "all_pass",
+            "calendar_event_create_calls",
+        ),
+        "model_failure_fallback_calls": _scenario_call_count(
+            by_name,
+            "model_diagnostic_failure",
+            "openrouter_fallback_calls",
+        ),
+        "duplicate_marker_external_mutation": (
+            _scenario_bool(
+                by_name,
+                "duplicate_calendar_marker",
+                "simulated_runner_external_mutation",
+            )
+        ),
+        "dry_run_external_mutation": dry_run.get("external_mutation") is True,
+        "credential_values_read": dry_run.get("real_credential_values_read") is True,
+    }
+
+
+def _scenario_status(
+    scenarios: Mapping[str, Mapping[str, Any]],
+    name: str,
+) -> object:
+    scenario = scenarios.get(name, {})
+    return scenario.get("runner_status")
+
+
+def _scenario_call_count(
+    scenarios: Mapping[str, Mapping[str, Any]],
+    name: str,
+    key: str,
+) -> int | None:
+    scenario = scenarios.get(name, {})
+    call_counts = _mapping(scenario.get("call_counts"))
+    value = call_counts.get(key)
+    return value if isinstance(value, int) else None
+
+
+def _scenario_bool(
+    scenarios: Mapping[str, Mapping[str, Any]],
+    name: str,
+    key: str,
+) -> bool:
+    scenario = scenarios.get(name, {})
+    return scenario.get(key) is True
 
 
 def _mapping(value: object) -> dict[str, Any]:

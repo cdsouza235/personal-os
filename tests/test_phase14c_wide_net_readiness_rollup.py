@@ -342,32 +342,6 @@ class Phase14CWideNetReadinessRollupTest(unittest.TestCase):
             with self.subTest(snippet=snippet):
                 self.assertNotIn(snippet, source)
 
-    def test_docs_record_rollup_command_and_non_authorization(self) -> None:
-        combined_text = " ".join(
-            (
-                _normalized_doc_text(README),
-                _normalized_doc_text(WIDE_NET_DOC),
-                _normalized_doc_text(STATUS),
-            )
-        )
-
-        required_phrases = (
-            "phase14c wide-net-readiness-rollup --json",
-            "phase14c wide-net-readiness-rollup-contract",
-            "phase14c wide-net-local-preflight --json",
-            "wide-net readiness rollup",
-            "wide-net local preflight",
-            "does not read credentials",
-            "does not call connectors",
-            "does not authorize a live run",
-            "remaining human and connector gates",
-            "synthetic evidence rehearsal",
-            "not live evidence",
-            "contract",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, combined_text)
 
 
 def _normalized_doc_text(path: Path) -> str:

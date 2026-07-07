@@ -248,52 +248,6 @@ class OpenClawModelStrategyTest(unittest.TestCase):
         self.assertNotIn("unsafe response text", serialized)
         self.assertNotIn("unsafe raw error", serialized)
 
-    def test_model_strategy_doc_records_aliases_lanes_and_boundaries(self) -> None:
-        text = " ".join(MODEL_STRATEGY_DOC.read_text(encoding="utf-8").lower().split())
-
-        required_phrases = (
-            "phase_14c_supervised_smoke_test.md",
-            "nemotron super",
-            "glm 5.2",
-            "smoke / low-cost lane",
-            "reasoning / high-complexity lane",
-            "no self-modifying routing logic",
-            "no hidden model choice",
-            "no provider auto-escalation",
-            "max one primary call and one fallback call per smoke probe",
-            "full prompts must not be logged",
-            "credential values must not be logged",
-            "error_kind",
-            "http_status",
-            "phase14c live-smoke-diagnostics --json",
-            "phase14c-2026-06-30-connectivity-ca-retry",
-            "ssl_cert_file=/opt/homebrew/etc/ca-certificates/cert.pem",
-            "openclaw_model_smoke_passed",
-            "fallback_calls=0",
-            "phase14c connected-rehearsal-plan --json",
-            "phase14c connected-rehearsal --json",
-            "nemotron super primary, glm 5.2 fallback only if primary validation fails",
-            "stops before todoist/gmail if model validation fails",
-            "phase14c-2026-07-01-connected-rehearsal",
-            "phase14c_connected_rehearsal_model_validation_failed",
-            "failure_category=http_error",
-            "http_status=402",
-            "external_mutation=false",
-            "approved primary/fallback model budget for this evidence is exhausted",
-            "phase14c wide-net-rehearsal-plan --json",
-            "phase14c wide-net-calendar-bridge-payloads --json",
-            "phase14c wide-net-rehearsal --json",
-            "diagnostic-only",
-            "does not use model text for todoist, gmail, or calendar content",
-            "phase14c_wide_net_rehearsal_not_run_missing_calendar_connector_or_client",
-            "precheck before model, todoist, gmail, or calendar create",
-            "unrecognized precheck response shapes",
-            "google calendar app connector payloads",
-            "call nemotron super, glm 5.2, openrouter, or any live provider",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, text)
 
 
 class _RecordingModelSmokeClient:

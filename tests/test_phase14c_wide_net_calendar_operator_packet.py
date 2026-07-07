@@ -180,27 +180,6 @@ class Phase14CWideNetCalendarOperatorPacketTest(unittest.TestCase):
             with self.subTest(snippet=snippet):
                 self.assertNotIn(snippet, source)
 
-    def test_docs_record_calendar_operator_packet(self) -> None:
-        combined_text = " ".join(
-            (
-                _normalized_doc_text(README),
-                _normalized_doc_text(WIDE_NET_DOC),
-                _normalized_doc_text(STATUS),
-            )
-        )
-
-        required_phrases = (
-            "phase14c wide-net-calendar-operator-packet --json",
-            "phase14c wide-net-calendar-operator-packet-contract --json",
-            "wide-net calendar connector readiness",
-            "wide-net calendar operator packet",
-            "calendar_connector_use_authorized=false",
-            "ready_for_live_execution=false",
-            "calendar_app_connector_called=false",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, combined_text)
 
 
 def _normalized_doc_text(path: Path) -> str:

@@ -1,0 +1,1 @@
+P-GOV-01 G-GOV/G1 sign-off — approved by Chris, 2026-07-07. Scope: governance overlay per governance/ROADMAP.md P-GOV-01; ratifies D-PO-004 (OpenClaw cut) and E-002. Audit: audits/AUDIT-LOG.md (3 rounds, conditions closed).

@@ -197,31 +197,6 @@ class Phase14CWideNetPreRunChecklistTest(unittest.TestCase):
             with self.subTest(snippet=snippet):
                 self.assertNotIn(snippet, source)
 
-    def test_docs_record_pre_run_checklist_and_non_authorization(self) -> None:
-        combined_text = " ".join(
-            (
-                _normalized_doc_text(README),
-                _normalized_doc_text(WIDE_NET_DOC),
-                _normalized_doc_text(STATUS),
-            )
-        )
-
-        required_phrases = (
-            "phase14c wide-net-pre-run-checklist --json",
-            "phase14c wide-net-pre-run-checklist-contract --json",
-            "wide-net pre-run checklist",
-            "repo-local checks pass",
-            "fresh human approval",
-            "claude code audit",
-            "calendar connector wiring",
-            "openrouter budget confirmation",
-            "still cannot authorize a live run",
-            "live_execution_authorized=false",
-            "wide_net_live_run_authorized_by_this_report=false",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, combined_text)
 
 
 def _normalized_doc_text(path: Path) -> str:

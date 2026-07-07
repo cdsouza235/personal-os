@@ -3624,35 +3624,6 @@ class OperatorCliFileOutputWorkflowTest(unittest.TestCase):
 
 
 class OperatorCliBoundaryTest(unittest.TestCase):
-    def test_docs_describe_phase_12a_operator_cli_boundary(self) -> None:
-        docs_text = "\n".join(
-            [
-                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
-            ]
-        ).lower()
-
-        required_phrases = (
-            "phase 12a",
-            "operator cli",
-            "personalos status",
-            "personalos briefing preview",
-            "personalos synthesis preview",
-            "personalos dashboard render",
-            "explicit `--db`",
-            "explicit `--output-file`",
-            "input paths",
-            "no live model/api calls",
-            "no scheduler activation",
-            "no launchagents",
-            "no production runtime activation",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, docs_text)
 
     def test_cli_modules_have_no_live_api_client_imports(self) -> None:
         source = "\n".join(

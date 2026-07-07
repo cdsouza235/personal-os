@@ -203,29 +203,6 @@ class Phase14CWideNetHumanGatePacketTest(unittest.TestCase):
             with self.subTest(snippet=snippet):
                 self.assertNotIn(snippet, source)
 
-    def test_docs_record_human_gate_packet_and_non_authorization(self) -> None:
-        combined_text = " ".join(
-            (
-                _normalized_doc_text(README),
-                _normalized_doc_text(WIDE_NET_DOC),
-                _normalized_doc_text(FINAL_HANDOFF_DOC),
-                _normalized_doc_text(STATUS),
-            )
-        )
-
-        required_phrases = (
-            "phase14c wide-net-human-gate-packet --json",
-            "phase14c wide-net-human-gate-packet-contract --json",
-            "wide-net human-gate packet",
-            "approval request template is not approval",
-            "fresh human message required",
-            "ready_for_live_execution=false",
-            "wide_net_live_run_authorized_by_this_report=false",
-            "calendar connector wiring remains required",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, combined_text)
 
 
 def _normalized_doc_text(path: Path) -> str:

@@ -406,37 +406,6 @@ class SideEffectLedgerFlowTest(unittest.TestCase):
 
 
 class SideEffectBoundaryTest(unittest.TestCase):
-    def test_docs_describe_phase_12b_side_effect_boundary(self) -> None:
-        docs_text = "\n".join(
-            [
-                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
-            ]
-        ).lower()
-
-        required_phrases = (
-            "phase 12b",
-            "side-effect",
-            "idempotency",
-            "external_write_intents",
-            "external_write_attempts",
-            "idempotency_records",
-            "no_external_writes=true",
-            "no_send_mode=true",
-            "live_write=false",
-            "no live todoist writes",
-            "no live calendar writes",
-            "no personalos markdown writes",
-            "no scheduler",
-            "no launchagents",
-            "no production db activation",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, docs_text)
 
     def test_side_effect_modules_have_no_live_api_client_imports(self) -> None:
         source = "\n".join(

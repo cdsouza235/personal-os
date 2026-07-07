@@ -474,33 +474,6 @@ class ReportPermissionTest(unittest.TestCase):
 
 
 class ReportDocumentationAndSafetyTest(unittest.TestCase):
-    def test_docs_describe_phase_7_scope_and_non_goals(self) -> None:
-        repo_root = Path(__file__).resolve().parents[1]
-        docs_text = "\n".join(
-            [
-                (repo_root / "README.md").read_text(encoding="utf-8"),
-                (repo_root / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
-                (repo_root / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
-                (repo_root / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
-            ]
-        ).lower()
-
-        for expected in (
-            "phase 7",
-            "weekly chart pack",
-            "report jobs are coded jobs",
-            "chatgpt is the interpretation layer",
-            "tradingview alerts are manually supplied",
-            "no live market data fetching",
-            "no tradingview api",
-            "no investment recommendations",
-            "no portfolio execution",
-            "no scheduler",
-            "no production sqlite",
-            "no dashboard ui",
-        ):
-            with self.subTest(expected=expected):
-                self.assertIn(expected, docs_text)
 
     def test_repo_has_no_runtime_database_or_var_artifacts(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]

@@ -1,0 +1,62 @@
+# GOVERNANCE_MANIFEST.yaml — Personal OS
+# Any change to a file listed here is a G-GOV event: it stops for Conductor review with a
+# "what rule changed and why" digest. The orchestrator (and, until B-00 lands, the manual
+# loop's pinned governance-diff check) scans every packet diff against this list.
+# schema_version tracks the harness governance schema (SPEC-v0.4 §7/§8.7).
+
+schema_version: "0.4"
+project: personal-os
+
+governance_files:
+  # rulebook (standing law — single-writer: Conductor-approved changes only)
+  - GOVERNANCE_MANIFEST.yaml
+  - AGENTS.md
+  - governance/HUMAN_GATES.md
+  - governance/QUALITY_GATES.md
+  - governance/RISK_REGISTER.md
+  - governance/SECURITY.md
+  - governance/DEPENDENCY_POLICY.md
+  - governance/RUNBOOK.md
+  - governance/POLICY_EXCEPTIONS.md
+  - governance/ROADMAP.md
+  - docs/PRD.md
+  - docs/ARCHITECTURE.md
+  - README.md
+  - .gitleaks.toml
+  - governance/templates/PACKET_TEMPLATE.md
+  - governance/templates/AUDIT_TEMPLATE.md
+  # auditor standing briefs (Builder-owned briefings TO the audit seats; changes are G-GOV
+  # because they define the audit bar)
+  - audits/AUDITOR-BRIEF-codex.md
+  - audits/PHASE-END-AUDITOR-BRIEF-fable.md
+  - audits/test-strategy.md
+
+# NOT governance (living state, deterministically git-diff-verified but not law):
+#   governance/living/agent-writable/STATUS.md
+#   governance/living/agent-writable/DECISIONS.md
+#   governance/living/agent-writable/OPEN_QUESTIONS.md
+#   audits/CURRENT-audit-prompt.md, audits/CURRENT-audit-report.md, audits/AUDIT-LOG.md
+#   audits/human-input-manifest.md (status fields change as inputs are provided)
+
+# Protected paths (risk triggers — see governance/RISK_REGISTER.md for effects).
+# A packet touching any of these is auto-promoted; it never scans "routine".
+protected_paths:
+  - "audits/signoffs/**"       # Conductor-only approval records — ANY agent write = blocker
+  - "migrations/**"            # schema/data-model → high-stakes; destructive → G4
+  - ".env*"                    # secrets → G3
+  - "scripts/**"               # host-touching setup scripts → high-stakes
+  - "src/personalos/permissions.py"        # the permission model → high-stakes
+  - "src/personalos/path_safety.py"        # protected-path enforcement → high-stakes
+  - "src/personalos/rails/**"              # future live adapters (network-capable) → G5
+  # current network-capable modules (deleted by P-CLEAN-02; until then, protected):
+  - "src/personalos/phase14c_gmail_live_smoke.py"
+  - "src/personalos/phase14c_todoist_live_smoke.py"
+  - "src/personalos/phase14c_connected_rehearsal_live.py"
+  - "src/personalos/phase14c_wide_net_rehearsal_live.py"
+  - "src/personalos/openrouter_model_smoke_client.py"
+  - "src/personalos/phase14c_safety_utils.py"
+
+# Protected external paths (never inside any packet scope; SECURITY.md §Protected systems):
+#   /Users/coldstake/PersonalOS, /Users/coldstake/.openclaw, credential stores, production
+#   SQLite paths, LaunchAgents, crontab. Listed here for the record; enforced by sandbox
+#   containment once harness-driven, by SECURITY.md rules until then.

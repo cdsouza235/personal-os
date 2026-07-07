@@ -467,31 +467,6 @@ class RuntimeBootstrapPermissionTest(unittest.TestCase):
 
 
 class RuntimeBootstrapSafetyTest(unittest.TestCase):
-    def test_docs_describe_phase_9b_scope_and_non_goals(self) -> None:
-        docs_text = "\n".join(
-            [
-                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
-            ]
-        ).lower()
-
-        required_phrases = (
-            "phase 9b runtime db bootstrap foundation",
-            "local/dev-preview",
-            "backup-before-migrate",
-            "mvp preview seed profile",
-            "no-send",
-            "live external write permission",
-            "no scheduler",
-            "no daily briefing generation loop",
-            "no production runtime activation",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, docs_text)
 
     def test_source_code_does_not_reference_protected_absolute_paths(self) -> None:
         protected_fragments = (

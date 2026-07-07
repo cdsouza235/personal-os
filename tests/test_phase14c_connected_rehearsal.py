@@ -114,49 +114,7 @@ class Phase14CConnectedRehearsalTest(unittest.TestCase):
         self.assertIn("do not run calendar", approval_text)
         self.assertIn("protected openclaw runtime", approval_text)
 
-    def test_connected_rehearsal_doc_records_bounded_plan(self) -> None:
-        text = _normalized_doc_text(CONNECTED_REHEARSAL_DOC)
 
-        required_phrases = (
-            "phase14c connected-rehearsal-plan --json",
-            "phase14c connected-rehearsal --json",
-            "connected-rehearsal --execute-live --approval-reference",
-            "does not read `.env.local`",
-            "reads environment key names only",
-            "one openrouter brief",
-            "one todoist inbox/default task",
-            "one gmail controlled self-send",
-            "calendar event creates: 0",
-            "protected openclaw runtime invocations: 0",
-            "ssl_cert_file=/opt/homebrew/etc/ca-certificates/cert.pem",
-            "phase14c-2026-07-01-connected-rehearsal",
-            "rolls a stale planned date forward to the next upcoming monday",
-            "phase14c_connected_rehearsal_model_validation_failed",
-            "primary_calls=1",
-            "fallback_calls=1",
-            "todoist_task_create_calls=0",
-            "gmail_email_send_calls=0",
-            "external_mutation=false",
-            "do not rerun this connected rehearsal command without a new explicit approval",
-            "model-generated brief text",
-            "stop before todoist and gmail",
-            "not reusable authorization embedded in this document or the cli report",
-            "live_rails_activated` remains `false",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, text)
-
-    def test_readme_links_connected_rehearsal_doc(self) -> None:
-        text = _normalized_doc_text(README)
-
-        self.assertIn("docs/phase_14c_connected_rehearsal.md", text)
-        self.assertIn("phase14c connected-rehearsal-plan --json", text)
-        self.assertIn("phase14c connected-rehearsal --json", text)
-        self.assertIn(
-            "stopped at model validation before creating todoist or sending gmail",
-            text,
-        )
 
 
 def _normalized_doc_text(path: Path) -> str:

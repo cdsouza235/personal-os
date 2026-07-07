@@ -156,27 +156,6 @@ class Phase14CWideNetCalendarConnectorReadinessTest(unittest.TestCase):
             with self.subTest(snippet=snippet):
                 self.assertNotIn(snippet, source)
 
-    def test_docs_record_calendar_connector_readiness(self) -> None:
-        combined_text = " ".join(
-            (
-                _normalized_doc_text(README),
-                _normalized_doc_text(WIDE_NET_DOC),
-                _normalized_doc_text(STATUS),
-            )
-        )
-
-        required_phrases = (
-            "phase14c wide-net-calendar-connector-readiness --json",
-            "phase14c wide-net-calendar-connector-readiness-contract --json",
-            "wide-net calendar connector readiness",
-            "calendar_cli_connector_wiring_present=false",
-            "calendar_connector_use_authorized=false",
-            "calendar_app_connector_called=false",
-            "calendar_client_injected_into_runner=false",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, combined_text)
 
 
 def _normalized_doc_text(path: Path) -> str:

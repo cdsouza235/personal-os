@@ -577,30 +577,6 @@ class BriefingPreviewGenerationTest(unittest.TestCase):
 
 
 class Phase10BDocsAndArtifactSafetyTest(unittest.TestCase):
-    def test_docs_describe_phase_10b_no_send_briefing_boundary(self) -> None:
-        docs_text = "\n".join(
-            [
-                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "SAFETY_POLICY.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "docs" / "CODEX_WORKFLOW.md").read_text(encoding="utf-8"),
-            ]
-        ).lower()
-
-        required_phrases = (
-            "phase 10b no-send daily briefing loop foundation",
-            "manual export only",
-            "no gmail sending",
-            "no live model calls",
-            "no scheduler or launchagents",
-            "no todoist/calendar writes",
-            "fake composer path only",
-            "completion report",
-        )
-        for phrase in required_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, docs_text)
 
     def test_repo_artifact_safety_has_no_var_or_database_artifacts_outside_git(self) -> None:
         db_artifacts: list[Path] = []

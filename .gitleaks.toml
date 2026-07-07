@@ -1,0 +1,17 @@
+# .gitleaks.toml — Personal OS secret-scan config (QUALITY_GATES; pinned gitleaks 8.30.1)
+# Scope: the scan runs over the working tree (--no-git). Local env files are EXPECTED to
+# hold real credentials and are gitignored; they are allowlisted here ONLY because the
+# paired QUALITY_GATES checks assert they can never become tracked
+# (`git check-ignore` + `git ls-files '.env*'` must-be-empty-except-.env.example).
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Personal OS sanctioned non-secrets"
+paths = [
+  '''^\.env\.local$''',          # local credentials, gitignored + tracked-check enforced
+]
+regexes = [
+  '''phase-12b-[a-z0-9-]+''',   # test_side_effects.py dedupe-key fixtures
+]

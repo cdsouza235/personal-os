@@ -1,0 +1,66 @@
+# =============================================================================
+# GOVERNANCE_MANIFEST.example.yaml — Personal OS closure mechanism (PROPOSAL / SKELETON)
+# -----------------------------------------------------------------------------
+# For CONSIDERATION, not a mandate. A starting point for Phase 1 — resolve every
+# <VERIFY> against the real repo during the Phase 0 findings audit.
+#
+# THE CLOSURE: any change to a file listed here → the governance (high-stakes)
+# gate. This is what stops an agent from rewriting a rule (e.g. QUALITY_GATES →
+# `echo "tests pass"`) or silently touching a live-rail module. EXHAUSTIVENESS
+# IS THE POINT — a governed file NOT listed here does not trip the gate, and the
+# guarantee has a hole. Adding a governance/protected file MUST add it here in
+# the same gated change.
+#
+# Mirrors ~/dev/harness-orchestrator/governance/GOVERNANCE_MANIFEST.yaml, minus
+# the harness-internal entries (orchestrator/**, adapters/**, fake_agents/**),
+# plus Personal OS's live-rail protected paths.
+# =============================================================================
+
+manifest_schema_version: "0.1"
+
+governance_files:
+  # --- law (the rulebook) ---
+  - "governance/QUALITY_GATES.md"
+  - "governance/RISK_REGISTER.md"
+  - "governance/SECURITY.md"
+  - "governance/DATA_POLICY.md"
+  - "governance/DEPENDENCY_POLICY.md"
+  - "governance/HUMAN_GATES.md"
+  - "governance/AGENTS.md"
+  - "governance/ROADMAP.md"
+  - "governance/RUNBOOK.md"
+  - "governance/GOVERNANCE_MANIFEST.yaml"   # the manifest governs itself
+  - "docs/PRD.md"                            # product truth
+  - "docs/ARCHITECTURE.md"                   # system topology + invariants
+
+  # --- templates (define the packet/audit contract) ---
+  - "governance/templates/PACKET_TEMPLATE.md"
+  - "governance/templates/AUDIT_TEMPLATE.md"
+
+  # --- protected code (HIGH blast radius — a change here is high-stakes) ---
+  # <VERIFY exact module paths against src/personalos during Phase 0. The names
+  #  below are best-guess from the directory scan and MUST be confirmed.>
+  - "migrations/**"                          # schema / data-model changes (+ destructive-migration gate)
+  - "src/personalos/gmail*/**"               # <VERIFY> Gmail rail
+  - "src/personalos/calendar*/**"            # <VERIFY> Google Calendar rail
+  - "src/personalos/todoist*/**"             # <VERIFY> Todoist rail
+  - "src/personalos/**/openclaw*/**"         # <VERIFY> OpenClaw runtime layer, if present
+  - "src/personalos/config.py"               # <VERIFY> credential / rail config
+  - "pyproject.toml"                         # environment definition
+  - "requirements*.txt"                      # (whichever the project env uses)
+
+# --- deliberately NOT governed (state, not law) ---
+#   governance/living/agent-writable/STATUS.md
+#   governance/living/agent-writable/DECISIONS.md
+#   governance/living/agent-writable/OPEN_QUESTIONS.md
+#     Changed under rules, verified via git-diff — but they are STATE, not law.
+#
+# --- secrets are NOT governed by this manifest — they are protected DIFFERENTLY ---
+#   .env / .env.local hold real credentials and must NEVER be committed (see .gitignore
+#   + SECURITY.md). The RISK_REGISTER treats any change touching secret PATHS as a
+#   secret-gate trigger; the manifest governs LAW, not secret material.
+#
+# --- NOTE on "where this lives" (Model A vs B, see GOVERNANCE_GOLD_STANDARD.md §6) ---
+#   Under Model A (harness-side overlay) some of these paths are expressed in the
+#   harness repo's projects/personal-os/ overlay instead. Paths here are repo-relative
+#   and agnostic to that decision; B-00 formalizes it.

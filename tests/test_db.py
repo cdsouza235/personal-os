@@ -33,6 +33,11 @@ class SQLiteFoundationTest(unittest.TestCase):
             "notes",
             "created_at_utc",
             "updated_at_utc",
+            "cadence_type",
+            "cadence_config_json",
+            "missed_behavior_default",
+            "rotation_group",
+            "weekly_target",
         },
         "routine_completions": {
             "completion_id",
@@ -534,10 +539,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00012",
                     "00013",
                     "00014",
+                    "00015",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 14)
+            self.assertEqual(len(rows), 15)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -2367,6 +2373,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00012",
                 "00013",
                 "00014",
+                "00015",
             ],
         )
         self.assertEqual(
@@ -2386,6 +2393,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "synthesis_apply_audit_tables",
                 "scheduler_runtime_loop_tables",
                 "project_followup_status_constraints",
+                "routine_first_class_cadence_columns",
             ],
         )
 

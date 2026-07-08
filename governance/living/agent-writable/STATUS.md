@@ -1,9 +1,11 @@
 # STATUS.md — Personal OS (living state; Builder-owned; git-diff-verified, not trusted)
 
 ## Current
-- **Phase:** A (clean state) — **P-GOV-01 APPROVED + MERGED.** Conductor sign-off:
-  `audits/signoffs/P-GOV-01-G1-signoff.md` (HI-01, 2026-07-07; ratifies D-PO-004 + E-002).
-  Next packet: **P-CLEAN-01** (dead skeletons).
+- **Phase:** A (clean state). **P-GOV-01 MERGED** (`229f974`, pushed; sign-off
+  `audits/signoffs/P-GOV-01-G1-signoff.md`).
+- **Active packet:** **P-CLEAN-01** (dead skeletons) on `packet/P-CLEAN-01` — built
+  (10 `.gitkeep` deletions: `personalos/` ×8, `app/` ×2; zero source references; suite
+  809 OK; gitleaks clean). Awaiting Codex audit → Conductor G4/G1 gate.
 - **Active packet:** P-GOV-01 (this governance pack), iteration 2 — Codex iter-1 `rework`
   (9 findings) all addressed: pack completion executed in working tree (archives, README,
   final PRD/ARCHITECTURE names), doc-phrase test class retired (887→809 declared),

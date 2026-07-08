@@ -29,6 +29,17 @@
   reads now ZERO) + 4 dead phase14c helpers deleted from `tests/test_cli.py`; stale
   status-help wording fixed. **Declared test delta now 809 → 421.** All gates green;
   Codex's own r1 hostile probes re-run: TypeError / RailStateError (fail closed).
+- **Iteration 3 (Codex r2 reject → B1):** F1/F2 verified CLOSED by Codex; new blocker B1 —
+  an over-broad `git add -A` in the r2 commit swept the Conductor's (legitimately authored)
+  P-CLEAN-01 signoff into an agent commit, making approval provenance indistinguishable
+  from self-attestation. Closed by merging `main` (whose `cc819db` is the authoritative
+  Conductor-record commit) into the packet branch — the signoff is no longer in the packet
+  diff (`git diff main...HEAD -- audits/signoffs/` = empty). **Standing Builder convention
+  from this finding: agent commits never use bare `git add -A`; staging always excludes
+  `audits/signoffs/` (`git add -A -- ':!audits/signoffs'`).** Provenance context: the
+  Conductor authored the file himself (transcript, 18:12) before the agent commit; content
+  was never in question — only commit provenance, which is exactly what the trigger exists
+  to catch.
 - **Active packet:** P-GOV-01 (this governance pack), iteration 2 — Codex iter-1 `rework`
   (9 findings) all addressed: pack completion executed in working tree (archives, README,
   final PRD/ARCHITECTURE names), doc-phrase test class retired (887→809 declared),

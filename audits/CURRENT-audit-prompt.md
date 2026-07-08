@@ -1,49 +1,29 @@
-# CURRENT audit prompt — packet P-CLEAN-02 — ITERATION 2 (reject closure)
+# CURRENT audit prompt — packet P-CLEAN-02 — ITERATION 3 (scoped B1 closure)
 
-Packet: `P-CLEAN-02` · Iteration: 2 · Date: 2026-07-07
+Packet: `P-CLEAN-02` · Iteration: 3 · Date: 2026-07-07
 Auditor: Codex, per `audits/AUDITOR-BRIEF-codex.md`.
-Branch: `packet/P-CLEAN-02` (base for the packet diff = `61a3703`). Your iteration-1
-verdict was **reject** (F1 fail-open/mutable rail state; F2 leftover credential-loading
-helpers). Verify closure by re-deriving — including re-running your own r1 probes.
+Branch: `packet/P-CLEAN-02`. Your iteration-2 verdict: **reject** solely on **B1**
+(a Conductor signoff artifact inside the agent packet commit); you verified F1 and F2
+CLOSED. This is a SCOPED pass: verify B1's closure and any regression from it. Do not
+re-open F1/F2 (spot-checks welcome, full re-derivation not required).
 
-## Closure claims to verify
-
-### F1 — fail-closed by construction (not by label)
-- `src/personalos/status.py`: private `_RAIL_STATES`/`_SCHEDULER_STATE` literals are
-  validated **at import** — `_validate_rail_states` raises `RailStateError`, so an illegal
-  value makes the module (and every consumer) refuse to load.
-- Public `RAIL_STATES` is a `MappingProxyType`: your r1 probe
-  `s.RAIL_STATES["gmail"]="bogus"` must now raise TypeError.
-- `create_rail_state_report()` reads the PRIVATE literals and re-validates per call:
-  rebinding the public attribute is inert (report unchanged); mutating the private dict
-  to an illegal value yields `RailStateError`, never a report. Re-run your probes.
-- `invalid_rail_states` no longer exists anywhere (`git grep invalid_rail_states` = 0):
-  validation raises instead of labeling.
-- `dashboard.render_today_view_html` RAISES ValueError on missing/malformed
-  `rail_state_summary` — the "unavailable" silent-degradation path you flagged is gone
-  (test: `test_dashboard_render_fails_loud_on_missing_or_malformed_rail_states`).
-- `cli._append_rail_state_lines` no longer has the warning-label branch.
-- 4 new contract tests in `tests/test_status.py` (immutability, illegal-value validation,
-  rebind-inertness, exact report shape). Derive your own additional probes if you see a
-  hole — the honest residual is documented in status.py: rewriting module PRIVATES is
-  host-level tampering outside the model (same class as the harness's trusted-host bound).
-
-### F2 — process-era credential helpers gone
-- `_connected_rehearsal_env_values` / `_wide_net_rehearsal_env_values` deleted;
-  `grep -c os.environ src/personalos/cli.py` = 0.
-- The 4 dead phase14c fixture helpers deleted from `tests/test_cli.py`.
-- Stale `status` help wording fixed ("status and rail states").
-
-## Also within scope
-- Anything NEW the rework introduced (diff since your r1: `status.py`, `dashboard.py`,
-  `cli.py`, `demo/no_send_e2e.py`, the 5 test files).
-- **Updated declared test delta: 809 → 421** (was 417 at r1; +4 contract tests, −1
-  replaced dashboard test, +1 net elsewhere — verify the arithmetic yourself against the
-  diff). Run all QUALITY_GATES steps.
-- Standing carries unchanged (QUALITY_GATES baseline line; `.env.example`).
+## B1 closure to verify
+1. `main` carries the signoff as a dedicated Conductor-record commit (`cc819db`,
+   "P-CLEAN-01 Conductor sign-off record (G4/G1)") created in the Conductor's merge flow —
+   separate from any packet work — followed by the P-CLEAN-01 merge (`1772f40`).
+2. `main` has been merged INTO `packet/P-CLEAN-02`, so
+   `git diff main...HEAD -- audits/signoffs/` is now EMPTY — the signoff is no longer part
+   of the packet diff; the packet contributes no approval-record content whatsoever.
+3. The packet diff (`git diff main...HEAD`) otherwise matches iteration 2's verified shape
+   (75 files; process-layer deletions + rail-state surface + manifest rider).
+4. Suite still green at 421; run the QUALITY_GATES steps.
+5. Note for your report: the Conductor confirms authorship of the signoff file (he created
+   it directly, before the agent's r2 commit swept it up; the sweep was the agent's
+   staging error, now a recorded Builder convention in STATUS.md — staging always excludes
+   `audits/signoffs/`).
 
 ## Output
 Overwrite `audits/CURRENT-audit-report.md`; append to `audits/AUDIT-LOG.md`.
-Verdict: accept / accept_with_conditions / reject, findings ranked, "ways this review
-could be wrong", bootstrap attestation. Same constraints (read-only except your two
-files; never open `.env.local`; no live paths).
+Verdict: **accept / accept_with_conditions / reject**. Short closure report is fine.
+Bootstrap attestation + ways-this-could-be-wrong as always. Same constraints (read-only
+except your two files; never open `.env.local`; no live paths).

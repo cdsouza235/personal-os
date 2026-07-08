@@ -3,9 +3,43 @@
 ## Current
 - **Phase:** A (clean state). **P-GOV-01 MERGED** (`229f974`, pushed; sign-off
   `audits/signoffs/P-GOV-01-G1-signoff.md`).
-- **Active packet:** **P-CLEAN-01** (dead skeletons) on `packet/P-CLEAN-01` — built
-  (10 `.gitkeep` deletions: `personalos/` ×8, `app/` ×2; zero source references; suite
-  809 OK; gitleaks clean). Awaiting Codex audit → Conductor G4/G1 gate.
+- **P-CLEAN-01** (dead skeletons): built + **Codex accept (zero findings, 1 round)** on
+  `packet/P-CLEAN-01` @ `61a3703`. Awaiting Conductor G4/G1 gate.
+- **Active packet:** **P-CLEAN-02** (process-layer retirement) on `packet/P-CLEAN-02`
+  (stacked on P-CLEAN-01) — BUILT: 32 modules + 27 test files + the phase14c setup script
+  deleted; `cli.py` 4,233→1,556 lines (36 handlers + 37 catalog entries + 2 parser blocks
+  excised); readiness/operator consumption in `status/today/dashboard/demo/cli` replaced
+  by the lean `create_rail_state_report()` surface (RAIL_STATES constants in `status.py`,
+  now manifest-protected as activation-ladder state); sanctioned manifest shrink applied
+  (six network-capable modules removed; `status.py` added). **Declared test delta:
+  809 → 417** (27 files + 66 test_cli methods + assertion-vocabulary updates in 5 files).
+  All quality gates green (suite ×2, gitleaks, env, artifacts). **Declared carry:**
+  QUALITY_GATES baseline line still reads 809 — governance/** is forbidden here; the
+  one-line refresh rides with the next sanctioned G-GOV edit. `.env.example` kept
+  (credential-name documentation; re-owned by P-RAIL packets).
+- **Iteration 2 (Codex reject r1 → both findings closed by construction):** F1 — rail
+  state is now fail-closed mechanically: private literal validated AT IMPORT
+  (`RailStateError` refuses module load), public `RAIL_STATES` is a `MappingProxyType`
+  (item assignment → TypeError), `create_rail_state_report()` reads privates + re-validates
+  (rebinding the public attr is inert; tampering yields RailStateError, never a report);
+  dashboard render RAISES on missing/malformed `rail_state_summary` (no "unavailable"
+  degradation); `invalid_rail_states` report field removed (validation raises instead of
+  labeling). 4 new contract tests prove immutability/validation/rebind-inertness/shape.
+  F2 — the two orphaned credential-name env helpers deleted from `cli.py` (os.environ
+  reads now ZERO) + 4 dead phase14c helpers deleted from `tests/test_cli.py`; stale
+  status-help wording fixed. **Declared test delta now 809 → 421.** All gates green;
+  Codex's own r1 hostile probes re-run: TypeError / RailStateError (fail closed).
+- **Iteration 3 (Codex r2 reject → B1):** F1/F2 verified CLOSED by Codex; new blocker B1 —
+  an over-broad `git add -A` in the r2 commit swept the Conductor's (legitimately authored)
+  P-CLEAN-01 signoff into an agent commit, making approval provenance indistinguishable
+  from self-attestation. Closed by merging `main` (whose `cc819db` is the authoritative
+  Conductor-record commit) into the packet branch — the signoff is no longer in the packet
+  diff (`git diff main...HEAD -- audits/signoffs/` = empty). **Standing Builder convention
+  from this finding: agent commits never use bare `git add -A`; staging always excludes
+  `audits/signoffs/` (`git add -A -- ':!audits/signoffs'`).** Provenance context: the
+  Conductor authored the file himself (transcript, 18:12) before the agent commit; content
+  was never in question — only commit provenance, which is exactly what the trigger exists
+  to catch.
 - **Active packet:** P-GOV-01 (this governance pack), iteration 2 — Codex iter-1 `rework`
   (9 findings) all addressed: pack completion executed in working tree (archives, README,
   final PRD/ARCHITECTURE names), doc-phrase test class retired (887→809 declared),

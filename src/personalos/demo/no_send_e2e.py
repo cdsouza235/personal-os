@@ -39,7 +39,7 @@ from personalos.demo.fixtures import (
 )
 from personalos.path_safety import is_under_repo, is_under_temp, validate_demo_output_dir_path
 from personalos.permissions import PermissionMode
-from personalos.pre_live_readiness import create_default_pre_live_readiness_report
+from personalos.status import create_rail_state_report
 from personalos.scheduler import (
     SAFE_NO_SEND_SEED_PROFILE,
     preview_scheduler_jobs,
@@ -276,11 +276,8 @@ def run_no_send_e2e_demo(output_dir: str | Path) -> dict[str, Any]:
                 artifact_paths["dashboard_render.html"],
                 output_path,
             ),
-            "html_contains_operator_status": "Operator Status" in dashboard_html,
-            "html_contains_safe_actions": "Safe To Do Now" in dashboard_html,
-            "html_contains_blocked_actions": (
-                "Blocked Until Phase 14/Live Approval" in dashboard_html
-            ),
+            "html_contains_rail_states": "Rail States" in dashboard_html,
+            "html_contains_inert_headline": "all inert" in dashboard_html,
         }
         _write_json(artifact_paths["dashboard_render_evidence.json"], dashboard_evidence)
         workflow.complete("render_static_dashboard_evidence")
@@ -288,7 +285,7 @@ def run_no_send_e2e_demo(output_dir: str | Path) -> dict[str, Any]:
         status_readiness_report = _stable_report(
             {
                 "status_summary": create_status_summary(connection, database_path=str(db_path)),
-                "readiness": create_default_pre_live_readiness_report(),
+                "rail_states": create_rail_state_report(),
             }
         )
         _write_json(artifact_paths["status_readiness_report.json"], status_readiness_report)
@@ -632,22 +629,15 @@ def _build_safety_assertions(
     status_readiness_report: Mapping[str, Any],
     scheduler_evidence: Mapping[str, Any],
 ) -> dict[str, Any]:
-    readiness = status_readiness_report["readiness"]
-    status_summary = status_readiness_report["status_summary"]
-    operator_status = status_summary["operator_status"]
+    rail_states = status_readiness_report["rail_states"]
     assertions = {
-        "readiness.status": readiness["status"],
-        "inert_report_only": readiness["inert_report_only"],
-        "live_rails_activated": readiness["live_rails_activated"],
-        "credentials_loaded": readiness["credentials_loaded"],
-        "credentials_read": readiness["credentials_read"],
-        "production_db_path_active": readiness["production_db_path_active"],
-        "scheduler_activated": readiness["scheduler_activated"],
+        "rails": rail_states["rails"],
+        "scheduler_state": rail_states["scheduler"],
+        "any_rail_live": rail_states["any_rail_live"],
+        "any_rail_soaking": rail_states["any_rail_soaking"],
         "launch_agent_installed": False,
         "crontab_modified": False,
         "daemon_started": False,
-        "openclaw_called": readiness["openclaw_called"],
-        "external_services_contacted": readiness["external_services_contacted"],
         "external_mutation": False,
         "gmail_touched": False,
         "todoist_touched": False,
@@ -655,25 +645,16 @@ def _build_safety_assertions(
         "personalos_markdown_written": False,
         "protected_paths_touched": False,
         "scheduler_preview_status": scheduler_evidence["status"],
-        "operator_status_readiness": operator_status["readiness_status"],
-        "operator_status_live_rails_activated": operator_status["live_rails_activated"],
     }
     assertions["all_required_assertions_passed"] = (
-        assertions["readiness.status"] == "not_ready"
-        and assertions["inert_report_only"] is True
+        assertions["any_rail_live"] is False
         and all(
             assertions[key] is False
             for key in (
-                "live_rails_activated",
-                "credentials_loaded",
-                "credentials_read",
-                "production_db_path_active",
-                "scheduler_activated",
+                "any_rail_soaking",
                 "launch_agent_installed",
                 "crontab_modified",
                 "daemon_started",
-                "openclaw_called",
-                "external_services_contacted",
                 "external_mutation",
                 "gmail_touched",
                 "todoist_touched",
@@ -717,10 +698,10 @@ def _blocked_live_action_summary(
     status_readiness_report: Mapping[str, Any],
 ) -> dict[str, Any]:
     preview_report = preview_result["preview_report"]
-    operator_status = status_readiness_report["status_summary"]["operator_status"]
+    rail_states = status_readiness_report["rail_states"]
     apply_items = first_apply["items"]
     return {
-        "operator_blocked_actions": operator_status["blocked_actions"],
+        "rails_all_non_live": rail_states["any_rail_live"] is False,
         "preview_blocked_candidate_count": len(preview_report["blocked_candidates"]),
         "preview_review_required_candidate_count": len(
             preview_report["review_required_candidates"]
@@ -740,14 +721,13 @@ def _blocked_live_action_summary(
 
 
 def _status_readiness_summary(report: Mapping[str, Any]) -> dict[str, Any]:
-    readiness = report["readiness"]
+    rail_states = report["rail_states"]
     status_summary = report["status_summary"]
     return {
-        "readiness_status": readiness["status"],
-        "inert_report_only": readiness["inert_report_only"],
-        "live_rails_activated": readiness["live_rails_activated"],
+        "rails": rail_states["rails"],
+        "scheduler_state": rail_states["scheduler"],
+        "any_rail_live": rail_states["any_rail_live"],
         "counts": status_summary["counts"],
-        "operator_status_schema": status_summary["operator_status"]["schema_version"],
     }
 
 
@@ -835,18 +815,14 @@ def _summary_markdown(completion_report: Mapping[str, Any]) -> str:
         "",
         "## Safety Assertions",
         "",
-        f"- readiness.status={safety['readiness.status']}",
-        f"- inert_report_only={_format_bool(safety['inert_report_only'])}",
-        f"- live_rails_activated={_format_bool(safety['live_rails_activated'])}",
-        f"- credentials_loaded={_format_bool(safety['credentials_loaded'])}",
-        f"- credentials_read={_format_bool(safety['credentials_read'])}",
-        f"- production_db_path_active={_format_bool(safety['production_db_path_active'])}",
-        f"- scheduler_activated={_format_bool(safety['scheduler_activated'])}",
-        f"- openclaw_called={_format_bool(safety['openclaw_called'])}",
-        f"- external_services_contacted={_format_bool(safety['external_services_contacted'])}",
+        "- rails="
+        + ", ".join(f"{name}={value}" for name, value in sorted(safety["rails"].items())),
+        f"- scheduler_state={safety['scheduler_state']}",
+        f"- any_rail_live={_format_bool(safety['any_rail_live'])}",
         f"- external_mutation={_format_bool(safety['external_mutation'])}",
+        f"- all_required_assertions_passed={_format_bool(safety['all_required_assertions_passed'])}",
         "",
-        "Phase 14 remains blocked.",
+        "Rail activation remains Conductor-gated (governance/HUMAN_GATES.md).",
     ]
     return "\n".join(lines) + "\n"
 

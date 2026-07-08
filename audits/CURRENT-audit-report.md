@@ -1,84 +1,86 @@
-# CURRENT audit report - P-GOV-01
+# CURRENT audit report - P-CLEAN-02
 
-Packet: P-GOV-01
-Iteration: 3 scoped condition-closure pass
+Packet: P-CLEAN-02
+Iteration: 4 scoped B2 closure
 Date: 2026-07-07
 Auditor: Codex
-Verdict: conditions_closed_ready_for_gate
+Verdict: accept
 
 ## Scope
 
-Per `audits/CURRENT-audit-prompt.md`, this pass verified only the three iteration-2
-conditions (N1/N2/N3) and regressions introduced by those fixes. I did not re-open settled
-iteration-2 findings.
+This pass was scoped to B2 closure from iteration 3: verify the deleted
+`audits/signoffs/P-CLEAN-01-G4-G1-signoff.md` was restored from the Conductor-authored
+main commit, verify the worktree is clean before auditor writes, verify signoffs remain
+absent from the packet diff, rerun QUALITY_GATES, and reconcile the audit log if needed.
 
-## Condition closure
+## B2 Closure
 
-### N1 - Closed - Archive is no longer allowlisted from gitleaks
+Accepted.
 
-Evidence:
-- `.gitleaks.toml` now allowlists only `^\.env\.local$` by path and the
-  `phase-12b-[a-z0-9-]+` fixture regex; there is no `archive/` path allowlist.
-- `grep -nE 'archive/|allowlist|allowlists|allowlisted' .gitleaks.toml governance/QUALITY_GATES.md governance/ROADMAP.md`
-  found archive references in ROADMAP only, not in the gitleaks allowlist.
-- Canonical command run exactly:
-  `gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9`
-  exited 0 and reported `no leaks found` after scanning about 10.19 MB.
+- `git status --short` printed nothing before this report/log write.
+- `test -f audits/signoffs/P-CLEAN-01-G4-G1-signoff.md` exited 0.
+- `git show cc819db:audits/signoffs/P-CLEAN-01-G4-G1-signoff.md | cmp -s - audits/signoffs/P-CLEAN-01-G4-G1-signoff.md`
+  exited 0.
+- SHA-256 of the worktree file:
+  `d108e39b8599595f1e369459ad6972301ab925dc052508bda04e2cc4680b6f63`.
+- SHA-256 of `cc819db:audits/signoffs/P-CLEAN-01-G4-G1-signoff.md`:
+  `d108e39b8599595f1e369459ad6972301ab925dc052508bda04e2cc4680b6f63`.
+- `git diff main...HEAD -- audits/signoffs/` printed nothing.
 
-### N2 - Closed - Doc-phrase test retirement ownership is unambiguous
+The restored signoff is therefore byte-identical to the Conductor-record copy from
+`cc819db`; I found no packet diff under `audits/signoffs/`.
 
-Evidence:
-- `governance/ROADMAP.md` P-GOV-01 states that this packet retires the doc-phrase test
-  class, with the declared 887 -> 809 delta, 10 `test_*_docs.py` files, and 19 embedded
-  doc-phrase methods.
-- `governance/ROADMAP.md` P-CLEAN-02 now claims only the process-layer modules, CLI
-  subcommands, and their remaining tests; it explicitly says the doc-phrase test class was
-  already retired by P-GOV-01 and that P-CLEAN-02's delta covers process-module tests only.
-- `governance/QUALITY_GATES.md` says P-CLEAN-02 deletes phase-14C process modules and
-  their remaining tests together, and separately states that the doc-phrase class was
-  retired by P-GOV-01.
+## QUALITY_GATES Evidence
 
-### N3 - Closed - PR-audit archive count is corrected and matches disk
+Run locally from repo root on `packet/P-CLEAN-02` at
+`83e99285424ccbed4487fe2549578baf8916d79e`, before this report/log write:
 
-Evidence:
-- `governance/ROADMAP.md` now says P-GOV-01 archives the 32 loose `PR##_AUDIT.md` files
-  from PR93 through PR124, plus `HARNESS_KICKOFF_PROMPT.md`.
-- `find archive/pr-audits -maxdepth 1 -type f -name 'PR*_AUDIT.md' | wc -l` returned 32.
-- The archive listing contains PR93 through PR124 inclusive, plus
-  `archive/pr-audits/HARNESS_KICKOFF_PROMPT.md`.
+1. `git status --short` exited 0 and printed nothing.
+2. `git diff --check` exited 0 and printed nothing.
+3. `PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py"` ran 421 tests in
+   12.649s: OK.
+4. `PYTHONTRACEMALLOC=10 PYTHONPATH=src python3 -W always::ResourceWarning -m unittest discover -s tests -p "test_*.py" -q`
+   ran 421 tests in 26.149s: OK.
+5. `find . -maxdepth 2 -name var -print` exited 0 and printed nothing.
+6. `find . -path ./.git -prune -o \( -name "*.sqlite" -o -name "*.sqlite3" -o -name "*.db" \) -print`
+   exited 0 and printed nothing.
+7. `gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9` exited 0
+   and reported no leaks after scanning about 8.56 MB.
+8. `git check-ignore -q .env.local` exited 0.
+9. `test -z "$(git ls-files '.env*' | grep -v '^.env.example$')"` exited 0.
 
-## Regression checks
+Per project doctrine, these are auditor-run development checks, not runner evidence of
+record.
 
-- `git status --short -- src migrations scripts audits/signoffs` printed nothing.
-- `git diff --name-only -- src migrations scripts audits/signoffs` printed nothing.
-- `git diff --cached --name-only -- src migrations scripts audits/signoffs` printed
-  nothing.
-- `git ls-files --others --exclude-standard -- src migrations scripts audits/signoffs`
-  printed nothing.
+## Audit Log Housekeeping
 
-I found no regression touching source, migrations, scripts, or signoff records. I did not
-open `.env.local`, load credentials, contact external services, execute live-capable CLI
-paths, or start scheduler/background behavior. `rg` was unavailable in this environment, so
-I used grep/find fallbacks for text and inventory checks.
+Before this iteration's write, `audits/AUDIT-LOG.md` contained two `P-CLEAN-02` rows, but
+the prompt requires r1/r2/r3 to all be present. I appended one reconciling
+`P-CLEAN-02 | reject` row for the missing iteration-3 log entry, then appended this
+iteration-4 `P-CLEAN-02 | accept` row.
 
-## Bootstrap attestation
+## Attestation
 
-`GOVERNANCE_MANIFEST.yaml` lists the governance files. The manifest-listed changes visible
-in `git status` are all within P-GOV-01's sanctioned target set from ROADMAP:
-`GOVERNANCE_MANIFEST.yaml`, `AGENTS.md`, `README.md`, `.gitleaks.toml`, `governance/**`,
-`docs/PRD.md`, `docs/ARCHITECTURE.md`, and the auditor/test-strategy files under
-`audits/**`. The staged deletion/new-file shape for `docs/PRD.md` and
-`docs/ARCHITECTURE.md` corresponds to the sanctioned v0.2 archive move plus v0.3
-replacement. I found no `GOVERNANCE_MANIFEST.yaml`-listed file changed beyond this
-packet's sanctioned targets.
+I read the current standing brief, current audit prompt, STATUS, ROADMAP, QUALITY_GATES,
+RISK_REGISTER, SECURITY, and GOVERNANCE_MANIFEST.
 
-I wrote only Codex-owned audit artifacts: this report and `audits/AUDIT-LOG.md`.
+- No `GOVERNANCE_MANIFEST.yaml`-listed governance/rulebook files changed in
+  `git diff main...HEAD` except `GOVERNANCE_MANIFEST.yaml`.
+- The `GOVERNANCE_MANIFEST.yaml` diff is limited to P-CLEAN-02's sanctioned protected-path
+  shrink for the deleted legacy live-smoke modules and the addition of
+  `src/personalos/status.py` as activation-ladder state.
+- `git diff main...HEAD -- audits/signoffs/` is empty.
+- I did not open `.env.local`, load credential values, contact external services, execute a
+  live-capable CLI path, or start scheduler/background behavior.
+- I only wrote the two Codex-owned audit files: `audits/CURRENT-audit-report.md` and
+  `audits/AUDIT-LOG.md`.
 
-## Ways this review could be wrong
+## Ways This Review Could Be Wrong
 
-- This was intentionally scoped to N1/N2/N3 closure and direct fix regressions; unrelated
-  packet issues outside that scope could still exist.
-- The gitleaks result is auditor-run local evidence. The evidence of record remains the
-  runner/Conductor-executed QUALITY_GATES output.
-- The PR-audit archive check verified names and count on disk, not byte-for-byte identity
-  against the original loose root files.
+- This pass did not reopen F1/F2 or re-audit the full P-CLEAN-02 deletion shape because the
+  prompt explicitly scoped iteration 4 to B2 closure.
+- I treated the extra `P-CLEAN-02 | reject` log row as the requested reconciliation for
+  the missing r3 entry; the existing log format has no iteration column, so the row is
+  count-based rather than self-describing.
+- QUALITY_GATES results above are local auditor evidence only; runner-executed evidence
+  remains the evidence of record.

@@ -92,10 +92,14 @@ def render_today_view_html(
     include_synthesis_import_form: bool = True,
 ) -> str:
     no_external_writes = _format_bool(summary["no_external_writes"])
-    operator_status_value = summary.get("operator_status_summary", {})
-    operator_status = (
-        operator_status_value if isinstance(operator_status_value, Mapping) else {}
-    )
+    rail_states = summary.get("rail_state_summary")
+    if not isinstance(rail_states, Mapping) or not isinstance(
+        rail_states.get("rails"), Mapping
+    ):
+        raise ValueError(
+            "rail_state_summary missing or malformed - refusing to render (fail closed; "
+            "the rail-state posture must never degrade silently)"
+        )
     synthesis_form_html = (
         render_synthesis_import_preview_form_html()
         if include_synthesis_import_form
@@ -228,10 +232,9 @@ def render_today_view_html(
   <p>{_e(summary["source_date"])} - {_e(summary["timezone"])}</p>
 
   <div class="banner" id="safety-banner">
-    <strong>Personal OS status: {_e(_readiness_display_status(operator_status))}</strong>
+    <strong>Personal OS rails: {_e(_rail_state_headline(rail_states))}</strong>
     <ul>
-      <li>mode={_e(_operator_mode_label(operator_status))}</li>
-      <li>live_rails={_e(_live_rails_status_label(operator_status))}</li>
+      <li>scheduler={_e(str(rail_states["scheduler"]))}</li>
       <li>no_external_writes={no_external_writes}</li>
       <li>Read-only except explicit local synthesis preview creation</li>
       <li>no live Todoist/Calendar/Gmail/model calls</li>
@@ -242,7 +245,7 @@ def render_today_view_html(
     </ul>
   </div>
 
-  {_render_operator_status_panels(operator_status)}
+  {_render_rail_state_summary(rail_states)}
   {_render_synthesis_import_preview_summary(summary["synthesis_import_preview_summary"])}
   {_render_synthesis_apply_summary(summary["synthesis_apply_summary"])}
   {synthesis_form_html}
@@ -256,7 +259,6 @@ def render_today_view_html(
   {_render_briefing_output_summary(summary["briefing_output_summary"])}
   {_render_side_effect_ledger_summary(summary["side_effect_ledger_summary"])}
   {_render_scheduler_summary(summary["scheduler_summary"])}
-  {_render_pre_live_readiness_summary(summary["pre_live_readiness_summary"])}
   {_render_permission_summary(summary["permission_summary"])}
   {_render_system_status_summary(summary["system_status_summary"])}
   {_render_warnings(summary["warnings"])}
@@ -661,91 +663,31 @@ def _render_routine_summary(summary: Mapping[str, Any]) -> str:
     )
 
 
-def _render_operator_status_panels(operator_status: Mapping[str, Any]) -> str:
-    return (
-        _render_operator_status_banner(operator_status)
-        + _render_safe_local_actions_panel(operator_status)
-        + _render_blocked_actions_panel(operator_status)
-        + _render_inert_evidence_panel(operator_status)
-    )
+def _rail_state_headline(rail_states: Mapping[str, Any]) -> str:
+    rails = rail_states["rails"]
+    if rail_states.get("any_rail_live"):
+        live = sorted(name for name, value in rails.items() if value == "live")
+        return "LIVE: " + ", ".join(live)
+    if rail_states.get("any_rail_soaking"):
+        return "soaking (no live rails)"
+    return "all inert"
 
 
-def _render_operator_status_banner(operator_status: Mapping[str, Any]) -> str:
-    body = _definition_list(
-        (
-            ("Personal OS status", _readiness_display_status(operator_status)),
-            ("Mode", _operator_mode_label(operator_status)),
-            ("Live rails", _live_rails_status_label(operator_status)),
-            ("Scheduler", _status_value(operator_status.get("scheduler_status"))),
-            ("Production DB", _status_value(operator_status.get("production_db_status"))),
-            ("Credentials", _status_value(operator_status.get("credential_status"))),
-            ("External writes", _status_value(operator_status.get("external_write_status"))),
-            ("Dashboard", "informational only; no live rail activation"),
+def _render_rail_state_summary(rail_states: Mapping[str, Any]) -> str:
+    rails = rail_states["rails"]
+    rail_rows = [(name, str(value)) for name, value in sorted(rails.items())]
+    body = (
+        _definition_list(
+            (
+                ("Rails", _rail_state_headline(rail_states)),
+                ("Scheduler", str(rail_states["scheduler"])),
+                ("Posture", str(rail_states["posture_note"])),
+                ("Dashboard", "informational only; no live rail activation"),
+            )
         )
+        + _table(("Rail", "State"), rail_rows)
     )
-    return _section("operator-status-banner", "Operator Status", body)
-
-
-def _readiness_display_status(operator_status: Mapping[str, Any]) -> str:
-    readiness_status = str(operator_status.get("readiness_status", "unavailable"))
-    if readiness_status in {"", "unavailable"}:
-        return "unavailable"
-    return readiness_status.upper().replace("_", " ")
-
-
-def _operator_mode_label(operator_status: Mapping[str, Any]) -> str:
-    if operator_status.get("inert_report_only") is True:
-        return "inert / no-send / report-only"
-    return str(operator_status.get("mode", "unavailable"))
-
-
-def _live_rails_status_label(operator_status: Mapping[str, Any]) -> str:
-    if operator_status.get("live_rails_activated") is False:
-        return "disabled"
-    if operator_status.get("live_rails_activated") is True:
-        return "activated"
-    return "unavailable"
-
-
-def _render_safe_local_actions_panel(operator_status: Mapping[str, Any]) -> str:
-    actions = _string_list(operator_status.get("safe_local_actions"))
-    body = (
-        "<p>Safe to do now:</p>"
-        + _render_list(actions)
-        + "<p>These are local inert/no-send workflows only.</p>"
-    )
-    return _section("safe-local-actions", "Safe To Do Now", body)
-
-
-def _render_blocked_actions_panel(operator_status: Mapping[str, Any]) -> str:
-    blocked_actions = _string_list(operator_status.get("blocked_actions"))
-    body = (
-        "<p>Blocked until explicit Phase 14/live approval:</p>"
-        + _render_list(blocked_actions)
-        + "<p>Display-only; no dashboard control activates these actions.</p>"
-    )
-    return _section(
-        "blocked-actions",
-        "Blocked Until Phase 14/Live Approval",
-        body,
-    )
-
-
-def _render_inert_evidence_panel(operator_status: Mapping[str, Any]) -> str:
-    evidence = operator_status.get("evidence", {})
-    evidence_map = evidence if isinstance(evidence, Mapping) else {}
-    rows = (
-        f"readiness_status={operator_status.get('readiness_status', 'unavailable')}",
-        f"inert_report_only={_format_bool_or_unavailable(operator_status.get('inert_report_only'))}",
-        f"live_rails_activated={_format_bool_or_unavailable(operator_status.get('live_rails_activated'))}",
-        f"live_rails_disabled={_format_bool_or_unavailable(evidence_map.get('live_rails_disabled'))}",
-        f"credentials={_status_value(operator_status.get('credential_status'))}",
-        f"external_writes={_status_value(operator_status.get('external_write_status'))}",
-        f"scheduler={_status_value(operator_status.get('scheduler_status'))}",
-        f"production_db={_status_value(operator_status.get('production_db_status'))}",
-        f"openclaw_called={_format_bool_or_unavailable(evidence_map.get('openclaw_called'))}",
-    )
-    return _section("inert-evidence", "Inert Evidence", _render_list(rows))
+    return _section("rail-states", "Rail States", body)
 
 
 def _render_priority_summary(summary: Mapping[str, Any]) -> str:
@@ -1058,48 +1000,6 @@ def _render_scheduler_summary(summary: Mapping[str, Any]) -> str:
     )
 
 
-def _render_pre_live_readiness_summary(summary: Mapping[str, Any]) -> str:
-    gate_rows = [
-        (
-            gate["gate"],
-            gate["status"],
-            _format_bool(gate["satisfied"]),
-            gate["reason"],
-        )
-        for gate in summary.get("gates", [])
-    ]
-    rail_rows = [
-        (
-            rail["rail"],
-            rail["status"],
-            _format_bool(rail["active"]),
-            rail["reason"],
-        )
-        for rail in summary.get("rails", [])
-    ]
-    body = (
-        _definition_list(
-            (
-                ("Overall status", summary.get("status", "unknown")),
-                ("Inert report only", _format_bool(summary.get("inert_report_only"))),
-                ("Read-only", _format_bool(summary.get("read_only"))),
-                ("Live rails activated", _format_bool(summary.get("live_rails_activated"))),
-                ("No external writes", _format_bool(summary.get("no_external_writes"))),
-                ("No credentials loaded", _format_bool(summary.get("no_credentials_loaded"))),
-                ("No production DB active", _format_bool(summary.get("no_production_db_active"))),
-                ("No scheduler activation", _format_bool(summary.get("no_scheduler_activation"))),
-                ("No OpenClaw call", _format_bool(summary.get("no_openclaw_call"))),
-                ("Summary", summary.get("summary_text", "")),
-            )
-        )
-        + "<h3>Gate Results</h3>"
-        + _table(("Gate", "Status", "Satisfied", "Reason"), gate_rows)
-        + "<h3>Live Rail Statuses</h3>"
-        + _table(("Rail", "Status", "Active", "Reason"), rail_rows)
-    )
-    return _section("pre-live-readiness-summary", "Pre-Live Readiness", body)
-
-
 def _render_permission_summary(summary: Mapping[str, Any]) -> str:
     return _section(
         "permission-summary",
@@ -1180,26 +1080,6 @@ def _format_counts(counts: Mapping[str, int]) -> str:
 
 def _format_bool(value: object) -> str:
     return "true" if value is True else "false"
-
-
-def _format_bool_or_unavailable(value: object) -> str:
-    if value is True:
-        return "true"
-    if value is False:
-        return "false"
-    return "unavailable"
-
-
-def _status_value(value: object) -> str:
-    if isinstance(value, Mapping):
-        return str(value.get("status", "unavailable"))
-    return "unavailable"
-
-
-def _string_list(value: object) -> list[str]:
-    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
-        return []
-    return [str(item) for item in value]
 
 
 def _format_safety_flags(flags: Mapping[str, object]) -> str:

@@ -56,16 +56,11 @@ class NoSendE2EDemoRunnerTest(unittest.TestCase):
 
         safety = report["safety_assertions"]
         expected_false = (
-            "live_rails_activated",
-            "credentials_loaded",
-            "credentials_read",
-            "production_db_path_active",
-            "scheduler_activated",
+            "any_rail_live",
+            "any_rail_soaking",
             "launch_agent_installed",
             "crontab_modified",
             "daemon_started",
-            "openclaw_called",
-            "external_services_contacted",
             "external_mutation",
             "gmail_touched",
             "todoist_touched",
@@ -73,8 +68,11 @@ class NoSendE2EDemoRunnerTest(unittest.TestCase):
             "personalos_markdown_written",
             "protected_paths_touched",
         )
-        self.assertEqual(safety["readiness.status"], "not_ready")
-        self.assertTrue(safety["inert_report_only"])
+        self.assertEqual(
+            safety["rails"],
+            {"todoist": "inert", "gmail": "inert", "calendar": "inert", "model_api": "inert"},
+        )
+        self.assertEqual(safety["scheduler_state"], "off")
         for key in expected_false:
             with self.subTest(key=key):
                 self.assertFalse(safety[key])

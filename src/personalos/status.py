@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Mapping
 from datetime import UTC, datetime
+from types import MappingProxyType
 from typing import Any
 
 from personalos.config import PersonalOSConfig
@@ -31,37 +33,74 @@ from personalos.state import (
 
 
 # Rail activation states (governance/HUMAN_GATES.md activation ladder). Each value moves
-# inert -> soaking -> live ONLY via a Conductor-gated (G5) activation packet editing this
-# constant; no runtime path may mutate it (RISK_REGISTER promotes any change to this file).
-RAIL_STATES: dict[str, str] = {
+# inert -> soaking -> live ONLY via a Conductor-gated (G5) activation packet editing the
+# private literal below (RISK_REGISTER promotes any change to this file).
+#
+# Fail-closed by construction, not by label:
+#   * the literal is validated AT IMPORT — an invalid value makes this module (and thus
+#     every consumer) refuse to load, RailStateError;
+#   * the exported view is a MappingProxyType — item assignment raises TypeError;
+#   * report creation reads the PRIVATE literal and re-validates — rebinding the public
+#     module attribute changes nothing a consumer sees.
+# Honest residual: Python cannot stop a caller rewriting module privates; that is host-level
+# tampering, outside this model (same bound as the harness's trusted-host residual).
+
+class RailStateError(ValueError):
+    """An activation-ladder state is outside the legal set — refuse to operate."""
+
+
+_VALID_RAIL_STATES = frozenset({"inert", "soaking", "live"})
+_VALID_SCHEDULER_STATES = frozenset({"off", "manual", "background"})
+
+_RAIL_STATES: dict[str, str] = {
     "todoist": "inert",
     "gmail": "inert",
     "calendar": "inert",
     "model_api": "inert",
 }
-SCHEDULER_STATE: str = "off"  # off -> manual -> background (P-SCHED-01/02, G4+G5)
+_SCHEDULER_STATE: str = "off"  # off -> manual -> background (P-SCHED-01/02, G4+G5)
 
-_VALID_RAIL_STATES = frozenset({"inert", "soaking", "live"})
-_VALID_SCHEDULER_STATES = frozenset({"off", "manual", "background"})
+
+def _validate_rail_states(rails: Mapping[str, str], scheduler: str) -> None:
+    """Raise RailStateError on any illegal state value (called at import + every report)."""
+    invalid = sorted(
+        name for name, value in rails.items() if value not in _VALID_RAIL_STATES
+    )
+    if scheduler not in _VALID_SCHEDULER_STATES:
+        invalid.append("scheduler")
+    if invalid:
+        raise RailStateError(
+            "illegal activation-ladder state(s): "
+            + ", ".join(invalid)
+            + " — legal rail states are "
+            + "/".join(sorted(_VALID_RAIL_STATES))
+            + ", legal scheduler states are "
+            + "/".join(sorted(_VALID_SCHEDULER_STATES))
+        )
+
+
+_validate_rail_states(_RAIL_STATES, _SCHEDULER_STATE)  # import-time gate: fail closed
+
+RAIL_STATES: Mapping[str, str] = MappingProxyType(_RAIL_STATES)  # immutable public view
+SCHEDULER_STATE: str = _SCHEDULER_STATE
 
 
 def create_rail_state_report() -> dict[str, Any]:
-    """Lean rail-state posture (replaces the retired readiness machinery, D-PO-006)."""
-    states = dict(RAIL_STATES)
-    invalid = sorted(
-        name for name, value in states.items() if value not in _VALID_RAIL_STATES
-    )
-    if SCHEDULER_STATE not in _VALID_SCHEDULER_STATES:
-        invalid.append("scheduler")
+    """Lean rail-state posture (replaces the retired readiness machinery, D-PO-006).
+
+    Reads the private literals (public-attribute rebinding is inert) and re-validates on
+    every call; an illegal state raises RailStateError instead of producing a report.
+    """
+    _validate_rail_states(_RAIL_STATES, _SCHEDULER_STATE)
+    states = dict(_RAIL_STATES)
     return {
         "rails": states,
-        "scheduler": SCHEDULER_STATE,
+        "scheduler": _SCHEDULER_STATE,
         "any_rail_live": any(value == "live" for value in states.values()),
         "any_rail_soaking": any(value == "soaking" for value in states.values()),
-        "invalid_rail_states": invalid,  # non-empty = fail loud in every consumer
         "posture_note": (
             "Rail activation is a Conductor-gated packet (governance/HUMAN_GATES.md); "
-            "no runtime path mutates these states."
+            "state transitions happen only by editing status.py under G5."
         ),
     }
 

@@ -103,7 +103,6 @@ class TodayViewSummaryTest(unittest.TestCase):
         )
         self.assertEqual(rail_states["scheduler"], "off")
         self.assertFalse(rail_states["any_rail_live"])
-        self.assertEqual(rail_states["invalid_rail_states"], [])
         self.assertEqual(summary["side_effect_ledger_summary"]["intent_count"], 0)
         self.assertEqual(summary["side_effect_ledger_summary"]["attempt_count"], 0)
         self.assertTrue(summary["side_effect_ledger_summary"]["no_external_writes"])
@@ -328,7 +327,6 @@ class DashboardShellTest(unittest.TestCase):
         briefing_summary = payload["briefing_output_summary"]
         self.assertEqual(rail_states["scheduler"], "off")
         self.assertFalse(rail_states["any_rail_live"])
-        self.assertEqual(rail_states["invalid_rail_states"], [])
         self.assertEqual(rail_states["rails"]["gmail"], "inert")
         self.assertEqual(briefing_summary["source_date_briefing_output_count"], 1)
         self.assertEqual(
@@ -338,7 +336,7 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Personal OS Midday Brief Preview", briefing_summary["manual_export_excerpt"])
         self.assertIs(briefing_summary["safety_flags"]["no_external_writes"], True)
 
-    def test_dashboard_rail_state_panel_marks_missing_fields_unavailable(self) -> None:
+    def test_dashboard_render_fails_loud_on_missing_or_malformed_rail_states(self) -> None:
         with _seeded_runtime_db() as db_path:
             with _sqlite_connection(db_path) as connection:
                 _insert_dashboard_fixture_rows(connection)
@@ -348,17 +346,19 @@ class DashboardShellTest(unittest.TestCase):
                     timezone=DEFAULT_TIMEZONE,
                 )
 
-        summary["rail_state_summary"] = {}
-        html = dashboard.render_today_view_html(
-            summary,
-            include_synthesis_import_form=False,
-        )
-
-        self.assertIn("Personal OS rails: unavailable", html)
-        self.assertIn("scheduler=unavailable", html)
-        self.assertIn("Rails</dt><dd>unavailable", html)
-        self.assertIn("Scheduler</dt><dd>unavailable", html)
-        self.assertIn("Posture</dt><dd>unavailable", html)
+        for bad_value in ({}, None, "inert", {"scheduler": "off"}):
+            with self.subTest(bad_value=bad_value):
+                broken = dict(summary)
+                broken["rail_state_summary"] = bad_value
+                with self.assertRaises(ValueError):
+                    dashboard.render_today_view_html(
+                        broken,
+                        include_synthesis_import_form=False,
+                    )
+        missing = dict(summary)
+        del missing["rail_state_summary"]
+        with self.assertRaises(ValueError):
+            dashboard.render_today_view_html(missing, include_synthesis_import_form=False)
 
     def test_dashboard_has_only_synthesis_preview_form_and_no_external_action_routes(
         self,

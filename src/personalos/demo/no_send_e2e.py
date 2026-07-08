@@ -635,7 +635,6 @@ def _build_safety_assertions(
         "scheduler_state": rail_states["scheduler"],
         "any_rail_live": rail_states["any_rail_live"],
         "any_rail_soaking": rail_states["any_rail_soaking"],
-        "invalid_rail_states": rail_states["invalid_rail_states"],
         "launch_agent_installed": False,
         "crontab_modified": False,
         "daemon_started": False,
@@ -649,7 +648,6 @@ def _build_safety_assertions(
     }
     assertions["all_required_assertions_passed"] = (
         assertions["any_rail_live"] is False
-        and assertions["invalid_rail_states"] == []
         and all(
             assertions[key] is False
             for key in (

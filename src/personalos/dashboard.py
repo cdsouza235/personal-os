@@ -92,8 +92,14 @@ def render_today_view_html(
     include_synthesis_import_form: bool = True,
 ) -> str:
     no_external_writes = _format_bool(summary["no_external_writes"])
-    rail_state_value = summary.get("rail_state_summary", {})
-    rail_states = rail_state_value if isinstance(rail_state_value, Mapping) else {}
+    rail_states = summary.get("rail_state_summary")
+    if not isinstance(rail_states, Mapping) or not isinstance(
+        rail_states.get("rails"), Mapping
+    ):
+        raise ValueError(
+            "rail_state_summary missing or malformed - refusing to render (fail closed; "
+            "the rail-state posture must never degrade silently)"
+        )
     synthesis_form_html = (
         render_synthesis_import_preview_form_html()
         if include_synthesis_import_form
@@ -228,7 +234,7 @@ def render_today_view_html(
   <div class="banner" id="safety-banner">
     <strong>Personal OS rails: {_e(_rail_state_headline(rail_states))}</strong>
     <ul>
-      <li>scheduler={_e(str(rail_states.get("scheduler", "unavailable")))}</li>
+      <li>scheduler={_e(str(rail_states["scheduler"]))}</li>
       <li>no_external_writes={no_external_writes}</li>
       <li>Read-only except explicit local synthesis preview creation</li>
       <li>no live Todoist/Calendar/Gmail/model calls</li>
@@ -658,11 +664,7 @@ def _render_routine_summary(summary: Mapping[str, Any]) -> str:
 
 
 def _rail_state_headline(rail_states: Mapping[str, Any]) -> str:
-    rails = rail_states.get("rails")
-    if not isinstance(rails, Mapping) or not rails:
-        return "unavailable"
-    if rail_states.get("invalid_rail_states"):
-        return "INVALID RAIL STATE (fail loud)"
+    rails = rail_states["rails"]
     if rail_states.get("any_rail_live"):
         live = sorted(name for name, value in rails.items() if value == "live")
         return "LIVE: " + ", ".join(live)
@@ -672,18 +674,14 @@ def _rail_state_headline(rail_states: Mapping[str, Any]) -> str:
 
 
 def _render_rail_state_summary(rail_states: Mapping[str, Any]) -> str:
-    rails = rail_states.get("rails")
-    rail_rows = (
-        [(name, str(value)) for name, value in sorted(rails.items())]
-        if isinstance(rails, Mapping)
-        else []
-    )
+    rails = rail_states["rails"]
+    rail_rows = [(name, str(value)) for name, value in sorted(rails.items())]
     body = (
         _definition_list(
             (
                 ("Rails", _rail_state_headline(rail_states)),
-                ("Scheduler", str(rail_states.get("scheduler", "unavailable"))),
-                ("Posture", str(rail_states.get("posture_note", "unavailable"))),
+                ("Scheduler", str(rail_states["scheduler"])),
+                ("Posture", str(rail_states["posture_note"])),
                 ("Dashboard", "informational only; no live rail activation"),
             )
         )

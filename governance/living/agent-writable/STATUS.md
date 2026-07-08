@@ -16,7 +16,19 @@
   All quality gates green (suite ×2, gitleaks, env, artifacts). **Declared carry:**
   QUALITY_GATES baseline line still reads 809 — governance/** is forbidden here; the
   one-line refresh rides with the next sanctioned G-GOV edit. `.env.example` kept
-  (credential-name documentation; re-owned by P-RAIL packets). Awaiting Codex audit.
+  (credential-name documentation; re-owned by P-RAIL packets).
+- **Iteration 2 (Codex reject r1 → both findings closed by construction):** F1 — rail
+  state is now fail-closed mechanically: private literal validated AT IMPORT
+  (`RailStateError` refuses module load), public `RAIL_STATES` is a `MappingProxyType`
+  (item assignment → TypeError), `create_rail_state_report()` reads privates + re-validates
+  (rebinding the public attr is inert; tampering yields RailStateError, never a report);
+  dashboard render RAISES on missing/malformed `rail_state_summary` (no "unavailable"
+  degradation); `invalid_rail_states` report field removed (validation raises instead of
+  labeling). 4 new contract tests prove immutability/validation/rebind-inertness/shape.
+  F2 — the two orphaned credential-name env helpers deleted from `cli.py` (os.environ
+  reads now ZERO) + 4 dead phase14c helpers deleted from `tests/test_cli.py`; stale
+  status-help wording fixed. **Declared test delta now 809 → 421.** All gates green;
+  Codex's own r1 hostile probes re-run: TypeError / RailStateError (fail closed).
 - **Active packet:** P-GOV-01 (this governance pack), iteration 2 — Codex iter-1 `rework`
   (9 findings) all addressed: pack completion executed in working tree (archives, README,
   final PRD/ARCHITECTURE names), doc-phrase test class retired (887→809 declared),

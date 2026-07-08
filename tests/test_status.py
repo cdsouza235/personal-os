@@ -18,7 +18,14 @@ from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.events import EventType, create_system_event, record_system_event
 from personalos.state import upsert_permission_setting
-from personalos.status import create_status_summary, list_recent_system_events
+from personalos.status import (
+    RAIL_STATES,
+    RailStateError,
+    _validate_rail_states,
+    create_rail_state_report,
+    create_status_summary,
+    list_recent_system_events,
+)
 
 
 class StatusSummaryTest(unittest.TestCase):
@@ -55,7 +62,6 @@ class StatusSummaryTest(unittest.TestCase):
         self.assertEqual(rail_states["scheduler"], "off")
         self.assertFalse(rail_states["any_rail_live"])
         self.assertFalse(rail_states["any_rail_soaking"])
-        self.assertEqual(rail_states["invalid_rail_states"], [])
         self.assertEqual(summary["recent_system_events"], [])
         self.assertNotIn("environment", summary)
         self.assertEqual(datetime.fromisoformat(summary["generated_at_utc"]).tzinfo, UTC)
@@ -149,6 +155,45 @@ class StatusSummaryTest(unittest.TestCase):
         self.assertFalse(config.database_path.exists())
         if not runtime_dir_existed_before:
             self.assertFalse(RUNTIME_DIR.exists())
+
+    def test_rail_states_public_view_is_immutable(self) -> None:
+        with self.assertRaises(TypeError):
+            RAIL_STATES["gmail"] = "live"  # type: ignore[index]
+        with self.assertRaises(TypeError):
+            RAIL_STATES["new_rail"] = "inert"  # type: ignore[index]
+
+    def test_rail_state_validation_fails_closed_on_illegal_values(self) -> None:
+        with self.assertRaises(RailStateError):
+            _validate_rail_states({"gmail": "bogus"}, "off")
+        with self.assertRaises(RailStateError):
+            _validate_rail_states({"gmail": "inert"}, "enabled")
+        with self.assertRaises(RailStateError):
+            _validate_rail_states({"gmail": "LIVE"}, "off")  # case-exact, no variants
+        _validate_rail_states({"gmail": "inert"}, "off")  # legal → no raise
+
+    def test_rail_state_report_ignores_public_attribute_rebinding(self) -> None:
+        import personalos.status as status_module
+
+        original = status_module.RAIL_STATES
+        try:
+            status_module.RAIL_STATES = {"gmail": "live"}  # hostile rebind
+            report = create_rail_state_report()
+        finally:
+            status_module.RAIL_STATES = original
+        self.assertEqual(report["rails"]["gmail"], "inert")
+        self.assertFalse(report["any_rail_live"])
+
+    def test_rail_state_report_shape_is_exact(self) -> None:
+        report = create_rail_state_report()
+        self.assertEqual(
+            set(report),
+            {"rails", "scheduler", "any_rail_live", "any_rail_soaking", "posture_note"},
+        )
+        self.assertEqual(
+            report["rails"],
+            {"todoist": "inert", "gmail": "inert", "calendar": "inert", "model_api": "inert"},
+        )
+        self.assertEqual(report["scheduler"], "off")
 
     def test_production_database_access_remains_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

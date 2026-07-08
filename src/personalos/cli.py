@@ -212,7 +212,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     status_parser = subparsers.add_parser(
         "status",
-        help="Render inert local status/readiness from an explicit safe DB.",
+        help="Render inert local status and rail states from an explicit safe DB.",
     )
     _add_db_arg(status_parser)
     _add_json_arg(status_parser)
@@ -613,64 +613,8 @@ def _command_today(args: argparse.Namespace) -> int:
 
 
 
-def _connected_rehearsal_env_values() -> dict[str, str]:
-    return {
-        "provider": os.environ.get("PERSONALOS_OPENCLAW_MODEL_PROVIDER", ""),
-        "api_key": os.environ.get("PERSONALOS_OPENCLAW_MODEL_API_KEY", ""),
-        "nemotron_super_model": os.environ.get(
-            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
-            "",
-        ),
-        "glm_5_2_model": os.environ.get(
-            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
-            "",
-        ),
-        "todoist_token": os.environ.get("PERSONALOS_PHASE14C_TODOIST_TOKEN", ""),
-        "gmail_sender_email": os.environ.get(
-            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS",
-            "",
-        ),
-        "gmail_app_password": os.environ.get(
-            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD",
-            "",
-        ),
-        "gmail_controlled_recipient": os.environ.get(
-            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
-            "",
-        ),
-    }
 
 
-def _wide_net_rehearsal_env_values() -> dict[str, str]:
-    return {
-        "provider": os.environ.get("PERSONALOS_OPENCLAW_MODEL_PROVIDER", ""),
-        "api_key": os.environ.get("PERSONALOS_OPENCLAW_MODEL_API_KEY", ""),
-        "nemotron_super_model": os.environ.get(
-            "PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL",
-            "",
-        ),
-        "glm_5_2_model": os.environ.get(
-            "PERSONALOS_OPENCLAW_GLM_5_2_MODEL",
-            "",
-        ),
-        "todoist_token": os.environ.get("PERSONALOS_PHASE14C_TODOIST_TOKEN", ""),
-        "gmail_sender_email": os.environ.get(
-            "PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS",
-            "",
-        ),
-        "gmail_app_password": os.environ.get(
-            "PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD",
-            "",
-        ),
-        "gmail_controlled_recipient": os.environ.get(
-            "PHASE14C_GMAIL_CONTROLLED_RECIPIENT",
-            "",
-        ),
-        "calendar_connector_label": os.environ.get(
-            "PERSONALOS_PHASE14C_GOOGLE_CALENDAR_CREDENTIAL",
-            "",
-        ),
-    }
 
 
 def _has_text(value: object) -> bool:
@@ -1539,9 +1483,6 @@ def _append_rail_state_lines(lines: list[str], rail_states: Mapping[str, Any]) -
         for name, value in sorted(rails.items()):
             lines.append(f"- {name}: {value}")
     lines.append(f"Scheduler: {rail_states.get('scheduler', 'unavailable')}")
-    invalid = rail_states.get("invalid_rail_states")
-    if isinstance(invalid, list) and invalid:
-        lines.append(f"INVALID RAIL STATES (fail loud): {', '.join(invalid)}")
 
 
 def _format_scalar(value: object) -> str:

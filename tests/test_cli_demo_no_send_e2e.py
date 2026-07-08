@@ -43,7 +43,6 @@ class DemoNoSendE2ECliTest(unittest.TestCase):
             self.assertTrue(payload["safety_assertions"]["all_required_assertions_passed"])
             self.assertFalse(payload["safety_assertions"]["any_rail_live"])
             self.assertEqual(payload["safety_assertions"]["scheduler_state"], "off")
-            self.assertEqual(payload["safety_assertions"]["invalid_rail_states"], [])
             self.assertTrue(payload["blocked_live_action_summary"]["rails_all_non_live"])
             self.assertFalse(payload["blocked_live_action_summary"]["live_tasks_created"])
             self.assertFalse(payload["blocked_live_action_summary"]["live_calendar_events_created"])

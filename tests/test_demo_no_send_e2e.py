@@ -73,7 +73,6 @@ class NoSendE2EDemoRunnerTest(unittest.TestCase):
             {"todoist": "inert", "gmail": "inert", "calendar": "inert", "model_api": "inert"},
         )
         self.assertEqual(safety["scheduler_state"], "off")
-        self.assertEqual(safety["invalid_rail_states"], [])
         for key in expected_false:
             with self.subTest(key=key):
                 self.assertFalse(safety[key])

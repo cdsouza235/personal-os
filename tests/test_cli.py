@@ -1011,18 +1011,6 @@ def _run_cli(args: list[str]) -> CliRunResult:
     return CliRunResult(code, stdout.getvalue(), stderr.getvalue())
 
 
-def _connected_rehearsal_secret_values(
-    secret_environment: dict[str, str],
-) -> tuple[str, ...]:
-    return (
-        secret_environment["PERSONALOS_OPENCLAW_MODEL_API_KEY"],
-        secret_environment["PERSONALOS_OPENCLAW_NEMOTRON_SUPER_MODEL"],
-        secret_environment["PERSONALOS_OPENCLAW_GLM_5_2_MODEL"],
-        secret_environment["PERSONALOS_PHASE14C_TODOIST_TOKEN"],
-        secret_environment["PERSONALOS_PHASE14C_GMAIL_SMTP_ADDRESS"],
-        secret_environment["PERSONALOS_PHASE14C_GMAIL_APP_PASSWORD"],
-        secret_environment["PHASE14C_GMAIL_CONTROLLED_RECIPIENT"],
-    )
 
 
 @contextmanager
@@ -1200,88 +1188,10 @@ def _synthesis_apply_counts(connection: sqlite3.Connection) -> dict[str, int]:
     }
 
 
-def _valid_wide_net_evidence() -> dict[str, object]:
-    return {
-        "status": "phase14c_wide_net_rehearsal_passed",
-        "rail": "wide_net_rehearsal",
-        "marker": "[Phase 14-C Wide Test] Evening Reset Coordination",
-        "call_limits": {
-            "openrouter_primary_calls": 1,
-            "openrouter_fallback_calls": 0,
-            "todoist_task_create_calls": 1,
-            "gmail_email_send_calls": 1,
-            "calendar_duplicate_precheck_calls": 1,
-            "calendar_event_create_calls": 1,
-            "protected_openclaw_runtime_invocation_calls": 0,
-        },
-        "calendar_duplicate_precheck": {
-            "performed": True,
-            "matching_event_count": 0,
-            "duplicate_marker_found": False,
-            "event_details_logged": False,
-            "attendee_addresses_logged": False,
-        },
-        "model_diagnostic": {
-            "diagnostic_only": True,
-            "model_output_drives_external_writes": False,
-            "prompt_logged": False,
-            "raw_provider_response_logged": False,
-            "generated_model_text_logged": False,
-            "configured_model_ids_logged": False,
-            "credential_values_logged": False,
-        },
-        "safety_assertions": {
-            "credential_values_read": True,
-            "credential_values_logged": False,
-            "credential_values_committed": False,
-            "environment_dumped": False,
-            "live_clients_initialized": True,
-            "model_provider_called": True,
-            "external_mutation": True,
-            "todoist_task_created": True,
-            "gmail_email_sent": True,
-            "calendar_event_created": True,
-            "protected_openclaw_runtime_called": False,
-            "scheduler_or_background_activated": False,
-            "production_db_active": False,
-            "protected_paths_touched": False,
-            "dynamic_cleaning_triggered": False,
-            "broad_live_activation": False,
-        },
-    }
 
 
-def _valid_wide_net_calendar_transcript() -> dict[str, object]:
-    template = build_phase14c_wide_net_calendar_transcript_template()
-    return {
-        "marker": "[Phase 14-C Wide Test] Evening Reset Coordination",
-        "duplicate_precheck": {
-            "performed": True,
-            "connector_action": "search_events",
-            "connector_args": template["expected_duplicate_precheck"][
-                "connector_args"
-            ],
-            "normalized_response": {
-                "contract": "phase14c_wide_net_calendar_precheck.v1",
-                "matching_event_count": 0,
-                "event_details_logged": False,
-                "attendee_addresses_logged": False,
-            },
-        },
-        "calendar_create": {"performed": False},
-    }
 
 
-def _valid_wide_net_calendar_create_transcript() -> dict[str, object]:
-    transcript = _valid_wide_net_calendar_transcript()
-    template = build_phase14c_wide_net_calendar_transcript_template()
-    transcript["calendar_create"] = {
-        "performed": True,
-        "connector_action": "create_event",
-        "connector_args": template["expected_calendar_create"]["connector_args"],
-        "sanitized_result": {"status": "confirmed"},
-    }
-    return transcript
 
 
 def _synthesis_payload(

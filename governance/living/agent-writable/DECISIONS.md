@@ -54,6 +54,47 @@
   (P-DESIGN-01 → P-CORE, migrations + engine) is exactly what the orchestrator should
   mechanically enforce. P-DESIGN-01 starts after B-00 drives its first personal-os
   packet. — Chris, 2026-07-07
+- **D-PO-010 Routine model + cadence engine design.** Replaces the semantics-free
+  `settings_json` blob (Phase 0 finding) with first-class columns on the routine record:
+  `cadence_type`, `cadence_config_json` (cadence-specific parameters only, not
+  general-purpose state), `missed_behavior_default`, `rotation_group`, `weekly_target`.
+  Carries forward the PRD §3.1 baseline cadence types (`daily`, `weekdays`,
+  `x_times_per_week`, `weekly`, `every_n_days`, `specific_days`, `rotating_sequence`,
+  `manual_only`) and baseline missed-behavior types (`combine_with_next`,
+  `bump_schedule_by_one_day`, `carry_forward_within_week`, `skip_and_continue`,
+  `escalate_to_review`); adds three new cadence types: `weekly_target_count` (N
+  completions anywhere in the week, order-independent), `weekly_target_reps` (a
+  rep/quantity target per week, not just a completion count), and
+  `rotating_weekday_pool` (a pool of tasks rotating across specific weekdays, distinct
+  from the existing generic `rotating_sequence`). Fixed ISO week: all
+  `weekly`/`weekly_target_*` accounting uses a fixed Monday–Sunday calendar week, not a
+  rolling trailing-7-days window; a weekly target resets at the Monday boundary
+  regardless of when in the prior week it was completed. Grease-the-Groove is modeled as
+  individual routine rows (one per exercise), all sharing `rotation_group = "gtg"`;
+  monthly focus is expressed purely via each row's existing `enabled` flag (enabled rows
+  are this month's focus set; no new focus/month field). GTG progress reporting is
+  reply-based (email or Todoist reply), the same channel used for the cleaning
+  missed-behavior mechanism below, not a dashboard/CLI primary path. Cleaning is a pool
+  of 15-20 distinct tasks sharing one `rotation_group` (e.g. `"cleaning"`), advancing
+  through the pool one task per due occurrence; unlike routines with a static
+  `missed_behavior_default`, a missed cleaning occurrence's handling is chosen
+  dynamically, per-occurrence, by Chris's reply (email or Todoist reply) at the time it's
+  missed — `missed_behavior_default` is the fallback if no reply arrives, the reply when
+  given overrides it for that one occurrence only, carried by the engine's
+  `occurrence_overrides` parameter. Engine contract (pure function, no I/O, exhaustively
+  table-tested): `compute_due_and_owed(routines, completions, *, as_of_date,
+  occurrence_overrides={})` — takes routine definitions, completion history, the date to
+  compute for, and an optional per-occurrence override map (keyed by routine+due-date);
+  returns the due-today set and any "owed" make-up debt from weekly-target shortfalls;
+  deterministic. Seed list confirmed unchanged from PRD §3.1: Cleaning (rotating pool,
+  1/day weekdays) · Reading (4x/wk, `weekly_target_count`) · Prayer/Meditation (2x/wk,
+  `weekly_target_count`) · Grease-the-Groove (per-exercise rows, `rotation_group="gtg"`,
+  `weekly_target_reps` for 45 reps/exercise/wk) · Fitness/Strength (tracked externally,
+  surfaced only, unchanged, no schema involvement) · Shutdown/Review (daily evening,
+  unchanged `daily`). Scope note: the orphaned `src/personalos/fitness.py` module's
+  disposition (Q-PO-001, a P-DEBT-03 decision) is explicitly NOT part of this decision —
+  GTG and Fitness/Strength above are routine-engine seed data only. Formalizes the
+  Conductor design decision ahead of P-CORE. — Chris, 2026-07-08
 
 ## Reversals
 (none)

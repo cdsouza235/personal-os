@@ -20,7 +20,7 @@
     consider `execution_rails.py` in the path-trigger table (next G-GOV edit).
   - **R4** `serve_today_dashboard` wire-or-delete (P-CORE-03 acceptance item).
   - **R5** QUALITY_GATES baseline 809→421 + demo vocabulary/banner (next G-GOV edit).
-- **AWAITING: Conductor** — R1(a) ratification line + sequencing call HI-11/Q-PO-004
+- **R1(a) RATIFIED (D-PO-008) + HI-11 DECIDED (D-PO-009): B-00 first.** Work moves to the harness repo
   (B-00 vs P-DESIGN-01 first; note R1(b) is naturally solved by B-00's approval store).
 - *(history below)*
 - **Phase:** A (clean state). **P-GOV-01 MERGED** (`229f974`, pushed; sign-off

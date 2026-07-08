@@ -39,5 +39,21 @@
   a G-GOV migration packet. Also fixes Codex plan-audit F7/F9: approvals =
   `audits/signoffs/**`, Conductor-only, manifest-protected. — 2026-07-07
 
+- **D-PO-008 R1(a) ratification.** The Conductor ratifies the P-GOV-01 sign-off embedded
+  in packet commit `02951b5` as his own authorship ("I ratify the P-GOV-01 sign-off
+  embedded in 02951b5 as mine" — Chris, 2026-07-07, transcribed by Builder per D-014).
+  Context: the Fable phase-A checkpoint (R1) found the sign-off entered the tree inside
+  the packet build commit — unavoidable bootstrap circularity, as the sign-off store was
+  created by that same packet. With this ratification the Phase A approval trail is
+  complete. — 2026-07-07
+- **D-PO-009 HI-11/Q-PO-004: B-00 first (Option B).** Phase B is preceded by **B-00**
+  (harness repo: production CLI + project onboarding, hand-built + Codex/Fable audited,
+  NOT dogfooded per SPEC §11). Rationale: the manual loop spent three audit rounds on
+  approval-provenance issues that B-00's OS-permissioned approval store prevents by
+  construction (closes checkpoint carry R1(b)); the upcoming product stretch
+  (P-DESIGN-01 → P-CORE, migrations + engine) is exactly what the orchestrator should
+  mechanically enforce. P-DESIGN-01 starts after B-00 drives its first personal-os
+  packet. — Chris, 2026-07-07
+
 ## Reversals
 (none)

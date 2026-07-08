@@ -8,5 +8,5 @@
 - **Q-PO-003** Briefing content quality bar for MVP: is the deterministic template
   (P-BRIEF-01) good enough to ship the loop, with the model-composer as post-MVP upgrade?
   Chris judges on the P-BRIEF-01 soak artifacts.
-- **Q-PO-004** Harness B-00 timing: which is first after Phase A — B-00 (harness repo,
-  hand-built + audited) or P-DESIGN-01 under the manual loop? Conductor sequencing call.
+- ~~**Q-PO-004** Harness B-00 timing~~ **CLOSED (D-PO-009, 2026-07-07): B-00 first**,
+  then P-DESIGN-01 under the orchestrator-driven loop.

@@ -1,0 +1,1 @@
+P-CLEAN-02 G4/G-GOV/G1 sign-off — approved by Chris, 2026-07-07. Scope: process-layer retirement + rail-state surface + sanctioned manifest shrink per governance/ROADMAP.md P-CLEAN-02. Audit: Codex accept, iteration 4 (audits/AUDIT-LOG.md).

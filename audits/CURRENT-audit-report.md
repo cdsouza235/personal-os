@@ -1,84 +1,98 @@
-# CURRENT audit report - P-GOV-01
+# CURRENT audit report - P-CLEAN-01
 
-Packet: P-GOV-01
-Iteration: 3 scoped condition-closure pass
+Packet: P-CLEAN-01
+Iteration: 1
 Date: 2026-07-07
 Auditor: Codex
-Verdict: conditions_closed_ready_for_gate
+Verdict: accept
 
-## Scope
+## Findings
 
-Per `audits/CURRENT-audit-prompt.md`, this pass verified only the three iteration-2
-conditions (N1/N2/N3) and regressions introduced by those fixes. I did not re-open settled
-iteration-2 findings.
+None.
 
-## Condition closure
+## Scope And Diff Fidelity
 
-### N1 - Closed - Archive is no longer allowlisted from gitleaks
+Audited checkout:
+- Branch: `packet/P-CLEAN-01`
+- HEAD: `61a37032650f4caebe95bfd390ecd28a60e9de8f`
+- Base: `main` / merge-base `229f974bcb8bfb39f3b60e18008626c7eccba652`
 
-Evidence:
-- `.gitleaks.toml` now allowlists only `^\.env\.local$` by path and the
-  `phase-12b-[a-z0-9-]+` fixture regex; there is no `archive/` path allowlist.
-- `grep -nE 'archive/|allowlist|allowlists|allowlisted' .gitleaks.toml governance/QUALITY_GATES.md governance/ROADMAP.md`
-  found archive references in ROADMAP only, not in the gitleaks allowlist.
-- Canonical command run exactly:
-  `gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9`
-  exited 0 and reported `no leaks found` after scanning about 10.19 MB.
+`git diff --name-status main...HEAD` contains exactly 12 files:
+- Deleted sanctioned skeleton placeholders:
+  - `app/api/.gitkeep`
+  - `app/dashboard/.gitkeep`
+  - `personalos/calendar/.gitkeep`
+  - `personalos/composer/.gitkeep`
+  - `personalos/evidence/.gitkeep`
+  - `personalos/gmail/.gitkeep`
+  - `personalos/priorities/.gitkeep`
+  - `personalos/reports/.gitkeep`
+  - `personalos/routines/.gitkeep`
+  - `personalos/todoist/.gitkeep`
+- Modified sanctioned overhead:
+  - `audits/CURRENT-audit-prompt.md`
+  - `governance/living/agent-writable/STATUS.md`
 
-### N2 - Closed - Doc-phrase test retirement ownership is unambiguous
+`find personalos app -maxdepth 3 -print` returned "No such file or directory" for both
+top-level trees, confirming the dead skeleton directories are gone.
 
-Evidence:
-- `governance/ROADMAP.md` P-GOV-01 states that this packet retires the doc-phrase test
-  class, with the declared 887 -> 809 delta, 10 `test_*_docs.py` files, and 19 embedded
-  doc-phrase methods.
-- `governance/ROADMAP.md` P-CLEAN-02 now claims only the process-layer modules, CLI
-  subcommands, and their remaining tests; it explicitly says the doc-phrase test class was
-  already retired by P-GOV-01 and that P-CLEAN-02's delta covers process-module tests only.
-- `governance/QUALITY_GATES.md` says P-CLEAN-02 deletes phase-14C process modules and
-  their remaining tests together, and separately states that the doc-phrase class was
-  retired by P-GOV-01.
+## Reference Checks
 
-### N3 - Closed - PR-audit archive count is corrected and matches disk
+No source, test, package/config, README, or docs file changed:
+`git diff --name-only main...HEAD -- src tests docs README.md pyproject.toml .gitleaks.toml setup.cfg setup.py tox.ini`
+printed nothing.
 
-Evidence:
-- `governance/ROADMAP.md` now says P-GOV-01 archives the 32 loose `PR##_AUDIT.md` files
-  from PR93 through PR124, plus `HARNESS_KICKOFF_PROMPT.md`.
-- `find archive/pr-audits -maxdepth 1 -type f -name 'PR*_AUDIT.md' | wc -l` returned 32.
-- The archive listing contains PR93 through PR124 inclusive, plus
-  `archive/pr-audits/HARNESS_KICKOFF_PROMPT.md`.
+Strict tracked-file path grep for deleted top-level tree references found no product
+matches:
+`git grep -n -E '(^|[^[:alnum:]_./-])(personalos|app)/' -- src tests docs README.md pyproject.toml .gitleaks.toml`
+exited 1 with no matches.
 
-## Regression checks
+Broader checks for `personalos/` and `app/` found only the expected governance/living
+context references in `governance/ROADMAP.md` and
+`governance/living/agent-writable/STATUS.md`, plus real-package references such as
+`src/personalos/...`; I did not treat the real `src/personalos` package as the deleted
+top-level skeleton.
 
-- `git status --short -- src migrations scripts audits/signoffs` printed nothing.
-- `git diff --name-only -- src migrations scripts audits/signoffs` printed nothing.
-- `git diff --cached --name-only -- src migrations scripts audits/signoffs` printed
-  nothing.
-- `git ls-files --others --exclude-standard -- src migrations scripts audits/signoffs`
-  printed nothing.
+## QUALITY_GATES Evidence
 
-I found no regression touching source, migrations, scripts, or signoff records. I did not
-open `.env.local`, load credentials, contact external services, execute live-capable CLI
-paths, or start scheduler/background behavior. `rg` was unavailable in this environment, so
-I used grep/find fallbacks for text and inventory checks.
+All six QUALITY_GATES steps were run locally from the repo root and exited 0:
 
-## Bootstrap attestation
+1. `git status --short` printed nothing; `git diff --check` printed nothing.
+2. `PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py"` ran 809 tests in
+   23.642s: OK.
+3. `PYTHONTRACEMALLOC=10 PYTHONPATH=src python3 -W always::ResourceWarning -m unittest discover -s tests -p "test_*.py" -q`
+   ran 809 tests in 60.962s: OK.
+4. `find . -maxdepth 2 -name var -print` printed nothing; the SQLite/DB hygiene find
+   printed nothing.
+5. `gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9` exited 0
+   and reported no leaks found after scanning about 10.19 MB.
+6. `git check-ignore -q .env.local` exited 0; `test -z "$(git ls-files '.env*' | grep -v '^.env.example$')"`
+   exited 0.
 
-`GOVERNANCE_MANIFEST.yaml` lists the governance files. The manifest-listed changes visible
-in `git status` are all within P-GOV-01's sanctioned target set from ROADMAP:
-`GOVERNANCE_MANIFEST.yaml`, `AGENTS.md`, `README.md`, `.gitleaks.toml`, `governance/**`,
-`docs/PRD.md`, `docs/ARCHITECTURE.md`, and the auditor/test-strategy files under
-`audits/**`. The staged deletion/new-file shape for `docs/PRD.md` and
-`docs/ARCHITECTURE.md` corresponds to the sanctioned v0.2 archive move plus v0.3
-replacement. I found no `GOVERNANCE_MANIFEST.yaml`-listed file changed beyond this
-packet's sanctioned targets.
+I did not open `.env.local`, load credential values, contact external services, execute a
+live-capable CLI path, or start scheduler/background behavior.
 
-I wrote only Codex-owned audit artifacts: this report and `audits/AUDIT-LOG.md`.
+## Bootstrap Attestation
 
-## Ways this review could be wrong
+`GOVERNANCE_MANIFEST.yaml`-listed files were checked against the branch diff:
+`git diff --name-only main...HEAD -- GOVERNANCE_MANIFEST.yaml AGENTS.md governance/HUMAN_GATES.md governance/QUALITY_GATES.md governance/RISK_REGISTER.md governance/SECURITY.md governance/DEPENDENCY_POLICY.md governance/RUNBOOK.md governance/POLICY_EXCEPTIONS.md governance/ROADMAP.md docs/PRD.md docs/ARCHITECTURE.md README.md .gitleaks.toml governance/templates/PACKET_TEMPLATE.md governance/templates/AUDIT_TEMPLATE.md audits/AUDITOR-BRIEF-codex.md audits/PHASE-END-AUDITOR-BRIEF-fable.md audits/test-strategy.md`
+printed nothing.
 
-- This was intentionally scoped to N1/N2/N3 closure and direct fix regressions; unrelated
-  packet issues outside that scope could still exist.
-- The gitleaks result is auditor-run local evidence. The evidence of record remains the
-  runner/Conductor-executed QUALITY_GATES output.
-- The PR-audit archive check verified names and count on disk, not byte-for-byte identity
-  against the original loose root files.
+Protected/high-risk path spot-check:
+`git diff --name-only main...HEAD -- migrations src tests pyproject.toml .gitleaks.toml GOVERNANCE_MANIFEST.yaml audits/signoffs scripts`
+printed nothing.
+
+I found no `GOVERNANCE_MANIFEST.yaml`-listed file changed by this packet.
+
+## Ways This Review Could Be Wrong
+
+- `rg` is unavailable in this environment, so reference checks used `git grep`; that covers
+  tracked files but not ignored or untracked local files.
+- The path grep is designed to catch top-level `personalos/` and `app/` references while
+  excluding `src/personalos/...`; an unusual reference format without a slash could require
+  a separate product decision, though it would not point at either deleted tree path.
+- QUALITY_GATES results above are auditor-run local evidence only; per project doctrine,
+  runner/Conductor-executed evidence remains the record.
+- I compared the manifest-listed file set from the checked-in manifest to the branch diff;
+  I did not perform an independent YAML schema validation of the manifest because this
+  packet did not change it.

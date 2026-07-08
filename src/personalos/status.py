@@ -8,8 +8,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from personalos.config import PersonalOSConfig
-from personalos.operator_status import create_operator_status_report
-from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.side_effects import (
     count_external_write_attempts,
     count_external_write_intents,
@@ -30,6 +28,42 @@ from personalos.state import (
     count_routines,
     list_permission_settings,
 )
+
+
+# Rail activation states (governance/HUMAN_GATES.md activation ladder). Each value moves
+# inert -> soaking -> live ONLY via a Conductor-gated (G5) activation packet editing this
+# constant; no runtime path may mutate it (RISK_REGISTER promotes any change to this file).
+RAIL_STATES: dict[str, str] = {
+    "todoist": "inert",
+    "gmail": "inert",
+    "calendar": "inert",
+    "model_api": "inert",
+}
+SCHEDULER_STATE: str = "off"  # off -> manual -> background (P-SCHED-01/02, G4+G5)
+
+_VALID_RAIL_STATES = frozenset({"inert", "soaking", "live"})
+_VALID_SCHEDULER_STATES = frozenset({"off", "manual", "background"})
+
+
+def create_rail_state_report() -> dict[str, Any]:
+    """Lean rail-state posture (replaces the retired readiness machinery, D-PO-006)."""
+    states = dict(RAIL_STATES)
+    invalid = sorted(
+        name for name, value in states.items() if value not in _VALID_RAIL_STATES
+    )
+    if SCHEDULER_STATE not in _VALID_SCHEDULER_STATES:
+        invalid.append("scheduler")
+    return {
+        "rails": states,
+        "scheduler": SCHEDULER_STATE,
+        "any_rail_live": any(value == "live" for value in states.values()),
+        "any_rail_soaking": any(value == "soaking" for value in states.values()),
+        "invalid_rail_states": invalid,  # non-empty = fail loud in every consumer
+        "posture_note": (
+            "Rail activation is a Conductor-gated packet (governance/HUMAN_GATES.md); "
+            "no runtime path mutates these states."
+        ),
+    }
 
 
 def create_status_summary(
@@ -57,29 +91,14 @@ def create_status_summary(
         "scheduler_jobs": count_scheduler_jobs(connection),
         "scheduler_runs": count_scheduler_runs(connection),
     }
-    readiness = create_default_pre_live_readiness_report()
     summary: dict[str, Any] = {
         "generated_at_utc": generated_at_utc,
         "counts": counts,
         "permission_settings": permission_settings,
         "permission_settings_count": len(permission_settings),
-        "pre_live_readiness": readiness,
-        "operator_status": create_operator_status_report(
-            readiness=readiness,
-            generated_at_utc=generated_at_utc,
-            database_path=database_path,
-            database_access="read_only_status",
-            database_write=False,
-            external_write_ledger_counts={
-                "external_write_intents": counts["external_write_intents"],
-                "external_write_attempts": counts["external_write_attempts"],
-                "idempotency_records": counts["idempotency_records"],
-            },
-            scheduler_counts={
-                "scheduler_job_count": counts["scheduler_jobs"],
-                "scheduler_run_count": counts["scheduler_runs"],
-            },
-        ),
+        "rail_states": create_rail_state_report(),
+        "database_path": database_path,
+        "database_access": "read_only_status",
         "recent_system_events": list_recent_system_events(
             connection,
             limit=recent_event_limit,

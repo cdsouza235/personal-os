@@ -47,26 +47,15 @@ class StatusSummaryTest(unittest.TestCase):
         )
         self.assertEqual(summary["permission_settings"], [])
         self.assertEqual(summary["permission_settings_count"], 0)
-        readiness = summary["pre_live_readiness"]
-        self.assertEqual(readiness["status"], "not_ready")
-        self.assertTrue(readiness["inert_report_only"])
-        self.assertTrue(readiness["read_only"])
-        self.assertTrue(readiness["no_live_rails_activated"])
-        self.assertTrue(readiness["no_credentials_loaded"])
-        self.assertTrue(readiness["no_production_db_active"])
-        self.assertTrue(readiness["no_scheduler_activation"])
-        self.assertTrue(readiness["no_openclaw_call"])
-        self.assertEqual(readiness["blocked_or_non_disabled_rail_count"], 0)
-        operator_status = summary["operator_status"]
-        self.assertEqual(operator_status["readiness_status"], "not_ready")
-        self.assertTrue(operator_status["inert_report_only"])
-        self.assertFalse(operator_status["live_rails_activated"])
-        self.assertEqual(operator_status["scheduler_status"]["status"], "inactive")
-        self.assertEqual(operator_status["production_db_status"]["status"], "not_active")
-        self.assertEqual(operator_status["credential_status"]["status"], "not_loaded")
-        self.assertEqual(operator_status["external_write_status"]["status"], "none")
-        self.assertIn("Inspect local status", operator_status["safe_local_actions"])
-        self.assertIn("Write Todoist", operator_status["blocked_actions"])
+        rail_states = summary["rail_states"]
+        self.assertEqual(
+            rail_states["rails"],
+            {"todoist": "inert", "gmail": "inert", "calendar": "inert", "model_api": "inert"},
+        )
+        self.assertEqual(rail_states["scheduler"], "off")
+        self.assertFalse(rail_states["any_rail_live"])
+        self.assertFalse(rail_states["any_rail_soaking"])
+        self.assertEqual(rail_states["invalid_rail_states"], [])
         self.assertEqual(summary["recent_system_events"], [])
         self.assertNotIn("environment", summary)
         self.assertEqual(datetime.fromisoformat(summary["generated_at_utc"]).tzinfo, UTC)

@@ -3,9 +3,20 @@
 ## Current
 - **Phase:** A (clean state). **P-GOV-01 MERGED** (`229f974`, pushed; sign-off
   `audits/signoffs/P-GOV-01-G1-signoff.md`).
-- **Active packet:** **P-CLEAN-01** (dead skeletons) on `packet/P-CLEAN-01` — built
-  (10 `.gitkeep` deletions: `personalos/` ×8, `app/` ×2; zero source references; suite
-  809 OK; gitleaks clean). Awaiting Codex audit → Conductor G4/G1 gate.
+- **P-CLEAN-01** (dead skeletons): built + **Codex accept (zero findings, 1 round)** on
+  `packet/P-CLEAN-01` @ `61a3703`. Awaiting Conductor G4/G1 gate.
+- **Active packet:** **P-CLEAN-02** (process-layer retirement) on `packet/P-CLEAN-02`
+  (stacked on P-CLEAN-01) — BUILT: 32 modules + 27 test files + the phase14c setup script
+  deleted; `cli.py` 4,233→1,556 lines (36 handlers + 37 catalog entries + 2 parser blocks
+  excised); readiness/operator consumption in `status/today/dashboard/demo/cli` replaced
+  by the lean `create_rail_state_report()` surface (RAIL_STATES constants in `status.py`,
+  now manifest-protected as activation-ladder state); sanctioned manifest shrink applied
+  (six network-capable modules removed; `status.py` added). **Declared test delta:
+  809 → 417** (27 files + 66 test_cli methods + assertion-vocabulary updates in 5 files).
+  All quality gates green (suite ×2, gitleaks, env, artifacts). **Declared carry:**
+  QUALITY_GATES baseline line still reads 809 — governance/** is forbidden here; the
+  one-line refresh rides with the next sanctioned G-GOV edit. `.env.example` kept
+  (credential-name documentation; re-owned by P-RAIL packets). Awaiting Codex audit.
 - **Active packet:** P-GOV-01 (this governance pack), iteration 2 — Codex iter-1 `rework`
   (9 findings) all addressed: pack completion executed in working tree (archives, README,
   final PRD/ARCHITECTURE names), doc-phrase test class retired (887→809 declared),

@@ -48,13 +48,9 @@ protected_paths:
   - "src/personalos/permissions.py"        # the permission model → high-stakes
   - "src/personalos/path_safety.py"        # protected-path enforcement → high-stakes
   - "src/personalos/rails/**"              # future live adapters (network-capable) → G5
-  # current network-capable modules (deleted by P-CLEAN-02; until then, protected):
-  - "src/personalos/phase14c_gmail_live_smoke.py"
-  - "src/personalos/phase14c_todoist_live_smoke.py"
-  - "src/personalos/phase14c_connected_rehearsal_live.py"
-  - "src/personalos/phase14c_wide_net_rehearsal_live.py"
-  - "src/personalos/openrouter_model_smoke_client.py"
-  - "src/personalos/phase14c_safety_utils.py"
+  - "src/personalos/status.py"             # RAIL_STATES constants — activation-ladder state → G5
+  # (the six legacy network-capable smoke modules were deleted by P-CLEAN-02; the
+  #  RISK_REGISTER network-primitive tripwire guards against any new module growing a socket)
 
 # Protected external paths (never inside any packet scope; SECURITY.md §Protected systems):
 #   /Users/coldstake/PersonalOS, /Users/coldstake/.openclaw, credential stores, production

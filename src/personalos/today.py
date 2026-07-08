@@ -9,8 +9,6 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.config import DEFAULT_TIMEZONE
-from personalos.operator_status import create_operator_status_report
-from personalos.pre_live_readiness import create_default_pre_live_readiness_report
 from personalos.scheduler import summarize_scheduler
 from personalos.side_effects import summarize_side_effect_ledgers_unchecked
 from personalos.state import (
@@ -34,7 +32,7 @@ from personalos.synthesis_apply import (
     SynthesisApplyPermissionDenied,
     summarize_synthesis_apply_runs,
 )
-from personalos.status import create_status_summary
+from personalos.status import create_rail_state_report, create_status_summary
 from personalos.synthesis_import import (
     SYNTHESIS_IMPORT_READ_PERMISSION,
     SynthesisImportPermissionDenied,
@@ -80,7 +78,6 @@ def create_today_view_summary(
     )
     side_effect_ledger_summary = summarize_side_effect_ledgers_unchecked(connection)
     scheduler_summary = summarize_scheduler(connection)
-    readiness_summary = create_default_pre_live_readiness_report()
 
     return {
         "source_date": source_date_iso,
@@ -105,24 +102,7 @@ def create_today_view_summary(
         "synthesis_apply_summary": _synthesis_apply_summary(connection),
         "side_effect_ledger_summary": side_effect_ledger_summary,
         "scheduler_summary": scheduler_summary,
-        "pre_live_readiness_summary": readiness_summary,
-        "operator_status_summary": create_operator_status_report(
-            readiness=readiness_summary,
-            generated_at_utc=system_status_summary["generated_at_utc"],
-            database_access="read_only_today_view",
-            database_write=False,
-            external_write_ledger_counts={
-                "external_write_intents": side_effect_ledger_summary["intent_count"],
-                "external_write_attempts": side_effect_ledger_summary["attempt_count"],
-                "idempotency_records": side_effect_ledger_summary[
-                    "idempotency_record_count"
-                ],
-            },
-            scheduler_counts={
-                "scheduler_job_count": scheduler_summary["scheduler_job_count"],
-                "scheduler_run_count": scheduler_summary["scheduler_run_count"],
-            },
-        ),
+        "rail_state_summary": create_rail_state_report(),
         "permission_summary": _permission_summary(connection),
         "system_status_summary": _system_status_summary(connection, system_status_summary),
         "warnings": list(SAFETY_WARNINGS),

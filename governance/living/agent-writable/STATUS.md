@@ -1,6 +1,19 @@
 # STATUS.md — Personal OS (living state; Builder-owned; git-diff-verified, not trusted)
 
 ## Current
+- **★★★ P-DESIGN-01 MERGED (`6897253`, `--no-ff`)** — routine model + cadence engine design
+  formalized as D-PO-010 in DECISIONS.md + ARCHITECTURE.md v0.4. **First personal-os packet
+  driven end-to-end by `harness run --project personal-os`** (the harness's own production
+  loop, not hand-built): live Claude builder wrote the decision, live Codex auditor gave
+  `accept_with_conditions`/0 issues. Route computed `STOP_TO_HUMAN` (high-stakes, no
+  third-reviewer configured) — a real, tracked gap (**Q-PO-005**: the loop has no built
+  override path for this yet, verified live). Unblocked by a one-time Conductor sign-off
+  (`audits/signoffs/P-DESIGN-01-G0-G1-signoff.md`) + manual `git merge --no-ff`, NOT a
+  repeatable path — the next novel-path personal-os packet needs a real fix (harness-side:
+  `projects/mis/ROADMAP.md` F1) before it can run unattended through the loop. 421 tests
+  green (docs-only change). **NEXT: P-CORE-01** (routine schema migration) per
+  `governance/ROADMAP.md` — will hit the SAME third-reviewer gap if run live; either build the
+  harness fix first, or take another one-time Conductor override.
 - **★ PHASE A CODE-COMPLETE (2026-07-07).** P-GOV-01 (`229f974`) + P-CLEAN-01 (`1772f40`)
   + P-CLEAN-02 (`d5bc829`) all Codex-accepted, Conductor-signed (`audits/signoffs/`),
   merged `--no-ff`, pushed. Repo state: 27 product modules, 421 tests green, zero

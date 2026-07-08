@@ -5,9 +5,23 @@
   + P-CLEAN-02 (`d5bc829`) all Codex-accepted, Conductor-signed (`audits/signoffs/`),
   merged `--no-ff`, pushed. Repo state: 27 product modules, 421 tests green, zero
   network-capable imports, one rulebook, fail-closed rail-state surface.
-- **AWAITING: Fable phase-A checkpoint** — fresh session (independence: this session held
-  the Builder seat), prompt at `audits/phase-A-checkpoint-prompt.md`. Then Conductor
-  sequencing call HI-11/Q-PO-004 (B-00 vs P-DESIGN-01).
+- **★★ PHASE A SIGNED OFF** — Fable phase-end checkpoint (fresh session) → `sign_off`
+  (`audits/phase-A-phase-end-fable-report.md`, committed `3404ab8`). Drove the product
+  end-to-end; rail-state surface held all probes (P1–P7); casualty/survivor fidelity
+  clean; whole-phase attestation clean.
+- **Carries from the checkpoint (owner in parens):**
+  - **R1** sign-off provenance: (a) Conductor ratification of the `02951b5`-embedded
+    P-GOV-01 sign-off → DECISIONS.md (**awaiting Chris's one-liner**); (b) distinguishable
+    sign-off identity (distinct git identity for sign-off commits, or B-00's
+    OS-permissioned store) before Phase B gates rely on the store (**HI-11-adjacent**).
+  - **R2** `cli.py:1016` setdefault→unconditional set + `_append_rail_state_lines` shape
+    validation (fold into next code packet).
+  - **R3** widen network-primitive tripwire wording (`http.server`, `socketserver`, …) +
+    consider `execution_rails.py` in the path-trigger table (next G-GOV edit).
+  - **R4** `serve_today_dashboard` wire-or-delete (P-CORE-03 acceptance item).
+  - **R5** QUALITY_GATES baseline 809→421 + demo vocabulary/banner (next G-GOV edit).
+- **AWAITING: Conductor** — R1(a) ratification line + sequencing call HI-11/Q-PO-004
+  (B-00 vs P-DESIGN-01 first; note R1(b) is naturally solved by B-00's approval store).
 - *(history below)*
 - **Phase:** A (clean state). **P-GOV-01 MERGED** (`229f974`, pushed; sign-off
   `audits/signoffs/P-GOV-01-G1-signoff.md`).

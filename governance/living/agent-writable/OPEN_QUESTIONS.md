@@ -10,3 +10,11 @@
   Chris judges on the P-BRIEF-01 soak artifacts.
 - ~~**Q-PO-004** Harness B-00 timing~~ **CLOSED (D-PO-009, 2026-07-07): B-00 first**,
   then P-DESIGN-01 under the orchestrator-driven loop.
+- **Q-PO-005** Harness-side: every high-stakes personal-os packet with no third-reviewer
+  configured hits `route.STOP_TO_HUMAN` with no built override path (discovered live at
+  P-DESIGN-01, 2026-07-08; tracked in the harness repo's `projects/mis/ROADMAP.md` under F1).
+  Personal-os's unfamiliar paths are broadly high-stakes-classified, so this recurs on the
+  NEXT novel-path packet, not just this one. P-DESIGN-01 was unblocked by a one-time Conductor
+  sign-off + manual merge outside the loop — not repeatable. Owner: harness repo (a real
+  third-reviewer seat, possibly OpenRouter-backed, or an audited override gate); blocks
+  P-CORE-01..03 running unattended through the loop until resolved.

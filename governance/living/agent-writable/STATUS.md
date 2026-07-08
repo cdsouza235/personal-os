@@ -1,6 +1,14 @@
 # STATUS.md — Personal OS (living state; Builder-owned; git-diff-verified, not trusted)
 
 ## Current
+- **★ PHASE A CODE-COMPLETE (2026-07-07).** P-GOV-01 (`229f974`) + P-CLEAN-01 (`1772f40`)
+  + P-CLEAN-02 (`d5bc829`) all Codex-accepted, Conductor-signed (`audits/signoffs/`),
+  merged `--no-ff`, pushed. Repo state: 27 product modules, 421 tests green, zero
+  network-capable imports, one rulebook, fail-closed rail-state surface.
+- **AWAITING: Fable phase-A checkpoint** — fresh session (independence: this session held
+  the Builder seat), prompt at `audits/phase-A-checkpoint-prompt.md`. Then Conductor
+  sequencing call HI-11/Q-PO-004 (B-00 vs P-DESIGN-01).
+- *(history below)*
 - **Phase:** A (clean state). **P-GOV-01 MERGED** (`229f974`, pushed; sign-off
   `audits/signoffs/P-GOV-01-G1-signoff.md`).
 - **P-CLEAN-01** (dead skeletons): built + **Codex accept (zero findings, 1 round)** on

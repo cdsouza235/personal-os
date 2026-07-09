@@ -14,6 +14,7 @@ from personalos import execution_rails as rails
 from personalos.calendar_blocks import preview_calendar_block
 from personalos.config import DEFAULT_TIMEZONE
 from personalos.permissions import PermissionMode
+from personalos.routines_engine import compute_due_and_owed
 from personalos.state import (
     count_calendar_blocks,
     count_composer_outputs,
@@ -37,11 +38,16 @@ from personalos.state import (
     list_followups,
     list_model_runs,
     list_priorities,
+    list_routine_completions,
     list_routines,
     list_todoist_tasks,
     update_composer_packet_status,
 )
 from personalos.todoist import preview_todoist_task
+
+FOLLOWUP_OPEN_STATUSES = ("open", "proposed")
+PRIORITY_OPEN_STATUS = "active"
+SUMMARY_EXCERPT_LIMIT = 240
 
 COMPOSER_MODULE_READ_PERMISSION = "composer_module_dev_test_read"
 COMPOSER_MODULE_WRITE_PERMISSION = "composer_module_dev_test_write"
@@ -153,6 +159,46 @@ class FakeComposerAdapter:
         packet_id = validated_packet["packet_id"]
         briefing_window = validated_packet["briefing_window"]
         source_date = validated_packet["source_date"]
+        inputs = validated_packet["inputs"]
+
+        due_routines = [
+            routine
+            for routine in inputs["routine_state"]
+            if routine.get("due_today") is True
+        ]
+        active_priorities = [
+            priority
+            for priority in inputs["priority_summaries"]
+            if priority.get("status") == PRIORITY_OPEN_STATUS
+        ]
+        new_priorities = [
+            priority for priority in active_priorities if not priority.get("carried_over")
+        ]
+        carryover_priorities = [
+            priority for priority in active_priorities if priority.get("carried_over")
+        ]
+        open_followups = [
+            followup
+            for followup in inputs["followup_summaries"]
+            if followup.get("status") in FOLLOWUP_OPEN_STATUSES
+        ]
+        new_followups = [
+            followup for followup in open_followups if not followup.get("carried_over")
+        ]
+        carryover_followups = [
+            followup for followup in open_followups if followup.get("carried_over")
+        ]
+
+        readable_text = _render_readable_text(
+            briefing_window=briefing_window,
+            source_date=source_date,
+            due_routines=due_routines,
+            new_priorities=new_priorities,
+            carryover_priorities=carryover_priorities,
+            new_followups=new_followups,
+            carryover_followups=carryover_followups,
+        )
+
         start_time = _local_datetime_for_source_date(source_date, hour=9)
         end_time = _local_datetime_for_source_date(source_date, hour=9, minute=30)
         output_json = {
@@ -163,27 +209,24 @@ class FakeComposerAdapter:
                     "briefing_window": briefing_window,
                     "subject": f"Personal OS {briefing_window} brief for {source_date}",
                     "body_markdown": (
-                        f"## {briefing_window.title()} Brief\n\n"
-                        "Review the safe dev/test summaries and confirm the next action."
+                        f"## {briefing_window.title()} Brief\n\n{readable_text}"
                     ),
-                    "summary": "Safe dev/test Composer preview generated from packet summaries.",
+                    "summary": _render_email_summary(
+                        due_routines=due_routines,
+                        new_priorities=new_priorities,
+                        carryover_priorities=carryover_priorities,
+                        new_followups=new_followups,
+                        carryover_followups=carryover_followups,
+                    ),
                 }
             ],
             "todoist_tasks": [
-                {
-                    "task_title": f"Review {briefing_window} Personal OS brief",
-                    "description": "Review the generated dev/test brief candidate.",
-                    "source_type": "composer_output",
-                    "source_id": packet_id,
-                    "project": "Admin",
-                    "labels": ["composer", "preview"],
-                    "due_date_or_due_string": source_date,
-                    "priority": 2,
-                    "risk_level": "low",
-                    "approval_mode": "auto_allowed",
-                    "dedupe_key": f"composer:{packet_id}:todoist:review-brief",
-                    "status": "proposed",
-                }
+                _routine_todoist_candidate(
+                    routine,
+                    packet_id=packet_id,
+                    source_date=source_date,
+                )
+                for routine in due_routines
             ],
             "calendar_blocks": [
                 {
@@ -203,24 +246,11 @@ class FakeComposerAdapter:
                 }
             ],
             "followups": [
-                {
-                    "title": f"Check {briefing_window} brief result",
-                    "summary": "Confirm whether the previewed brief needs edits.",
-                    "source_type": "composer_output",
-                    "source_id": packet_id,
-                    "risk_level": "low",
-                    "approval_mode": "auto_allowed",
-                    "dedupe_key": f"composer:{packet_id}:followup:check-result",
-                    "status": "proposed",
-                }
+                _followup_review_candidate(followup, packet_id=packet_id)
+                for followup in (*new_followups, *carryover_followups)
             ],
             "warnings": [],
         }
-        readable_text = (
-            f"{briefing_window.title()} brief preview for {source_date}. "
-            "Includes one email brief, one Todoist candidate, one Calendar block, "
-            "and one follow-up candidate."
-        )
         return {
             "output_json": output_json,
             "readable_text": readable_text,
@@ -257,9 +287,9 @@ def build_composer_packet_from_state(
         "timezone": _validate_timezone(timezone),
         "generated_at": generated,
         "inputs": {
-            "routine_state": _routine_state_summaries(connection),
-            "priority_summaries": _priority_summaries(connection),
-            "followup_summaries": _followup_summaries(connection),
+            "routine_state": _routine_state_summaries(connection, source_date=source_date),
+            "priority_summaries": _priority_summaries(connection, source_date=source_date),
+            "followup_summaries": _followup_summaries(connection, source_date=source_date),
             "todoist_task_summaries": _todoist_task_summaries(connection),
             "calendar_block_summaries": _calendar_block_summaries(connection),
             "calendar_availability_summary": dict(calendar_availability_summary or {}),
@@ -1215,41 +1245,120 @@ def _candidate_has_auto_high_risk(candidate: Any) -> bool:
     )
 
 
-def _routine_state_summaries(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+def _routine_state_summaries(
+    connection: sqlite3.Connection,
+    *,
+    source_date: str,
+) -> list[dict[str, Any]]:
+    routines = list_routines(connection)
+    completions = list_routine_completions(connection)
+    due_and_owed = compute_due_and_owed(routines, completions, as_of_date=source_date)
+    due_today_ids = set(due_and_owed.due_today)
     return [
         {
             "routine_id": routine["routine_id"],
             "name": routine["name"],
             "status": routine["status"],
             "enabled": routine["enabled"],
+            "due_today": routine["routine_id"] in due_today_ids,
         }
-        for routine in list_routines(connection)
+        for routine in routines
     ]
 
 
-def _priority_summaries(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+def _priority_summaries(
+    connection: sqlite3.Connection,
+    *,
+    source_date: str,
+) -> list[dict[str, Any]]:
     return [
         {
             "priority_id": priority["priority_id"],
             "title": priority["title"],
             "status": priority["status"],
-            "summary": "",
+            "summary": _summary_excerpt(priority),
+            "carried_over": _is_carried_over(
+                priority,
+                source_date=source_date,
+                open_statuses=(PRIORITY_OPEN_STATUS,),
+            ),
         }
         for priority in list_priorities(connection)
     ]
 
 
-def _followup_summaries(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+def _followup_summaries(
+    connection: sqlite3.Connection,
+    *,
+    source_date: str,
+) -> list[dict[str, Any]]:
     return [
         {
             "followup_id": followup["followup_id"],
             "title": followup["title"],
             "status": followup["status"],
             "source": followup["source"],
-            "summary": "",
+            "summary": _summary_excerpt(followup),
+            "carried_over": _is_carried_over(
+                followup,
+                source_date=source_date,
+                open_statuses=FOLLOWUP_OPEN_STATUSES,
+            ),
         }
         for followup in list_followups(connection)
     ]
+
+
+def _summary_excerpt(record: Mapping[str, Any]) -> str:
+    """A short, safe excerpt for a priority/followup record's Composer summary field.
+
+    Prefers an explicit ``metadata.summary`` string (a deliberate, curated summary);
+    falls back to the first line of ``notes`` (matching how synthesis_apply already
+    seeds notes with the candidate's summary as its first line). Arbitrary metadata
+    keys are never copied wholesale, so unrelated metadata fields cannot leak here.
+    """
+
+    metadata = record.get("metadata")
+    if isinstance(metadata, Mapping):
+        metadata_summary = metadata.get("summary")
+        if isinstance(metadata_summary, str) and metadata_summary.strip():
+            return _truncate_excerpt(metadata_summary.strip())
+
+    notes = record.get("notes")
+    if isinstance(notes, str) and notes.strip():
+        first_line = notes.strip().splitlines()[0]
+        return _truncate_excerpt(first_line)
+
+    return ""
+
+
+def _truncate_excerpt(text: str, *, limit: int = SUMMARY_EXCERPT_LIMIT) -> str:
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
+def _is_carried_over(
+    record: Mapping[str, Any],
+    *,
+    source_date: str,
+    open_statuses: tuple[str, ...],
+) -> bool:
+    """True when a still-open record was created on an earlier calendar date (UTC).
+
+    "Carryover" has no prior definition in this codebase; this is a new, narrow
+    definition: still-open (per ``open_statuses``) AND its ``created_at_utc`` date
+    is strictly before the briefing's ``source_date``. Records created earlier
+    today, or already closed out, are not carryovers.
+    """
+
+    if record.get("status") not in open_statuses:
+        return False
+    created_at = record.get("created_at_utc")
+    if not isinstance(created_at, str) or len(created_at) < 10:
+        return False
+    return created_at[:10] < source_date
 
 
 def _todoist_task_summaries(connection: sqlite3.Connection) -> list[dict[str, Any]]:
@@ -1499,6 +1608,130 @@ def _redacted_error_message(error: Exception) -> str:
     message = str(error) or error.__class__.__name__
     _reject_forbidden_content({"error_message": message})
     return message
+
+
+def _render_readable_text(
+    *,
+    briefing_window: str,
+    source_date: str,
+    due_routines: list[Mapping[str, Any]],
+    new_priorities: list[Mapping[str, Any]],
+    carryover_priorities: list[Mapping[str, Any]],
+    new_followups: list[Mapping[str, Any]],
+    carryover_followups: list[Mapping[str, Any]],
+) -> str:
+    lines = [f"{briefing_window.title()} brief preview for {source_date}."]
+
+    lines.append("")
+    if due_routines:
+        lines.append(f"Due today ({len(due_routines)}):")
+        for routine in due_routines:
+            lines.append(f"- {routine.get('name', routine.get('routine_id', ''))}")
+    else:
+        lines.append("Due today: none.")
+
+    lines.append("")
+    if new_priorities:
+        lines.append(f"New priorities today ({len(new_priorities)}):")
+        for priority in new_priorities:
+            lines.append(f"- {_item_line(priority)}")
+    else:
+        lines.append("New priorities today: none.")
+
+    lines.append("")
+    if carryover_priorities or carryover_followups:
+        total_carryover = len(carryover_priorities) + len(carryover_followups)
+        lines.append(f"Carried over from previous days ({total_carryover}):")
+        for priority in carryover_priorities:
+            lines.append(f"- Priority: {_item_line(priority)}")
+        for followup in carryover_followups:
+            lines.append(f"- Follow-up: {_item_line(followup)}")
+    else:
+        lines.append("Carried over from previous days: none.")
+
+    lines.append("")
+    if new_followups:
+        lines.append(f"New follow-ups today ({len(new_followups)}):")
+        for followup in new_followups:
+            lines.append(f"- {_item_line(followup)}")
+    else:
+        lines.append("New follow-ups today: none.")
+
+    return "\n".join(lines)
+
+
+def _item_line(item: Mapping[str, Any]) -> str:
+    title = str(item.get("title", ""))
+    summary = item.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        return f"{title} — {summary.strip()}"
+    return title
+
+
+def _render_email_summary(
+    *,
+    due_routines: list[Mapping[str, Any]],
+    new_priorities: list[Mapping[str, Any]],
+    carryover_priorities: list[Mapping[str, Any]],
+    new_followups: list[Mapping[str, Any]],
+    carryover_followups: list[Mapping[str, Any]],
+) -> str:
+    return (
+        f"{len(due_routines)} routine(s) due today; "
+        f"{len(new_priorities)} new and {len(carryover_priorities)} carried-over priority(ies) open; "
+        f"{len(new_followups)} new and {len(carryover_followups)} carried-over follow-up(s) open."
+    )
+
+
+def _routine_todoist_candidate(
+    routine: Mapping[str, Any],
+    *,
+    packet_id: str,
+    source_date: str,
+) -> dict[str, Any]:
+    routine_id = str(routine.get("routine_id", ""))
+    name = str(routine.get("name") or routine_id or "routine")
+    return {
+        "task_title": f"Complete: {name}",
+        "description": f"Routine due today ({source_date}) per routine tracking.",
+        "source_type": "composer_output",
+        "source_id": packet_id,
+        "project": "Routines",
+        "labels": ["composer", "routine"],
+        "due_date_or_due_string": source_date,
+        "priority": 2,
+        "risk_level": "low",
+        "approval_mode": "auto_allowed",
+        "dedupe_key": f"composer:{packet_id}:todoist:routine:{routine_id}",
+        "status": "proposed",
+    }
+
+
+def _followup_review_candidate(
+    followup: Mapping[str, Any],
+    *,
+    packet_id: str,
+) -> dict[str, Any]:
+    followup_id = str(followup.get("followup_id", ""))
+    title = str(followup.get("title") or followup_id or "follow-up")
+    summary = followup.get("summary")
+    carried_over = bool(followup.get("carried_over"))
+    status_label = "carried over from a previous day" if carried_over else "new today"
+    candidate_summary = (
+        f"{summary.strip()} ({status_label})"
+        if isinstance(summary, str) and summary.strip()
+        else f"Open follow-up, {status_label}."
+    )
+    return {
+        "title": f"Check on: {title}",
+        "summary": candidate_summary,
+        "source_type": "composer_output",
+        "source_id": packet_id,
+        "risk_level": "low",
+        "approval_mode": "auto_allowed",
+        "dedupe_key": f"composer:{packet_id}:followup:{followup_id}",
+        "status": "proposed",
+    }
 
 
 def _local_datetime_for_source_date(source_date: str, *, hour: int, minute: int = 0) -> str:

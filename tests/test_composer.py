@@ -41,10 +41,12 @@ from personalos.state import (
     create_calendar_block,
     create_composer_output,
     create_composer_packet,
+    create_followup,
     create_priority,
     create_routine,
     get_composer_packet,
     get_model_run,
+    record_routine_completion,
     upsert_permission_setting,
 )
 
@@ -323,14 +325,17 @@ class ComposerPacketValidationTest(unittest.TestCase):
             "Deep work",
         )
 
-    def test_packet_builder_excludes_forbidden_inputs(self) -> None:
+    def test_packet_builder_excludes_arbitrary_metadata_keys_from_summary(self) -> None:
+        # Only metadata["summary"] (a deliberate, curated field) is ever copied into the
+        # packet; other metadata keys (like api_key here) must never leak, even though the
+        # priority's summary excerpt is now real content pulled from the record.
         with _migrated_test_connection() as connection:
             create_priority(
                 connection,
                 priority_id="priority-sensitive",
                 title="Allowed title",
-                metadata={"api_key": "not included"},
-                notes="raw_notes should not be included",
+                metadata={"api_key": "not included", "summary": "Safe curated summary text."},
+                notes="Internal notes body that should not be used since metadata.summary wins.",
                 created_at_utc="2026-06-15T10:00:00+00:00",
                 updated_at_utc="2026-06-15T10:00:00+00:00",
             )
@@ -344,8 +349,33 @@ class ComposerPacketValidationTest(unittest.TestCase):
 
         serialized = json.dumps(packet, sort_keys=True)
         self.assertNotIn("api_key", serialized)
-        self.assertNotIn("raw_notes", serialized)
-        self.assertEqual(packet["inputs"]["priority_summaries"][0]["summary"], "")
+        self.assertEqual(
+            packet["inputs"]["priority_summaries"][0]["summary"],
+            "Safe curated summary text.",
+        )
+
+    def test_packet_builder_rejects_priority_notes_containing_forbidden_terms(self) -> None:
+        # The summary excerpt falls back to notes when metadata.summary is absent; the
+        # existing forbidden-content scan (in validate_composer_packet) still applies to
+        # that excerpt, so a priority whose notes literally reference a forbidden term
+        # fails packet validation rather than silently leaking it.
+        with _migrated_test_connection() as connection:
+            create_priority(
+                connection,
+                priority_id="priority-sensitive-notes",
+                title="Allowed title",
+                notes="raw_notes should not be included",
+                created_at_utc="2026-06-15T10:00:00+00:00",
+                updated_at_utc="2026-06-15T10:00:00+00:00",
+            )
+
+            with self.assertRaises(ComposerValidationError):
+                build_composer_packet_from_state(
+                    connection,
+                    packet_id="packet-forbidden-rejected",
+                    source_date="2026-06-15",
+                    generated_at="2026-06-15T14:00:00+00:00",
+                )
 
     def test_packet_validation_rejects_missing_required_fields(self) -> None:
         packet = _valid_packet()
@@ -359,6 +389,307 @@ class ComposerPacketValidationTest(unittest.TestCase):
 
         with self.assertRaises(ComposerValidationError):
             validate_composer_packet(packet)
+
+
+class ComposerRealContentTest(unittest.TestCase):
+    """P-BRIEF-01: the packet/adapter must reflect real due/open/carryover state."""
+
+    SOURCE_DATE = "2026-06-16"
+    PRIOR_DATE = "2026-06-15"
+
+    def test_routine_state_reflects_due_today_via_compute_due_and_owed(self) -> None:
+        with _migrated_test_connection() as connection:
+            create_routine(
+                connection,
+                routine_id="routine-due-today",
+                name="Due today routine",
+                status="active",
+                enabled=True,
+                cadence_type="daily",
+                created_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+            )
+            create_routine(
+                connection,
+                routine_id="routine-completed-today",
+                name="Completed today routine",
+                status="active",
+                enabled=True,
+                cadence_type="daily",
+                created_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+            )
+            record_routine_completion(
+                connection,
+                routine_id="routine-completed-today",
+                completed_for_date=self.SOURCE_DATE,
+                completed_at_utc=f"{self.SOURCE_DATE}T08:00:00+00:00",
+                source="tests",
+            )
+            create_routine(
+                connection,
+                routine_id="routine-not-due",
+                name="Manual only routine",
+                status="active",
+                enabled=True,
+                cadence_type="manual_only",
+                created_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+            )
+
+            packet = build_composer_packet_from_state(
+                connection,
+                packet_id="packet-routine-wiring",
+                source_date=self.SOURCE_DATE,
+                generated_at=f"{self.SOURCE_DATE}T14:00:00+00:00",
+            )
+
+        by_id = {
+            entry["routine_id"]: entry for entry in packet["inputs"]["routine_state"]
+        }
+        self.assertTrue(by_id["routine-due-today"]["due_today"])
+        self.assertFalse(by_id["routine-completed-today"]["due_today"])
+        self.assertFalse(by_id["routine-not-due"]["due_today"])
+
+    def test_carryover_definition_for_priorities_and_followups(self) -> None:
+        with _migrated_test_connection() as connection:
+            create_priority(
+                connection,
+                priority_id="priority-carried-over",
+                title="Still open from yesterday",
+                status="active",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+            )
+            create_priority(
+                connection,
+                priority_id="priority-new-today",
+                title="Opened today",
+                status="active",
+                created_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+            )
+            create_priority(
+                connection,
+                priority_id="priority-completed-from-yesterday",
+                title="Finished already",
+                status="completed",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+            )
+            create_followup(
+                connection,
+                followup_id="followup-carried-over",
+                title="Still open from yesterday",
+                status="open",
+                source="tests",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+            )
+            create_followup(
+                connection,
+                followup_id="followup-new-today",
+                title="Opened today",
+                status="proposed",
+                source="tests",
+                created_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+            )
+
+            packet = build_composer_packet_from_state(
+                connection,
+                packet_id="packet-carryover",
+                source_date=self.SOURCE_DATE,
+                generated_at=f"{self.SOURCE_DATE}T14:00:00+00:00",
+            )
+
+        priorities_by_id = {
+            entry["priority_id"]: entry for entry in packet["inputs"]["priority_summaries"]
+        }
+        followups_by_id = {
+            entry["followup_id"]: entry for entry in packet["inputs"]["followup_summaries"]
+        }
+        self.assertTrue(priorities_by_id["priority-carried-over"]["carried_over"])
+        self.assertFalse(priorities_by_id["priority-new-today"]["carried_over"])
+        self.assertFalse(priorities_by_id["priority-completed-from-yesterday"]["carried_over"])
+        self.assertTrue(followups_by_id["followup-carried-over"]["carried_over"])
+        self.assertFalse(followups_by_id["followup-new-today"]["carried_over"])
+
+    def test_readable_text_and_output_reflect_multiple_real_due_open_and_carried_over_items(
+        self,
+    ) -> None:
+        with _migrated_test_connection() as connection:
+            create_routine(
+                connection,
+                routine_id="routine-due-1",
+                name="Morning pages",
+                status="active",
+                enabled=True,
+                cadence_type="daily",
+                created_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+            )
+            create_routine(
+                connection,
+                routine_id="routine-due-2",
+                name="Evening review",
+                status="active",
+                enabled=True,
+                cadence_type="daily",
+                created_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+            )
+            create_priority(
+                connection,
+                priority_id="priority-new-1",
+                title="Ship the briefing packet",
+                status="active",
+                metadata={"summary": "Land the composer content work."},
+                created_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+            )
+            create_priority(
+                connection,
+                priority_id="priority-carried-1",
+                title="Follow up with Chris",
+                status="active",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+            )
+            create_followup(
+                connection,
+                followup_id="followup-new-1",
+                title="Confirm review time",
+                status="open",
+                source="tests",
+                metadata={"summary": "Ask about the afternoon slot."},
+                created_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T09:00:00+00:00",
+            )
+            create_followup(
+                connection,
+                followup_id="followup-carried-1",
+                title="Check on export bug",
+                status="proposed",
+                source="tests",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+            )
+            create_followup(
+                connection,
+                followup_id="followup-carried-2",
+                title="Archive the old thread",
+                status="open",
+                source="tests",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+            )
+
+            packet = build_composer_packet_from_state(
+                connection,
+                packet_id="packet-multi-real-content",
+                source_date=self.SOURCE_DATE,
+                generated_at=f"{self.SOURCE_DATE}T14:00:00+00:00",
+            )
+
+        adapter = FakeComposerAdapter()
+        result = adapter.compose(packet)
+        readable_text = result["readable_text"]
+        output_json = result["output_json"]
+
+        # readable_text reflects the real counts and titles, not a fixed single item.
+        self.assertIn("Due today (2):", readable_text)
+        self.assertIn("Morning pages", readable_text)
+        self.assertIn("Evening review", readable_text)
+        self.assertIn("New priorities today (1):", readable_text)
+        self.assertIn("Ship the briefing packet", readable_text)
+        self.assertIn("Land the composer content work.", readable_text)
+        self.assertIn("Carried over from previous days (3):", readable_text)
+        self.assertIn("Follow up with Chris", readable_text)
+        self.assertIn("Check on export bug", readable_text)
+        self.assertIn("Archive the old thread", readable_text)
+        self.assertIn("New follow-ups today (1):", readable_text)
+        self.assertIn("Confirm review time", readable_text)
+
+        # output_json candidate lists scale with real content: 2 due routines -> 2 Todoist
+        # candidates; 3 open follow-ups (1 new + 2 carried-over) -> 3 follow-up candidates.
+        self.assertEqual(len(output_json["todoist_tasks"]), 2)
+        todoist_titles = {task["task_title"] for task in output_json["todoist_tasks"]}
+        self.assertEqual(
+            todoist_titles,
+            {"Complete: Morning pages", "Complete: Evening review"},
+        )
+        self.assertEqual(
+            len({task["dedupe_key"] for task in output_json["todoist_tasks"]}), 2
+        )
+
+        self.assertEqual(len(output_json["followups"]), 3)
+        followup_titles = {item["title"] for item in output_json["followups"]}
+        self.assertEqual(
+            followup_titles,
+            {
+                "Check on: Confirm review time",
+                "Check on: Check on export bug",
+                "Check on: Archive the old thread",
+            },
+        )
+        self.assertEqual(
+            len({item["dedupe_key"] for item in output_json["followups"]}), 3
+        )
+        carried_over_summaries = [
+            item["summary"]
+            for item in output_json["followups"]
+            if "carried over" in item["summary"]
+        ]
+        self.assertEqual(len(carried_over_summaries), 2)
+
+        # Still exactly one generic self-review calendar block and one email brief.
+        self.assertEqual(len(output_json["calendar_blocks"]), 1)
+        self.assertEqual(len(output_json["email_briefs"]), 1)
+        self.assertIn("2 routine(s) due today", output_json["email_briefs"][0]["summary"])
+
+    def test_readable_text_is_deterministic_for_same_inputs(self) -> None:
+        with _migrated_test_connection() as connection:
+            create_routine(
+                connection,
+                routine_id="routine-due-determinism",
+                name="Deterministic routine",
+                status="active",
+                enabled=True,
+                cadence_type="daily",
+                created_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+                updated_at_utc=f"{self.SOURCE_DATE}T00:00:00+00:00",
+            )
+            create_priority(
+                connection,
+                priority_id="priority-determinism",
+                title="Deterministic priority",
+                status="active",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+            )
+            create_followup(
+                connection,
+                followup_id="followup-determinism",
+                title="Deterministic follow-up",
+                status="open",
+                source="tests",
+                created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+            )
+
+            packet = build_composer_packet_from_state(
+                connection,
+                packet_id="packet-determinism",
+                source_date=self.SOURCE_DATE,
+                generated_at=f"{self.SOURCE_DATE}T14:00:00+00:00",
+            )
+
+        first = FakeComposerAdapter().compose(packet)
+        second = FakeComposerAdapter().compose(packet)
+
+        self.assertEqual(first["readable_text"], second["readable_text"])
+        self.assertEqual(first["output_json"], second["output_json"])
 
 
 class ComposerOutputValidationTest(unittest.TestCase):

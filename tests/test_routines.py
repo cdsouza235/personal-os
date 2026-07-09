@@ -29,6 +29,8 @@ from personalos.state import (
     record_routine_completion,
     update_routine_status_enabled,
     upsert_permission_setting,
+    validate_routine_cadence_type,
+    validate_routine_missed_behavior,
 )
 
 
@@ -153,6 +155,93 @@ class RoutineStateHelperTest(unittest.TestCase):
             count = count_routine_completions(connection)
 
         self.assertEqual(count, 0)
+
+
+class RoutineCadenceSchemaTest(unittest.TestCase):
+    def test_create_routine_with_cadence_fields_round_trips(self) -> None:
+        with _migrated_test_connection() as connection:
+            created = create_routine(
+                connection,
+                routine_id="routine-cadence-1",
+                name="Reading",
+                cadence_type="weekly_target_count",
+                cadence_config={"target": 4},
+                missed_behavior_default="carry_forward_within_week",
+                rotation_group="reading-pool",
+                weekly_target=4,
+            )
+            fetched = get_routine(connection, "routine-cadence-1")
+            listed = list_routines(connection)
+
+        for routine in (created, fetched, listed[0]):
+            self.assertEqual(routine["cadence_type"], "weekly_target_count")
+            self.assertEqual(routine["cadence_config"], {"target": 4})
+            self.assertEqual(routine["missed_behavior_default"], "carry_forward_within_week")
+            self.assertEqual(routine["rotation_group"], "reading-pool")
+            self.assertEqual(routine["weekly_target"], 4)
+            self.assertIsInstance(routine["weekly_target"], int)
+
+    def test_create_routine_without_cadence_fields_defaults_to_none_and_empty(self) -> None:
+        with _migrated_test_connection() as connection:
+            created = create_routine(
+                connection,
+                routine_id="routine-1",
+                name="Morning Review",
+            )
+            fetched = get_routine(connection, "routine-1")
+
+        for routine in (created, fetched):
+            self.assertIsNone(routine["cadence_type"])
+            self.assertEqual(routine["cadence_config"], {})
+            self.assertIsNone(routine["missed_behavior_default"])
+            self.assertIsNone(routine["rotation_group"])
+            self.assertIsNone(routine["weekly_target"])
+            self.assertEqual(routine["settings"], {})
+            self.assertEqual(routine["notes"], "")
+
+    def test_validate_routine_cadence_type_rejects_invalid_and_allows_none(self) -> None:
+        self.assertIsNone(validate_routine_cadence_type(None))
+        self.assertEqual(validate_routine_cadence_type("daily"), "daily")
+        with self.assertRaises(ValueError):
+            validate_routine_cadence_type("not_a_real_type")
+
+    def test_validate_routine_missed_behavior_rejects_invalid_and_allows_none(self) -> None:
+        self.assertIsNone(validate_routine_missed_behavior(None))
+        self.assertEqual(
+            validate_routine_missed_behavior("skip_and_continue"), "skip_and_continue"
+        )
+        with self.assertRaises(ValueError):
+            validate_routine_missed_behavior("not_a_real_behavior")
+
+    def test_legacy_row_cadence_backfills_from_settings_json_cadence_key(self) -> None:
+        with _connection_with_legacy_routines(
+            [
+                {
+                    "routine_id": "legacy-with-cadence",
+                    "name": "Legacy With Cadence",
+                    "settings_json": '{"cadence": "manual_only"}',
+                },
+            ]
+        ) as connection:
+            fetched = get_routine(connection, "legacy-with-cadence")
+
+        self.assertEqual(fetched["cadence_type"], "manual_only")
+        self.assertEqual(fetched["cadence_config"], {})
+
+    def test_legacy_row_without_cadence_key_backfills_to_manual_only(self) -> None:
+        with _connection_with_legacy_routines(
+            [
+                {
+                    "routine_id": "legacy-no-cadence",
+                    "name": "Legacy No Cadence",
+                    "settings_json": "{}",
+                },
+            ]
+        ) as connection:
+            fetched = get_routine(connection, "legacy-no-cadence")
+
+        self.assertEqual(fetched["cadence_type"], "manual_only")
+        self.assertEqual(fetched["cadence_config"], {})
 
 
 class RoutineEnginePermissionTest(unittest.TestCase):
@@ -445,6 +534,71 @@ def _migrated_test_connection() -> Iterator[sqlite3.Connection]:
             database_path=runtime_dir / "test" / "personalos.sqlite3",
         )
         connection = connect_sqlite(config, runtime_dir=runtime_dir)
+        apply_migrations(connection)
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+
+# Mirrors the routines table shape from migrations/0003_core_state_tables.sql, before
+# migration 00015 adds the first-class cadence columns. Used to simulate pre-migration
+# legacy rows and confirm the 00015 backfill runs against them as expected.
+_PRE_CADENCE_ROUTINES_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS routines (
+    routine_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    enabled INTEGER NOT NULL,
+    settings_json TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    created_at_utc TEXT NOT NULL,
+    updated_at_utc TEXT NOT NULL,
+    CHECK (enabled IN (0, 1))
+);
+"""
+
+
+@contextmanager
+def _connection_with_legacy_routines(
+    rows: list[dict[str, str]],
+) -> Iterator[sqlite3.Connection]:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        runtime_dir = Path(temp_dir) / "runtime"
+        config = PersonalOSConfig(
+            environment=Environment.TEST,
+            timezone=DEFAULT_TIMEZONE,
+            database_path=runtime_dir / "test" / "personalos.sqlite3",
+        )
+        connection = connect_sqlite(config, runtime_dir=runtime_dir)
+        connection.executescript(_PRE_CADENCE_ROUTINES_TABLE_SQL)
+        with connection:
+            for row in rows:
+                connection.execute(
+                    """
+                    INSERT INTO routines (
+                        routine_id,
+                        name,
+                        status,
+                        enabled,
+                        settings_json,
+                        notes,
+                        created_at_utc,
+                        updated_at_utc
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        row["routine_id"],
+                        row["name"],
+                        row.get("status", "active"),
+                        row.get("enabled", 1),
+                        row["settings_json"],
+                        row.get("notes", ""),
+                        row.get("created_at_utc", "2026-01-01T00:00:00+00:00"),
+                        row.get("updated_at_utc", "2026-01-01T00:00:00+00:00"),
+                    ),
+                )
         apply_migrations(connection)
         try:
             yield connection

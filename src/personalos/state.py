@@ -34,6 +34,26 @@ COUNTABLE_STATE_TABLES = (
     + FITNESS_STATE_TABLES
 )
 ROUTINE_STATUSES = ("active", "paused", "archived")
+ROUTINE_CADENCE_TYPES = (
+    "daily",
+    "weekdays",
+    "x_times_per_week",
+    "weekly",
+    "every_n_days",
+    "specific_days",
+    "rotating_sequence",
+    "manual_only",
+    "weekly_target_count",
+    "weekly_target_reps",
+    "rotating_weekday_pool",
+)
+ROUTINE_MISSED_BEHAVIOR_TYPES = (
+    "combine_with_next",
+    "bump_schedule_by_one_day",
+    "carry_forward_within_week",
+    "skip_and_continue",
+    "escalate_to_review",
+)
 PRIORITY_STATUSES = ("active", "paused", "completed", "archived")
 PROJECT_STATUSES = ("active", "paused", "completed", "archived")
 FOLLOWUP_STATUSES = ("open", "proposed", "completed", "archived", "blocked")
@@ -181,7 +201,12 @@ def list_routines(connection: sqlite3.Connection) -> list[dict[str, Any]]:
             settings_json,
             notes,
             created_at_utc,
-            updated_at_utc
+            updated_at_utc,
+            cadence_type,
+            cadence_config_json,
+            missed_behavior_default,
+            rotation_group,
+            weekly_target
         FROM routines
         ORDER BY name, routine_id
         """
@@ -201,7 +226,12 @@ def get_routine(connection: sqlite3.Connection, routine_id: str) -> dict[str, An
             settings_json,
             notes,
             created_at_utc,
-            updated_at_utc
+            updated_at_utc,
+            cadence_type,
+            cadence_config_json,
+            missed_behavior_default,
+            rotation_group,
+            weekly_target
         FROM routines
         WHERE routine_id = ?
         """,
@@ -225,6 +255,11 @@ def create_routine(
     notes: str = "",
     created_at_utc: str | None = None,
     updated_at_utc: str | None = None,
+    cadence_type: str | None = None,
+    cadence_config: Mapping[str, Any] | None = None,
+    missed_behavior_default: str | None = None,
+    rotation_group: str | None = None,
+    weekly_target: int | None = None,
 ) -> dict[str, Any]:
     routine_id = _validate_required_text("routine_id", routine_id)
     name = _validate_required_text("name", name)
@@ -232,6 +267,16 @@ def create_routine(
     enabled = validate_routine_enabled(enabled)
     notes = _validate_text("notes", notes)
     settings_json = _serialize_metadata(settings or {})
+    cadence_type = validate_routine_cadence_type(cadence_type)
+    cadence_config_json = (
+        _serialize_metadata(_validate_metadata("cadence_config", cadence_config))
+        if cadence_config
+        else None
+    )
+    missed_behavior_default = validate_routine_missed_behavior(missed_behavior_default)
+    if rotation_group is not None:
+        rotation_group = _validate_required_text("rotation_group", rotation_group)
+    weekly_target = _validate_optional_nonnegative_int("weekly_target", weekly_target)
     created_at = created_at_utc or _utc_now()
     updated_at = updated_at_utc or created_at
 
@@ -246,9 +291,14 @@ def create_routine(
                 settings_json,
                 notes,
                 created_at_utc,
-                updated_at_utc
+                updated_at_utc,
+                cadence_type,
+                cadence_config_json,
+                missed_behavior_default,
+                rotation_group,
+                weekly_target
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 routine_id,
@@ -259,6 +309,11 @@ def create_routine(
                 notes,
                 created_at,
                 updated_at,
+                cadence_type,
+                cadence_config_json,
+                missed_behavior_default,
+                rotation_group,
+                weekly_target,
             ),
         )
 
@@ -456,6 +511,24 @@ def validate_routine_enabled(enabled: bool) -> bool:
     if type(enabled) is not bool:
         raise ValueError("routine enabled must be a boolean")
     return enabled
+
+
+def validate_routine_cadence_type(cadence_type: str | None) -> str | None:
+    if cadence_type is None:
+        return None
+    if not isinstance(cadence_type, str) or cadence_type not in ROUTINE_CADENCE_TYPES:
+        allowed = ", ".join(ROUTINE_CADENCE_TYPES)
+        raise ValueError(f"routine cadence_type must be one of: {allowed}")
+    return cadence_type
+
+
+def validate_routine_missed_behavior(missed_behavior: str | None) -> str | None:
+    if missed_behavior is None:
+        return None
+    if not isinstance(missed_behavior, str) or missed_behavior not in ROUTINE_MISSED_BEHAVIOR_TYPES:
+        allowed = ", ".join(ROUTINE_MISSED_BEHAVIOR_TYPES)
+        raise ValueError(f"routine missed_behavior_default must be one of: {allowed}")
+    return missed_behavior
 
 
 def list_priorities(
@@ -4093,6 +4166,15 @@ def _routine_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
         "notes": row["notes"],
         "created_at_utc": row["created_at_utc"],
         "updated_at_utc": row["updated_at_utc"],
+        "cadence_type": row["cadence_type"],
+        "cadence_config": (
+            {}
+            if row["cadence_config_json"] is None
+            else _deserialize_metadata(row["cadence_config_json"])
+        ),
+        "missed_behavior_default": row["missed_behavior_default"],
+        "rotation_group": row["rotation_group"],
+        "weekly_target": row["weekly_target"],
     }
 
 

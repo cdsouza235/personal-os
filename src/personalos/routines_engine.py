@@ -218,7 +218,7 @@ def compute_due_and_owed(
                 due_today.add(routine_id)
             owed.extend(entries)
         elif cadence_type in _WEEKLY_TARGET_COUNT_CADENCE_TYPES:
-            is_due, entry = _weekly_target_count_due_and_owed(routine, completed_dates, as_of)
+            is_due, entry = _weekly_target_count_due_and_owed(routine, routine_completions, as_of)
             if is_due:
                 due_today.add(routine_id)
             if entry is not None:
@@ -365,7 +365,9 @@ def _every_n_days_due_and_owed(
 
 
 def _weekly_target_count_due_and_owed(
-    routine: Mapping[str, Any], completed_dates: set[date], as_of: date
+    routine: Mapping[str, Any],
+    routine_completions: Sequence[Mapping[str, Any]],
+    as_of: date,
 ) -> tuple[bool, OwedEntry | None]:
     monday, sunday = _week_bounds(as_of)
     target = routine.get("weekly_target")
@@ -379,7 +381,11 @@ def _weekly_target_count_due_and_owed(
             f"{routine['cadence_type']!r}"
         )
 
-    completed_this_week = sum(1 for d in completed_dates if monday <= d <= sunday)
+    completed_this_week = sum(
+        1
+        for completion in routine_completions
+        if monday <= _to_date(completion["completed_for_date"]) <= sunday
+    )
     shortfall = target - completed_this_week
     if shortfall <= 0:
         return False, None

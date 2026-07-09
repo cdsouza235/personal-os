@@ -292,6 +292,23 @@ class WeeklyTargetCountFamilyTests(unittest.TestCase, StatusFilteringMatrixMixin
         result_after = compute_due_and_owed([routine], [completion], as_of_date=WED_W28)
         self.assertEqual(result_after.due_today, [])
 
+    def test_same_day_duplicate_completions_each_count_toward_target(self):
+        # Two completions on the same calendar date must both count toward the
+        # weekly target (e.g. two Reading sessions in one day). A dedup-by-date
+        # bug would undercount this as 2 completions instead of 3.
+        routine = make_routine("wtc-1", cadence_type="weekly_target_count", weekly_target=4)
+        completions = [
+            make_completion("wtc-1", MON_W28, completion_id="wtc-1-mon-a"),
+            make_completion("wtc-1", MON_W28, completion_id="wtc-1-mon-b"),
+            make_completion("wtc-1", TUE_W28),
+        ]
+        result = compute_due_and_owed([routine], completions, as_of_date=WED_W28)
+        self.assertEqual(result.due_today, ["wtc-1"])
+        self.assertEqual(
+            result.owed,
+            [OwedEntry(routine_id="wtc-1", kind="weekly_shortfall", week_start=MON_W28, amount=1, unit="count")],
+        )
+
     def test_not_due_when_inactive(self):
         self.assert_never_due_for_inactive_states(
             {"cadence_type": "weekly_target_count", "weekly_target": 3}, as_of=WED_W28

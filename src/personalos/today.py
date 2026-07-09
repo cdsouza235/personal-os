@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.config import DEFAULT_TIMEZONE
+from personalos.routines_engine import compute_due_and_owed
 from personalos.scheduler import summarize_scheduler
 from personalos.side_effects import summarize_side_effect_ledgers_unchecked
 from personalos.state import (
@@ -24,6 +25,7 @@ from personalos.state import (
     list_daily_plans,
     list_followups,
     list_permission_settings,
+    list_routine_completions,
     list_routines,
     summarize_priorities,
 )
@@ -116,7 +118,10 @@ def _routine_summary(
     source_date: str,
 ) -> dict[str, Any]:
     routines = list_routines(connection)
+    completions = list_routine_completions(connection)
     completions_for_date = _routine_completion_counts_for_date(connection, source_date)
+    due_and_owed = compute_due_and_owed(routines, completions, as_of_date=source_date)
+    due_today_ids = set(due_and_owed.due_today)
     return {
         "total_count": count_routines(connection),
         "enabled_count": sum(1 for routine in routines if routine["enabled"]),
@@ -124,6 +129,10 @@ def _routine_summary(
         "counts_by_status": _count_by_key(routines, "status"),
         "completion_count": count_routine_completions(connection),
         "completed_for_source_date_count": sum(completions_for_date.values()),
+        "due_today_count": len(due_and_owed.due_today),
+        "due_today_routine_ids": list(due_and_owed.due_today),
+        "owed_count": len(due_and_owed.owed),
+        "owed": [_owed_entry_to_dict(entry) for entry in due_and_owed.owed],
         "routines": [
             {
                 "routine_id": routine["routine_id"],
@@ -134,9 +143,22 @@ def _routine_summary(
                     routine["routine_id"],
                     0,
                 ),
+                "due_today": routine["routine_id"] in due_today_ids,
             }
             for routine in routines
         ],
+    }
+
+
+def _owed_entry_to_dict(entry: Any) -> dict[str, Any]:
+    return {
+        "routine_id": entry.routine_id,
+        "kind": entry.kind,
+        "due_date": entry.due_date,
+        "missed_behavior": entry.missed_behavior,
+        "week_start": entry.week_start,
+        "amount": entry.amount,
+        "unit": entry.unit,
     }
 
 

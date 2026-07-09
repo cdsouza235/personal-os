@@ -43,8 +43,10 @@ from personalos.state import (
     count_routines,
     count_synthesis_import_previews,
     create_calendar_block,
+    create_routine,
     create_todoist_task,
     count_todoist_tasks,
+    record_routine_completion,
     upsert_permission_setting,
 )
 from personalos.synthesis_import import (
@@ -222,6 +224,52 @@ class TodayViewSummaryTest(unittest.TestCase):
                         timezone="Not/AZone",
                     )
 
+    def test_today_view_routine_summary_reflects_compute_due_and_owed(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                create_routine(
+                    connection,
+                    routine_id="routine-due-today",
+                    name="Due today routine",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc="2026-06-01T00:00:00+00:00",
+                    updated_at_utc="2026-06-01T00:00:00+00:00",
+                )
+                create_routine(
+                    connection,
+                    routine_id="routine-completed-today",
+                    name="Completed today routine",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc="2026-06-01T00:00:00+00:00",
+                    updated_at_utc="2026-06-01T00:00:00+00:00",
+                )
+                record_routine_completion(
+                    connection,
+                    routine_id="routine-completed-today",
+                    completed_for_date=SOURCE_DATE,
+                    completed_at_utc="2026-06-15T08:00:00+00:00",
+                    source="tests",
+                )
+
+                summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        routine_summary = summary["routine_summary"]
+        self.assertIn("routine-due-today", routine_summary["due_today_routine_ids"])
+        self.assertNotIn("routine-completed-today", routine_summary["due_today_routine_ids"])
+        self.assertEqual(routine_summary["due_today_count"], len(routine_summary["due_today_routine_ids"]))
+
+        by_id = {routine["routine_id"]: routine for routine in routine_summary["routines"]}
+        self.assertTrue(by_id["routine-due-today"]["due_today"])
+        self.assertFalse(by_id["routine-completed-today"]["due_today"])
+
 
 class DashboardShellTest(unittest.TestCase):
     def test_dashboard_html_render_includes_required_sections_and_safety_banner(self) -> None:
@@ -267,6 +315,28 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Permissions", html)
         self.assertIn("System Status", html)
         self.assertIn("Warnings", html)
+
+    def test_dashboard_html_render_shows_real_due_today_routine_set(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                create_routine(
+                    connection,
+                    routine_id="routine-due-today",
+                    name="Due Today Routine",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc="2026-06-01T00:00:00+00:00",
+                    updated_at_utc="2026-06-01T00:00:00+00:00",
+                )
+                html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        self.assertIn("Due today", html)
+        self.assertIn("Due Today Routine", html)
 
     def test_dashboard_html_render_includes_briefing_output_preview_and_flags(self) -> None:
         with _seeded_runtime_db() as db_path:

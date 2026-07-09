@@ -24,6 +24,19 @@ from personalos.path_safety import (
     reject_sensitive_path,
     resolve_explicit_path,
 )
+from personalos.priorities import (
+    PriorityEnginePermissionDenied,
+    create_priority_flow,
+    read_priorities,
+    update_priority_flow,
+)
+from personalos.routines import (
+    RoutineEnginePermissionDenied,
+    create_routine_record,
+    read_routines,
+    update_routine_record,
+)
+from personalos.state import PRIORITY_STATUSES, ROUTINE_STATUSES
 from personalos.synthesis_import import (
     ALLOWED_SOURCE_TYPES,
     REPORT_SAFETY_FLAGS,
@@ -37,6 +50,8 @@ DEFAULT_DASHBOARD_PORT = 8765
 LOCALHOST_BIND_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 DASHBOARD_SYNTHESIS_IMPORT_FORM_MAX_BYTES = 128 * 1024
 DASHBOARD_SYNTHESIS_IMPORT_INPUT_MAX_CHARS = 128 * 1024
+DASHBOARD_ROUTINE_FORM_MAX_BYTES = 64 * 1024
+DASHBOARD_PRIORITY_FORM_MAX_BYTES = 64 * 1024
 
 
 def render_today_view_html_from_connection(

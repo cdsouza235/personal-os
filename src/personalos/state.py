@@ -361,6 +361,64 @@ def update_routine_status_enabled(
     return routine
 
 
+def update_routine(
+    connection: sqlite3.Connection,
+    *,
+    routine_id: str,
+    name: str | None = None,
+    status: str | None = None,
+    enabled: bool | None = None,
+    settings: Mapping[str, Any] | None = None,
+    notes: str | None = None,
+    updated_at_utc: str | None = None,
+) -> dict[str, Any]:
+    routine_id = _validate_required_text("routine_id", routine_id)
+    if name is None and status is None and enabled is None and settings is None and notes is None:
+        raise ValueError("name, status, enabled, settings, or notes must be provided")
+
+    current = get_routine(connection, routine_id)
+    if current is None:
+        raise ValueError(f"Routine does not exist: {routine_id}")
+
+    next_name = current["name"] if name is None else _validate_required_text("name", name)
+    next_status = current["status"] if status is None else validate_routine_status(status)
+    next_enabled = current["enabled"] if enabled is None else validate_routine_enabled(enabled)
+    next_settings = (
+        current["settings"] if settings is None else _validate_metadata("settings", settings)
+    )
+    settings_json = _serialize_metadata(next_settings)
+    next_notes = current["notes"] if notes is None else _validate_text("notes", notes)
+    updated_at = updated_at_utc or _utc_now()
+
+    with connection:
+        connection.execute(
+            """
+            UPDATE routines
+            SET name = ?,
+                status = ?,
+                enabled = ?,
+                settings_json = ?,
+                notes = ?,
+                updated_at_utc = ?
+            WHERE routine_id = ?
+            """,
+            (
+                next_name,
+                next_status,
+                int(next_enabled),
+                settings_json,
+                next_notes,
+                updated_at,
+                routine_id,
+            ),
+        )
+
+    routine = get_routine(connection, routine_id)
+    if routine is None:
+        raise RuntimeError(f"Routine was not found after update: {routine_id}")
+    return routine
+
+
 def get_routine_completion(
     connection: sqlite3.Connection,
     completion_id: str,

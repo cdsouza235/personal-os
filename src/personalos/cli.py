@@ -23,6 +23,18 @@ from personalos.path_safety import (
     validate_existing_sqlite_path,
     validate_output_file_path,
 )
+from personalos.priorities import (
+    PriorityEnginePermissionDenied,
+    create_priority_flow,
+    read_priorities,
+    update_priority_flow,
+)
+from personalos.routines import (
+    RoutineEnginePermissionDenied,
+    create_routine_record,
+    read_routines,
+    update_routine_record,
+)
 from personalos.side_effects import (
     create_external_write_intent_and_record_dry_run,
     summarize_side_effect_ledgers,
@@ -36,6 +48,7 @@ from personalos.scheduler import (
     run_scheduler_job_simulated,
     seed_dev_scheduler_jobs,
 )
+from personalos.state import PRIORITY_STATUSES, ROUTINE_STATUSES
 from personalos.synthesis_apply import (
     SynthesisApplyValidationError,
     apply_synthesis_import_preview,
@@ -313,6 +326,109 @@ def build_parser() -> argparse.ArgumentParser:
     side_effects_record_parser.add_argument("--input-file", required=True)
     _add_json_arg(side_effects_record_parser)
     side_effects_record_parser.set_defaults(func=_command_side_effects_record_dry_run)
+
+    routines_parser = subparsers.add_parser(
+        "routines",
+        help="Create, edit, and list dev/test routine records; permission-gated local writes.",
+    )
+    routines_subparsers = routines_parser.add_subparsers(
+        dest="routines_command",
+        required=True,
+    )
+
+    routines_create_parser = routines_subparsers.add_parser(
+        "create",
+        help="Create one routine record; requires routine engine write permission.",
+    )
+    _add_db_arg(routines_create_parser)
+    routines_create_parser.add_argument("--routine-id", required=True)
+    routines_create_parser.add_argument("--name", required=True)
+    routines_create_parser.add_argument("--status", choices=ROUTINE_STATUSES, default="active")
+    routines_create_parser.add_argument(
+        "--enabled",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    routines_create_parser.add_argument("--notes", default="")
+    routines_create_parser.add_argument("--settings-json", default=None)
+    _add_json_arg(routines_create_parser)
+    routines_create_parser.set_defaults(func=_command_routines_create)
+
+    routines_update_parser = routines_subparsers.add_parser(
+        "update",
+        help=(
+            "Rename/update notes or settings, and/or enable/disable one routine; "
+            "requires routine engine write permission."
+        ),
+    )
+    _add_db_arg(routines_update_parser)
+    routines_update_parser.add_argument("--routine-id", required=True)
+    routines_update_parser.add_argument("--name", default=None)
+    routines_update_parser.add_argument("--status", choices=ROUTINE_STATUSES, default=None)
+    routines_update_parser.add_argument(
+        "--enabled",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+    )
+    routines_update_parser.add_argument("--notes", default=None)
+    routines_update_parser.add_argument("--settings-json", default=None)
+    _add_json_arg(routines_update_parser)
+    routines_update_parser.set_defaults(func=_command_routines_update)
+
+    routines_list_parser = routines_subparsers.add_parser(
+        "list",
+        help="List routine records; requires routine engine read permission.",
+    )
+    _add_db_arg(routines_list_parser)
+    _add_json_arg(routines_list_parser)
+    routines_list_parser.set_defaults(func=_command_routines_list)
+
+    priorities_parser = subparsers.add_parser(
+        "priorities",
+        help="Create, edit, and list dev/test priority records; permission-gated local writes.",
+    )
+    priorities_subparsers = priorities_parser.add_subparsers(
+        dest="priorities_command",
+        required=True,
+    )
+
+    priorities_create_parser = priorities_subparsers.add_parser(
+        "create",
+        help="Create one priority record; requires priority engine write permission.",
+    )
+    _add_db_arg(priorities_create_parser)
+    priorities_create_parser.add_argument("--priority-id", required=True)
+    priorities_create_parser.add_argument("--title", required=True)
+    priorities_create_parser.add_argument("--status", choices=PRIORITY_STATUSES, default="active")
+    priorities_create_parser.add_argument("--notes", default="")
+    priorities_create_parser.add_argument("--metadata-json", default=None)
+    _add_json_arg(priorities_create_parser)
+    priorities_create_parser.set_defaults(func=_command_priorities_create)
+
+    priorities_update_parser = priorities_subparsers.add_parser(
+        "update",
+        help=(
+            "Rename/update status, notes, or metadata for one priority; requires "
+            "priority engine write permission."
+        ),
+    )
+    _add_db_arg(priorities_update_parser)
+    priorities_update_parser.add_argument("--priority-id", required=True)
+    priorities_update_parser.add_argument("--title", default=None)
+    priorities_update_parser.add_argument("--status", choices=PRIORITY_STATUSES, default=None)
+    priorities_update_parser.add_argument("--notes", default=None)
+    priorities_update_parser.add_argument("--metadata-json", default=None)
+    _add_json_arg(priorities_update_parser)
+    priorities_update_parser.set_defaults(func=_command_priorities_update)
+
+    priorities_list_parser = priorities_subparsers.add_parser(
+        "list",
+        help="List priority records; requires priority engine read permission.",
+    )
+    _add_db_arg(priorities_list_parser)
+    priorities_list_parser.add_argument("--status", choices=PRIORITY_STATUSES, default=None)
+    _add_json_arg(priorities_list_parser)
+    priorities_list_parser.set_defaults(func=_command_priorities_list)
 
     dashboard_parser = subparsers.add_parser(
         "dashboard",
@@ -826,6 +942,231 @@ def _command_side_effects_record_dry_run(args: argparse.Namespace) -> int:
     return 0 if result.get("status") in {"recorded", "skipped_duplicate"} else 1
 
 
+def _command_routines_create(args: argparse.Namespace) -> int:
+    settings = _parse_json_object_arg(args.settings_json, field_name="--settings-json")
+    try:
+        with closing(_connect_read_write(args.db)) as connection:
+            routine = create_routine_record(
+                connection,
+                routine_id=args.routine_id,
+                name=args.name,
+                status=args.status,
+                enabled=args.enabled,
+                settings=settings,
+                notes=args.notes,
+            )
+    except RoutineEnginePermissionDenied as error:
+        raise CliError(str(error)) from error
+    report = _with_workflow_context(
+        {
+            "command": "routines create",
+            "status": "created",
+            "database_write": True,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "routine": routine,
+        },
+        workflow_name="Create routine record",
+        workflow_mode="inert / no-send / local write",
+        database_path=args.db,
+        database_access="read_write_routine_create",
+        local_sqlite_read=True,
+        local_sqlite_changed=True,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the created routine record.",
+            "Run personalos routines list to confirm it appears.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_routines_update(args: argparse.Namespace) -> int:
+    settings = _parse_json_object_arg(args.settings_json, field_name="--settings-json")
+    if (
+        args.name is None
+        and args.status is None
+        and args.enabled is None
+        and args.notes is None
+        and settings is None
+    ):
+        raise CliError(
+            "routines update requires at least one of "
+            "--name/--status/--enabled/--no-enabled/--notes/--settings-json"
+        )
+    try:
+        with closing(_connect_read_write(args.db)) as connection:
+            routine = update_routine_record(
+                connection,
+                routine_id=args.routine_id,
+                name=args.name,
+                status=args.status,
+                enabled=args.enabled,
+                settings=settings,
+                notes=args.notes,
+            )
+    except RoutineEnginePermissionDenied as error:
+        raise CliError(str(error)) from error
+    report = _with_workflow_context(
+        {
+            "command": "routines update",
+            "status": "updated",
+            "database_write": True,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "routine": routine,
+        },
+        workflow_name="Update routine record",
+        workflow_mode="inert / no-send / local write",
+        database_path=args.db,
+        database_access="read_write_routine_update",
+        local_sqlite_read=True,
+        local_sqlite_changed=True,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the updated routine record.",
+            "Run personalos routines list to confirm the change.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_routines_list(args: argparse.Namespace) -> int:
+    try:
+        with closing(_connect_read_only(args.db)) as connection:
+            routines = read_routines(connection)
+    except RoutineEnginePermissionDenied as error:
+        raise CliError(str(error)) from error
+    report = _with_workflow_context(
+        {
+            "command": "routines list",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "routine_count": len(routines),
+            "routines": routines,
+        },
+        workflow_name="List routine records",
+        workflow_mode="inert / no-send / report-only",
+        database_path=args.db,
+        database_access="read_only_routine_list",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review routine records.",
+            "Run personalos routines update to edit or disable a routine.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_priorities_create(args: argparse.Namespace) -> int:
+    metadata = _parse_json_object_arg(args.metadata_json, field_name="--metadata-json")
+    with closing(_connect_read_write(args.db)) as connection:
+        result = create_priority_flow(
+            connection,
+            priority_id=args.priority_id,
+            title=args.title,
+            status=args.status,
+            metadata=metadata,
+            notes=args.notes,
+            dry_run=False,
+        )
+    report = _with_workflow_context(
+        {"command": "priorities create", **result},
+        workflow_name="Create priority record",
+        workflow_mode="inert / no-send / local write",
+        database_path=args.db,
+        database_access="read_write_priority_create",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the created priority record.",
+            "Run personalos priorities list to confirm it appears.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if result.get("status") == "created" else 1
+
+
+def _command_priorities_update(args: argparse.Namespace) -> int:
+    metadata = _parse_json_object_arg(args.metadata_json, field_name="--metadata-json")
+    if (
+        args.title is None
+        and args.status is None
+        and args.notes is None
+        and metadata is None
+    ):
+        raise CliError(
+            "priorities update requires at least one of "
+            "--title/--status/--notes/--metadata-json"
+        )
+    with closing(_connect_read_write(args.db)) as connection:
+        result = update_priority_flow(
+            connection,
+            priority_id=args.priority_id,
+            title=args.title,
+            status=args.status,
+            metadata=metadata,
+            notes=args.notes,
+            dry_run=False,
+        )
+    report = _with_workflow_context(
+        {"command": "priorities update", **result},
+        workflow_name="Update priority record",
+        workflow_mode="inert / no-send / local write",
+        database_path=args.db,
+        database_access="read_write_priority_update",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review the updated priority record.",
+            "Run personalos priorities list to confirm the change.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if result.get("status") == "updated" else 1
+
+
+def _command_priorities_list(args: argparse.Namespace) -> int:
+    try:
+        with closing(_connect_read_only(args.db)) as connection:
+            priorities = read_priorities(connection, status=args.status)
+    except PriorityEnginePermissionDenied as error:
+        raise CliError(str(error)) from error
+    report = _with_workflow_context(
+        {
+            "command": "priorities list",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "priority_count": len(priorities),
+            "priorities": priorities,
+        },
+        workflow_name="List priority records",
+        workflow_mode="inert / no-send / report-only",
+        database_path=args.db,
+        database_access="read_only_priority_list",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Review priority records.",
+            "Run personalos priorities update to edit a priority.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
 def _command_dashboard_render(args: argparse.Namespace) -> int:
     output_path = validate_output_file_path(
         args.output_file,
@@ -1142,6 +1483,18 @@ def _merge_synthesis_source_type(raw_input: str, *, source_type: str) -> str:
     if not payload.get("source_type"):
         payload["source_type"] = source_type
     return json.dumps(payload, allow_nan=False, ensure_ascii=True, sort_keys=True)
+
+
+def _parse_json_object_arg(value: str | None, *, field_name: str) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise CliError(f"{field_name} must contain JSON: {error}") from error
+    if not isinstance(parsed, dict):
+        raise CliError(f"{field_name} JSON must decode to an object")
+    return parsed
 
 
 def _load_json_object(path: Any) -> dict[str, Any]:

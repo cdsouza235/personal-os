@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import closing
 from html import escape
 from http import HTTPStatus
@@ -930,6 +930,14 @@ def make_dashboard_request_handler(
                 ).encode("utf-8")
                 self._send_response(HTTPStatus.OK, "text/html; charset=utf-8", body)
                 return
+            if parsed.path == "/routines":
+                body = render_routines_page_html_from_db_path(validated_path).encode("utf-8")
+                self._send_response(HTTPStatus.OK, "text/html; charset=utf-8", body)
+                return
+            if parsed.path == "/priorities":
+                body = render_priorities_page_html_from_db_path(validated_path).encode("utf-8")
+                self._send_response(HTTPStatus.OK, "text/html; charset=utf-8", body)
+                return
             self._send_response(
                 HTTPStatus.NOT_FOUND,
                 "text/plain; charset=utf-8",
@@ -938,20 +946,89 @@ def make_dashboard_request_handler(
 
         def do_POST(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
-            if parsed.path != "/synthesis-import/preview":
+            if parsed.path == "/synthesis-import/preview":
+                result = self._handle_synthesis_import_preview_post()
+                body = render_synthesis_import_preview_result_page_html(result).encode("utf-8")
                 self._send_response(
-                    HTTPStatus.NOT_FOUND,
-                    "text/plain; charset=utf-8",
-                    b"Not found",
+                    _synthesis_import_http_status(result),
+                    "text/html; charset=utf-8",
+                    body,
                 )
                 return
-            result = self._handle_synthesis_import_preview_post()
-            body = render_synthesis_import_preview_result_page_html(result).encode("utf-8")
+            if parsed.path == "/routines/create":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_ROUTINE_FORM_MAX_BYTES,
+                    write=create_dashboard_routine_from_db_path,
+                    render_page=render_routines_page_html_from_db_path,
+                )
+                return
+            if parsed.path == "/routines/update":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_ROUTINE_FORM_MAX_BYTES,
+                    write=update_dashboard_routine_from_db_path,
+                    render_page=render_routines_page_html_from_db_path,
+                )
+                return
+            if parsed.path == "/priorities/create":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_PRIORITY_FORM_MAX_BYTES,
+                    write=create_dashboard_priority_from_db_path,
+                    render_page=render_priorities_page_html_from_db_path,
+                )
+                return
+            if parsed.path == "/priorities/update":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_PRIORITY_FORM_MAX_BYTES,
+                    write=update_dashboard_priority_from_db_path,
+                    render_page=render_priorities_page_html_from_db_path,
+                )
+                return
             self._send_response(
-                _synthesis_import_http_status(result),
+                HTTPStatus.NOT_FOUND,
+                "text/plain; charset=utf-8",
+                b"Not found",
+            )
+
+        def _handle_engine_write_post(
+            self,
+            *,
+            max_bytes: int,
+            write: Callable[[str | Path, Mapping[str, object]], dict[str, Any]],
+            render_page: Callable[..., str],
+        ) -> None:
+            fields, error_reason = self._read_urlencoded_form_fields(max_bytes)
+            if fields is None:
+                result = _engine_write_result(status="rejected", reason=error_reason, record=None)
+            else:
+                result = write(validated_path, fields)
+            body = render_page(
+                validated_path,
+                result_html=render_engine_write_result_html(result),
+            ).encode("utf-8")
+            self._send_response(
+                _engine_write_http_status(result),
                 "text/html; charset=utf-8",
                 body,
             )
+
+        def _read_urlencoded_form_fields(
+            self,
+            max_bytes: int,
+        ) -> tuple[dict[str, list[str]] | None, str | None]:
+            content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip()
+            if content_type != "application/x-www-form-urlencoded":
+                return None, "Form submission accepts form-encoded input only."
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                return None, "Invalid Content-Length for form submission."
+            if content_length > max_bytes:
+                return None, "Form body is too large."
+            try:
+                body = self.rfile.read(content_length).decode("utf-8")
+            except UnicodeDecodeError:
+                return None, "Form body must be UTF-8."
+            return parse_qs(body, keep_blank_values=True), None
 
         def log_message(self, format: str, *args: object) -> None:
             return

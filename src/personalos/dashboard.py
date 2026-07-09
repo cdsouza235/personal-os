@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import closing
 from html import escape
 from http import HTTPStatus
@@ -24,6 +24,19 @@ from personalos.path_safety import (
     reject_sensitive_path,
     resolve_explicit_path,
 )
+from personalos.priorities import (
+    PriorityEnginePermissionDenied,
+    create_priority_flow,
+    read_priorities,
+    update_priority_flow,
+)
+from personalos.routines import (
+    RoutineEnginePermissionDenied,
+    create_routine_record,
+    read_routines,
+    update_routine_record,
+)
+from personalos.state import PRIORITY_STATUSES, ROUTINE_STATUSES
 from personalos.synthesis_import import (
     ALLOWED_SOURCE_TYPES,
     REPORT_SAFETY_FLAGS,
@@ -37,6 +50,8 @@ DEFAULT_DASHBOARD_PORT = 8765
 LOCALHOST_BIND_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 DASHBOARD_SYNTHESIS_IMPORT_FORM_MAX_BYTES = 128 * 1024
 DASHBOARD_SYNTHESIS_IMPORT_INPUT_MAX_CHARS = 128 * 1024
+DASHBOARD_ROUTINE_FORM_MAX_BYTES = 64 * 1024
+DASHBOARD_PRIORITY_FORM_MAX_BYTES = 64 * 1024
 
 
 def render_today_view_html_from_connection(
@@ -236,12 +251,17 @@ def render_today_view_html(
     <ul>
       <li>scheduler={_e(str(rail_states["scheduler"]))}</li>
       <li>no_external_writes={no_external_writes}</li>
-      <li>Read-only except explicit local synthesis preview creation</li>
+      <li>Read-only except explicit local synthesis preview creation and permission-gated
+      routine/priority record edits</li>
       <li>no live Todoist/Calendar/Gmail/model calls</li>
       <li>localhost-only by default</li>
-      <li>no task, calendar, routine, priority, briefing, apply, or live-rail routes</li>
+      <li>no task, calendar, briefing, apply, or live-rail routes</li>
       <li>synthesis preview form may persist local preview records only</li>
+      <li>routine/priority create-and-edit routes write local SQLite only and are
+      permission-gated (fail closed without explicit permission)</li>
       <li><a href="/today.json">today.json</a></li>
+      <li><a href="/routines">routines</a></li>
+      <li><a href="/priorities">priorities</a></li>
     </ul>
   </div>
 
@@ -448,6 +468,417 @@ def render_synthesis_import_preview_result_page_html(
     )
 
 
+def render_routines_page_html_from_db_path(
+    db_path: str | Path,
+    *,
+    result_html: str = "",
+) -> str:
+    try:
+        with closing(connect_dashboard_db_read_only(db_path)) as connection:
+            routines = read_routines(connection)
+        permission_error: str | None = None
+    except RoutineEnginePermissionDenied as error:
+        routines = []
+        permission_error = str(error)
+    return render_routines_page_html(
+        routines,
+        permission_error=permission_error,
+        result_html=result_html,
+    )
+
+
+def render_routines_page_html(
+    routines: Sequence[Mapping[str, Any]],
+    *,
+    permission_error: str | None = None,
+    result_html: str = "",
+) -> str:
+    status_options = "".join(
+        f'<option value="{_e(status)}">{_e(status)}</option>' for status in ROUTINE_STATUSES
+    )
+    create_form = f"""
+<form method="post" action="/routines/create">
+  <label for="routine_id">Routine ID</label>
+  <input id="routine_id" name="routine_id" type="text" required>
+
+  <label for="name">Name</label>
+  <input id="name" name="name" type="text" required>
+
+  <label for="status">Status</label>
+  <select id="status" name="status">{status_options}</select>
+
+  <label><input type="checkbox" name="enabled" value="true" checked> Enabled</label>
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes"></textarea>
+
+  <label for="settings_json">Settings JSON (optional)</label>
+  <input id="settings_json" name="settings_json" type="text">
+
+  <button type="submit">Create routine</button>
+</form>
+"""
+    if permission_error is not None:
+        list_html = f"<p>Routine list unavailable: {_e(permission_error)}</p>"
+    else:
+        list_html = "".join(_render_routine_edit_form(routine) for routine in routines)
+        if not list_html:
+            list_html = "<p>No routines yet.</p>"
+    body = (
+        _section("routines-create", "Create Routine", create_form)
+        + _section("routines-list", "Existing Routines", list_html)
+        + result_html
+    )
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personal OS Routines</title>
+</head>
+<body>
+<main>
+  <h1>Routines</h1>
+  <p>Local SQLite writes only, permission-gated. <a href="/today">Back to Today View</a>.</p>
+  {body}
+</main>
+</body>
+</html>
+"""
+
+
+def _render_routine_edit_form(routine: Mapping[str, Any]) -> str:
+    status_options = "".join(
+        f'<option value="{_e(status)}"{" selected" if status == routine["status"] else ""}>'
+        f"{_e(status)}</option>"
+        for status in ROUTINE_STATUSES
+    )
+    enabled_options = "".join(
+        f'<option value="{_e(value)}"{" selected" if routine["enabled"] == (value == "true") else ""}>'
+        f"{_e(value)}</option>"
+        for value in ("true", "false")
+    )
+    return f"""
+<form method="post" action="/routines/update">
+  <h3>{_e(routine["name"])} ({_e(routine["routine_id"])})</h3>
+  <input type="hidden" name="routine_id" value="{_e(routine["routine_id"])}">
+
+  <label>Name</label>
+  <input name="name" type="text" value="{_e(routine["name"])}">
+
+  <label>Status</label>
+  <select name="status">{status_options}</select>
+
+  <label>Enabled</label>
+  <select name="enabled">{enabled_options}</select>
+
+  <label>Notes</label>
+  <textarea name="notes">{_e(routine["notes"])}</textarea>
+
+  <button type="submit">Save changes</button>
+</form>
+"""
+
+
+def create_dashboard_routine(
+    connection: sqlite3.Connection,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    try:
+        routine_id = _field_text(form_fields, "routine_id")
+        name = _field_text(form_fields, "name")
+        status = _field_text(form_fields, "status", default="active")
+        enabled = _field_checked(form_fields, "enabled")
+        notes = _field_text(form_fields, "notes", default="")
+        settings = _parse_json_object_field(
+            _field_optional_text(form_fields, "settings_json"),
+            field_name="settings_json",
+        )
+        routine = create_routine_record(
+            connection,
+            routine_id=routine_id,
+            name=name,
+            status=status,
+            enabled=enabled,
+            settings=settings,
+            notes=notes,
+        )
+    except RoutineEnginePermissionDenied as error:
+        return _engine_write_result(status="blocked", reason=str(error), record=None)
+    except ValueError as error:
+        return _engine_write_result(status="rejected", reason=str(error), record=None)
+    return _engine_write_result(
+        status="created",
+        reason="Routine was created in the local SQLite database only.",
+        record=routine,
+    )
+
+
+def create_dashboard_routine_from_db_path(
+    db_path: str | Path,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    with closing(connect_dashboard_db_read_write(db_path)) as connection:
+        return create_dashboard_routine(connection, form_fields)
+
+
+def update_dashboard_routine(
+    connection: sqlite3.Connection,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    try:
+        routine_id = _field_text(form_fields, "routine_id")
+        name = _field_optional_text(form_fields, "name")
+        status = _field_optional_text(form_fields, "status")
+        enabled_raw = _field_optional_text(form_fields, "enabled")
+        enabled = None if enabled_raw is None else enabled_raw == "true"
+        notes = _field_optional_text(form_fields, "notes")
+        settings = _parse_json_object_field(
+            _field_optional_text(form_fields, "settings_json"),
+            field_name="settings_json",
+        )
+        if (
+            name is None
+            and status is None
+            and enabled is None
+            and notes is None
+            and settings is None
+        ):
+            raise ValueError(
+                "routines update requires at least one of "
+                "name/status/enabled/notes/settings_json"
+            )
+        routine = update_routine_record(
+            connection,
+            routine_id=routine_id,
+            name=name,
+            status=status,
+            enabled=enabled,
+            settings=settings,
+            notes=notes,
+        )
+    except RoutineEnginePermissionDenied as error:
+        return _engine_write_result(status="blocked", reason=str(error), record=None)
+    except ValueError as error:
+        return _engine_write_result(status="rejected", reason=str(error), record=None)
+    return _engine_write_result(
+        status="updated",
+        reason="Routine was updated in the local SQLite database only.",
+        record=routine,
+    )
+
+
+def update_dashboard_routine_from_db_path(
+    db_path: str | Path,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    with closing(connect_dashboard_db_read_write(db_path)) as connection:
+        return update_dashboard_routine(connection, form_fields)
+
+
+def render_priorities_page_html_from_db_path(
+    db_path: str | Path,
+    *,
+    result_html: str = "",
+) -> str:
+    try:
+        with closing(connect_dashboard_db_read_only(db_path)) as connection:
+            priorities = read_priorities(connection)
+        permission_error: str | None = None
+    except PriorityEnginePermissionDenied as error:
+        priorities = []
+        permission_error = str(error)
+    return render_priorities_page_html(
+        priorities,
+        permission_error=permission_error,
+        result_html=result_html,
+    )
+
+
+def render_priorities_page_html(
+    priorities: Sequence[Mapping[str, Any]],
+    *,
+    permission_error: str | None = None,
+    result_html: str = "",
+) -> str:
+    status_options = "".join(
+        f'<option value="{_e(status)}">{_e(status)}</option>' for status in PRIORITY_STATUSES
+    )
+    create_form = f"""
+<form method="post" action="/priorities/create">
+  <label for="priority_id">Priority ID</label>
+  <input id="priority_id" name="priority_id" type="text" required>
+
+  <label for="title">Title</label>
+  <input id="title" name="title" type="text" required>
+
+  <label for="status">Status</label>
+  <select id="status" name="status">{status_options}</select>
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes"></textarea>
+
+  <label for="metadata_json">Metadata JSON (optional)</label>
+  <input id="metadata_json" name="metadata_json" type="text">
+
+  <button type="submit">Create priority</button>
+</form>
+"""
+    if permission_error is not None:
+        list_html = f"<p>Priority list unavailable: {_e(permission_error)}</p>"
+    else:
+        list_html = "".join(_render_priority_edit_form(priority) for priority in priorities)
+        if not list_html:
+            list_html = "<p>No priorities yet.</p>"
+    body = (
+        _section("priorities-create", "Create Priority", create_form)
+        + _section("priorities-list", "Existing Priorities", list_html)
+        + result_html
+    )
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personal OS Priorities</title>
+</head>
+<body>
+<main>
+  <h1>Priorities</h1>
+  <p>Local SQLite writes only, permission-gated. <a href="/today">Back to Today View</a>.</p>
+  {body}
+</main>
+</body>
+</html>
+"""
+
+
+def _render_priority_edit_form(priority: Mapping[str, Any]) -> str:
+    status_options = "".join(
+        f'<option value="{_e(status)}"{" selected" if status == priority["status"] else ""}>'
+        f"{_e(status)}</option>"
+        for status in PRIORITY_STATUSES
+    )
+    return f"""
+<form method="post" action="/priorities/update">
+  <h3>{_e(priority["title"])} ({_e(priority["priority_id"])})</h3>
+  <input type="hidden" name="priority_id" value="{_e(priority["priority_id"])}">
+
+  <label>Title</label>
+  <input name="title" type="text" value="{_e(priority["title"])}">
+
+  <label>Status</label>
+  <select name="status">{status_options}</select>
+
+  <label>Notes</label>
+  <textarea name="notes">{_e(priority["notes"])}</textarea>
+
+  <button type="submit">Save changes</button>
+</form>
+"""
+
+
+def create_dashboard_priority(
+    connection: sqlite3.Connection,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    try:
+        priority_id = _field_text(form_fields, "priority_id")
+        title = _field_text(form_fields, "title")
+        status = _field_text(form_fields, "status", default="active")
+        notes = _field_text(form_fields, "notes", default="")
+        metadata = _parse_json_object_field(
+            _field_optional_text(form_fields, "metadata_json"),
+            field_name="metadata_json",
+        )
+        result = create_priority_flow(
+            connection,
+            priority_id=priority_id,
+            title=title,
+            status=status,
+            metadata=metadata,
+            notes=notes,
+            dry_run=False,
+        )
+    except ValueError as error:
+        return _engine_write_result(status="rejected", reason=str(error), record=None)
+    if result["status"] == "blocked":
+        return _engine_write_result(status="blocked", reason=result["reason"], record=None)
+    return _engine_write_result(
+        status="created",
+        reason=result["reason"],
+        record=result["priority"],
+    )
+
+
+def create_dashboard_priority_from_db_path(
+    db_path: str | Path,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    with closing(connect_dashboard_db_read_write(db_path)) as connection:
+        return create_dashboard_priority(connection, form_fields)
+
+
+def update_dashboard_priority(
+    connection: sqlite3.Connection,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    try:
+        priority_id = _field_text(form_fields, "priority_id")
+        title = _field_optional_text(form_fields, "title")
+        status = _field_optional_text(form_fields, "status")
+        notes = _field_optional_text(form_fields, "notes")
+        metadata = _parse_json_object_field(
+            _field_optional_text(form_fields, "metadata_json"),
+            field_name="metadata_json",
+        )
+        if title is None and status is None and notes is None and metadata is None:
+            raise ValueError(
+                "priorities update requires at least one of title/status/notes/metadata_json"
+            )
+        result = update_priority_flow(
+            connection,
+            priority_id=priority_id,
+            title=title,
+            status=status,
+            metadata=metadata,
+            notes=notes,
+            dry_run=False,
+        )
+    except ValueError as error:
+        return _engine_write_result(status="rejected", reason=str(error), record=None)
+    if result["status"] == "blocked":
+        return _engine_write_result(status="blocked", reason=result["reason"], record=None)
+    return _engine_write_result(
+        status="updated",
+        reason=result["reason"],
+        record=result["priority_after"],
+    )
+
+
+def update_dashboard_priority_from_db_path(
+    db_path: str | Path,
+    form_fields: Mapping[str, object],
+) -> dict[str, Any]:
+    with closing(connect_dashboard_db_read_write(db_path)) as connection:
+        return update_dashboard_priority(connection, form_fields)
+
+
+def render_engine_write_result_html(result: Mapping[str, Any]) -> str:
+    body = _definition_list(
+        (
+            ("Status", result.get("status", "unknown")),
+            ("Reason", result.get("reason", "")),
+            ("database_write", _format_bool(result.get("database_write"))),
+            ("external_mutation", _format_bool(result.get("external_mutation"))),
+        )
+    )
+    record = result.get("record")
+    if record is not None:
+        body += "<h3>Record</h3>" + _render_json_block(record)
+    return _section("engine-write-result", "Result", body)
+
+
 def connect_dashboard_db_read_only(db_path: str | Path) -> sqlite3.Connection:
     validated_path = validate_dashboard_db_path(db_path)
     db_uri = f"file:{quote(str(validated_path), safe='/')}?mode=ro"
@@ -499,6 +930,14 @@ def make_dashboard_request_handler(
                 ).encode("utf-8")
                 self._send_response(HTTPStatus.OK, "text/html; charset=utf-8", body)
                 return
+            if parsed.path == "/routines":
+                body = render_routines_page_html_from_db_path(validated_path).encode("utf-8")
+                self._send_response(HTTPStatus.OK, "text/html; charset=utf-8", body)
+                return
+            if parsed.path == "/priorities":
+                body = render_priorities_page_html_from_db_path(validated_path).encode("utf-8")
+                self._send_response(HTTPStatus.OK, "text/html; charset=utf-8", body)
+                return
             self._send_response(
                 HTTPStatus.NOT_FOUND,
                 "text/plain; charset=utf-8",
@@ -507,20 +946,89 @@ def make_dashboard_request_handler(
 
         def do_POST(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
-            if parsed.path != "/synthesis-import/preview":
+            if parsed.path == "/synthesis-import/preview":
+                result = self._handle_synthesis_import_preview_post()
+                body = render_synthesis_import_preview_result_page_html(result).encode("utf-8")
                 self._send_response(
-                    HTTPStatus.NOT_FOUND,
-                    "text/plain; charset=utf-8",
-                    b"Not found",
+                    _synthesis_import_http_status(result),
+                    "text/html; charset=utf-8",
+                    body,
                 )
                 return
-            result = self._handle_synthesis_import_preview_post()
-            body = render_synthesis_import_preview_result_page_html(result).encode("utf-8")
+            if parsed.path == "/routines/create":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_ROUTINE_FORM_MAX_BYTES,
+                    write=create_dashboard_routine_from_db_path,
+                    render_page=render_routines_page_html_from_db_path,
+                )
+                return
+            if parsed.path == "/routines/update":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_ROUTINE_FORM_MAX_BYTES,
+                    write=update_dashboard_routine_from_db_path,
+                    render_page=render_routines_page_html_from_db_path,
+                )
+                return
+            if parsed.path == "/priorities/create":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_PRIORITY_FORM_MAX_BYTES,
+                    write=create_dashboard_priority_from_db_path,
+                    render_page=render_priorities_page_html_from_db_path,
+                )
+                return
+            if parsed.path == "/priorities/update":
+                self._handle_engine_write_post(
+                    max_bytes=DASHBOARD_PRIORITY_FORM_MAX_BYTES,
+                    write=update_dashboard_priority_from_db_path,
+                    render_page=render_priorities_page_html_from_db_path,
+                )
+                return
             self._send_response(
-                _synthesis_import_http_status(result),
+                HTTPStatus.NOT_FOUND,
+                "text/plain; charset=utf-8",
+                b"Not found",
+            )
+
+        def _handle_engine_write_post(
+            self,
+            *,
+            max_bytes: int,
+            write: Callable[[str | Path, Mapping[str, object]], dict[str, Any]],
+            render_page: Callable[..., str],
+        ) -> None:
+            fields, error_reason = self._read_urlencoded_form_fields(max_bytes)
+            if fields is None:
+                result = _engine_write_result(status="rejected", reason=error_reason, record=None)
+            else:
+                result = write(validated_path, fields)
+            body = render_page(
+                validated_path,
+                result_html=render_engine_write_result_html(result),
+            ).encode("utf-8")
+            self._send_response(
+                _engine_write_http_status(result),
                 "text/html; charset=utf-8",
                 body,
             )
+
+        def _read_urlencoded_form_fields(
+            self,
+            max_bytes: int,
+        ) -> tuple[dict[str, list[str]] | None, str | None]:
+            content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip()
+            if content_type != "application/x-www-form-urlencoded":
+                return None, "Form submission accepts form-encoded input only."
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                return None, "Invalid Content-Length for form submission."
+            if content_length > max_bytes:
+                return None, "Form body is too large."
+            try:
+                body = self.rfile.read(content_length).decode("utf-8")
+            except UnicodeDecodeError:
+                return None, "Form body must be UTF-8."
+            return parse_qs(body, keep_blank_values=True), None
 
         def log_message(self, format: str, *args: object) -> None:
             return
@@ -648,6 +1156,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _render_routine_summary(summary: Mapping[str, Any]) -> str:
+    due_today_names = [
+        routine["name"]
+        for routine in summary.get("routines", [])
+        if routine.get("due_today")
+    ]
+    due_today_html = (
+        _render_list(due_today_names) if due_today_names else "<p>No routines due today.</p>"
+    )
     return _section(
         "routine-summary",
         "Routines",
@@ -657,9 +1173,13 @@ def _render_routine_summary(summary: Mapping[str, Any]) -> str:
                 ("Enabled", summary["enabled_count"]),
                 ("Disabled", summary["disabled_count"]),
                 ("Completed today", summary["completed_for_source_date_count"]),
+                ("Due today", summary.get("due_today_count", 0)),
+                ("Owed", summary.get("owed_count", 0)),
                 ("Status counts", _format_counts(summary["counts_by_status"])),
             )
-        ),
+        )
+        + "<h3>Due today</h3>"
+        + due_today_html,
     )
 
 
@@ -1123,6 +1643,55 @@ def _field_text(
     if strict:
         raise SynthesisImportValidationError(f"{field_name} must be a form text field.")
     return default
+
+
+def _field_optional_text(form_fields: Mapping[str, object], field_name: str) -> str | None:
+    value = _field_text(form_fields, field_name, default="", strict=False)
+    return value if value != "" else None
+
+
+def _field_checked(form_fields: Mapping[str, object], field_name: str) -> bool:
+    value = _field_text(form_fields, field_name, default="", strict=False)
+    return value not in ("", "false", "0", "off")
+
+
+def _parse_json_object_field(value: str | None, *, field_name: str) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{field_name} must contain JSON: {error}") from error
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{field_name} JSON must decode to an object")
+    return parsed
+
+
+def _engine_write_result(
+    *,
+    status: str,
+    reason: str,
+    record: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "reason": reason,
+        "record": record,
+        "no_send": True,
+        "database_write": status in ("created", "updated"),
+        "external_mutation": False,
+    }
+
+
+def _engine_write_http_status(result: Mapping[str, Any]) -> HTTPStatus:
+    status = result.get("status")
+    if status in ("created", "updated"):
+        return HTTPStatus.OK
+    if status == "blocked":
+        return HTTPStatus.FORBIDDEN
+    if status == "rejected":
+        return HTTPStatus.BAD_REQUEST
+    return HTTPStatus.OK
 
 
 def _validate_dashboard_source_type(source_type: str) -> str:

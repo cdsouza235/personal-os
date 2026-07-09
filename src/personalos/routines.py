@@ -14,6 +14,7 @@ from personalos.state import (
     get_routine,
     list_routines,
     record_routine_completion,
+    update_routine,
     update_routine_status_enabled,
 )
 
@@ -92,6 +93,33 @@ def update_routine_record_status_enabled(
         routine_id=routine_id,
         status=status,
         enabled=enabled,
+        updated_at_utc=updated_at_utc,
+    )
+
+
+def update_routine_record(
+    connection: sqlite3.Connection,
+    *,
+    routine_id: str,
+    name: str | None = None,
+    status: str | None = None,
+    enabled: bool | None = None,
+    settings: Mapping[str, Any] | None = None,
+    notes: str | None = None,
+    updated_at_utc: str | None = None,
+) -> dict[str, Any]:
+    require_routine_engine_permission(
+        connection,
+        category=ROUTINE_ENGINE_WRITE_PERMISSION,
+    )
+    return update_routine(
+        connection,
+        routine_id=routine_id,
+        name=name,
+        status=status,
+        enabled=enabled,
+        settings=settings,
+        notes=notes,
         updated_at_utc=updated_at_utc,
     )
 

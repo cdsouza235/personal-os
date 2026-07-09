@@ -1,15 +1,18 @@
 import gc
+import http.client
 import json
 import inspect
 import os
 import re
 import sqlite3
 import tempfile
+import threading
 import unittest
 import warnings
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import urlencode
 
 from personalos import dashboard
 from personalos.briefings import (
@@ -28,6 +31,14 @@ from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
+from personalos.priorities import (
+    PRIORITY_ENGINE_READ_PERMISSION,
+    PRIORITY_ENGINE_WRITE_PERMISSION,
+)
+from personalos.routines import (
+    ROUTINE_ENGINE_READ_PERMISSION,
+    ROUTINE_ENGINE_WRITE_PERMISSION,
+)
 from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_READ_PERMISSION,
     RUNTIME_BOOTSTRAP_RUN_PERMISSION,
@@ -43,8 +54,10 @@ from personalos.state import (
     count_routines,
     count_synthesis_import_previews,
     create_calendar_block,
+    create_routine,
     create_todoist_task,
     count_todoist_tasks,
+    record_routine_completion,
     upsert_permission_setting,
 )
 from personalos.synthesis_import import (
@@ -222,6 +235,52 @@ class TodayViewSummaryTest(unittest.TestCase):
                         timezone="Not/AZone",
                     )
 
+    def test_today_view_routine_summary_reflects_compute_due_and_owed(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                create_routine(
+                    connection,
+                    routine_id="routine-due-today",
+                    name="Due today routine",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc="2026-06-01T00:00:00+00:00",
+                    updated_at_utc="2026-06-01T00:00:00+00:00",
+                )
+                create_routine(
+                    connection,
+                    routine_id="routine-completed-today",
+                    name="Completed today routine",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc="2026-06-01T00:00:00+00:00",
+                    updated_at_utc="2026-06-01T00:00:00+00:00",
+                )
+                record_routine_completion(
+                    connection,
+                    routine_id="routine-completed-today",
+                    completed_for_date=SOURCE_DATE,
+                    completed_at_utc="2026-06-15T08:00:00+00:00",
+                    source="tests",
+                )
+
+                summary = create_today_view_summary(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        routine_summary = summary["routine_summary"]
+        self.assertIn("routine-due-today", routine_summary["due_today_routine_ids"])
+        self.assertNotIn("routine-completed-today", routine_summary["due_today_routine_ids"])
+        self.assertEqual(routine_summary["due_today_count"], len(routine_summary["due_today_routine_ids"]))
+
+        by_id = {routine["routine_id"]: routine for routine in routine_summary["routines"]}
+        self.assertTrue(by_id["routine-due-today"]["due_today"])
+        self.assertFalse(by_id["routine-completed-today"]["due_today"])
+
 
 class DashboardShellTest(unittest.TestCase):
     def test_dashboard_html_render_includes_required_sections_and_safety_banner(self) -> None:
@@ -267,6 +326,28 @@ class DashboardShellTest(unittest.TestCase):
         self.assertIn("Permissions", html)
         self.assertIn("System Status", html)
         self.assertIn("Warnings", html)
+
+    def test_dashboard_html_render_shows_real_due_today_routine_set(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                create_routine(
+                    connection,
+                    routine_id="routine-due-today",
+                    name="Due Today Routine",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc="2026-06-01T00:00:00+00:00",
+                    updated_at_utc="2026-06-01T00:00:00+00:00",
+                )
+                html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                )
+
+        self.assertIn("Due today", html)
+        self.assertIn("Due Today Routine", html)
 
     def test_dashboard_html_render_includes_briefing_output_preview_and_flags(self) -> None:
         with _seeded_runtime_db() as db_path:
@@ -799,6 +880,179 @@ class DashboardSynthesisImportPreviewTest(unittest.TestCase):
         )
 
 
+class DashboardRoutinesAndPrioritiesRoutesTest(unittest.TestCase):
+    def test_get_routines_page_renders_create_form_and_existing_seed_routines(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_READ_PERMISSION)
+
+            with _dashboard_server(db_path) as base_url:
+                status, body = _http_get(base_url, "/routines")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Create Routine", body)
+        self.assertIn('action="/routines/create"', body)
+        self.assertIn('action="/routines/update"', body)
+        self.assertIn("seed-routine-morning-review", body)
+
+    def test_get_priorities_page_renders_create_form_and_existing_seed_priorities(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, PRIORITY_ENGINE_READ_PERMISSION)
+
+            with _dashboard_server(db_path) as base_url:
+                status, body = _http_get(base_url, "/priorities")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Create Priority", body)
+        self.assertIn('action="/priorities/create"', body)
+        self.assertIn('action="/priorities/update"', body)
+        self.assertIn("seed-priority-local-preview", body)
+
+    def test_post_routines_create_then_update_round_trips_via_http(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_READ_PERMISSION)
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+                routine_count_before = count_routines(connection)
+
+            with _dashboard_server(db_path) as base_url:
+                create_status, create_body = _http_post(
+                    base_url,
+                    "/routines/create",
+                    {
+                        "routine_id": "routine-http-test",
+                        "name": "Morning pages",
+                        "status": "active",
+                        "enabled": "true",
+                        "notes": "Write three pages.",
+                    },
+                )
+                update_status, update_body = _http_post(
+                    base_url,
+                    "/routines/update",
+                    {
+                        "routine_id": "routine-http-test",
+                        "name": "Morning pages (renamed)",
+                        "enabled": "false",
+                        "notes": "Disabled for travel.",
+                    },
+                )
+                list_status, list_body = _http_get(base_url, "/routines")
+
+            with _sqlite_connection(db_path) as connection:
+                routine_count_after = count_routines(connection)
+
+        self.assertEqual(create_status, 200)
+        self.assertIn("created", create_body.lower())
+        self.assertIn("Morning pages", create_body)
+
+        self.assertEqual(update_status, 200)
+        self.assertIn("updated", update_body.lower())
+        self.assertIn("Morning pages (renamed)", update_body)
+
+        self.assertEqual(list_status, 200)
+        self.assertIn("Morning pages (renamed)", list_body)
+        self.assertEqual(routine_count_after, routine_count_before + 1)
+
+    def test_routines_create_permission_denied_reports_cleanly_via_http(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                routine_count_before = count_routines(connection)
+
+            with _dashboard_server(db_path) as base_url:
+                status, body = _http_post(
+                    base_url,
+                    "/routines/create",
+                    {
+                        "routine_id": "routine-denied",
+                        "name": "Should not persist",
+                    },
+                )
+
+            with _sqlite_connection(db_path) as connection:
+                routine_count_after = count_routines(connection)
+
+        self.assertEqual(status, 403)
+        self.assertIn("blocked", body.lower())
+        self.assertIn(ROUTINE_ENGINE_WRITE_PERMISSION, body)
+        self.assertEqual(routine_count_after, routine_count_before)
+
+    def test_post_priorities_create_then_update_round_trips_via_http(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, PRIORITY_ENGINE_READ_PERMISSION)
+                _set_permission(connection, PRIORITY_ENGINE_WRITE_PERMISSION)
+                priority_count_before = count_priorities(connection)
+
+            with _dashboard_server(db_path) as base_url:
+                create_status, create_body = _http_post(
+                    base_url,
+                    "/priorities/create",
+                    {
+                        "priority_id": "priority-http-test",
+                        "title": "Ship P-CORE-03",
+                        "status": "active",
+                        "notes": "Wire the surfaces.",
+                    },
+                )
+                update_status, update_body = _http_post(
+                    base_url,
+                    "/priorities/update",
+                    {
+                        "priority_id": "priority-http-test",
+                        "title": "Ship P-CORE-03 (updated)",
+                        "status": "paused",
+                    },
+                )
+                list_status, list_body = _http_get(base_url, "/priorities")
+
+            with _sqlite_connection(db_path) as connection:
+                priority_count_after = count_priorities(connection)
+
+        self.assertEqual(create_status, 200)
+        self.assertIn("created", create_body.lower())
+        self.assertIn("Ship P-CORE-03", create_body)
+
+        self.assertEqual(update_status, 200)
+        self.assertIn("updated", update_body.lower())
+        self.assertIn("Ship P-CORE-03 (updated)", update_body)
+
+        self.assertEqual(list_status, 200)
+        self.assertIn("Ship P-CORE-03 (updated)", list_body)
+        self.assertEqual(priority_count_after, priority_count_before + 1)
+
+    def test_priorities_create_permission_denied_reports_cleanly_via_http(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                priority_count_before = count_priorities(connection)
+
+            with _dashboard_server(db_path) as base_url:
+                status, body = _http_post(
+                    base_url,
+                    "/priorities/create",
+                    {
+                        "priority_id": "priority-denied",
+                        "title": "Should not persist",
+                    },
+                )
+
+            with _sqlite_connection(db_path) as connection:
+                priority_count_after = count_priorities(connection)
+
+        self.assertEqual(status, 403)
+        self.assertIn("blocked", body.lower())
+        self.assertIn(PRIORITY_ENGINE_WRITE_PERMISSION, body)
+        self.assertEqual(priority_count_after, priority_count_before)
+
+    def test_unknown_dashboard_route_reports_not_found(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _dashboard_server(db_path) as base_url:
+                status, _ = _http_get(base_url, "/routines/does-not-exist")
+
+        self.assertEqual(status, 404)
+
+
 class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
 
 
@@ -825,6 +1079,53 @@ class Phase10ADocsAndArtifactSafetyTest(unittest.TestCase):
 
         self.assertEqual(db_artifacts, [])
         self.assertEqual(var_dirs, [])
+
+
+@contextmanager
+def _dashboard_server(db_path: Path) -> Iterator[str]:
+    handler = dashboard.make_dashboard_request_handler(
+        db_path,
+        source_date=SOURCE_DATE,
+        timezone=DEFAULT_TIMEZONE,
+    )
+    server = dashboard.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address[:2]
+        yield f"http://{host}:{port}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def _http_get(base_url: str, path: str) -> tuple[int, str]:
+    host, _, port = base_url.removeprefix("http://").partition(":")
+    connection = http.client.HTTPConnection(host, int(port), timeout=5)
+    try:
+        connection.request("GET", path)
+        response = connection.getresponse()
+        return response.status, response.read().decode("utf-8")
+    finally:
+        connection.close()
+
+
+def _http_post(base_url: str, path: str, fields: dict[str, str]) -> tuple[int, str]:
+    host, _, port = base_url.removeprefix("http://").partition(":")
+    body = urlencode(fields)
+    connection = http.client.HTTPConnection(host, int(port), timeout=5)
+    try:
+        connection.request(
+            "POST",
+            path,
+            body=body,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        response = connection.getresponse()
+        return response.status, response.read().decode("utf-8")
+    finally:
+        connection.close()
 
 
 @contextmanager

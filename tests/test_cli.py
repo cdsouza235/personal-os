@@ -27,6 +27,14 @@ from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
+from personalos.priorities import (
+    PRIORITY_ENGINE_READ_PERMISSION,
+    PRIORITY_ENGINE_WRITE_PERMISSION,
+)
+from personalos.routines import (
+    ROUTINE_ENGINE_READ_PERMISSION,
+    ROUTINE_ENGINE_WRITE_PERMISSION,
+)
 from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_RUN_PERMISSION,
     RUNTIME_BOOTSTRAP_WRITE_PERMISSION,
@@ -673,6 +681,179 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertFalse(payload["live_write"])
         self.assertTrue(payload["simulated_or_dry_run"])
         self.assertFalse(payload["external_mutation"])
+
+    def test_routines_create_update_list_round_trip_via_cli(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_READ_PERMISSION)
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+
+            create_result = _run_cli(
+                [
+                    "routines",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-cli-test",
+                    "--name",
+                    "Morning pages",
+                    "--notes",
+                    "Write three pages.",
+                    "--json",
+                ]
+            )
+            update_result = _run_cli(
+                [
+                    "routines",
+                    "update",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-cli-test",
+                    "--name",
+                    "Morning pages (renamed)",
+                    "--no-enabled",
+                    "--notes",
+                    "Disabled for travel.",
+                    "--json",
+                ]
+            )
+            list_result = _run_cli(
+                ["routines", "list", "--db", str(db_path), "--json"]
+            )
+
+        create_payload = json.loads(create_result.stdout)
+        update_payload = json.loads(update_result.stdout)
+        list_payload = json.loads(list_result.stdout)
+
+        self.assertEqual(create_result.code, 0)
+        self.assertEqual(create_payload["status"], "created")
+        self.assertEqual(create_payload["routine"]["name"], "Morning pages")
+
+        self.assertEqual(update_result.code, 0)
+        self.assertEqual(update_payload["status"], "updated")
+        self.assertEqual(update_payload["routine"]["name"], "Morning pages (renamed)")
+        self.assertFalse(update_payload["routine"]["enabled"])
+        self.assertEqual(update_payload["routine"]["notes"], "Disabled for travel.")
+
+        self.assertEqual(list_result.code, 0)
+        routines_by_id = {
+            routine["routine_id"]: routine for routine in list_payload["routines"]
+        }
+        self.assertIn("routine-cli-test", routines_by_id)
+        self.assertEqual(routines_by_id["routine-cli-test"]["name"], "Morning pages (renamed)")
+        self.assertFalse(routines_by_id["routine-cli-test"]["enabled"])
+
+    def test_routines_create_reports_clean_failure_without_write_permission(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            before = _table_counts(db_path)
+            result = _run_cli(
+                [
+                    "routines",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-denied",
+                    "--name",
+                    "Should not persist",
+                    "--json",
+                ]
+            )
+            after = _table_counts(db_path)
+
+        self.assertEqual(result.code, 1)
+        self.assertEqual(before, after)
+        self.assertIn(ROUTINE_ENGINE_WRITE_PERMISSION.lower(), result.stderr.lower())
+        self.assertEqual(result.stdout, "")
+
+    def test_priorities_create_update_list_round_trip_via_cli(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, PRIORITY_ENGINE_READ_PERMISSION)
+                _set_permission(connection, PRIORITY_ENGINE_WRITE_PERMISSION)
+
+            create_result = _run_cli(
+                [
+                    "priorities",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--priority-id",
+                    "priority-cli-test",
+                    "--title",
+                    "Ship P-CORE-03",
+                    "--json",
+                ]
+            )
+            update_result = _run_cli(
+                [
+                    "priorities",
+                    "update",
+                    "--db",
+                    str(db_path),
+                    "--priority-id",
+                    "priority-cli-test",
+                    "--title",
+                    "Ship P-CORE-03 (updated)",
+                    "--status",
+                    "paused",
+                    "--json",
+                ]
+            )
+            list_result = _run_cli(
+                ["priorities", "list", "--db", str(db_path), "--json"]
+            )
+
+        create_payload = json.loads(create_result.stdout)
+        update_payload = json.loads(update_result.stdout)
+        list_payload = json.loads(list_result.stdout)
+
+        self.assertEqual(create_result.code, 0)
+        self.assertEqual(create_payload["status"], "created")
+        self.assertEqual(create_payload["priority"]["title"], "Ship P-CORE-03")
+
+        self.assertEqual(update_result.code, 0)
+        self.assertEqual(update_payload["status"], "updated")
+        self.assertEqual(
+            update_payload["priority_after"]["title"], "Ship P-CORE-03 (updated)"
+        )
+        self.assertEqual(update_payload["priority_after"]["status"], "paused")
+
+        self.assertEqual(list_result.code, 0)
+        priorities_by_id = {
+            priority["priority_id"]: priority for priority in list_payload["priorities"]
+        }
+        self.assertIn("priority-cli-test", priorities_by_id)
+        self.assertEqual(
+            priorities_by_id["priority-cli-test"]["title"], "Ship P-CORE-03 (updated)"
+        )
+        self.assertEqual(priorities_by_id["priority-cli-test"]["status"], "paused")
+
+    def test_priorities_create_reports_clean_failure_without_write_permission(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            before = _table_counts(db_path)
+            result = _run_cli(
+                [
+                    "priorities",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--priority-id",
+                    "priority-denied",
+                    "--title",
+                    "Should not persist",
+                    "--json",
+                ]
+            )
+            after = _table_counts(db_path)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 1)
+        self.assertEqual(before, after)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertIn(PRIORITY_ENGINE_WRITE_PERMISSION, payload["reason"])
 
     def test_scheduler_seed_dev_creates_safe_no_send_job_records(self) -> None:
         with _seeded_runtime_db() as db_path:

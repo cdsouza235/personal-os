@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.personalos.morning: P-SCHED-02 background activation mechanism.
+
+  THIS FILE IS AUTHORED ONLY. Nothing in P-SCHED-02 runs `launchctl load` (or any
+  equivalent) against it. Loading it for real is a deliberate, later, Chris only action,
+  gated on HI-10 (Mac Mini launchd authorization, audits/human-input-manifest.md),
+  exactly like every P-RAIL activation packet before it.
+
+  Three values below are host specific placeholders that MUST be confirmed/edited by
+  Chris before this is ever loaded for real (they are unknown to the packet that authored
+  this file, which never runs on the target Mac Mini):
+    1. The python3 interpreter path (currently /usr/bin/python3; confirm with
+       `which python3` on the Mac Mini. The project has zero third-party runtime
+       dependencies per pyproject.toml, so the system interpreter should suffice as long
+       as it is Python 3.12+, matching `requires-python` in pyproject.toml).
+    2. REPLACE_WITH_REPO_CHECKOUT_PATH: the actual path where this repository is
+       checked out on the Mac Mini (used for both WorkingDirectory and PYTHONPATH).
+    3. The log directory (~/Library/Logs/PersonalOS/): confirm it exists or will be
+       created with the right permissions before load; launchd does not create parent
+       directories for StandardOutPath/StandardErrorPath.
+
+  The db flag points at the one production database path approved by D-PO-011 (HI-09,
+  governance/living/agent-writable/DECISIONS.md):
+  /Users/coldstake/PersonalOS/personal_os.db. Known gap, not fixed by this packet: as of
+  P-SCHED-02, the `personalos run morning` command independently rejects any db path
+  under ~/PersonalOS (src/personalos/path_safety.py's reject_protected_path, and
+  src/personalos/db/connection.py's connect_sqlite has its own independent
+  ProductionConfigUnavailable guard); both guards are unchanged by this packet, by
+  design (out of its allowed_paths). A follow-up packet must teach the CLI/path-safety
+  layer about this one narrow production exception (mirroring what P-SCHED-02 did in
+  config.py) before this plist's ProgramArguments will actually succeed when launchd
+  fires it. See HANDOFF.md for the full explanation.
+
+  No RunAtLoad, no KeepAlive: this job must not fire the moment it is loaded, and must
+  not be relaunched by launchd if it exits; both would fight a clean `launchctl unload`
+  and are exactly what governance/RUNBOOK.md's "unload-proof" acceptance criterion is
+  guarding against. StartCalendarInterval (not StartInterval) is used because this is a
+  once daily fixed time job, not a fixed period one. Hour/Minute below are evaluated in
+  the host's system configured local timezone; confirm the Mac Mini's system timezone
+  is America/Chicago (matching src/personalos/config.py's DEFAULT_TIMEZONE) before
+  relying on Hour=8 meaning 8am Chicago time.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.personalos.morning</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/python3</string>
+		<string>-m</string>
+		<string>personalos.cli</string>
+		<string>run</string>
+		<string>morning</string>
+		<string>--db</string>
+		<string>/Users/coldstake/PersonalOS/personal_os.db</string>
+		<string>--timezone</string>
+		<string>America/Chicago</string>
+		<string>--json</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/coldstake/REPLACE_WITH_REPO_CHECKOUT_PATH</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PYTHONPATH</key>
+		<string>/Users/coldstake/REPLACE_WITH_REPO_CHECKOUT_PATH/src</string>
+	</dict>
+
+	<key>StartCalendarInterval</key>
+	<dict>
+		<key>Hour</key>
+		<integer>8</integer>
+		<key>Minute</key>
+		<integer>0</integer>
+	</dict>
+
+	<key>StandardOutPath</key>
+	<string>/Users/coldstake/Library/Logs/PersonalOS/scheduler-morning.out.log</string>
+
+	<key>StandardErrorPath</key>
+	<string>/Users/coldstake/Library/Logs/PersonalOS/scheduler-morning.err.log</string>
+</dict>
+</plist>

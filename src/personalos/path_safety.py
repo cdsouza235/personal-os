@@ -7,6 +7,7 @@ import re
 import tempfile
 from pathlib import Path
 
+from personalos import config
 from personalos.config import REPO_ROOT
 
 DATABASE_SUFFIXES = frozenset({".sqlite", ".sqlite3", ".db"})
@@ -100,13 +101,26 @@ def reject_production_path(path: Path, *, path_label: str) -> None:
 
 def validate_existing_sqlite_path(path_value: str | Path, *, path_label: str) -> Path:
     resolved = resolve_explicit_path(path_value, path_label=path_label)
-    reject_protected_path(resolved, path_label=path_label)
+    # D-PO-011 (HI-09) approved exactly one production database location, and
+    # P-SCHED-02 (config.py) recorded it as `config.PRODUCTION_DB_PATH` -- the single
+    # source of truth for that path, read here at call time (not copied into a
+    # module-level name) so tests can monkeypatch `config.PRODUCTION_DB_PATH` to a temp
+    # stand-in the same way tests/test_config.py already does, without ever touching the
+    # real path. This is the P-SCHED-03 follow-up the plist comment and P-SCHED-02's
+    # config.py docstring both flagged as missing: only this exact resolved path skips
+    # `reject_protected_path`'s blanket ~/PersonalOS block and the repo/temp-only check
+    # below. No other path under ~/PersonalOS gets this exemption, and
+    # `reject_sensitive_path`/`reject_production_path` still run unconditionally for this
+    # path exactly as for any other.
+    is_approved_production_path = resolved == config.PRODUCTION_DB_PATH.resolve()
+    if not is_approved_production_path:
+        reject_protected_path(resolved, path_label=path_label)
     reject_sensitive_path(resolved, path_label=path_label)
     reject_production_path(resolved, path_label=path_label)
     if resolved.suffix not in DATABASE_SUFFIXES:
         allowed = ", ".join(sorted(DATABASE_SUFFIXES))
         raise ValueError(f"{path_label} suffix must be one of: {allowed}")
-    if not (is_under_repo(resolved) or is_under_temp(resolved)):
+    if not (is_approved_production_path or is_under_repo(resolved) or is_under_temp(resolved)):
         raise ValueError(f"{path_label} must stay in explicit temp or repo-local dev paths")
     if not resolved.is_file():
         raise ValueError(f"{path_label} must point to an existing SQLite file")

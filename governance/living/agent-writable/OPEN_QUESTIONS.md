@@ -1,8 +1,9 @@
 # OPEN_QUESTIONS.md — Personal OS
 
-- **Q-PO-001** P-DEBT-03 orphan disposition: keep-and-wire vs delete for `fitness.py`
-  (1.2k LOC, CSV contract), `reports.py` (1.25k), `runtime_bootstrap.py` (1.1k),
-  `completion.py`. Per-module Chris call at the P-DEBT-03 gate.
+- ~~**Q-PO-001** P-DEBT-03 orphan disposition~~ **CLOSED (D-PO-012, 2026-07-10)**: delete
+  `fitness.py`, `reports.py`, `completion.py` (zero product imports, no roadmap packet ever
+  planned to wire any in). `runtime_bootstrap.py` excluded — it's actively used by test
+  infrastructure, not actually orphaned.
 - ~~**Q-PO-002** Production DB path/backup design~~ **CLOSED (D-PO-011, 2026-07-10)**:
   `/Users/coldstake/PersonalOS/personal_os.db`, SQLite Online Backup API for the primary backup
   mechanism (not a raw file copy — corruption risk), Time Machine as secondary safety net.

@@ -9,7 +9,7 @@ name-present preflight + the activation packet's bounded live probe).
 |---|---|---|---|---|
 | HI-01 | Approval of the governance pack (this packet, P-GOV-01) | Phase A | sign-off file in `audits/` | **requested** |
 | HI-02 | Ratification of D-PO-004 (OpenClaw cut) — rides with HI-01 | ROADMAP | DECISIONS.md | **requested** |
-| HI-03 | Per-module keep/delete calls on orphans (fitness, reports, runtime_bootstrap, completion) | P-DEBT-03 | gate decision | pending (Q-PO-001) |
+| HI-03 | Per-module keep/delete calls on orphans (fitness, reports, runtime_bootstrap, completion) | P-DEBT-03 | gate decision | **provided** (D-PO-012, 2026-07-10: delete fitness/reports/completion; runtime_bootstrap excluded, actually in use) |
 | HI-04 | Routine model sign-off: confirm PRD §3.1 cadence/missed-behavior semantics match how you actually live (esp. GTG rotation + weekly targets) | P-DESIGN-01 (G6) | gate decision | pending |
 | HI-05 | Seed routine list confirmation (names, cadences, windows) | P-CORE-03 | state seed review | pending |
 | HI-06 | `TODOIST_API_TOKEN` present in env (name-only) | P-RAIL-TD-02 | env/keychain | pending |

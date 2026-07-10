@@ -74,6 +74,6 @@ than "keep live" by default — this checklist is meant to be conservative.
       revert to soaking) with the specific gap named, and re-run this checklist at the end
       of the extension.
 - [ ] Any box unchecked with a real correctness/safety concern → kill the rail
-      (`governance/living/agent-writable/TODOIST_KILL_PROCEDURE.md`) and open a fix packet
+      (`docs/TODOIST_KILL_PROCEDURE.md`) and open a fix packet
       that reproduces the issue from the ledger before any code change, per the RUNBOOK's
       Incident procedure.

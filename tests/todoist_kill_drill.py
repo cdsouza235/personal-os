@@ -2,8 +2,8 @@
 """Todoist rail kill-drill (P-RAIL-TD-02).
 
 Proves, by actually exercising the code paths, that BOTH kill mechanisms documented in
-governance/living/agent-writable/TODOIST_KILL_PROCEDURE.md (which supplements the generic
-kill-procedure section in governance/RUNBOOK.md) really do stop a live Todoist write:
+docs/TODOIST_KILL_PROCEDURE.md (which supplements the generic kill-procedure section in
+governance/RUNBOOK.md) really do stop a live Todoist write:
 
   1. Flipping the rail state away from "live" (`status._RAIL_STATES["todoist"]`).
   2. Removing the credential from the environment (`PERSONALOS_RAIL_TODOIST_TOKEN`).

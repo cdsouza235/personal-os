@@ -40,7 +40,7 @@ from personalos.runtime_bootstrap import (
     RUNTIME_BOOTSTRAP_WRITE_PERMISSION,
     bootstrap_runtime_database,
 )
-from personalos.scheduler import count_scheduler_jobs, count_scheduler_runs
+from personalos.scheduler import count_scheduler_jobs, count_scheduler_runs, list_scheduler_runs
 from personalos.side_effects import (
     SIDE_EFFECT_LEDGER_ATTEMPT_PERMISSION,
     SIDE_EFFECT_LEDGER_READ_PERMISSION,
@@ -64,6 +64,9 @@ from personalos.state import (
     count_priorities,
     count_projects,
     count_synthesis_import_previews,
+    create_followup,
+    create_priority,
+    create_routine,
     upsert_permission_setting,
 )
 from personalos.synthesis_import import (
@@ -1052,6 +1055,180 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertIn("output_file", payload["workflow_report"]["reason"])
         self.assertFalse(payload["completion_report"]["external_mutation"])
         self.assertFalse(payload["completion_report"]["scheduler_activation"])
+
+
+class OperatorCliRunMorningWorkflowTest(unittest.TestCase):
+    """P-SCHED-01: `personalos run morning` is the real top-level entry point."""
+
+    PRIOR_DATE = "2026-06-14"
+
+    def test_run_morning_records_scheduler_run_and_briefing_output_with_no_preseeded_jobs(
+        self,
+    ) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_permissions(connection)
+                _enable_composer_permissions(connection)
+                self.assertEqual(count_scheduler_jobs(connection), 0)
+                before_scheduler_runs = count_scheduler_runs(connection)
+                before_briefing = _briefing_counts(connection)
+
+            result = _run_cli(
+                [
+                    "run",
+                    "morning",
+                    "--db",
+                    str(db_path),
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--json",
+                ]
+            )
+
+            with _sqlite_connection(db_path) as connection:
+                after_scheduler_runs = count_scheduler_runs(connection)
+                after_briefing = _briefing_counts(connection)
+                runs = list_scheduler_runs(connection)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["status"], "completed")
+        self.assertEqual(after_scheduler_runs - before_scheduler_runs, 1)
+        self.assertEqual(
+            after_briefing["briefing_outputs"] - before_briefing["briefing_outputs"], 1
+        )
+        self.assertEqual(len(runs), 1)
+        self.assertEqual(runs[0]["job_type"], "briefing_preview")
+        self.assertIsNone(runs[0]["scheduler_job_id"])
+
+    def test_run_morning_output_file_contains_real_due_and_carryover_content(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_permissions(connection)
+                _enable_composer_permissions(connection)
+                create_routine(
+                    connection,
+                    routine_id="routine-morning-due-1",
+                    name="Morning pages",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc=f"{SOURCE_DATE}T00:00:00+00:00",
+                    updated_at_utc=f"{SOURCE_DATE}T00:00:00+00:00",
+                )
+                create_routine(
+                    connection,
+                    routine_id="routine-morning-due-2",
+                    name="Evening review",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc=f"{SOURCE_DATE}T00:00:00+00:00",
+                    updated_at_utc=f"{SOURCE_DATE}T00:00:00+00:00",
+                )
+                create_priority(
+                    connection,
+                    priority_id="priority-morning-new-1",
+                    title="Ship the briefing packet",
+                    status="active",
+                    created_at_utc=f"{SOURCE_DATE}T09:00:00+00:00",
+                    updated_at_utc=f"{SOURCE_DATE}T09:00:00+00:00",
+                )
+                create_priority(
+                    connection,
+                    priority_id="priority-morning-carried-1",
+                    title="Follow up with Chris",
+                    status="active",
+                    created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                    updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                )
+                create_followup(
+                    connection,
+                    followup_id="followup-morning-carried-1",
+                    title="Check on export bug",
+                    status="open",
+                    source="tests",
+                    created_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                    updated_at_utc=f"{self.PRIOR_DATE}T09:00:00+00:00",
+                )
+
+            with tempfile.TemporaryDirectory() as output_dir:
+                output_path = Path(output_dir) / "morning-brief.md"
+                result = _run_cli(
+                    [
+                        "run",
+                        "morning",
+                        "--db",
+                        str(db_path),
+                        "--date",
+                        SOURCE_DATE,
+                        "--timezone",
+                        DEFAULT_TIMEZONE,
+                        "--output-file",
+                        str(output_path),
+                        "--json",
+                    ]
+                )
+                self.assertEqual(result.code, 0)
+                payload = json.loads(result.stdout)
+                self.assertTrue(payload["file_write"])
+                self.assertEqual(
+                    payload["output_target"]["path"], str(output_path.resolve())
+                )
+
+                content = output_path.read_text(encoding="utf-8")
+
+        self.assertIn("Due today (2):", content)
+        self.assertIn("Morning pages", content)
+        self.assertIn("Evening review", content)
+        self.assertIn("New priorities today (1):", content)
+        self.assertIn("Ship the briefing packet", content)
+        self.assertIn("Carried over from previous days", content)
+        self.assertIn("Follow up with Chris", content)
+        self.assertIn("Check on export bug", content)
+
+    def test_run_morning_performs_no_external_writes_or_network_calls(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_permissions(connection)
+                _enable_composer_permissions(connection)
+                before_external_attempts = count_external_write_attempts(connection)
+
+            result = _run_cli(
+                [
+                    "run",
+                    "morning",
+                    "--db",
+                    str(db_path),
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--json",
+                ]
+            )
+
+            with _sqlite_connection(db_path) as connection:
+                after_external_attempts = count_external_write_attempts(connection)
+
+        payload = json.loads(result.stdout)
+        workflow_report = payload["workflow_report"]
+        completion_report = payload["completion_report"]
+        self.assertEqual(result.code, 0)
+        self.assertEqual(after_external_attempts, before_external_attempts)
+        self.assertTrue(workflow_report["no_send_mode"])
+        self.assertTrue(workflow_report["no_external_writes"])
+        self.assertTrue(workflow_report["no_live_model_call"])
+        self.assertTrue(workflow_report["fake_composer_adapter"])
+        self.assertFalse(workflow_report["network_called"])
+        self.assertFalse(completion_report["scheduler_activation"])
+        self.assertFalse(completion_report["launch_agent_installed"])
+        self.assertFalse(completion_report["daemonized"])
+        self.assertFalse(completion_report["background_process_started"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["no_send_mode"])
 
 
 class OperatorCliFileOutputWorkflowTest(unittest.TestCase):

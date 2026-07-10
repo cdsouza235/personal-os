@@ -260,6 +260,39 @@ class TodoistRailGateTest(unittest.TestCase):
                 blocked_result = create_live_todoist_task(blocked_connection, **_task_input())
                 self.assertNotIn(FAKE_TOKEN, json.dumps(blocked_result))
 
+    def test_successful_live_write_persists_idempotency_record_and_blocks_retry(self) -> None:
+        # GLM's finding (iteration 7): gate 2 only ever CHECKED for an existing
+        # idempotency record, never wrote one after a successful live call, so an
+        # immediate identical-input retry would sail through gate 2 a second time
+        # and make a second live API call. This proves the fix: a retry now hits
+        # STATUS_BLOCKED_DUPLICATE, and the fake client is invoked exactly once
+        # across both attempts.
+        with _migrated_test_connection() as connection:
+            _set_permission(connection)
+            client = _RecordingFakeClient()
+            task_input = _task_input()
+
+            with mock.patch.dict(status._RAIL_STATES, {"todoist": "live"}):
+                with mock.patch.dict("os.environ", {TODOIST_RAIL_CREDENTIAL_ENV_VAR: FAKE_TOKEN}):
+                    first_result = create_live_todoist_task(
+                        connection, client=client, **task_input
+                    )
+                    second_result = create_live_todoist_task(
+                        connection, client=client, **task_input
+                    )
+
+            self.assertEqual(first_result["status"], STATUS_CLIENT_CALL_PASSED)
+            self.assertIsNone(first_result["gate_failed"])
+            self.assertTrue(first_result["idempotency_record_persisted"])
+            self.assertIsNotNone(first_result["idempotency_record"])
+
+            self.assertEqual(second_result["status"], STATUS_BLOCKED_DUPLICATE)
+            self.assertEqual(second_result["gate_failed"], "ledger_dedupe")
+            self.assertIsNotNone(second_result["existing_idempotency_record"])
+            self.assertFalse(second_result["safety_assertions"]["network_called"])
+
+            self.assertEqual(len(client.calls), 1)
+
     def test_evaluate_and_require_permission_helpers(self) -> None:
         with _migrated_test_connection() as connection:
             decision = evaluate_todoist_rail_live_write_permission(connection)

@@ -25,9 +25,10 @@ import sqlite3
 import urllib.error
 import urllib.request
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
-from personalos.idempotency import generate_idempotency_key
+from personalos.idempotency import generate_idempotency_key, payload_fingerprint
 from personalos.permissions import PermissionMode
 from personalos.side_effects import get_idempotency_record
 from personalos.state import build_todoist_task_record, get_permission_setting
@@ -210,6 +211,21 @@ def create_live_todoist_task(
     selected_client = client if client is not None else TodoistRailClient(token=token)
     client_result = selected_client.create_task(_todoist_api_payload(task))
 
+    idempotency_record_persisted = False
+    persisted_idempotency_record = None
+    if client_result["status"] == STATUS_CLIENT_CALL_PASSED:
+        # Persist the dedupe record ONLY once the live call is confirmed to have
+        # succeeded, so that an immediate identical-input retry hits gate 2 above
+        # and refuses, instead of repeating the live call (the exact hazard the
+        # dedupe gate exists to prevent). A failed/uncertain client_result leaves
+        # no record behind, so a genuinely transient failure can still be retried.
+        persisted_idempotency_record = _persist_live_write_idempotency_record(
+            connection,
+            idempotency_key=idempotency_key,
+            task=task,
+        )
+        idempotency_record_persisted = True
+
     return {
         "status": client_result["status"],
         "reason": (
@@ -224,6 +240,8 @@ def create_live_todoist_task(
         "would_write": task,
         "permission": permission,
         "idempotency_key": idempotency_key,
+        "idempotency_record_persisted": idempotency_record_persisted,
+        "idempotency_record": persisted_idempotency_record,
         "rail_state": rail_state,
         "credential_env_var": credential_env_var,
         "client_result": client_result,
@@ -294,6 +312,63 @@ def _todoist_api_payload(task: Mapping[str, Any]) -> dict[str, Any]:
         payload["due_string"] = task["due_date_or_due_string"]
     payload["priority"] = task["priority"]
     return payload
+
+
+def _persist_live_write_idempotency_record(
+    connection: sqlite3.Connection,
+    *,
+    idempotency_key: str,
+    task: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Insert the row gate 2's `get_idempotency_record` lookup will find on retry.
+
+    Mirrors the check-then-insert shape of `side_effects.create_external_write_intent_record`
+    (same `idempotency_records` table, same columns), but inserts ONLY into
+    `idempotency_records` rather than also creating an `external_write_intents` row:
+    that table's schema (migrations/00011_side_effect_idempotency_ledger_tables.sql)
+    hard-CHECKs `live_write = 0` and `no_external_writes = 1`, so it structurally
+    cannot represent a real live write and is out of scope to alter here.
+    `idempotency_records.status` carries the same CHECK-constrained enum; the closest
+    existing member for a completed external action is "completed_simulated" (the
+    same value `side_effects._intent_status_after_attempt` returns for a successful
+    non-dry-run attempt) -- adding a dedicated "completed_live" enum member would
+    require a migration change, out of this packet's scope.
+    """
+    now = _utc_now()
+    with connection:
+        connection.execute(
+            """
+            INSERT INTO idempotency_records (
+                idempotency_key,
+                target_system,
+                operation_type,
+                source_type,
+                source_id,
+                dedupe_key,
+                payload_fingerprint,
+                first_seen_at,
+                last_seen_at,
+                status,
+                linked_intent_id,
+                linked_attempt_id
+            )
+            VALUES (?, 'todoist', 'create', ?, ?, ?, ?, ?, ?, 'completed_simulated', NULL, NULL)
+            """,
+            (
+                idempotency_key,
+                task["source_type"],
+                task["source_id"],
+                task["dedupe_key"],
+                payload_fingerprint(_idempotency_payload(task)),
+                now,
+                now,
+            ),
+        )
+    return get_idempotency_record(connection, idempotency_key)
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 def _idempotency_payload(task: Mapping[str, Any]) -> dict[str, Any]:

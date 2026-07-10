@@ -96,5 +96,19 @@
   GTG and Fitness/Strength above are routine-engine seed data only. Formalizes the
   Conductor design decision ahead of P-CORE. — Chris, 2026-07-08
 
+- **D-PO-011 Production DB location + backup design (HI-09, closes Q-PO-002).** The production
+  SQLite database lives at `/Users/coldstake/PersonalOS/personal_os.db` — the existing protected
+  external path already reserved in `governance/SECURITY.md`/`RISK_REGISTER.md` ("never inside
+  any packet scope"), not a new location. Backup mechanism: SQLite's own Online Backup API
+  (`sqlite3 <source> ".backup <dest>"`, or the equivalent `sqlite3.Connection.backup()` call),
+  run on a schedule — NOT a raw filesystem copy, which risks capturing a torn/inconsistent
+  snapshot if a write is in progress when the copy happens; the Online Backup API guarantees a
+  consistent copy regardless of concurrent activity. Time Machine (or equivalent existing Mac
+  backup) remains a SECONDARY safety net for catastrophic disk loss, not the primary defense
+  against backup corruption. A restore-drill procedure (documented steps a human follows to
+  restore from the `.backup` snapshot) is part of P-SCHED-02's own acceptance, not a separate
+  decision. Unblocks P-SCHED-02 (background scheduler activation), which requires HI-09 resolved
+  per `audits/human-input-manifest.md`. — Chris, 2026-07-10
+
 ## Reversals
 (none)

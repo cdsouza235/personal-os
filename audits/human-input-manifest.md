@@ -15,7 +15,7 @@ name-present preflight + the activation packet's bounded live probe).
 | HI-06 | `TODOIST_API_TOKEN` present in env (name-only) | P-RAIL-TD-02 | env/keychain | pending |
 | HI-07 | Gmail app password + sender + controlled recipient (names only) | P-RAIL-GM-02 | env/keychain | pending |
 | HI-08 | Briefing quality judgment on soak artifacts (Q-PO-003) | P-BRIEF-01→GM-02 | gate decision | pending |
-| HI-09 | Production DB location + backup destination | P-SCHED-02 G0 | gate decision | pending (Q-PO-002) |
+| HI-09 | Production DB location + backup destination | P-SCHED-02 G0 | gate decision | **provided** (D-PO-011, 2026-07-10: `/Users/coldstake/PersonalOS/personal_os.db`, SQLite Online Backup API) |
 | HI-10 | Mac Mini launchd authorization (unattended execution) | P-SCHED-02 | G4+G5 sign-off | pending |
 | HI-11 | B-00 sequencing decision (Q-PO-004) | after Phase A | direction | pending |
 | HI-12 | Google Calendar credential/connector choice | P-RAIL-CAL (post-MVP) | gate decision | deferred |

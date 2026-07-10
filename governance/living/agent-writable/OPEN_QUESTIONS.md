@@ -3,8 +3,10 @@
 - **Q-PO-001** P-DEBT-03 orphan disposition: keep-and-wire vs delete for `fitness.py`
   (1.2k LOC, CSV contract), `reports.py` (1.25k), `runtime_bootstrap.py` (1.1k),
   `completion.py`. Per-module Chris call at the P-DEBT-03 gate.
-- **Q-PO-002** Production DB path/backup design — needed before P-SCHED-02 (unattended
-  writes need a real DB home + restore drill). Owner: P-SCHED-02 G0 plan.
+- ~~**Q-PO-002** Production DB path/backup design~~ **CLOSED (D-PO-011, 2026-07-10)**:
+  `/Users/coldstake/PersonalOS/personal_os.db`, SQLite Online Backup API for the primary backup
+  mechanism (not a raw file copy — corruption risk), Time Machine as secondary safety net.
+  Unblocks HI-09 for P-SCHED-02.
 - ~~**Q-PO-003** Briefing content quality bar for MVP~~ **CLOSED, 2026-07-09**: Chris reviewed
   the real generated `readable_text` (multiple due routines, mixed new/carried-over priorities
   and followups) and accepted the deterministic-template baseline as good enough to ship the
@@ -26,11 +28,9 @@
   packet. Owner: Chris (design input) / next briefing packet's builder task.
 - ~~**Q-PO-004** Harness B-00 timing~~ **CLOSED (D-PO-009, 2026-07-07): B-00 first**,
   then P-DESIGN-01 under the orchestrator-driven loop.
-- **Q-PO-005** Harness-side: every high-stakes personal-os packet with no third-reviewer
-  configured hits `route.STOP_TO_HUMAN` with no built override path (discovered live at
-  P-DESIGN-01, 2026-07-08; tracked in the harness repo's `projects/mis/ROADMAP.md` under F1).
-  Personal-os's unfamiliar paths are broadly high-stakes-classified, so this recurs on the
-  NEXT novel-path packet, not just this one. P-DESIGN-01 was unblocked by a one-time Conductor
-  sign-off + manual merge outside the loop — not repeatable. Owner: harness repo (a real
-  third-reviewer seat, possibly OpenRouter-backed, or an audited override gate); blocks
-  P-CORE-01..03 running unattended through the loop until resolved.
+- ~~**Q-PO-005** Harness-side third-reviewer gap~~ **CLOSED (2026-07-08)**: the third-reviewer
+  seat (GLM 5.2 via OpenRouter) was built, activated, and proven live the same day this was
+  raised — every packet since P-CORE-01 has run high-stakes passes through it unattended, with
+  real findings caught (P-CORE-02's weekly-target undercounting, P-RAIL-TD-01's idempotency gap,
+  P-RAIL-TD-02's kill-doc restart-claim error). No override path was ever needed; this is the real
+  fix.

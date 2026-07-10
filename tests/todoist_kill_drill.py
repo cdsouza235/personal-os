@@ -2,7 +2,8 @@
 """Todoist rail kill-drill (P-RAIL-TD-02).
 
 Proves, by actually exercising the code paths, that BOTH kill mechanisms documented in
-governance/RUNBOOK.md's "Kill procedures" section really do stop a live Todoist write:
+governance/living/agent-writable/TODOIST_KILL_PROCEDURE.md (which supplements the generic
+kill-procedure section in governance/RUNBOOK.md) really do stop a live Todoist write:
 
   1. Flipping the rail state away from "live" (`status._RAIL_STATES["todoist"]`).
   2. Removing the credential from the environment (`PERSONALOS_RAIL_TODOIST_TOKEN`).
@@ -14,7 +15,7 @@ Todoist credential (a fixed placeholder string is used), and never touches a rea
 caller to have set PYTHONPATH -- it locates `src/` from its own path.
 
 Usage:
-    python3 scripts/todoist_kill_drill.py
+    python3 tests/todoist_kill_drill.py
 
 Exit code 0 means both kill mechanisms were proven to work; exit code 1 means at least one
 did not behave as expected and the RUNBOOK kill procedure needs to be re-examined BEFORE

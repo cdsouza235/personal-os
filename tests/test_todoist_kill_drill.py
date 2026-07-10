@@ -1,9 +1,10 @@
-"""Wires scripts/todoist_kill_drill.py into the automated suite (P-RAIL-TD-02).
+"""Wires tests/todoist_kill_drill.py into the automated suite (P-RAIL-TD-02).
 
 The drill script is the artifact a human runs by hand during a real incident to verify
-the RUNBOOK kill procedure still works; this test just makes sure it stays green on every
+the kill procedure still works; this test just makes sure it stays green on every
 run of the suite, so a regression in either kill mechanism is caught before it ever
-matters. Loaded by file path (not package import) since `scripts/` is not a package.
+matters. Loaded by file path (not package import) since it's a standalone script, not a
+module of the `tests` package.
 """
 
 import importlib.util
@@ -11,7 +12,7 @@ import sys
 import unittest
 from pathlib import Path
 
-_SCRIPT_PATH = Path(__file__).resolve().parent.parent / "scripts" / "todoist_kill_drill.py"
+_SCRIPT_PATH = Path(__file__).resolve().parent / "todoist_kill_drill.py"
 _SPEC = importlib.util.spec_from_file_location("todoist_kill_drill", _SCRIPT_PATH)
 assert _SPEC is not None and _SPEC.loader is not None
 todoist_kill_drill = importlib.util.module_from_spec(_SPEC)

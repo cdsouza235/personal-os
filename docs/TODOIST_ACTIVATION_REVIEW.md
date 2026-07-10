@@ -56,7 +56,7 @@ than "keep live" by default — this checklist is meant to be conservative.
 - [ ] The kill procedure was NOT needed during the live period (if it was, that is itself an
       incident — capture per the RUNBOOK's Incident section before continuing this
       checklist).
-- [ ] Re-run `python3 scripts/todoist_kill_drill.py` after the live period ends and confirm
+- [ ] Re-run `python3 tests/todoist_kill_drill.py` after the live period ends and confirm
       it still prints `PASS` for both `rail_state_flip` and `credential_removal` — proves
       both kill mechanisms are still live and correct, not just documented.
 
@@ -74,5 +74,6 @@ than "keep live" by default — this checklist is meant to be conservative.
       revert to soaking) with the specific gap named, and re-run this checklist at the end
       of the extension.
 - [ ] Any box unchecked with a real correctness/safety concern → kill the rail
-      (`governance/RUNBOOK.md` Todoist kill steps) and open a fix packet that reproduces the
-      issue from the ledger before any code change, per the RUNBOOK's Incident procedure.
+      (`governance/living/agent-writable/TODOIST_KILL_PROCEDURE.md`) and open a fix packet
+      that reproduces the issue from the ledger before any code change, per the RUNBOOK's
+      Incident procedure.

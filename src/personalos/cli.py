@@ -9,9 +9,11 @@ import sqlite3
 import sys
 from collections.abc import Iterable, Mapping, Sequence
 from contextlib import closing
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from personalos.briefings import generate_no_send_briefing_preview, read_briefing_output
 from personalos.config import DEFAULT_TIMEZONE
@@ -240,6 +242,36 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json_arg(today_parser)
     today_parser.set_defaults(func=_command_today)
 
+    run_parser = subparsers.add_parser(
+        "run",
+        help="Run a real top-level Personal OS job as a foreground no-send simulation only.",
+        description=(
+            "Run a real top-level Personal OS job as a foreground no-send simulation "
+            "only. This is a manual-trigger entry point: it never installs or activates "
+            "a scheduler, LaunchAgent, crontab, daemon, background loop, or production "
+            "runtime."
+        ),
+    )
+    run_subparsers = run_parser.add_subparsers(dest="run_command", required=True)
+
+    run_morning_parser = run_subparsers.add_parser(
+        "morning",
+        help="Run the morning no-send briefing job end to end (plan/window/preview/export).",
+        description=(
+            "Run the morning no-send briefing job end to end through the existing "
+            "plan/window/preview/export pipeline. Records one real scheduler_run ledger "
+            "row. Manual trigger only; no scheduler activation."
+        ),
+    )
+    _add_db_arg(run_morning_parser)
+    run_morning_parser.add_argument(
+        "--date",
+        help="Source date in YYYY-MM-DD format. Defaults to today in --timezone.",
+    )
+    run_morning_parser.add_argument("--timezone", default=DEFAULT_TIMEZONE)
+    run_morning_parser.add_argument("--output-file")
+    _add_json_arg(run_morning_parser)
+    run_morning_parser.set_defaults(func=_command_run_morning)
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
     briefing_subparsers = briefing_parser.add_subparsers(dest="briefing_command", required=True)
@@ -731,6 +763,65 @@ def _command_today(args: argparse.Namespace) -> int:
 
 
 
+
+
+def _command_run_morning(args: argparse.Namespace) -> int:
+    output_path = None
+    if args.output_file:
+        output_path = validate_output_file_path(
+            args.output_file,
+            path_label="operator output_file",
+        )
+    resolved_date = args.date or _today_iso(args.timezone)
+
+    with closing(_connect_read_write(args.db)) as connection:
+        result = run_scheduler_job_simulated(
+            connection,
+            job_type="briefing_preview",
+            briefing_window_name="morning",
+            source_date=resolved_date,
+            timezone=args.timezone,
+            run_type="manual_simulated",
+        )
+
+    workflow_report = result.get("workflow_report")
+    manual_export_markdown = (
+        workflow_report.get("manual_export_markdown")
+        if isinstance(workflow_report, Mapping)
+        else None
+    )
+    file_write = False
+    if output_path is not None and _has_text(manual_export_markdown):
+        output_path.write_text(manual_export_markdown, encoding="utf-8")
+        file_write = True
+
+    report = _with_workflow_context(
+        {"command": "run morning", **result, "file_write": file_write},
+        workflow_name="Morning briefing job (manual trigger)",
+        workflow_mode="inert / no-send / foreground simulation",
+        database_path=args.db,
+        database_access="read_write_local_morning_run",
+        local_sqlite_read=True,
+        local_sqlite_changed=bool(result.get("database_write")),
+        output_kind="file" if file_write else ("stdout_json" if args.json else "stdout_human"),
+        output_file=str(output_path) if file_write else None,
+        safe_next_actions=(
+            "Review the morning briefing completion report."
+            if file_write
+            else "Rerun with --output-file to export the would-have-sent Markdown artifact.",
+            "Inspect scheduler jobs or status from the same safe local DB.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if result.get("status") == "completed" else 1
+
+
+def _today_iso(timezone: str) -> str:
+    try:
+        zone = ZoneInfo(timezone)
+    except ZoneInfoNotFoundError as error:
+        raise CliError(f"timezone must be a valid IANA timezone name: {timezone}") from error
+    return datetime.now(zone).date().isoformat()
 
 
 def _has_text(value: object) -> bool:

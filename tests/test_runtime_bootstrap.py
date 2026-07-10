@@ -474,6 +474,15 @@ class RuntimeBootstrapSafetyTest(unittest.TestCase):
             "/Users/coldstake/PersonalOS",
             "/Users/coldstake/.openclaw",
         )
+        # P-SCHED-02 (D-PO-011, HI-09) sanctions exactly one occurrence of exactly one
+        # fragment: config.py's PRODUCTION_DB_PATH constant, the one approved production
+        # database location. Nothing else in src/ may reference either protected path;
+        # test_config_py_is_the_only_sanctioned_protected_path_reference below double-
+        # checks that this one exception is narrow (single occurrence, exact constant,
+        # no OpenClaw reference at all).
+        sanctioned_exceptions = {
+            Path("src/personalos/config.py"): {"/Users/coldstake/PersonalOS"},
+        }
         matches = []
         for directory, directories, filenames in os.walk(REPO_ROOT / "src"):
             directories[:] = [item for item in directories if item != "__pycache__"]
@@ -482,11 +491,22 @@ class RuntimeBootstrapSafetyTest(unittest.TestCase):
                 if path.suffix != ".py":
                     continue
                 text = path.read_text(encoding="utf-8")
+                relative_path = path.relative_to(REPO_ROOT)
+                allowed_fragments = sanctioned_exceptions.get(relative_path, set())
                 for fragment in protected_fragments:
-                    if fragment in text:
-                        matches.append(str(path.relative_to(REPO_ROOT)))
+                    if fragment in text and fragment not in allowed_fragments:
+                        matches.append(str(relative_path))
 
         self.assertEqual(matches, [])
+
+    def test_config_py_is_the_only_sanctioned_protected_path_reference(self) -> None:
+        text = (REPO_ROOT / "src" / "personalos" / "config.py").read_text(encoding="utf-8")
+        self.assertNotIn("/Users/coldstake/.openclaw", text)
+        self.assertEqual(text.count("/Users/coldstake/PersonalOS"), 1)
+        self.assertIn(
+            'PRODUCTION_DB_PATH = Path("/Users/coldstake/PersonalOS/personal_os.db")',
+            text,
+        )
 
     def test_repo_artifact_safety_has_no_var_or_database_artifacts_outside_git(self) -> None:
         db_artifacts: list[Path] = []

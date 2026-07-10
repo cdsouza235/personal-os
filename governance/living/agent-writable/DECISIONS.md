@@ -110,5 +110,15 @@
   decision. Unblocks P-SCHED-02 (background scheduler activation), which requires HI-09 resolved
   per `audits/human-input-manifest.md`. — Chris, 2026-07-10
 
+- **D-PO-012 P-DEBT-03 orphan disposition (closes Q-PO-001, HI-03).** `fitness.py` (1207 LOC),
+  `reports.py` (1252 LOC), `completion.py` (155 LOC) — all "dev/test-only foundation" modules with
+  zero non-test imports anywhere in the product code, and no roadmap packet ever planned to wire
+  any of them in (unlike `routines.py`/`todoist.py`, which both had real follow-up packets).
+  Delete all three. `runtime_bootstrap.py` (1086 LOC) is explicitly OUT of this decision — unlike
+  the other three, it IS actively used, by multiple test files' own bootstrap/setup path
+  (`test_briefings.py`, `test_synthesis_import.py`, `test_today_dashboard.py`, `test_scheduler.py`,
+  `test_cli.py`) — it stays, already correctly disposed as dev/test infrastructure, not a product
+  orphan. — Chris, 2026-07-10
+
 ## Reversals
 (none)

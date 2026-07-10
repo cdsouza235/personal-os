@@ -17,15 +17,36 @@ shell or a REPL open against the running process/host):
 2. Change the `"todoist"` value from `"live"` to `"inert"` (or `"soaking"` — anything other
    than the literal string `"live"` blocks the rail; `"inert"` is the correct choice for a
    real kill, not `"soaking"`).
-3. Save the file. Because `_RAIL_STATES` is read fresh from the module on every call to
-   `create_live_todoist_task` (it reads `RAIL_STATES["todoist"]`, the immutable public view
-   of the same dict), the very next invocation anywhere in the process sees the new value
-   and refuses with `STATUS_BLOCKED_RAIL_STATE` — no restart required if the process
-   re-imports/re-reads the module; if you are not certain the running process will pick up
-   the edit without a restart, restart it. There is no config flag or database row to also
-   update — the dict literal in this one file is the entire mechanism.
+3. Save the file. **A running process does not automatically pick up this edit.** Python
+   loads `_RAIL_STATES` into memory once, at import time; a process that already has
+   `status.py` imported keeps the OLD dict in memory regardless of what the file on disk
+   now says, until that process either re-imports the module (which does not happen on its
+   own) or is restarted. Saving the file alone does not flip anything live — restart the
+   process (or, equivalently, make sure no invocation is already in flight) for the edit to
+   take effect.
+
+   This is safe to do with a plain file save today only because of a fact about the current
+   deployment, not because of anything in the code: every Todoist-rail invocation right now
+   is a fresh, short-lived CLI process (e.g. `personalos run morning`) — there is no
+   long-running daemon or background process holding a stale import. So the very next
+   invocation, whenever it happens, naturally starts a new process, imports the file fresh,
+   and sees the edited value — there is nothing to restart because nothing long-running is
+   running. **If a background/daemon mode has since landed (see `P-SCHED-02` in
+   `governance/ROADMAP.md`), re-verify this assumption before relying on it** — a genuinely
+   long-running process would need an explicit restart, and this paragraph would need to be
+   updated to say so plainly rather than silently going stale.
+
+   There is no config flag or database row to also update — the dict literal in this one
+   file is the entire mechanism.
 4. Verify: run `python3 tests/todoist_kill_drill.py` (no arguments, no network, no real
    credential needed) and confirm it prints `PASS` for `kill mechanism: rail_state_flip`.
+   Note what this actually proves: the drill patches `_RAIL_STATES` in-process via
+   `mock.patch.dict` and confirms the gate check correctly blocks a write once the value is
+   not `"live"` — it proves the GATE LOGIC is correct. It does not and cannot exercise the
+   restart/re-import behavior described in step 3 above (whether a real running process
+   picks up a real on-disk file edit); that is a deployment/operational property, not
+   something an in-process mock can observe. Trust step 3's reasoning for that half, not
+   the drill.
 
 **Mechanism 2 — remove the credential from the environment** (fastest if you don't have
 file-edit access to the host but do control the environment the process reads, e.g. a

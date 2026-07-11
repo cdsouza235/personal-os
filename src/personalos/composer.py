@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 from personalos import execution_rails as rails
 from personalos.calendar_blocks import preview_calendar_block
 from personalos.config import DEFAULT_TIMEZONE
-from personalos.permissions import PermissionMode
+from personalos.permissions import evaluate_auto_write_gate
 from personalos.routines_engine import compute_due_and_owed
 from personalos.state import (
     count_calendar_blocks,
@@ -31,7 +31,6 @@ from personalos.state import (
     get_composer_output,
     get_composer_packet,
     get_model_run,
-    get_permission_setting,
     list_calendar_blocks,
     list_composer_outputs,
     list_composer_packets,
@@ -890,50 +889,16 @@ def evaluate_composer_module_permission(
     category: str,
 ) -> dict[str, Any]:
     category = _validate_required_text("category", category)
-    setting = get_permission_setting(connection, category)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=None,
-            reason=f"Missing Composer module permission setting: {category}",
-            setting=None,
-        )
-
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=setting["mode"],
-            reason=f"Invalid Composer module permission mode: {setting['mode']}",
-            setting=setting,
-        )
-
-    if mode is PermissionMode.DISABLED:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Composer module permission is disabled: {category}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Composer module permission is not enabled for dev/test use: {category}",
-            setting=setting,
-        )
-
-    return _permission_decision(
-        allowed=True,
+    return evaluate_auto_write_gate(
+        connection,
         category=category,
-        mode=mode.value,
-        reason="Composer module permission is explicitly enabled for dev/test use.",
-        setting=setting,
+        missing_reason=lambda: f"Missing Composer module permission setting: {category}",
+        invalid_reason=lambda raw_mode: f"Invalid Composer module permission mode: {raw_mode}",
+        disabled_reason=lambda: f"Composer module permission is disabled: {category}",
+        not_auto_write_reason=(
+            lambda _mode_value: f"Composer module permission is not enabled for dev/test use: {category}"
+        ),
+        success_reason="Composer module permission is explicitly enabled for dev/test use.",
     )
 
 
@@ -1430,23 +1395,6 @@ def _blocked_result(
         "permission": dict(permission),
         record_type: None,
         "would_write": dict(would_write) if would_write is not None else None,
-    }
-
-
-def _permission_decision(
-    *,
-    allowed: bool,
-    category: str,
-    mode: str | None,
-    reason: str,
-    setting: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": category,
-        "mode": mode,
-        "reason": reason,
-        "setting": setting,
     }
 
 

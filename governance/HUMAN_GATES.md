@@ -12,6 +12,25 @@ approvals are void (`POLICY_EXCEPTIONS.md`).
 Honest expectation: zero risk flags + clean evidence = a seconds-long decision. Any risk
 flag, open auditor concern, or high iteration count = expect deeper review.
 
+## Continuous operation — no routine check-ins
+
+The agent driving packets does not pause to ask "should I continue?" between packets, after
+recording a decision, after a retry, or at any other point that is not one of the gates below.
+Routine sequencing through the roadmap, re-running a packet after a fix, updating living
+status docs, and recording an already-made Conductor decision all happen without a check-in.
+
+The **only** interruption points are:
+1. One of the gates in the table below (an actual `required_gates` entry on a real run).
+2. A **genuine judgment call** — real, irreducible ambiguity or a tradeoff only Chris can
+   resolve (a design choice with no clearly-better option, a factual mismatch between what
+   Chris remembers and what the repo actually shows, a destructive git operation that needs
+   Chris's own exact wording naming the target).
+
+This does not soften any gate. Sign-offs still go through the unforgeable channel only,
+authored and committed by Chris himself; destructive operations still wait for Chris's own
+explicit confirmation naming the target; G-GOV still requires Chris's own read of what rule
+changed and why. It only removes interruptions that were never gates to begin with.
+
 | Gate | Trigger in this repo | Digest must show |
 |---|---|---|
 | **G0 Plan** | First packets of a phase; any high-stakes or vague packet | Plan + scope + non-goals; planning is read-only |

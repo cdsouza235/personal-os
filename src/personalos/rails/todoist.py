@@ -29,9 +29,9 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from personalos.idempotency import generate_idempotency_key, payload_fingerprint
-from personalos.permissions import PermissionMode
+from personalos.permissions import evaluate_auto_write_gate
 from personalos.side_effects import get_idempotency_record
-from personalos.state import build_todoist_task_record, get_permission_setting
+from personalos.state import build_todoist_task_record
 from personalos.status import RAIL_STATES
 
 TODOIST_RAIL_LIVE_WRITE_PERMISSION = "todoist_rail_live_write"
@@ -257,39 +257,17 @@ def create_live_todoist_task(
 
 
 def evaluate_todoist_rail_live_write_permission(connection: sqlite3.Connection) -> dict[str, Any]:
-    setting = get_permission_setting(connection, TODOIST_RAIL_LIVE_WRITE_PERMISSION)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            mode=None,
-            reason=f"Missing permission setting: {TODOIST_RAIL_LIVE_WRITE_PERMISSION}",
-            setting=None,
-        )
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            mode=setting["mode"],
-            reason=f"Invalid permission mode: {setting['mode']}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            mode=mode.value,
-            reason=(
-                f"Todoist live-write rail permission is not auto_write "
-                f"(this dev/test simulated-write permission being enabled does not "
-                f"count): {mode.value}"
-            ),
-            setting=setting,
-        )
-    return _permission_decision(
-        allowed=True,
-        mode=mode.value,
-        reason="Todoist live-write rail permission is explicitly set to auto_write.",
-        setting=setting,
+    return evaluate_auto_write_gate(
+        connection,
+        category=TODOIST_RAIL_LIVE_WRITE_PERMISSION,
+        missing_reason=lambda: f"Missing permission setting: {TODOIST_RAIL_LIVE_WRITE_PERMISSION}",
+        invalid_reason=lambda raw_mode: f"Invalid permission mode: {raw_mode}",
+        not_auto_write_reason=lambda mode_value: (
+            f"Todoist live-write rail permission is not auto_write "
+            f"(this dev/test simulated-write permission being enabled does not "
+            f"count): {mode_value}"
+        ),
+        success_reason="Todoist live-write rail permission is explicitly set to auto_write.",
     )
 
 
@@ -378,22 +356,6 @@ def _idempotency_payload(task: Mapping[str, Any]) -> dict[str, Any]:
         "labels": list(task["labels"]),
         "due_date_or_due_string": task["due_date_or_due_string"],
         "priority": task["priority"],
-    }
-
-
-def _permission_decision(
-    *,
-    allowed: bool,
-    mode: str | None,
-    reason: str,
-    setting: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": TODOIST_RAIL_LIVE_WRITE_PERMISSION,
-        "mode": mode,
-        "reason": reason,
-        "setting": setting,
     }
 
 

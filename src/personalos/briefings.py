@@ -697,23 +697,6 @@ def _evaluate_generation_permissions(connection: sqlite3.Connection) -> dict[str
     }
 
 
-def _permission_decision(
-    *,
-    allowed: bool,
-    category: str,
-    mode: str | None,
-    reason: str,
-    setting: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": category,
-        "mode": mode,
-        "reason": reason,
-        "setting": None if setting is None else dict(setting),
-    }
-
-
 def _briefing_window_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "id": row["id"],

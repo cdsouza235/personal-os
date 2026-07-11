@@ -12,13 +12,12 @@ from typing import Any
 from uuid import uuid4
 
 from personalos import execution_rails as rails
-from personalos.permissions import PermissionMode
+from personalos.permissions import evaluate_auto_write_gate
 from personalos.state import (
     create_followup,
     create_priority,
     create_project,
     get_followup,
-    get_permission_setting,
     get_priority,
     get_project,
     get_synthesis_import_preview,
@@ -441,50 +440,16 @@ def evaluate_synthesis_apply_permission(
     category: str,
 ) -> dict[str, Any]:
     category = rails.validate_required_text("category", category)
-    setting = get_permission_setting(connection, category)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=None,
-            reason=f"Missing synthesis apply permission setting: {category}",
-            setting=None,
-        )
-
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=setting["mode"],
-            reason=f"Invalid synthesis apply permission mode: {setting['mode']}",
-            setting=setting,
-        )
-
-    if mode is PermissionMode.DISABLED:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Synthesis apply permission is disabled: {category}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Synthesis apply permission is not enabled for dev/test use: {category}",
-            setting=setting,
-        )
-
-    return _permission_decision(
-        allowed=True,
+    return evaluate_auto_write_gate(
+        connection,
         category=category,
-        mode=mode.value,
-        reason="Synthesis apply permission is explicitly enabled for dev/test use.",
-        setting=setting,
+        missing_reason=lambda: f"Missing synthesis apply permission setting: {category}",
+        invalid_reason=lambda raw_mode: f"Invalid synthesis apply permission mode: {raw_mode}",
+        disabled_reason=lambda: f"Synthesis apply permission is disabled: {category}",
+        not_auto_write_reason=(
+            lambda _mode_value: f"Synthesis apply permission is not enabled for dev/test use: {category}"
+        ),
+        success_reason="Synthesis apply permission is explicitly enabled for dev/test use.",
     )
 
 
@@ -1529,23 +1494,6 @@ def _evaluate_apply_permissions(connection: sqlite3.Connection) -> list[dict[str
             category=SYNTHESIS_APPLY_APPLY_PERMISSION,
         ),
     ]
-
-
-def _permission_decision(
-    *,
-    allowed: bool,
-    category: str,
-    mode: str | None,
-    reason: str,
-    setting: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": category,
-        "mode": mode,
-        "reason": reason,
-        "setting": dict(setting) if setting is not None else None,
-    }
 
 
 def _run_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:

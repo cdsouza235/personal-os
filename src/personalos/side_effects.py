@@ -15,8 +15,7 @@ from personalos.idempotency import (
     stable_json_dumps,
     stable_side_effect_id,
 )
-from personalos.permissions import PermissionMode
-from personalos.state import get_permission_setting
+from personalos.permissions import evaluate_auto_write_gate
 
 SIDE_EFFECT_LEDGER_READ_PERMISSION = "side_effect_ledger_dev_test_read"
 SIDE_EFFECT_LEDGER_WRITE_PERMISSION = "side_effect_ledger_dev_test_write"
@@ -792,37 +791,18 @@ def evaluate_side_effect_ledger_permission(
     category: str,
 ) -> dict[str, Any]:
     category = rails.validate_required_text("category", category)
-    setting = get_permission_setting(connection, category)
-    if setting is None:
-        return _permission_decision(
-            category=category,
-            allowed=False,
-            reason=f"Missing side-effect ledger permission setting: {category}",
-        )
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            category=category,
-            allowed=False,
-            reason=f"Invalid side-effect ledger permission mode: {setting['mode']}",
-        )
-    if mode is PermissionMode.DISABLED:
-        return _permission_decision(
-            category=category,
-            allowed=False,
-            reason=f"Side-effect ledger permission is disabled: {category}",
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            category=category,
-            allowed=False,
-            reason=f"Side-effect ledger permission is not enabled for dev/test use: {category}",
-        )
-    return _permission_decision(
+    return evaluate_auto_write_gate(
+        connection,
         category=category,
-        allowed=True,
-        reason="Side-effect ledger permission is explicitly enabled for dev/test use.",
+        missing_reason=lambda: f"Missing side-effect ledger permission setting: {category}",
+        invalid_reason=lambda raw_mode: f"Invalid side-effect ledger permission mode: {raw_mode}",
+        disabled_reason=lambda: f"Side-effect ledger permission is disabled: {category}",
+        not_auto_write_reason=(
+            lambda _mode_value: f"Side-effect ledger permission is not enabled for dev/test use: {category}"
+        ),
+        success_reason="Side-effect ledger permission is explicitly enabled for dev/test use.",
+        include_mode=False,
+        include_setting=False,
     )
 
 
@@ -1130,19 +1110,6 @@ def _grouped_counts(
 def _count_rows(connection: sqlite3.Connection, table_name: str) -> int:
     row = connection.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()
     return int(row[0])
-
-
-def _permission_decision(
-    *,
-    category: str,
-    allowed: bool,
-    reason: str,
-) -> dict[str, Any]:
-    return {
-        "category": category,
-        "allowed": allowed,
-        "reason": reason,
-    }
 
 
 def _utc_now() -> str:

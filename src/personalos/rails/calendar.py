@@ -84,9 +84,8 @@ from personalos.execution_rails import (
     validate_timezone_aware_datetime,
 )
 from personalos.idempotency import generate_idempotency_key, payload_fingerprint
-from personalos.permissions import PermissionMode
+from personalos.permissions import evaluate_auto_write_gate
 from personalos.side_effects import get_idempotency_record
-from personalos.state import get_permission_setting
 from personalos.status import RAIL_STATES
 
 CALENDAR_RAIL_LIVE_WRITE_PERMISSION = "calendar_rail_live_write"
@@ -502,39 +501,17 @@ def create_live_calendar_event(
 
 
 def evaluate_calendar_rail_live_write_permission(connection: sqlite3.Connection) -> dict[str, Any]:
-    setting = get_permission_setting(connection, CALENDAR_RAIL_LIVE_WRITE_PERMISSION)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            mode=None,
-            reason=f"Missing permission setting: {CALENDAR_RAIL_LIVE_WRITE_PERMISSION}",
-            setting=None,
-        )
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            mode=setting["mode"],
-            reason=f"Invalid permission mode: {setting['mode']}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            mode=mode.value,
-            reason=(
-                f"Calendar live-write rail permission is not auto_write "
-                f"(any other rail's or module's permission being enabled does not "
-                f"count): {mode.value}"
-            ),
-            setting=setting,
-        )
-    return _permission_decision(
-        allowed=True,
-        mode=mode.value,
-        reason="Calendar live-write rail permission is explicitly set to auto_write.",
-        setting=setting,
+    return evaluate_auto_write_gate(
+        connection,
+        category=CALENDAR_RAIL_LIVE_WRITE_PERMISSION,
+        missing_reason=lambda: f"Missing permission setting: {CALENDAR_RAIL_LIVE_WRITE_PERMISSION}",
+        invalid_reason=lambda raw_mode: f"Invalid permission mode: {raw_mode}",
+        not_auto_write_reason=lambda mode_value: (
+            f"Calendar live-write rail permission is not auto_write "
+            f"(any other rail's or module's permission being enabled does not "
+            f"count): {mode_value}"
+        ),
+        success_reason="Calendar live-write rail permission is explicitly set to auto_write.",
     )
 
 
@@ -666,22 +643,6 @@ def _idempotency_payload(event: Mapping[str, Any]) -> dict[str, Any]:
         "start_time": event["start_time"],
         "end_time": event["end_time"],
         "calendar_id": event["calendar_id"],
-    }
-
-
-def _permission_decision(
-    *,
-    allowed: bool,
-    mode: str | None,
-    reason: str,
-    setting: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": CALENDAR_RAIL_LIVE_WRITE_PERMISSION,
-        "mode": mode,
-        "reason": reason,
-        "setting": setting,
     }
 
 

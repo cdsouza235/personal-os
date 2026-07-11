@@ -12,12 +12,11 @@ from typing import Any
 
 from personalos import execution_rails as rails
 from personalos.calendar_blocks import preview_calendar_block
-from personalos.permissions import PermissionMode
+from personalos.permissions import evaluate_auto_write_gate
 from personalos.state import (
     SYNTHESIS_IMPORT_RAW_EXCERPT_MAX_CHARS,
     count_synthesis_import_previews,
     create_synthesis_import_preview as insert_synthesis_import_preview,
-    get_permission_setting,
     get_synthesis_import_preview,
     list_synthesis_import_previews,
     validate_followup_status,
@@ -360,50 +359,16 @@ def evaluate_synthesis_import_permission(
     category: str,
 ) -> dict[str, Any]:
     category = rails.validate_required_text("category", category)
-    setting = get_permission_setting(connection, category)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=None,
-            reason=f"Missing synthesis import permission setting: {category}",
-            setting=None,
-        )
-
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=setting["mode"],
-            reason=f"Invalid synthesis import permission mode: {setting['mode']}",
-            setting=setting,
-        )
-
-    if mode is PermissionMode.DISABLED:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Synthesis import permission is disabled: {category}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Synthesis import permission is not enabled for dev/test use: {category}",
-            setting=setting,
-        )
-
-    return _permission_decision(
-        allowed=True,
+    return evaluate_auto_write_gate(
+        connection,
         category=category,
-        mode=mode.value,
-        reason="Synthesis import permission is explicitly enabled for dev/test use.",
-        setting=setting,
+        missing_reason=lambda: f"Missing synthesis import permission setting: {category}",
+        invalid_reason=lambda raw_mode: f"Invalid synthesis import permission mode: {raw_mode}",
+        disabled_reason=lambda: f"Synthesis import permission is disabled: {category}",
+        not_auto_write_reason=(
+            lambda _mode_value: f"Synthesis import permission is not enabled for dev/test use: {category}"
+        ),
+        success_reason="Synthesis import permission is explicitly enabled for dev/test use.",
     )
 
 
@@ -1109,23 +1074,6 @@ def _candidate_report_entry(
     if approval is not None:
         entry["approval"] = dict(approval)
     return entry
-
-
-def _permission_decision(
-    *,
-    allowed: bool,
-    category: str,
-    mode: str | None,
-    reason: str,
-    setting: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": category,
-        "mode": mode,
-        "reason": reason,
-        "setting": dict(setting) if setting is not None else None,
-    }
 
 
 def _blocked_result(

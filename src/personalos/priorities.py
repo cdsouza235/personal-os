@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
-from personalos.permissions import PermissionMode
+from personalos.permissions import evaluate_auto_write_gate
 from personalos.state import (
     count_priorities,
     count_priorities_by_status,
@@ -388,53 +388,17 @@ def evaluate_priority_engine_permission(
     *,
     category: str,
 ) -> dict[str, Any]:
-    from personalos.state import get_permission_setting
-
     category = _validate_required_text("category", category)
-    setting = get_permission_setting(connection, category)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=None,
-            reason=f"Missing priority engine permission setting: {category}",
-            setting=None,
-        )
-
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=setting["mode"],
-            reason=f"Invalid priority engine permission mode: {setting['mode']}",
-            setting=setting,
-        )
-
-    if mode is PermissionMode.DISABLED:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Priority engine permission is disabled: {category}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Priority engine permission is not enabled for dev/test use: {category}",
-            setting=setting,
-        )
-
-    return _permission_decision(
-        allowed=True,
+    return evaluate_auto_write_gate(
+        connection,
         category=category,
-        mode=mode.value,
-        reason="Priority engine permission is explicitly enabled for dev/test use.",
-        setting=setting,
+        missing_reason=lambda: f"Missing priority engine permission setting: {category}",
+        invalid_reason=lambda raw_mode: f"Invalid priority engine permission mode: {raw_mode}",
+        disabled_reason=lambda: f"Priority engine permission is disabled: {category}",
+        not_auto_write_reason=(
+            lambda _mode_value: f"Priority engine permission is not enabled for dev/test use: {category}"
+        ),
+        success_reason="Priority engine permission is explicitly enabled for dev/test use.",
     )
 
 
@@ -519,23 +483,6 @@ def _merge_priority_update(
         "notes": update_input.get("notes", priority_before["notes"]),
         "created_at_utc": priority_before["created_at_utc"],
         "updated_at_utc": update_input["updated_at_utc"],
-    }
-
-
-def _permission_decision(
-    *,
-    allowed: bool,
-    category: str,
-    mode: str | None,
-    reason: str,
-    setting: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": category,
-        "mode": mode,
-        "reason": reason,
-        "setting": setting,
     }
 
 

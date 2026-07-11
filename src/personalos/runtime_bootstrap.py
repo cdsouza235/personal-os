@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from personalos.config import DEFAULT_TIMEZONE, REPO_ROOT
 from personalos.db.migrations import MIGRATION_METADATA_TABLE, apply_migrations, discover_migrations
-from personalos.permissions import PermissionMode
+from personalos.permissions import PermissionMode, evaluate_auto_write_gate
 from personalos.scheduler import (
     SCHEDULER_READ_PERMISSION,
     SCHEDULER_RUN_PERMISSION,
@@ -29,7 +29,6 @@ from personalos.side_effects import (
 from personalos.state import (
     create_priority,
     create_routine,
-    get_permission_setting,
     get_priority,
     get_routine,
     upsert_permission_setting,
@@ -351,50 +350,16 @@ def evaluate_runtime_bootstrap_permission(
     category: str,
 ) -> dict[str, Any]:
     category = _validate_required_text("category", category)
-    setting = get_permission_setting(connection, category)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=None,
-            reason=f"Missing runtime bootstrap permission setting: {category}",
-            setting=None,
-        )
-
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=setting["mode"],
-            reason=f"Invalid runtime bootstrap permission mode: {setting['mode']}",
-            setting=setting,
-        )
-
-    if mode is PermissionMode.DISABLED:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Runtime bootstrap permission is disabled: {category}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            category=category,
-            mode=mode.value,
-            reason=f"Runtime bootstrap permission is not enabled for dev/test use: {category}",
-            setting=setting,
-        )
-
-    return _permission_decision(
-        allowed=True,
+    return evaluate_auto_write_gate(
+        connection,
         category=category,
-        mode=mode.value,
-        reason="Runtime bootstrap permission is explicitly enabled for dev/test use.",
-        setting=setting,
+        missing_reason=lambda: f"Missing runtime bootstrap permission setting: {category}",
+        invalid_reason=lambda raw_mode: f"Invalid runtime bootstrap permission mode: {raw_mode}",
+        disabled_reason=lambda: f"Runtime bootstrap permission is disabled: {category}",
+        not_auto_write_reason=(
+            lambda _mode_value: f"Runtime bootstrap permission is not enabled for dev/test use: {category}"
+        ),
+        success_reason="Runtime bootstrap permission is explicitly enabled for dev/test use.",
     )
 
 

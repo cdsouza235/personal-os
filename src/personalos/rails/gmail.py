@@ -59,9 +59,8 @@ from personalos.execution_rails import (
     validate_text,
 )
 from personalos.idempotency import generate_idempotency_key, payload_fingerprint
-from personalos.permissions import PermissionMode
+from personalos.permissions import evaluate_auto_write_gate
 from personalos.side_effects import get_idempotency_record
-from personalos.state import get_permission_setting
 from personalos.status import RAIL_STATES
 
 GMAIL_RAIL_LIVE_SEND_PERMISSION = "gmail_rail_live_send"
@@ -366,39 +365,17 @@ def send_live_gmail_message(
 
 
 def evaluate_gmail_rail_live_send_permission(connection: sqlite3.Connection) -> dict[str, Any]:
-    setting = get_permission_setting(connection, GMAIL_RAIL_LIVE_SEND_PERMISSION)
-    if setting is None:
-        return _permission_decision(
-            allowed=False,
-            mode=None,
-            reason=f"Missing permission setting: {GMAIL_RAIL_LIVE_SEND_PERMISSION}",
-            setting=None,
-        )
-    try:
-        mode = PermissionMode(setting["mode"])
-    except ValueError:
-        return _permission_decision(
-            allowed=False,
-            mode=setting["mode"],
-            reason=f"Invalid permission mode: {setting['mode']}",
-            setting=setting,
-        )
-    if mode is not PermissionMode.AUTO_WRITE:
-        return _permission_decision(
-            allowed=False,
-            mode=mode.value,
-            reason=(
-                f"Gmail live-send rail permission is not auto_write "
-                f"(any other rail's or module's permission being enabled does not "
-                f"count): {mode.value}"
-            ),
-            setting=setting,
-        )
-    return _permission_decision(
-        allowed=True,
-        mode=mode.value,
-        reason="Gmail live-send rail permission is explicitly set to auto_write.",
-        setting=setting,
+    return evaluate_auto_write_gate(
+        connection,
+        category=GMAIL_RAIL_LIVE_SEND_PERMISSION,
+        missing_reason=lambda: f"Missing permission setting: {GMAIL_RAIL_LIVE_SEND_PERMISSION}",
+        invalid_reason=lambda raw_mode: f"Invalid permission mode: {raw_mode}",
+        not_auto_write_reason=lambda mode_value: (
+            f"Gmail live-send rail permission is not auto_write "
+            f"(any other rail's or module's permission being enabled does not "
+            f"count): {mode_value}"
+        ),
+        success_reason="Gmail live-send rail permission is explicitly set to auto_write.",
     )
 
 
@@ -502,22 +479,6 @@ def _idempotency_payload(message: Mapping[str, Any]) -> dict[str, Any]:
         "subject": message["subject"],
         "body": message["body"],
         "to_address": message["to_address"],
-    }
-
-
-def _permission_decision(
-    *,
-    allowed: bool,
-    mode: str | None,
-    reason: str,
-    setting: dict[str, Any] | None,
-) -> dict[str, Any]:
-    return {
-        "allowed": allowed,
-        "category": GMAIL_RAIL_LIVE_SEND_PERMISSION,
-        "mode": mode,
-        "reason": reason,
-        "setting": setting,
     }
 
 

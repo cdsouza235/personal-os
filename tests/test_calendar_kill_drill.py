@@ -42,6 +42,10 @@ class CalendarKillDrillTest(unittest.TestCase):
         result = calendar_kill_drill.run_controlled_calendar_id_removal_kill_drill()
         self.assertTrue(result.passed, msg="\n".join(result.details))
 
+    def test_controlled_calendar_id_mismatch_kill_mechanism_blocks_next_create(self) -> None:
+        result = calendar_kill_drill.run_controlled_calendar_id_mismatch_kill_drill()
+        self.assertTrue(result.passed, msg="\n".join(result.details))
+
 
 if __name__ == "__main__":
     unittest.main()

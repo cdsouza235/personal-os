@@ -120,5 +120,17 @@
   `test_cli.py`) — it stays, already correctly disposed as dev/test infrastructure, not a product
   orphan. — Chris, 2026-07-10
 
+- **D-PO-013 Calendar rail OAuth identity + target calendar (closes HI-12).** The OAuth
+  credentials (`PERSONALOS_RAIL_CALENDAR_CLIENT_ID`/`_CLIENT_SECRET`/`_REFRESH_TOKEN`) authenticate
+  as the sandboxed account (`cdsouza.bot@gmail.com`), not Chris's personal Google account — the
+  bot identity holds the credentials, keeping blast radius contained to whatever's been explicitly
+  shared with it. `PERSONALOS_RAIL_CALENDAR_CONTROLLED_CALENDAR_ID` is set to Chris's real personal
+  calendar (`cdsouza235@gmail.com`), not the bot's own — writable because that calendar has been
+  explicitly shared with the bot account with edit permission. Chris chose to point at the real
+  calendar from the first live test rather than soak on a throwaway calendar first (the
+  lower-risk option offered), given the bot-identity/personal-calendar split already contains most
+  of the risk a fully personal-account setup would carry. Unblocks P-RAIL-CAL-02. — Chris,
+  2026-07-13
+
 ## Reversals
 (none)

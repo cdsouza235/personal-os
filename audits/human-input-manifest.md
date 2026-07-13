@@ -18,7 +18,7 @@ name-present preflight + the activation packet's bounded live probe).
 | HI-09 | Production DB location + backup destination | P-SCHED-02 G0 | gate decision | **provided** (D-PO-011, 2026-07-10: `/Users/coldstake/PersonalOS/personal_os.db`, SQLite Online Backup API) |
 | HI-10 | Mac Mini launchd authorization (unattended execution) | P-SCHED-02 | G4+G5 sign-off | pending |
 | HI-11 | B-00 sequencing decision (Q-PO-004) | after Phase A | direction | pending |
-| HI-12 | Google Calendar credential/connector choice | P-RAIL-CAL (post-MVP) | gate decision | deferred |
+| HI-12 | Google Calendar credential/connector choice | P-RAIL-CAL (post-MVP) | gate decision | **provided** (D-PO-013, 2026-07-13: OAuth identity = sandboxed `cdsouza.bot@gmail.com`; target calendar = Chris's personal calendar via sharing; four `PERSONALOS_RAIL_CALENDAR_*` env vars confirmed set on the Mac Mini) |
 
 No packet may consume an input whose status is not **provided/verified**. Requesting an
 input early is fine; building against an unprovided input is not.

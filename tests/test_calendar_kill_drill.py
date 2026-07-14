@@ -30,12 +30,24 @@ class CalendarKillDrillTest(unittest.TestCase):
         result = calendar_kill_drill.run_client_id_removal_kill_drill()
         self.assertTrue(result.passed, msg="\n".join(result.details))
 
+    def test_client_id_empty_value_kill_mechanism_blocks_next_create(self) -> None:
+        result = calendar_kill_drill.run_client_id_empty_value_kill_drill()
+        self.assertTrue(result.passed, msg="\n".join(result.details))
+
     def test_client_secret_removal_kill_mechanism_blocks_next_create(self) -> None:
         result = calendar_kill_drill.run_client_secret_removal_kill_drill()
         self.assertTrue(result.passed, msg="\n".join(result.details))
 
+    def test_client_secret_empty_value_kill_mechanism_blocks_next_create(self) -> None:
+        result = calendar_kill_drill.run_client_secret_empty_value_kill_drill()
+        self.assertTrue(result.passed, msg="\n".join(result.details))
+
     def test_refresh_token_removal_kill_mechanism_blocks_next_create(self) -> None:
         result = calendar_kill_drill.run_refresh_token_removal_kill_drill()
+        self.assertTrue(result.passed, msg="\n".join(result.details))
+
+    def test_refresh_token_empty_value_kill_mechanism_blocks_next_create(self) -> None:
+        result = calendar_kill_drill.run_refresh_token_empty_value_kill_drill()
         self.assertTrue(result.passed, msg="\n".join(result.details))
 
     def test_controlled_calendar_id_removal_kill_mechanism_blocks_next_create(self) -> None:

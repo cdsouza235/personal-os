@@ -12,9 +12,14 @@ gate unique to this rail (see the "Calendar-scoping" section of
 blocks the next create just as surely as the others do.
 
   1. Flipping the rail state away from "live" (`status._RAIL_STATES["calendar"]`).
-  2. Removing `PERSONALOS_RAIL_CALENDAR_CLIENT_ID` from the environment.
-  3. Removing `PERSONALOS_RAIL_CALENDAR_CLIENT_SECRET` from the environment.
-  4. Removing `PERSONALOS_RAIL_CALENDAR_REFRESH_TOKEN` from the environment.
+  2. Removing `PERSONALOS_RAIL_CALENDAR_CLIENT_ID` from the environment (or setting it to
+     an empty/whitespace-only value -- both sub-cases proven independently, since the gate
+     returns a distinct status for each: `STATUS_BLOCKED_CREDENTIAL_MISSING` vs.
+     `STATUS_BLOCKED_CREDENTIAL_EMPTY`).
+  3. Removing `PERSONALOS_RAIL_CALENDAR_CLIENT_SECRET` from the environment (or setting it
+     to an empty/whitespace-only value -- same two sub-cases as above).
+  4. Removing `PERSONALOS_RAIL_CALENDAR_REFRESH_TOKEN` from the environment (or setting it
+     to an empty/whitespace-only value -- same two sub-cases as above).
   5. Removing OR changing the controlled-calendar-id env var
      (`PERSONALOS_RAIL_CALENDAR_CONTROLLED_CALENDAR_ID`) -- unique to Calendar and
      Gmail-shaped rails, no Todoist equivalent. Both sub-cases (absence and mismatch) are
@@ -65,6 +70,7 @@ from personalos.rails.calendar import (  # noqa: E402
     CALENDAR_RAIL_LIVE_WRITE_PERMISSION,
     CALENDAR_RAIL_REFRESH_TOKEN_ENV_VAR,
     STATUS_BLOCKED_CALENDAR_NOT_CONTROLLED,
+    STATUS_BLOCKED_CREDENTIAL_EMPTY,
     STATUS_BLOCKED_CREDENTIAL_MISSING,
     STATUS_BLOCKED_RAIL_STATE,
     STATUS_EVENT_CREATE_PASSED,
@@ -331,6 +337,152 @@ def run_refresh_token_removal_kill_drill() -> DrillResult:
     return DrillResult(mechanism="refresh_token_removal", passed=passed, details=details)
 
 
+def run_client_id_empty_value_kill_drill() -> DrillResult:
+    """Kill mechanism 2b: set `PERSONALOS_RAIL_CALENDAR_CLIENT_ID` to an
+    empty/whitespace-only value rather than removing it.
+
+    Distinct from `run_client_id_removal_kill_drill`, which only proves the env var's
+    ABSENCE blocks the write. The gate checks `not value.strip()` separately from
+    presence and returns a different status (`STATUS_BLOCKED_CREDENTIAL_EMPTY` instead
+    of `STATUS_BLOCKED_CREDENTIAL_MISSING`), so a regression that broke the
+    empty-value check specifically (while leaving the missing-value check intact)
+    would otherwise pass undetected.
+    """
+    details: list[str] = []
+    empty_env = dict(_FAKE_CREDENTIAL_ENV)
+    empty_env[CALENDAR_RAIL_CLIENT_ID_ENV_VAR] = "   "
+
+    with _drill_connection() as connection:
+        _set_auto_write_permission(connection)
+        client = _FakeClient()
+
+        with mock.patch.dict(status._RAIL_STATES, {"calendar": "live"}):
+            with mock.patch.dict(os.environ, _FAKE_CREDENTIAL_ENV):
+                baseline = create_live_calendar_event(
+                    connection, client=client, **_event_input("client-id-empty-baseline")
+                )
+                baseline_ok = baseline["status"] == STATUS_EVENT_CREATE_PASSED
+                details.append(
+                    f"baseline (rail=live, credentials+calendar-id present): "
+                    f"status={baseline['status']!r} "
+                    f"({'reached fake client' if baseline_ok else 'DID NOT reach fake client'})"
+                )
+
+            # Kill mechanism 2b, applied mid-scenario: set the client-id env var to a
+            # whitespace-only value rather than removing it, to prove emptiness alone
+            # (not just absence) blocks the write.
+            with mock.patch.dict(os.environ, empty_env):
+                killed = create_live_calendar_event(
+                    connection, client=client, **_event_input("client-id-empty-after-kill")
+                )
+                killed_ok = killed["status"] == STATUS_BLOCKED_CREDENTIAL_EMPTY
+                details.append(
+                    f"after kill (client-id env var set to whitespace-only value): "
+                    f"status={killed['status']!r} "
+                    f"({'blocked as expected' if killed_ok else 'NOT BLOCKED -- kill failed'})"
+                )
+
+        calls_ok = len(client.calls) == 1
+        details.append(
+            f"fake client invocation count after kill attempt: {len(client.calls)} (expected 1)"
+        )
+
+    passed = baseline_ok and killed_ok and calls_ok
+    return DrillResult(mechanism="client_id_empty_value", passed=passed, details=details)
+
+
+def run_client_secret_empty_value_kill_drill() -> DrillResult:
+    """Kill mechanism 3b: set `PERSONALOS_RAIL_CALENDAR_CLIENT_SECRET` to an
+    empty/whitespace-only value rather than removing it (same rationale as
+    `run_client_id_empty_value_kill_drill`)."""
+    details: list[str] = []
+    empty_env = dict(_FAKE_CREDENTIAL_ENV)
+    empty_env[CALENDAR_RAIL_CLIENT_SECRET_ENV_VAR] = "   "
+
+    with _drill_connection() as connection:
+        _set_auto_write_permission(connection)
+        client = _FakeClient()
+
+        with mock.patch.dict(status._RAIL_STATES, {"calendar": "live"}):
+            with mock.patch.dict(os.environ, _FAKE_CREDENTIAL_ENV):
+                baseline = create_live_calendar_event(
+                    connection, client=client, **_event_input("client-secret-empty-baseline")
+                )
+                baseline_ok = baseline["status"] == STATUS_EVENT_CREATE_PASSED
+                details.append(
+                    f"baseline (rail=live, credentials+calendar-id present): "
+                    f"status={baseline['status']!r} "
+                    f"({'reached fake client' if baseline_ok else 'DID NOT reach fake client'})"
+                )
+
+            # Kill mechanism 3b, applied mid-scenario: set the client-secret env var to
+            # a whitespace-only value rather than removing it.
+            with mock.patch.dict(os.environ, empty_env):
+                killed = create_live_calendar_event(
+                    connection, client=client, **_event_input("client-secret-empty-after-kill")
+                )
+                killed_ok = killed["status"] == STATUS_BLOCKED_CREDENTIAL_EMPTY
+                details.append(
+                    f"after kill (client-secret env var set to whitespace-only value): "
+                    f"status={killed['status']!r} "
+                    f"({'blocked as expected' if killed_ok else 'NOT BLOCKED -- kill failed'})"
+                )
+
+        calls_ok = len(client.calls) == 1
+        details.append(
+            f"fake client invocation count after kill attempt: {len(client.calls)} (expected 1)"
+        )
+
+    passed = baseline_ok and killed_ok and calls_ok
+    return DrillResult(mechanism="client_secret_empty_value", passed=passed, details=details)
+
+
+def run_refresh_token_empty_value_kill_drill() -> DrillResult:
+    """Kill mechanism 4b: set `PERSONALOS_RAIL_CALENDAR_REFRESH_TOKEN` to an
+    empty/whitespace-only value rather than removing it (same rationale as
+    `run_client_id_empty_value_kill_drill`)."""
+    details: list[str] = []
+    empty_env = dict(_FAKE_CREDENTIAL_ENV)
+    empty_env[CALENDAR_RAIL_REFRESH_TOKEN_ENV_VAR] = "   "
+
+    with _drill_connection() as connection:
+        _set_auto_write_permission(connection)
+        client = _FakeClient()
+
+        with mock.patch.dict(status._RAIL_STATES, {"calendar": "live"}):
+            with mock.patch.dict(os.environ, _FAKE_CREDENTIAL_ENV):
+                baseline = create_live_calendar_event(
+                    connection, client=client, **_event_input("refresh-token-empty-baseline")
+                )
+                baseline_ok = baseline["status"] == STATUS_EVENT_CREATE_PASSED
+                details.append(
+                    f"baseline (rail=live, credentials+calendar-id present): "
+                    f"status={baseline['status']!r} "
+                    f"({'reached fake client' if baseline_ok else 'DID NOT reach fake client'})"
+                )
+
+            # Kill mechanism 4b, applied mid-scenario: set the refresh-token env var to
+            # a whitespace-only value rather than removing it.
+            with mock.patch.dict(os.environ, empty_env):
+                killed = create_live_calendar_event(
+                    connection, client=client, **_event_input("refresh-token-empty-after-kill")
+                )
+                killed_ok = killed["status"] == STATUS_BLOCKED_CREDENTIAL_EMPTY
+                details.append(
+                    f"after kill (refresh-token env var set to whitespace-only value): "
+                    f"status={killed['status']!r} "
+                    f"({'blocked as expected' if killed_ok else 'NOT BLOCKED -- kill failed'})"
+                )
+
+        calls_ok = len(client.calls) == 1
+        details.append(
+            f"fake client invocation count after kill attempt: {len(client.calls)} (expected 1)"
+        )
+
+    passed = baseline_ok and killed_ok and calls_ok
+    return DrillResult(mechanism="refresh_token_empty_value", passed=passed, details=details)
+
+
 def run_controlled_calendar_id_removal_kill_drill() -> DrillResult:
     """Kill mechanism 5: unset (or change) `PERSONALOS_RAIL_CALENDAR_CONTROLLED_CALENDAR_ID`.
 
@@ -451,8 +603,11 @@ def run_all_drills() -> list[DrillResult]:
     return [
         run_rail_state_kill_drill(),
         run_client_id_removal_kill_drill(),
+        run_client_id_empty_value_kill_drill(),
         run_client_secret_removal_kill_drill(),
+        run_client_secret_empty_value_kill_drill(),
         run_refresh_token_removal_kill_drill(),
+        run_refresh_token_empty_value_kill_drill(),
         run_controlled_calendar_id_removal_kill_drill(),
         run_controlled_calendar_id_mismatch_kill_drill(),
     ]
@@ -472,10 +627,10 @@ def _print_report(results: list[DrillResult]) -> bool:
     print("\n" + "=" * 60)
     if all_passed:
         print(
-            "PASS -- all six kill-drill scenarios (five independent mechanisms: rail "
-            "state, each of three credentials, and controlled-calendar-id -- the last "
-            "proven via both its removal and mismatch sub-cases) blocked the next create "
-            "attempt."
+            "PASS -- all nine kill-drill scenarios (five independent mechanisms: rail "
+            "state; each of three credentials, proven via both its removal and "
+            "empty-value sub-cases; and controlled-calendar-id, proven via both its "
+            "removal and mismatch sub-cases) blocked the next create attempt."
         )
     else:
         print(

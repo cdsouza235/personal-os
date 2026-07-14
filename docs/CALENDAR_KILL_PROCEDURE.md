@@ -72,8 +72,11 @@ enough:
    before constructing any HTTPS client — the token-refresh call is never attempted. Setting
    the variable to an empty/whitespace-only value has the same fail-closed effect
    (`STATUS_BLOCKED_CREDENTIAL_EMPTY`) if unsetting it outright isn't convenient.
-4. Verify: run `python3 tests/calendar_kill_drill.py` and confirm it prints `PASS` for
-   `kill mechanism: client_id_removal`.
+4. Verify: run `python3 tests/calendar_kill_drill.py` and confirm it prints `PASS` for both
+   `kill mechanism: client_id_removal` (absence sub-case) and
+   `kill mechanism: client_id_empty_value` (empty-value sub-case) — the drill proves each
+   sub-case independently so that a regression in the empty-value check alone (leaving
+   absence-handling intact) cannot slip through undetected.
 
 **Mechanism 3 — remove `PERSONALOS_RAIL_CALENDAR_CLIENT_SECRET` from the environment**
 (same shape as Mechanism 2, proven independently sufficient — either credential alone kills
@@ -84,8 +87,10 @@ the rail):
 3. The next `create_live_calendar_event` call finds the variable absent, refusing with
    `STATUS_BLOCKED_CREDENTIAL_MISSING` (or `STATUS_BLOCKED_CREDENTIAL_EMPTY` if set to an
    empty/whitespace-only value instead) before any HTTPS client is constructed.
-4. Verify: run `python3 tests/calendar_kill_drill.py` and confirm it prints `PASS` for
-   `kill mechanism: client_secret_removal`.
+4. Verify: run `python3 tests/calendar_kill_drill.py` and confirm it prints `PASS` for both
+   `kill mechanism: client_secret_removal` (absence sub-case) and
+   `kill mechanism: client_secret_empty_value` (empty-value sub-case), for the same reason
+   given under Mechanism 2.
 
 **Mechanism 4 — remove `PERSONALOS_RAIL_CALENDAR_REFRESH_TOKEN` from the environment**
 (same shape again — proven independently sufficient):
@@ -95,8 +100,10 @@ the rail):
 3. The next `create_live_calendar_event` call finds the variable absent, refusing with
    `STATUS_BLOCKED_CREDENTIAL_MISSING` (or `STATUS_BLOCKED_CREDENTIAL_EMPTY` if set to an
    empty/whitespace-only value instead) before any HTTPS client is constructed.
-4. Verify: run `python3 tests/calendar_kill_drill.py` and confirm it prints `PASS` for
-   `kill mechanism: refresh_token_removal`.
+4. Verify: run `python3 tests/calendar_kill_drill.py` and confirm it prints `PASS` for both
+   `kill mechanism: refresh_token_removal` (absence sub-case) and
+   `kill mechanism: refresh_token_empty_value` (empty-value sub-case), for the same reason
+   given under Mechanism 2.
 
 **Mechanism 5 — remove or change `PERSONALOS_RAIL_CALENDAR_CONTROLLED_CALENDAR_ID`**
 (unique to Calendar and Gmail-shaped rails; no Todoist equivalent). This is a fifth safety

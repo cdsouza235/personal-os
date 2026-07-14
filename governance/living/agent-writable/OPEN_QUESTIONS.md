@@ -27,6 +27,32 @@
   needs its own design pass, not a bolt-on to a rendering packet. Deferred, not scheduled to a
   specific ROADMAP packet number yet — surface this when scoping the next briefing-related
   packet. Owner: Chris (design input) / next briefing packet's builder task.
+- **Q-PO-007** Go-live pre-flight + model-generated briefing direction (2026-07-13): with
+  every ROADMAP.md packet merged, Chris decided NOT to flip any rail live yet — three real
+  gaps surfaced first. (1) **HI-05** (seed routine list) is genuinely unresolved: no seed
+  data exists anywhere in the repo/DB right now, confirmed by direct search, not inferred.
+  Chris will provide his real routine list. (2) **HI-04** (cadence/missed-behavior model
+  matches how Chris actually lives) needs a dedicated working session once the list
+  arrives: inventory his real routines against the model's actual fields (cadence, missed-
+  day behavior, rotation type, GTG mechanics) one by one. (3) Chris wants to pull forward
+  the "Composer/live-model briefings (PRD §18)" future-enhancement (previously "recorded,
+  not planned" in ROADMAP.md) — replacing or augmenting the deterministic-template
+  briefing with a model call (OpenRouter, GLM 5.2 or Grok 4.5 — same infra pattern as the
+  third-reviewer seat) that reviews a co-designed "gold standard template" plus real system
+  state and authors the briefing. Chris explicitly wants this carefully spec'd before any
+  code, matching the P-DESIGN-01 precedent (a real G6 design decision, not an ad hoc
+  build). The real technical stakes flagged in this conversation: a deterministic template
+  cannot say anything false (it only renders real data); a model-authored briefing
+  introduces a genuinely new failure mode (hallucinated numbers, misstated routines,
+  invented instructions) that needs an explicit answer — how the model gets grounded in
+  verified state ONLY, and what happens on a failed/malformed call (fail closed to the
+  deterministic template, never send unverified content, was Claude's stated recommendation
+  in this conversation, not yet a ratified decision). Relates to but is broader than
+  Q-PO-006 (which is rendering-richness + reply-codes on the EXISTING deterministic
+  pipeline) — this is a different generation mechanism, not just richer output. Not
+  scheduled to a packet number. Owner: Chris (design input, including where this design
+  conversation itself happens — this repo's governance docs vs. a separate chat) / a future
+  G6-shaped design packet.
 - ~~**Q-PO-004** Harness B-00 timing~~ **CLOSED (D-PO-009, 2026-07-07): B-00 first**,
   then P-DESIGN-01 under the orchestrator-driven loop.
 - ~~**Q-PO-005** Harness-side third-reviewer gap~~ **CLOSED (2026-07-08)**: the third-reviewer

@@ -53,6 +53,47 @@
   scheduled to a packet number. Owner: Chris (design input, including where this design
   conversation itself happens — this repo's governance docs vs. a separate chat) / a future
   G6-shaped design packet.
+- **Q-PO-008** HI-05 partial progress + multi-touchpoint reply-driven email loop, sourced
+  from Chris's older "White Space Planner — Home + Mind/Body Pilot PRD" v0.1 (2026-05-14,
+  OpenClaw-era, uploaded 2026-07-14). That document's execution layer (OpenClaw, cut per
+  D-PO-004) does not carry over, but its routine content and Section 11 reply-command
+  grammar are real, useful input:
+  - **Cleaning** (its Section 7.1, 12 named tasks with rotation order/duration/description)
+    maps directly onto the CURRENT confirmed seed list's "Cleaning: rotating pool of 15-20
+    tasks, one rotation_group" (D-PO-010) — close to a ready-to-use starting set, pending
+    Chris's own adjustment pass (his own words: "baseline... I'll need to adjust").
+  - **Reading** (4x/wk) and **Stillness/Prayer/Meditation** (2x/wk) in that document match
+    the current confirmed seed list's cadence exactly — independent confirmation Chris's
+    thinking has been consistent across this whole gap in time.
+  - **Grease-the-Groove**: not in the old document at all. Chris: build the actual exercise
+    list together from scratch, a separate future session — not started.
+  - **Podcast/Media routine**: NOT in the current confirmed seed list at all (dropped
+    somewhere between the old document and D-PO-010). Chris says it's "gotten more
+    important" since — now 4x/week, Monday–Thursday evenings specifically (not floating),
+    content is curated YouTube/podcast material on markets/AI/crypto, output is
+    interpretation/synthesis notes stored in Obsidian. Proposed cadence-type mapping (not
+    yet confirmed by Chris): `specific_days` (Mon/Tue/Wed/Thu, evening window) rather than
+    a floating `weekly_target_count`, since it's pinned to specific days not "any 4 days."
+  - **New, previously untracked thing this surfaced**: a **monthly thesis review** process
+    that consumes the above routine's Obsidian notes to update market/AI/crypto views. Not
+    in the old document, not in the current seed list, cadence unknown. Open: does this
+    become a tracked PersonalOS routine (monthly cadence type doesn't exist yet in D-PO-010's
+    baseline types) or stay a manual, outside-PersonalOS process for now?
+  - **Workflow direction (Chris confirmed, not just "old document was right"):** move from
+    the current single 8am-only briefing to FOUR daily emails — 8am (sets up the day),
+    12pm/4pm/8pm (dynamic check-ins on what's still outstanding) — no OpenClaw, reply to
+    any of the four to update state so the next one reflects only what's remaining. This is
+    strictly larger than what Q-PO-006/Q-PO-007 were tracking (those assumed reply-handling
+    bolted onto the existing single morning email). **Real technical gap, checked directly,
+    not assumed**: `src/personalos/rails/gmail.py` is send-only today — there is no inbound-
+    email-reading capability anywhere in the codebase. Building the reply-driven loop means
+    building that capability from scratch (reading/parsing replies, matching them back to
+    the right routine instance, updating state), not extending an existing mechanism.
+    Claude's assessment (not yet Chris-ratified): this is its own phase-sized design effort,
+    comparable in scope to P-DESIGN-01, not a bolt-on to the next briefing packet.
+  Not scheduled to a packet number. Owner: Chris (podcast cadence confirmation, monthly-
+  thesis-review disposition, GTG session scheduling) / a future G6-shaped design packet for
+  the reply-driven multi-touchpoint loop.
 - ~~**Q-PO-004** Harness B-00 timing~~ **CLOSED (D-PO-009, 2026-07-07): B-00 first**,
   then P-DESIGN-01 under the orchestrator-driven loop.
 - ~~**Q-PO-005** Harness-side third-reviewer gap~~ **CLOSED (2026-07-08)**: the third-reviewer

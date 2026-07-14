@@ -108,10 +108,12 @@ notification recipient may already have seen it, even if the event is deleted af
       incident — capture per the RUNBOOK's Incident section before continuing this
       checklist).
 - [ ] Re-run `python3 tests/calendar_kill_drill.py` after the live period ends and confirm
-      it still prints `PASS` for all five mechanisms — `rail_state_flip`,
-      `client_id_removal`, `client_secret_removal`, `refresh_token_removal`, and
-      `controlled_calendar_id_removal` — proves all five kill mechanisms are still live and
-      correct, not just documented.
+      it still prints `PASS` for all six scenarios (five independent mechanisms) —
+      `rail_state_flip`, `client_id_removal`, `client_secret_removal`,
+      `refresh_token_removal`, `controlled_calendar_id_removal`, and
+      `controlled_calendar_id_mismatch` (the absence and mismatch sub-cases of the
+      controlled-calendar-id gate, each proven independently) — proves all five kill
+      mechanisms are still live and correct, not just documented.
 
 ## 8. Scope discipline
 - [ ] The rail only ever called `create_live_calendar_event` for its one supported

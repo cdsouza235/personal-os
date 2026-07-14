@@ -119,7 +119,10 @@ as surely as unsetting it does:
    client. This works even if all three credentials from Mechanisms 2-4 are still valid and
    present — it is a fully independent gate, not a fallback of the credential check.
 4. Verify: run `python3 tests/calendar_kill_drill.py` and confirm it prints `PASS` for
-   `kill mechanism: controlled_calendar_id_removal`.
+   both `kill mechanism: controlled_calendar_id_removal` (absence sub-case) and
+   `kill mechanism: controlled_calendar_id_mismatch` (mismatch sub-case) -- the drill
+   proves each sub-case independently so that a regression in the equality check alone
+   (leaving absence-handling intact) cannot slip through undetected.
 
 None of the five mechanisms requires touching the SQLite DB, the permission setting, or any
 ledger row — the rail-state, credential, and calendar-scoping gates are all checked

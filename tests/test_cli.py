@@ -63,6 +63,7 @@ from personalos.state import (
     count_model_runs,
     count_priorities,
     count_projects,
+    count_routines,
     count_synthesis_import_previews,
     create_followup,
     create_priority,
@@ -770,6 +771,233 @@ class OperatorCliReadAndPreviewWorkflowTest(unittest.TestCase):
         self.assertEqual(before, after)
         self.assertIn(ROUTINE_ENGINE_WRITE_PERMISSION.lower(), result.stderr.lower())
         self.assertEqual(result.stdout, "")
+
+    def test_routines_create_cli_cadence_flows_through_to_due_today_engine(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+
+            create_result = _run_cli(
+                [
+                    "routines",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-cadence-cli-test",
+                    "--name",
+                    "Weekly workout target",
+                    "--cadence-type",
+                    "weekly_target_count",
+                    "--weekly-target",
+                    "4",
+                    "--json",
+                ]
+            )
+            today_result = _run_cli(
+                [
+                    "today",
+                    "--db",
+                    str(db_path),
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--json",
+                ]
+            )
+
+        create_payload = json.loads(create_result.stdout)
+        today_payload = json.loads(today_result.stdout)
+
+        self.assertEqual(create_result.code, 0)
+        self.assertEqual(create_payload["routine"]["cadence_type"], "weekly_target_count")
+        self.assertEqual(create_payload["routine"]["weekly_target"], 4)
+
+        self.assertEqual(today_result.code, 0)
+        due_today_ids = today_payload["summary"]["routine_summary"]["due_today_routine_ids"]
+        self.assertIn("routine-cadence-cli-test", due_today_ids)
+
+    def test_routines_update_cli_cadence_change_flows_through_to_due_today_engine(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+
+            create_result = _run_cli(
+                [
+                    "routines",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-cadence-update-cli-test",
+                    "--name",
+                    "Manual only for now",
+                    "--json",
+                ]
+            )
+            before_today_result = _run_cli(
+                [
+                    "today",
+                    "--db",
+                    str(db_path),
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--json",
+                ]
+            )
+            update_result = _run_cli(
+                [
+                    "routines",
+                    "update",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-cadence-update-cli-test",
+                    "--cadence-type",
+                    "daily",
+                    "--json",
+                ]
+            )
+            after_today_result = _run_cli(
+                [
+                    "today",
+                    "--db",
+                    str(db_path),
+                    "--date",
+                    SOURCE_DATE,
+                    "--timezone",
+                    DEFAULT_TIMEZONE,
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(create_result.code, 0)
+
+        before_today_payload = json.loads(before_today_result.stdout)
+        before_due_ids = before_today_payload["summary"]["routine_summary"][
+            "due_today_routine_ids"
+        ]
+        self.assertNotIn("routine-cadence-update-cli-test", before_due_ids)
+
+        update_payload = json.loads(update_result.stdout)
+        self.assertEqual(update_result.code, 0)
+        self.assertEqual(update_payload["routine"]["cadence_type"], "daily")
+
+        after_today_payload = json.loads(after_today_result.stdout)
+        after_due_ids = after_today_payload["summary"]["routine_summary"]["due_today_routine_ids"]
+        self.assertIn("routine-cadence-update-cli-test", after_due_ids)
+
+    def test_routines_update_cli_omitting_cadence_args_leaves_cadence_unchanged(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+
+            create_result = _run_cli(
+                [
+                    "routines",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-cadence-unchanged-cli-test",
+                    "--name",
+                    "Rotation candidate",
+                    "--cadence-type",
+                    "every_n_days",
+                    "--cadence-config-json",
+                    '{"n": 3}',
+                    "--missed-behavior",
+                    "skip_and_continue",
+                    "--rotation-group",
+                    "kitchen-chores",
+                    "--json",
+                ]
+            )
+            update_result = _run_cli(
+                [
+                    "routines",
+                    "update",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-cadence-unchanged-cli-test",
+                    "--name",
+                    "Rotation candidate (renamed)",
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(create_result.code, 0)
+        self.assertEqual(update_result.code, 0)
+
+        update_payload = json.loads(update_result.stdout)
+        routine = update_payload["routine"]
+        self.assertEqual(routine["name"], "Rotation candidate (renamed)")
+        self.assertEqual(routine["cadence_type"], "every_n_days")
+        self.assertEqual(routine["cadence_config"], {"n": 3})
+        self.assertEqual(routine["missed_behavior_default"], "skip_and_continue")
+        self.assertEqual(routine["rotation_group"], "kitchen-chores")
+
+    def test_routines_create_cli_rejects_invalid_cadence_type(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+                before = count_routines(connection)
+
+            result = _run_cli(
+                [
+                    "routines",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-invalid-cadence",
+                    "--name",
+                    "Should not persist",
+                    "--cadence-type",
+                    "not_a_real_cadence",
+                    "--json",
+                ]
+            )
+
+            with _sqlite_connection(db_path) as connection:
+                after = count_routines(connection)
+
+        self.assertNotEqual(result.code, 0)
+        self.assertIn("cadence-type", result.stderr.lower())
+        self.assertEqual(before, after)
+
+    def test_routines_create_cli_rejects_invalid_missed_behavior(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+                before = count_routines(connection)
+
+            result = _run_cli(
+                [
+                    "routines",
+                    "create",
+                    "--db",
+                    str(db_path),
+                    "--routine-id",
+                    "routine-invalid-missed-behavior",
+                    "--name",
+                    "Should not persist",
+                    "--missed-behavior",
+                    "not_a_real_behavior",
+                    "--json",
+                ]
+            )
+
+            with _sqlite_connection(db_path) as connection:
+                after = count_routines(connection)
+
+        self.assertNotEqual(result.code, 0)
+        self.assertIn("missed-behavior", result.stderr.lower())
+        self.assertEqual(before, after)
 
     def test_priorities_create_update_list_round_trip_via_cli(self) -> None:
         with _seeded_runtime_db() as db_path:

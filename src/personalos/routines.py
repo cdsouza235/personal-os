@@ -58,6 +58,11 @@ def create_routine_record(
     notes: str = "",
     created_at_utc: str | None = None,
     updated_at_utc: str | None = None,
+    cadence_type: str | None = None,
+    cadence_config: Mapping[str, Any] | None = None,
+    missed_behavior_default: str | None = None,
+    rotation_group: str | None = None,
+    weekly_target: int | None = None,
 ) -> dict[str, Any]:
     require_routine_engine_permission(
         connection,
@@ -73,6 +78,11 @@ def create_routine_record(
         notes=notes,
         created_at_utc=created_at_utc,
         updated_at_utc=updated_at_utc,
+        cadence_type=cadence_type,
+        cadence_config=cadence_config,
+        missed_behavior_default=missed_behavior_default,
+        rotation_group=rotation_group,
+        weekly_target=weekly_target,
     )
 
 
@@ -107,6 +117,11 @@ def update_routine_record(
     settings: Mapping[str, Any] | None = None,
     notes: str | None = None,
     updated_at_utc: str | None = None,
+    cadence_type: str | None = None,
+    cadence_config: Mapping[str, Any] | None = None,
+    missed_behavior_default: str | None = None,
+    rotation_group: str | None = None,
+    weekly_target: int | None = None,
 ) -> dict[str, Any]:
     require_routine_engine_permission(
         connection,
@@ -121,6 +136,11 @@ def update_routine_record(
         settings=settings,
         notes=notes,
         updated_at_utc=updated_at_utc,
+        cadence_type=cadence_type,
+        cadence_config=cadence_config,
+        missed_behavior_default=missed_behavior_default,
+        rotation_group=rotation_group,
+        weekly_target=weekly_target,
     )
 
 

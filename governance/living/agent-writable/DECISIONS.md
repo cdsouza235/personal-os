@@ -212,3 +212,52 @@
   Reading/Stillness/Shutdown-Review modeling, the `compute_due_and_owed` engine contract)
   is UNCHANGED and still in force — only the GTG-specific portion is reversed. — Chris,
   2026-07-14
+
+- **D-PO-017 H2 rail-dispatch design decided.** Closes H2 (found independently by two
+  phase-end Fable audits: no code routes the morning cycle's computed candidates through
+  the rail adapters, even if a rail were live). Fable ran an independent design consult
+  (`audits/h2-rail-dispatch-design-consult-fable-report.md`), which Chris and the Builder
+  then converted directly into decisions rather than re-litigating each as an open
+  question:
+  1. **Per-rail independence.** A rail dispatches if it's live; an inert rail still
+     previews. No all-or-nothing "whole day" gate — matches the existing activation
+     ladder's explicit "one rail at a time, never bundled" posture
+     (`governance/HUMAN_GATES.md`).
+  2. **New sibling command, not a scheduler mode.** The dispatcher is a new module +
+     CLI command (not threaded through `run_scheduler_job_simulated`), because the
+     scheduler is a fail-closed simulation harness that actively rejects live-shaped
+     job types (`_FORBIDDEN_JOB_TYPE_MARKERS`) and unconditionally stamps
+     `SCHEDULER_SAFETY_FLAGS` — weakening that to fit dispatch through it would degrade
+     the guarantee for every existing simulated job. `run morning`'s no-send preview
+     stays byte-for-byte unchanged.
+  3. **Idempotency bug fixed as part of this work, not deferred.** Candidate
+     `dedupe_key`/`source_id` currently derive from a per-run `packet_id` (embeds
+     wall-clock `started_at`), so two `run morning` invocations for the same date would
+     mint different idempotency keys and could silently double-create Todoist tasks —
+     contradicting what `TODOIST_ACTIVATION_REVIEW.md` §2 already tells the operator to
+     verify. Fix: derive dedupe identity from the day-stable `daily_plan['id']`, not the
+     per-run packet id. No separate cycle-level idempotency guard is added — the
+     rail-level record becomes sufficient once keyed correctly.
+  4. **Gmail dispatch scoped to self-delivery only.** `send_live_gmail_message` hard-
+     refuses any recipient but the single configured controlled address
+     (`gmail.py:291-307`) — it structurally cannot message third parties. H2 dispatches
+     the morning briefing to Chris's own inbox only; "messages to other people" is
+     explicitly out of scope, deferred to a future packet if ever wanted.
+  5. **Report-and-stop on partial failure, no auto-retry.** If Todoist dispatch
+     succeeds and Gmail then fails, the run stops and reports the asymmetry
+     explicitly ("Todoist: N dispatched. Gmail: FAILED, not retried.") rather than
+     retrying automatically — matches this project's safety-first posture for
+     irreversible external actions, and since Todoist dispatches first, a Gmail
+     failure never costs Chris visibility into his day.
+  6. **Ledger-honesty migration scoped as a separate, sequenced packet, not deferred
+     indefinitely.** `migrations/00011` hard-`CHECK`s `live_write = 0` on both
+     `external_write_intents`/`external_write_attempts`, and `idempotency_records.status`
+     has no `'completed_live'` value — so a real live write today has no honest way to
+     record itself in the ledger (both rails currently write `completed_simulated` as a
+     workaround). Rather than accept that mislabeling indefinitely, a follow-on packet
+     adds the live-capable ledger states before any rail is actually flipped live.
+  7. **Building the dispatcher is its own G5 reachability event**, separate from any
+     actual rail flip (`HUMAN_GATES.md`'s "ANY code path that can write Todoist / send
+     Gmail … becoming reachable" clause) — it merges through the normal harness
+     high-stakes path (same as H1/F1/F4), not a lighter one, even though no rail goes
+     live as part of it. — Chris + Builder, 2026-07-15

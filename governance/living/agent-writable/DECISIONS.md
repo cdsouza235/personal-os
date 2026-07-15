@@ -151,6 +151,18 @@
   define it now. Podcast/Media awaits Chris's own mini-PRD (Q-PO-008); GTG is out of scope
   per R-PO-001. — Chris, 2026-07-14
 
+- **D-PO-015 Todoist/Gmail live credentials provided, closing HI-06/HI-07.**
+  `PERSONALOS_RAIL_TODOIST_TOKEN` is Chris's own personal Todoist account (tasks need to
+  live where he actually completes them, not a bot's). Gmail follows the SAME
+  bot-identity-holds-the-credential pattern D-PO-013 established for Calendar:
+  `PERSONALOS_RAIL_GMAIL_SENDER_ADDRESS` is the sandboxed `cdsouza.bot@gmail.com` (an app
+  password, not OAuth — Gmail's simpler auth path), `PERSONALOS_RAIL_GMAIL_CONTROLLED_
+  RECIPIENT` is Chris's real personal inbox (`cdsouza235@gmail.com`) — the bot sends, Chris
+  reads. All four env vars confirmed set on the Mac Mini, 2026-07-14. Unblocks nothing new
+  by itself (TD-02/GM-02 already merged without requiring these — they only ever built
+  scaffolding, never made a real call) but these are now genuinely available for real use
+  whenever a rail is flipped live. — Chris, 2026-07-14
+
 - **R-PO-001 (2026-07-14) partially reverses D-PO-010's Grease-the-Groove disposition.**
   D-PO-010 modeled GTG as individual routine rows sharing `rotation_group = "gtg"`, cadence
   type `weekly_target_reps` (45 reps/exercise/wk), in-schema like Cleaning/Reading. When

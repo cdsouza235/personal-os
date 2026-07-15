@@ -302,15 +302,12 @@ def _persist_live_write_idempotency_record(
 
     Mirrors the check-then-insert shape of `side_effects.create_external_write_intent_record`
     (same `idempotency_records` table, same columns), but inserts ONLY into
-    `idempotency_records` rather than also creating an `external_write_intents` row:
-    that table's schema (migrations/00011_side_effect_idempotency_ledger_tables.sql)
-    hard-CHECKs `live_write = 0` and `no_external_writes = 1`, so it structurally
-    cannot represent a real live write and is out of scope to alter here.
-    `idempotency_records.status` carries the same CHECK-constrained enum; the closest
-    existing member for a completed external action is "completed_simulated" (the
-    same value `side_effects._intent_status_after_attempt` returns for a successful
-    non-dry-run attempt) -- adding a dedicated "completed_live" enum member would
-    require a migration change, out of this packet's scope.
+    `idempotency_records` rather than also creating an `external_write_intents` row --
+    a linked intent/attempt pair is deliberately deferred (see P-RAIL-LEDGER-01
+    handoff); this insert alone is what gate 2 needs. Since
+    migrations/00016_live_write_ledger_states.sql, `idempotency_records.status`
+    carries a dedicated `'completed_live'` member distinct from `'completed_simulated'`,
+    so a real live write is recorded honestly rather than mislabeled as simulated.
     """
     now = _utc_now()
     with connection:
@@ -330,7 +327,7 @@ def _persist_live_write_idempotency_record(
                 linked_intent_id,
                 linked_attempt_id
             )
-            VALUES (?, 'todoist', 'create', ?, ?, ?, ?, ?, ?, 'completed_simulated', NULL, NULL)
+            VALUES (?, 'todoist', 'create', ?, ?, ?, ?, ?, ?, 'completed_live', NULL, NULL)
             """,
             (
                 idempotency_key,

@@ -375,6 +375,9 @@ class GmailRailGateTest(unittest.TestCase):
             self.assertIsNone(first_result["gate_failed"])
             self.assertTrue(first_result["idempotency_record_persisted"])
             self.assertIsNotNone(first_result["idempotency_record"])
+            # P-RAIL-LEDGER-01: a real live send must be recorded honestly as
+            # 'completed_live', not mislabeled as 'completed_simulated'.
+            self.assertEqual(first_result["idempotency_record"]["status"], "completed_live")
 
             self.assertEqual(second_result["status"], STATUS_BLOCKED_DUPLICATE)
             self.assertEqual(second_result["gate_failed"], "ledger_dedupe")

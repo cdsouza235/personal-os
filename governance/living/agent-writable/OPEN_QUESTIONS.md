@@ -69,31 +69,30 @@
     list together from scratch, a separate future session — not started.
   - **Podcast/Media routine**: NOT in the current confirmed seed list at all (dropped
     somewhere between the old document and D-PO-010). Chris says it's "gotten more
-    important" since — now 4x/week, Monday–Thursday evenings specifically (not floating),
-    content is curated YouTube/podcast material on markets/AI/crypto, output is
-    interpretation/synthesis notes stored in Obsidian. Proposed cadence-type mapping (not
-    yet confirmed by Chris): `specific_days` (Mon/Tue/Wed/Thu, evening window) rather than
-    a floating `weekly_target_count`, since it's pinned to specific days not "any 4 days."
-  - **New, previously untracked thing this surfaced**: a **monthly thesis review** process
-    that consumes the above routine's Obsidian notes to update market/AI/crypto views. Not
-    in the old document, not in the current seed list, cadence unknown. Open: does this
-    become a tracked PersonalOS routine (monthly cadence type doesn't exist yet in D-PO-010's
-    baseline types) or stay a manual, outside-PersonalOS process for now?
-  - **Workflow direction (Chris confirmed, not just "old document was right"):** move from
-    the current single 8am-only briefing to FOUR daily emails — 8am (sets up the day),
-    12pm/4pm/8pm (dynamic check-ins on what's still outstanding) — no OpenClaw, reply to
-    any of the four to update state so the next one reflects only what's remaining. This is
-    strictly larger than what Q-PO-006/Q-PO-007 were tracking (those assumed reply-handling
-    bolted onto the existing single morning email). **Real technical gap, checked directly,
-    not assumed**: `src/personalos/rails/gmail.py` is send-only today — there is no inbound-
-    email-reading capability anywhere in the codebase. Building the reply-driven loop means
-    building that capability from scratch (reading/parsing replies, matching them back to
-    the right routine instance, updating state), not extending an existing mechanism.
-    Claude's assessment (not yet Chris-ratified): this is its own phase-sized design effort,
-    comparable in scope to P-DESIGN-01, not a bolt-on to the next briefing packet.
-  Not scheduled to a packet number. Owner: Chris (podcast cadence confirmation, monthly-
-  thesis-review disposition, GTG session scheduling) / a future G6-shaped design packet for
-  the reply-driven multi-touchpoint loop.
+    important" since — now 4x/week, Monday–Thursday evenings, curated YouTube/podcast
+    material on markets/AI/crypto, output is interpretation/synthesis notes stored in
+    Obsidian. **UPDATE 2026-07-14**: Chris will write a dedicated mini-PRD for this routine
+    given how impactful he expects it to be — superseding Claude's earlier proposed
+    `specific_days` cadence-type guess; wait for the mini-PRD rather than building against
+    the guess.
+  - **Monthly thesis review** (consumes the podcast routine's Obsidian notes): **CLOSED for
+    now, 2026-07-14** — Chris: keep it outside PersonalOS scope. Not a tracked routine.
+  - **Workflow direction — SIMPLIFIED, 2026-07-14 (supersedes the "reply-driven" framing
+    below the original 2026-07-13 entry).** Still four daily emails (8am sets up the day;
+    12pm/4pm/8pm are check-ins), still no OpenClaw — but Chris eliminated reply-processing
+    entirely. Todoist itself is the state: as Chris marks a task complete in the Todoist app
+    directly, it drops out of scope for the rest of that day's emails. No reply grammar, no
+    ambiguity handling, no matching a free-text reply back to a routine instance.
+    This is a MUCH smaller, well-contained addition, not the phase-sized effort the original
+    reply-driven framing was. One real gap confirmed by direct code check (not assumed):
+    `rails/todoist.py` can currently only CREATE tasks — no code anywhere queries Todoist for
+    live completion status. Needs one new capability: a read-only Todoist API call
+    (same four-gate rail pattern as every other call, just reading instead of writing), plus
+    making sure the morning task-creation step consistently labels what it creates so the
+    later queries can filter to "today's routine tasks" specifically and never touch
+    anything else in Chris's Todoist account.
+  Not scheduled to a packet number. Owner: Chris (podcast mini-PRD, GTG session scheduling)
+  / a future design packet for the 4x/day check-in loop (now right-sized, not phase-sized).
 - ~~**Q-PO-004** Harness B-00 timing~~ **CLOSED (D-PO-009, 2026-07-07): B-00 first**,
   then P-DESIGN-01 under the orchestrator-driven loop.
 - ~~**Q-PO-005** Harness-side third-reviewer gap~~ **CLOSED (2026-07-08)**: the third-reviewer

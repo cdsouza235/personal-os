@@ -162,6 +162,33 @@ class SideEffectIntentValidationTest(unittest.TestCase):
                     response_summary={"result": "should_not_record"},
                 )
 
+    def test_intent_statuses_and_attempt_modes_include_live_states(self) -> None:
+        self.assertIn("completed_live", side_effects.INTENT_STATUSES)
+        self.assertIn("live", side_effects.ATTEMPT_MODES)
+        side_effects.validate_intent_status("completed_live")
+        side_effects.validate_attempt_mode("live")
+        self.assertIn("completed_simulated", side_effects.INTENT_STATUSES)
+        self.assertIn("simulated", side_effects.ATTEMPT_MODES)
+        self.assertIn("dry_run", side_effects.ATTEMPT_MODES)
+
+    def test_intent_status_after_live_attempt_is_completed_live(self) -> None:
+        self.assertEqual(
+            side_effects._intent_status_after_attempt(
+                mode="live", attempt_status="succeeded"
+            ),
+            "completed_live",
+        )
+
+    def test_intent_status_after_live_attempt_failure_is_not_completed_live(self) -> None:
+        self.assertEqual(
+            side_effects._intent_status_after_attempt(mode="live", attempt_status="failed"),
+            "failed",
+        )
+        self.assertEqual(
+            side_effects._intent_status_after_attempt(mode="live", attempt_status="blocked"),
+            "blocked",
+        )
+
 
 class SideEffectLedgerFlowTest(unittest.TestCase):
     def test_permission_defaults_fail_closed_without_persisting_intent(self) -> None:

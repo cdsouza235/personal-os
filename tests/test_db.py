@@ -540,10 +540,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00013",
                     "00014",
                     "00015",
+                    "00016",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 15)
+            self.assertEqual(len(rows), 16)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -2374,6 +2375,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00013",
                 "00014",
                 "00015",
+                "00016",
             ],
         )
         self.assertEqual(
@@ -2394,8 +2396,260 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "scheduler_runtime_loop_tables",
                 "project_followup_status_constraints",
                 "routine_first_class_cadence_columns",
+                "live_write_ledger_states",
             ],
         )
+
+
+class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
+    """P-RAIL-LEDGER-01: migration 00016 rebuilds the side-effect ledger tables so a
+    real live write can be recorded honestly (`completed_live` / `live`), instead of
+    the `completed_simulated` mislabel migration 00011's absolute CHECKs forced."""
+
+    def test_migration_preserves_data_and_accepts_new_honest_live_states(self) -> None:
+        with tempfile.TemporaryDirectory() as runtime_dir_name, tempfile.TemporaryDirectory() as pre16_dir_name:
+            runtime_dir = Path(runtime_dir_name)
+            config = _config_for(runtime_dir, Environment.TEST)
+
+            pre16_migrations_dir = Path(pre16_dir_name)
+            for migration in discover_migrations():
+                if migration.version == "00016":
+                    continue
+                (pre16_migrations_dir / migration.path.name).write_text(
+                    migration.sql, encoding="utf-8"
+                )
+
+            with _connected_sqlite(config, runtime_dir=runtime_dir) as connection:
+                applied_pre16 = apply_migrations(connection, migrations_dir=pre16_migrations_dir)
+                self.assertEqual(
+                    [migration.version for migration in applied_pre16][-1],
+                    "00015",
+                )
+
+                now = "2026-07-15T00:00:00+00:00"
+                with connection:
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_intents (
+                            intent_id, source_type, source_id, target_system, operation_type,
+                            risk_level, approval_mode, status, idempotency_key, dedupe_key,
+                            payload_json, validation_report_json, no_external_writes,
+                            no_send_mode, live_write, created_at, updated_at
+                        ) VALUES (
+                            'intent-1', 'routine', 'r1', 'todoist', 'create', 'low',
+                            'auto_allowed', 'completed_simulated', 'idem-1', 'dedupe-1',
+                            '{}', '{}', 1, 1, 0, ?, ?
+                        )
+                        """,
+                        (now, now),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_attempts (
+                            attempt_id, intent_id, attempt_number, mode, adapter_name, status,
+                            request_fingerprint, response_summary_json, error_message,
+                            no_external_writes, no_send_mode, live_write, created_at
+                        ) VALUES (
+                            'attempt-1', 'intent-1', 1, 'simulated', 'fake', 'succeeded',
+                            'fp-1', '{}', NULL, 1, 1, 0, ?
+                        )
+                        """,
+                        (now,),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO idempotency_records (
+                            idempotency_key, target_system, operation_type, source_type,
+                            source_id, dedupe_key, payload_fingerprint, first_seen_at,
+                            last_seen_at, status, linked_intent_id, linked_attempt_id
+                        ) VALUES (
+                            'idem-1', 'todoist', 'create', 'routine', 'r1', 'dedupe-1',
+                            'fp-1', ?, ?, 'completed_simulated', 'intent-1', 'attempt-1'
+                        )
+                        """,
+                        (now, now),
+                    )
+
+                pre_intents = [dict(row) for row in connection.execute(
+                    "SELECT * FROM external_write_intents ORDER BY intent_id"
+                )]
+                pre_attempts = [dict(row) for row in connection.execute(
+                    "SELECT * FROM external_write_attempts ORDER BY attempt_id"
+                )]
+                pre_idempotency = [dict(row) for row in connection.execute(
+                    "SELECT * FROM idempotency_records ORDER BY idempotency_key"
+                )]
+
+                applied_16 = apply_migrations(connection)
+                self.assertEqual(
+                    [migration.version for migration in applied_16],
+                    ["00016"],
+                )
+
+                post_intents = [dict(row) for row in connection.execute(
+                    "SELECT * FROM external_write_intents ORDER BY intent_id"
+                )]
+                post_attempts = [dict(row) for row in connection.execute(
+                    "SELECT * FROM external_write_attempts ORDER BY attempt_id"
+                )]
+                post_idempotency = [dict(row) for row in connection.execute(
+                    "SELECT * FROM idempotency_records ORDER BY idempotency_key"
+                )]
+                self.assertEqual(pre_intents, post_intents)
+                self.assertEqual(pre_attempts, post_attempts)
+                self.assertEqual(pre_idempotency, post_idempotency)
+
+                foreign_keys_enabled = connection.execute("PRAGMA foreign_keys").fetchone()[0]
+                self.assertEqual(foreign_keys_enabled, 1)
+
+                index_names = {
+                    row["name"]
+                    for row in connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type = 'index'"
+                    )
+                }
+                self.assertEqual(
+                    {
+                        "idx_external_write_intents_status",
+                        "idx_external_write_intents_target",
+                        "idx_external_write_intents_source",
+                        "idx_external_write_attempts_intent",
+                        "idx_external_write_attempts_status",
+                        "idx_idempotency_records_dedupe",
+                    }
+                    - index_names,
+                    set(),
+                )
+
+                with self.assertRaises(sqlite3.IntegrityError):
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_attempts (
+                            attempt_id, intent_id, attempt_number, mode, adapter_name, status,
+                            request_fingerprint, response_summary_json, error_message,
+                            no_external_writes, no_send_mode, live_write, created_at
+                        ) VALUES (
+                            'orphan-attempt', 'does-not-exist', 1, 'simulated', 'fake',
+                            'succeeded', 'fp-orphan', '{}', NULL, 1, 1, 0, ?
+                        )
+                        """,
+                        (now,),
+                    )
+                connection.rollback()
+
+                with self.assertRaises(sqlite3.IntegrityError):
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_intents (
+                            intent_id, source_type, source_id, target_system, operation_type,
+                            risk_level, approval_mode, status, idempotency_key, dedupe_key,
+                            payload_json, validation_report_json, no_external_writes,
+                            no_send_mode, live_write, created_at, updated_at
+                        ) VALUES (
+                            'intent-dup', 'routine', 'r1', 'todoist', 'create', 'low',
+                            'auto_allowed', 'completed_simulated', 'idem-dup', 'dedupe-1',
+                            '{}', '{}', 1, 1, 0, ?, ?
+                        )
+                        """,
+                        (now, now),
+                    )
+                connection.rollback()
+
+                with connection:
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_intents (
+                            intent_id, source_type, source_id, target_system, operation_type,
+                            risk_level, approval_mode, status, idempotency_key, dedupe_key,
+                            payload_json, validation_report_json, no_external_writes,
+                            no_send_mode, live_write, created_at, updated_at
+                        ) VALUES (
+                            'intent-live', 'routine', 'r2', 'todoist', 'create', 'low',
+                            'auto_allowed', 'completed_live', 'idem-live', 'dedupe-live',
+                            '{}', '{}', 0, 0, 1, ?, ?
+                        )
+                        """,
+                        (now, now),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_attempts (
+                            attempt_id, intent_id, attempt_number, mode, adapter_name, status,
+                            request_fingerprint, response_summary_json, error_message,
+                            no_external_writes, no_send_mode, live_write, created_at
+                        ) VALUES (
+                            'attempt-live', 'intent-live', 1, 'live', 'real', 'succeeded',
+                            'fp-live', '{}', NULL, 0, 0, 1, ?
+                        )
+                        """,
+                        (now,),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO idempotency_records (
+                            idempotency_key, target_system, operation_type, source_type,
+                            source_id, dedupe_key, payload_fingerprint, first_seen_at,
+                            last_seen_at, status, linked_intent_id, linked_attempt_id
+                        ) VALUES (
+                            'idem-live', 'todoist', 'create', 'routine', 'r2', 'dedupe-live',
+                            'fp-live', ?, ?, 'completed_live', 'intent-live', 'attempt-live'
+                        )
+                        """,
+                        (now, now),
+                    )
+
+                with self.assertRaises(sqlite3.IntegrityError):
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_intents (
+                            intent_id, source_type, source_id, target_system, operation_type,
+                            risk_level, approval_mode, status, idempotency_key, dedupe_key,
+                            payload_json, validation_report_json, no_external_writes,
+                            no_send_mode, live_write, created_at, updated_at
+                        ) VALUES (
+                            'bad-mixture-1', 'routine', 'r3', 'todoist', 'create', 'low',
+                            'auto_allowed', 'completed_simulated', 'idem-bad-1', 'dedupe-bad-1',
+                            '{}', '{}', 0, 0, 1, ?, ?
+                        )
+                        """,
+                        (now, now),
+                    )
+                connection.rollback()
+
+                with self.assertRaises(sqlite3.IntegrityError):
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_intents (
+                            intent_id, source_type, source_id, target_system, operation_type,
+                            risk_level, approval_mode, status, idempotency_key, dedupe_key,
+                            payload_json, validation_report_json, no_external_writes,
+                            no_send_mode, live_write, created_at, updated_at
+                        ) VALUES (
+                            'bad-mixture-2', 'routine', 'r4', 'todoist', 'create', 'low',
+                            'auto_allowed', 'completed_live', 'idem-bad-2', 'dedupe-bad-2',
+                            '{}', '{}', 0, 1, 1, ?, ?
+                        )
+                        """,
+                        (now, now),
+                    )
+                connection.rollback()
+
+                with connection:
+                    connection.execute(
+                        """
+                        INSERT INTO external_write_intents (
+                            intent_id, source_type, source_id, target_system, operation_type,
+                            risk_level, approval_mode, status, idempotency_key, dedupe_key,
+                            payload_json, validation_report_json, no_external_writes,
+                            no_send_mode, live_write, created_at, updated_at
+                        ) VALUES (
+                            'intent-sim2', 'routine', 'r5', 'todoist', 'create', 'low',
+                            'auto_allowed', 'completed_simulated', 'idem-sim2', 'dedupe-sim2',
+                            '{}', '{}', 1, 1, 0, ?, ?
+                        )
+                        """,
+                        (now, now),
+                    )
 
 
 def _insert_synthesis_preview_row(connection: sqlite3.Connection) -> None:

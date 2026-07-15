@@ -432,14 +432,13 @@ def _persist_live_write_idempotency_record(
     """Insert the row gate 2's `get_idempotency_record` lookup will find on retry.
 
     Mirrors `rails.todoist._persist_live_write_idempotency_record`'s check-then-insert
-    shape (same `idempotency_records` table, same columns), for the same reason: the
-    `external_write_intents` table (migrations/00011_side_effect_idempotency_ledger_
-    tables.sql) hard-CHECKs `live_write = 0` and `no_external_writes = 1`, so it
-    structurally cannot represent a real live send and is out of scope to alter here.
-    `status` uses the same closest-existing-enum-member choice as the Todoist rail,
-    `'completed_simulated'` (dedicating a `'completed_live'` enum member would need a
-    migration change, out of this packet's scope). Called only after a confirmed
-    successful `client.send_message` result, exactly like the Todoist rail.
+    shape (same `idempotency_records` table, same columns) -- a linked intent/attempt
+    pair is deliberately deferred (see P-RAIL-LEDGER-01 handoff); this insert alone is
+    what gate 2 needs. Since migrations/00016_live_write_ledger_states.sql,
+    `idempotency_records.status` carries a dedicated `'completed_live'` member distinct
+    from `'completed_simulated'`, so a real live send is recorded honestly rather than
+    mislabeled as simulated. Called only after a confirmed successful
+    `client.send_message` result, exactly like the Todoist rail.
     """
     now = _utc_now()
     with connection:
@@ -459,7 +458,7 @@ def _persist_live_write_idempotency_record(
                 linked_intent_id,
                 linked_attempt_id
             )
-            VALUES (?, 'gmail', 'send', ?, ?, ?, ?, ?, ?, 'completed_simulated', NULL, NULL)
+            VALUES (?, 'gmail', 'send', ?, ?, ?, ?, ?, ?, 'completed_live', NULL, NULL)
             """,
             (
                 idempotency_key,

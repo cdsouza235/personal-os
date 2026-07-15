@@ -31,8 +31,9 @@ INTENT_STATUSES = (
     "skipped_duplicate",
     "failed",
     "completed_simulated",
+    "completed_live",
 )
-ATTEMPT_MODES = ("dry_run", "simulated", "live_blocked")
+ATTEMPT_MODES = ("dry_run", "simulated", "live_blocked", "live")
 ATTEMPT_STATUSES = ("succeeded", "failed", "blocked", "skipped_duplicate")
 
 REPORT_SAFETY_FLAGS = {
@@ -900,6 +901,8 @@ def _intent_status_after_attempt(*, mode: str, attempt_status: str) -> str:
         return "failed"
     if attempt_status == "blocked":
         return "blocked"
+    if mode == "live":
+        return "completed_live"
     if mode == "simulated":
         return "completed_simulated"
     return "dry_run_recorded"

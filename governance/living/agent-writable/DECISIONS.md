@@ -163,6 +163,37 @@
   scaffolding, never made a real call) but these are now genuinely available for real use
   whenever a rail is flipped live. — Chris, 2026-07-14
 
+- **D-PO-016 Knowledge Edge Daily Intelligence Queue — launch-blocking amendment accepted;
+  earnings-calendar provider = Financial Modeling Prep (closes part of the PRD's own §10.4/
+  §23.4 Phase 0 open decision).** Chris reviewed the full "Personal OS PRD Amendment —
+  Knowledge Edge Daily Intelligence Queue" (revision 1.3, uploaded 2026-07-14 — this IS the
+  "mini PRD" for the Podcast/Media routine from Q-PO-008, turned out much larger than either
+  side expected). Three decisions made in this conversation, before Packet 0A/0B formally
+  start:
+  1. **Launch-blocking is intentional, not a default to question.** Personal OS's existing,
+     already-soak-ready core (routines → Todoist → Gmail briefing, credentials confirmed set
+     2026-07-14) will NOT go live independently — Chris chose to wait for Knowledge Edge to
+     be ready too, because he considers this potentially "the most high-value part of
+     Personal OS" for him. Product fit: the PRD IS the structuring layer for the 4x/week PM
+     knowledge-download routine — Chris's own role narrows to listening, interpretation,
+     synthesis, and note formation; discovery/curation/dedup/queue-management is what the
+     amendment builds.
+  2. **No new "Fable" role.** Wherever the amendment says "Fable phase-end audit," use the
+     harness's actual existing audit setup as-is (the auditor role + third-reviewer seat
+     already proven this session) — not a new, separate role.
+  3. **Earnings-calendar provider = Financial Modeling Prep, paid tier**, not the free-only
+     IR-page-scraping + SEC EDGAR alternative Claude offered. Chris's own reasoning: "keeps
+     it cleaner" — avoids building/maintaining ~20-40 separate per-company IR-page parsers
+     (no two company IR sites are structured the same way, and site redesigns silently break
+     scrapers) in exchange for a subscription cost. Exact plan tier, entitlement rights
+     (§10.4's display/persistence/fixture-rights requirement), and confirmed current pricing
+     are explicitly NOT resolved here — real, evidence-based provider-entitlement work is
+     Packet 0B's job, not a chat-level guess (Claude's own web research hit FMP's pricing
+     page being blocked to automated fetching; only third-party-sourced approximate numbers
+     were available, not authoritative). This decision fixes WHICH provider, not its terms.
+  Packets 0A–0B (current-state synthesis + repo-grounded plan, per the amendment's own §19)
+  have not yet been run through the harness as of this decision. — Chris, 2026-07-14
+
 - **R-PO-001 (2026-07-14) partially reverses D-PO-010's Grease-the-Groove disposition.**
   D-PO-010 modeled GTG as individual routine rows sharing `rotation_group = "gtg"`, cadence
   type `weekly_target_reps` (45 reps/exercise/wk), in-schema like Cleaning/Reading. When

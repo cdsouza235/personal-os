@@ -210,17 +210,44 @@ Session 1 bullet:
       Bloomberg Television, Bloomberg Technology, Yahoo Finance, official
       company/IR/executive channels, official conference/event-organizer channels,
       official U.S. government/central-bank channels for the role-based watches) —
-      Session 1 approves this list as the launch-time allowlist; any addition later
-      re-runs the same source-verification step, it does not require a new Session.
+      Session 1 approves this list as the launch-time allowlist. Any addition later
+      re-runs the same source-verification step **and requires an explicit Conductor
+      acknowledgment of the specific added source before it is fetched from** — the
+      verification step establishes the source is legitimate, but only a human
+      acknowledgment closes the gate for that specific addition; no source is ever
+      fetched from solely because it passed an automated verification step. This does
+      not require re-convening a full Session (a lightweight Conductor sign-off
+      suffices, consistent with the roster-cap/gate design elsewhere in the amendment),
+      but it is never silent or automatic.
 - [ ] **IR/webcast vendor-domain list** — **TBC, populated at Packet 3A** when Tier A/B
       company IR roots are verified (amendment §9.3's own requirement that identifiers/
       URLs be verified "from official sources during the live-adapter planning phase,"
-      not assumed static here). Session 1 approves the *mechanism* (bounded redirects
-      from official IR pages only, unknown destinations quarantined as `Link pending
-      (unknown vendor)` per §8.4) now; the concrete domain list itself is a Packet 3A
-      deliverable that extends this same pre-approved mechanism without reopening the
-      gate, as long as every added domain is a redirect target reached FROM an already-
-      approved official IR page (not a freestanding new domain).
+      not assumed static here). The amendment's own §0 Session 1 bullet places "the
+      approved IR/webcast vendor-domain list and redirect rules" *inside* the Session 1
+      approval bundle — so the concrete list cannot be approved by this packet (it does
+      not exist yet, and this packet has zero network access to derive it), and it
+      cannot self-extend under today's Session 1 approval either, because that would let
+      Packet 3A's own findings authorize themselves, which is exactly the gap Session 1
+      exists to prevent. The resolution moves the approval's *timing*, not its
+      requirement:
+      - **Session 1 approves now:** the redirect *mechanism and rules only* — bounded
+        redirects are permitted solely from an already-approved official IR page (never
+        a freestanding new domain), and any destination not on an approved list is
+        quarantined as `Link pending (unknown vendor)` per §8.4 and is not fetched or
+        displayed as verified.
+      - **Packet 3A assembles and verifies** the concrete Tier A/B IR-root and
+        redirect-target domain list against official sources, as its own deliverable.
+      - **The assembled list then returns to the Conductor as its own explicit,
+        named approval gate — "Packet 3A vendor-domain-list approval" — before any live
+        fetch is made against any domain on it.** This is an asynchronous approval (it
+        does not require reconvening the full Session 1 meeting), but it is a mandatory,
+        named, human-in-the-loop checkpoint distinct from and in addition to Session 1's
+        mechanism approval — not an automatic extension of it. `PHASE0_PLAN.md`'s P-KE-3A
+        packet row and Phase 3 acceptance criteria name this gate explicitly so it is not
+        lost as an implicit assumption.
+      - Until that Packet 3A approval lands, every redirect destination is treated as
+        unknown and quarantined as `Link pending (unknown vendor)` — no domain is ever
+        fetched from on the strength of Session 1's mechanism approval alone.
 - [ ] **SEC EDGAR user-agent string** — SEC's fair-access rules require an identifying
       `User-Agent` header (typically `AppName ContactEmail`). **Exact contact
       identity/email to use: TBC — this is Chris's own identifying information, to be

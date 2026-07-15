@@ -1,7 +1,8 @@
-# Personal OS — PRD v0.3
+# Personal OS — PRD v0.4
 
-Status: draft for Conductor approval (replaces v0.2; v0.2 → `docs/archive/`)
-Owner: Chris · Updated: 2026-07-07
+Status: draft for Conductor approval (adds §7 Knowledge Edge Daily Intelligence Queue,
+D-PO-016; no prior revision archived — v0.3's content is unchanged elsewhere)
+Owner: Chris · Updated: 2026-07-15
 Development model: MIS harness (Builder=Opus, Auditor=Codex, Phase-End=Fable, Conductor=Chris)
 Runtime host: Mac Mini · State: SQLite · Repo: `cdsouza235/personal-os` (private)
 
@@ -32,6 +33,11 @@ Every morning, unattended:
 
 Acceptance = seven consecutive unattended mornings with correct tasks + briefing and zero
 manual repair. Everything else in this PRD is post-MVP.
+
+**Go-live gate (D-PO-016):** Personal OS may not be declared live on this MVP alone. Chris
+has made the Knowledge Edge Daily Intelligence Queue (§7) launch-blocking — the routine/
+Todoist/Gmail loop above and Knowledge Edge's own Phase 6 activation gate must both clear
+before any rail goes live in production.
 
 **Explicitly post-MVP:** Calendar writes · 12pm/4pm/8pm windows · model-generated briefing
 prose (composer upgrade) · reports/chart-pack jobs · fitness v1.5.
@@ -100,10 +106,65 @@ One shared evaluator (P-DEBT-01). Fail closed; unknown category = approval_requi
 ## 5. Non-goals (standing)
 Public internet exposure · multi-user · autonomous investment/legal/tax execution ·
 reply parsing · local AI inference · OpenClaw (cut) · rebuilding the fitness CSV tracker ·
-any rail auto-activating itself.
+any rail auto-activating itself · Knowledge Edge placing trades, brokerage access, or
+autonomous thesis/forecast changes (§7.2).
 
 ## 6. Data
 SQLite via migrations (FK-enforced). All writes through core APIs. Personal content never
 leaves the machine except through activated rails; committed artifacts (evidence, fixtures)
 carry synthetic or redacted data only (SECURITY.md data classes). Production DB path +
-backup/restore design lands with P-SCHED-02 (Q-PO-002).
+backup/restore design lands with P-SCHED-02 (Q-PO-002). Knowledge Edge (§7) adds its own
+tables to the same per-environment database via additive migrations, plus one isolated
+shadow database for its pre-production soak — see `docs/knowledge_edge/
+PHASE0_ARCHITECTURE_DECISIONS.md` for exact paths.
+
+## 7. Knowledge Edge Daily Intelligence Queue (D-PO-016 — launch-blocking)
+
+Full requirements: `docs/knowledge_edge/PRD_AMENDMENT_KNOWLEDGE_EDGE.md` (the durable
+full record — this section is a distillation, not a replacement, mirroring how the
+routine model's detail lives in D-PO-010 while PRD §3.1 carries the summary). Phase 0
+planning: `docs/knowledge_edge/PHASE0_*.md`.
+
+### 7.1 Product
+A local-first Daily Intelligence Queue: the Mac mini discovers, normalizes, deduplicates,
+and ranks high-signal content across four lanes — Curated Podcasts, Market Voices,
+Consequential Leaders, Earnings & Corporate Events — and presents a finite, explainable
+evening queue. Default full scan 4:30pm America/Chicago (queue ready ~4:45pm); 6:15am
+refresh for same-day earnings changes; targeted T-60/T-15 link checks for watched live
+events; manual scan-now always available. The system automates discovery, ranking,
+deduplication, and reminders; Chris retains all judgment — watching, interpretation,
+synthesis (ChatGPT), and promotion into Obsidian.
+
+### 7.2 Scope boundaries (launch)
+No trades, brokerage access, or financial advice; no autonomous thesis/forecast changes;
+no full media/transcript downloads; no paywall/CAPTCHA/robots-directive bypass; no
+live-model inference for discovery or ranking; no email, Calendar, or Todoist writes from
+this module; no scheduler, notification, or Obsidian-write activation before its gated
+session (below). Full non-goals: amendment §5.
+
+### 7.3 Rollout gates (Sessions 1–3, layered on the standing HUMAN_GATES table)
+Human involvement batches into three sessions on top of the existing G0–G-RECOVERY gates
+(exact mapping: `docs/knowledge_edge/PHASE0_PLAN.md`). **Session 1** approves the Phase 0
+plan, the D-YT YouTube-sourcing decision, and the full external-access bundle
+(credentials, allowlists, entitlement artifacts) — pre-authorizing Packet 0C onward
+against an isolated shadow database only, never production. **Session 2** approves final
+empirical quality thresholds and shadow-configuration scheduler activation (the soak).
+**Session 3** approves a bounded production smoke test, reviews pre-activation acceptance,
+and approves production activation and Personal OS go-live. Packets 0C–5 run as one
+autonomous stretch between Session 1 and Session 2, each major phase carrying a Codex
+packet audit and a Fable phase-end audit reconciled before merge.
+
+### 7.4 Providers
+Earnings calendar: **Financial Modeling Prep, paid tier** (D-PO-016 item 3 — already
+decided by Chris; exact plan and entitlement rights confirmed at Session 1). Broad
+person-search provider and the D-YT YouTube-sourcing option are evaluated in
+`docs/knowledge_edge/PHASE0_PROVIDERS_AND_ACCESS.md` and ratified at Session 1.
+
+### 7.5 Module and data ownership
+New domain package `src/personalos/knowledge_edge/` (state + deterministic engine,
+network-blind, mirroring the cadence-engine purity invariant) and
+`src/personalos/rails/knowledge_edge/` (read-only source adapters, inside the existing
+network-capable `rails/**` boundary — invariant #6, no new network-capability grant
+needed). One production database (the D-PO-011 file, additive migrations only) plus one
+isolated shadow database for Session-1-authorized pre-production runs. Full design:
+`docs/knowledge_edge/PHASE0_ARCHITECTURE_DECISIONS.md`.

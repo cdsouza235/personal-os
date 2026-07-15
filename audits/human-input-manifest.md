@@ -7,17 +7,17 @@ name-present preflight + the activation packet's bounded live probe).
 
 | ID | What | Consumed by | Delivery | Status |
 |---|---|---|---|---|
-| HI-01 | Approval of the governance pack (this packet, P-GOV-01) | Phase A | sign-off file in `audits/` | **requested** |
-| HI-02 | Ratification of D-PO-004 (OpenClaw cut) — rides with HI-01 | ROADMAP | DECISIONS.md | **requested** |
+| HI-01 | Approval of the governance pack (this packet, P-GOV-01) | Phase A | sign-off file in `audits/` | **provided** (`audits/signoffs/P-GOV-01-G1-signoff.md`, merge commit 229f974: "HI-01 signed off") |
+| HI-02 | Ratification of D-PO-004 (OpenClaw cut) — rides with HI-01 | ROADMAP | DECISIONS.md | **provided** (D-PO-004: "ratified by approving P-GOV-01" — same event as HI-01) |
 | HI-03 | Per-module keep/delete calls on orphans (fitness, reports, runtime_bootstrap, completion) | P-DEBT-03 | gate decision | **provided** (D-PO-012, 2026-07-10: delete fitness/reports/completion; runtime_bootstrap excluded, actually in use) |
 | HI-04 | Routine model sign-off: confirm PRD §3.1 cadence/missed-behavior semantics match how you actually live (esp. GTG rotation + weekly targets) | P-DESIGN-01 (G6) | gate decision | **provided for everything still in scope** (R-PO-001 + D-PO-014, 2026-07-14: GTG — the main open uncertainty — removed from the model entirely; Cleaning's missed-behavior confirmed as `bump_schedule_by_one_day` via EoD Todoist state; Reading/Stillness `weekly_target_count`/`skip_and_continue` confirmed unchanged). Podcast/Media's cadence semantics remain open pending Chris's mini-PRD. |
 | HI-05 | Seed routine list confirmation (names, cadences, windows) | P-CORE-03 | state seed review | **provided for Cleaning/Reading/Stillness** (D-PO-014, 2026-07-14: 13-task cleaning pool, `bump_schedule_by_one_day` missed-behavior, Shutdown/Review dropped); Podcast/Media still pending Chris's mini-PRD (Q-PO-008) |
 | HI-06 | `TODOIST_API_TOKEN` present in env (name-only) | P-RAIL-TD-02 | env/keychain | pending |
 | HI-07 | Gmail app password + sender + controlled recipient (names only) | P-RAIL-GM-02 | env/keychain | pending |
-| HI-08 | Briefing quality judgment on soak artifacts (Q-PO-003) | P-BRIEF-01→GM-02 | gate decision | pending |
+| HI-08 | Briefing quality judgment on soak artifacts (Q-PO-003) | P-BRIEF-01→GM-02 | gate decision | **provided** (Q-PO-003 closed 2026-07-09: Chris reviewed real generated `readable_text`, accepted the deterministic-template baseline, approved P-BRIEF-01 to merge as-is) |
 | HI-09 | Production DB location + backup destination | P-SCHED-02 G0 | gate decision | **provided** (D-PO-011, 2026-07-10: `/Users/coldstake/PersonalOS/personal_os.db`, SQLite Online Backup API) |
-| HI-10 | Mac Mini launchd authorization (unattended execution) | P-SCHED-02 | G4+G5 sign-off | pending |
-| HI-11 | B-00 sequencing decision (Q-PO-004) | after Phase A | direction | pending |
+| HI-10 | Mac Mini launchd authorization (unattended execution) | P-SCHED-02 | G4+G5 sign-off | pending — genuinely open, `status.py`'s `_SCHEDULER_STATE` confirmed still `"off"` by direct check, 2026-07-13 |
+| HI-11 | B-00 sequencing decision (Q-PO-004) | after Phase A | direction | **provided** (Q-PO-004 closed via D-PO-009, 2026-07-07: B-00 first, then P-DESIGN-01 under the orchestrator-driven loop) |
 | HI-12 | Google Calendar credential/connector choice | P-RAIL-CAL (post-MVP) | gate decision | **provided** (D-PO-013, 2026-07-13: OAuth identity = sandboxed `cdsouza.bot@gmail.com`; target calendar = Chris's personal calendar via sharing; four `PERSONALOS_RAIL_CALENDAR_*` env vars confirmed set on the Mac Mini) |
 
 No packet may consume an input whose status is not **provided/verified**. Requesting an

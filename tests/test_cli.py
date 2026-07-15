@@ -13,6 +13,7 @@ from datetime import date
 from pathlib import Path
 
 from personalos import cli
+from personalos import config as config_module
 from personalos.briefings import (
     BRIEFING_LOOP_READ_PERMISSION,
     BRIEFING_LOOP_RUN_PERMISSION,
@@ -1457,6 +1458,88 @@ class OperatorCliRunMorningWorkflowTest(unittest.TestCase):
         self.assertFalse(completion_report["background_process_started"])
         self.assertTrue(payload["no_external_writes"])
         self.assertTrue(payload["no_send_mode"])
+
+
+class OperatorCliProductionPathNarrowingTest(unittest.TestCase):
+    """P-SCHED-04: only `run morning` may target the D-PO-011 approved production path
+    through the CLI's --db flag. Every other command must still reject it exactly as it
+    did before P-SCHED-03 widened the exemption. Uses a temp-directory stand-in for
+    config.PRODUCTION_DB_PATH (mirroring tests/test_path_safety.py's convention) --
+    never touches the real production path.
+    """
+
+    def test_non_morning_command_rejects_production_path_but_run_morning_accepts_it(
+        self,
+    ) -> None:
+        # Path.home() is patched to the same temp dir the stand-in lives under (mirroring
+        # tests/test_path_safety.py's test_exemption_is_exact_path_not_a_broadened_
+        # directory_glob) so the stand-in genuinely lands under the protected
+        # ~/PersonalOS prefix reject_protected_path checks. Without that patch the
+        # stand-in would just be an ordinary allowed temp path and the test would pass
+        # trivially, without exercising the narrowing at all.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fake_home = Path(temp_dir)
+            stand_in_path = fake_home / "PersonalOS" / "personal_os.db"
+
+            # Seed via bootstrap_runtime_database (mirroring _seeded_runtime_db) so
+            # `run morning` has real due/carryover data to work with. This runs before
+            # Path.home() is patched below: bootstrap_runtime_database's own path guard
+            # checks the *real* home directory, which the temp stand-in never falls
+            # under, so seeding here needs no mocking.
+            profile = _runtime_profile(fake_home)
+            profile["db_path"] = str(stand_in_path)
+            with _migrated_connection(fake_home / "auth-runtime") as permission_connection:
+                _set_permission(permission_connection, RUNTIME_BOOTSTRAP_WRITE_PERMISSION)
+                _set_permission(permission_connection, RUNTIME_BOOTSTRAP_RUN_PERMISSION)
+                seed_result = bootstrap_runtime_database(
+                    profile,
+                    permission_connection=permission_connection,
+                )
+            if seed_result["status"] != "completed":
+                raise AssertionError(
+                    f"runtime bootstrap failed in test setup: {seed_result['status']}"
+                )
+
+            with _sqlite_connection(stand_in_path) as connection:
+                _enable_briefing_permissions(connection)
+                _enable_composer_permissions(connection)
+
+            with mock.patch("personalos.path_safety.Path.home", return_value=fake_home):
+                with mock.patch.object(config_module, "PRODUCTION_DB_PATH", stand_in_path):
+                    routines_result = _run_cli(
+                        [
+                            "routines",
+                            "create",
+                            "--db",
+                            str(stand_in_path),
+                            "--routine-id",
+                            "routine-production-narrowing-test",
+                            "--name",
+                            "Should not reach production",
+                            "--json",
+                        ]
+                    )
+
+                    morning_result = _run_cli(
+                        [
+                            "run",
+                            "morning",
+                            "--db",
+                            str(stand_in_path),
+                            "--date",
+                            SOURCE_DATE,
+                            "--timezone",
+                            DEFAULT_TIMEZONE,
+                            "--json",
+                        ]
+                    )
+
+        self.assertEqual(routines_result.code, 1)
+        self.assertIn("protected PersonalOS path", routines_result.stderr)
+
+        morning_payload = json.loads(morning_result.stdout)
+        self.assertEqual(morning_result.code, 0)
+        self.assertEqual(morning_payload["status"], "completed")
 
 
 class OperatorCliFileOutputWorkflowTest(unittest.TestCase):

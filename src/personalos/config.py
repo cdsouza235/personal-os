@@ -18,12 +18,15 @@ TEST_DB_PATH = RUNTIME_DIR / "test" / "personalos-test.sqlite3"
 # hardcoded, exact-match location, not a general "any production path" escape hatch:
 # lifting Phase 1's blanket production block must not become a way to point Personal OS
 # at an arbitrary host path. P-SCHED-02 adds this constant and the narrow resolver/
-# validator below; it deliberately does NOT wire production through
-# `db/connection.py` (`connect_sqlite` still independently raises
-# `ProductionConfigUnavailable` for `Environment.PRODUCTION`) or through the CLI's
-# `--db` path (`path_safety.validate_existing_sqlite_path` still independently rejects
-# anything under `~/PersonalOS`). Those are separate, independent guards outside this
-# packet's scope; wiring them through to this path is future work.
+# validator below; it deliberately does NOT wire production through `db/connection.py`
+# (`connect_sqlite` still independently raises `ProductionConfigUnavailable` for
+# `Environment.PRODUCTION`). It IS reachable through the CLI's `--db` path, but only for
+# `personalos run morning` (`cli/today.py::_command_run_morning`), the one command
+# scheduled against production: `path_safety.validate_existing_sqlite_path` only exempts
+# this path when its caller passes `allow_production_path=True`, and only
+# `_connect_read_write`'s call site inside `_command_run_morning` does that (P-SCHED-04).
+# Every other command still gets `allow_production_path=False` and independently rejects
+# anything under `~/PersonalOS`, exactly as before P-SCHED-03.
 PRODUCTION_DB_PATH = Path("/Users/coldstake/PersonalOS/personal_os.db")
 
 
@@ -56,7 +59,7 @@ def default_environment() -> Environment:
 def load_config(environment: Environment | str | None = None) -> PersonalOSConfig:
     selected_environment = _normalize_environment(environment) if environment else default_environment()
 
-    database_path = _database_path_for(selected_environment)
+    database_path = _database_path_for(selected_environment).resolve()
     if selected_environment is Environment.PRODUCTION:
         _ensure_production_runtime_path(database_path)
     else:

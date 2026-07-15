@@ -16,7 +16,10 @@ from personalos.path_safety import (
 
 
 class ProductionSqlitePathExceptionTest(unittest.TestCase):
-    """P-SCHED-03: validate_existing_sqlite_path's narrow D-PO-011 exception.
+    """P-SCHED-04: validate_existing_sqlite_path's narrow D-PO-011 exception now also
+    requires the caller to opt in via `allow_production_path=True` (P-SCHED-03 wired the
+    exemption in unconditionally by path-match alone; P-SCHED-04 narrows it to the one
+    call site -- `run morning` -- that is supposed to have it).
 
     Every test here uses a temp-directory stand-in for config.PRODUCTION_DB_PATH,
     monkeypatched only for the duration of the test (mirroring tests/test_config.py's
@@ -24,19 +27,39 @@ class ProductionSqlitePathExceptionTest(unittest.TestCase):
     or create a file at the real /Users/coldstake/PersonalOS/personal_os.db path.
     """
 
-    def test_approved_production_path_stand_in_passes_validation(self) -> None:
+    def test_approved_production_path_stand_in_passes_validation_when_allowed(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             stand_in_path = Path(temp_dir) / "PersonalOS" / "personal_os.db"
             stand_in_path.parent.mkdir(parents=True)
             stand_in_path.touch()
             with mock.patch.object(config_module, "PRODUCTION_DB_PATH", stand_in_path):
                 validated = validate_existing_sqlite_path(
-                    str(stand_in_path), path_label="operator db_path"
+                    str(stand_in_path),
+                    path_label="operator db_path",
+                    allow_production_path=True,
                 )
 
             self.assertEqual(validated, stand_in_path.resolve())
 
-    def test_cli_connect_read_write_succeeds_for_approved_stand_in(self) -> None:
+    def test_approved_production_path_stand_in_is_rejected_without_the_flag(self) -> None:
+        # Patch Path.home() too (mirroring test_exemption_is_exact_path_not_a_broadened_
+        # directory_glob below) so the stand-in path actually lands under the protected
+        # ~/PersonalOS prefix that reject_protected_path checks -- otherwise a bare temp
+        # path would pass anyway via the is_under_temp() allowance, masking the real
+        # narrowing behavior under test here.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fake_home = Path(temp_dir)
+            stand_in_path = fake_home / "PersonalOS" / "personal_os.db"
+            stand_in_path.parent.mkdir(parents=True)
+            stand_in_path.touch()
+            with mock.patch("personalos.path_safety.Path.home", return_value=fake_home):
+                with mock.patch.object(config_module, "PRODUCTION_DB_PATH", stand_in_path):
+                    with self.assertRaises(ValueError):
+                        validate_existing_sqlite_path(
+                            str(stand_in_path), path_label="operator db_path"
+                        )
+
+    def test_cli_connect_read_write_succeeds_for_approved_stand_in_when_allowed(self) -> None:
         # Proves the full path the `run morning` handler takes (_connect_read_write ->
         # validate_existing_sqlite_path -> sqlite3.connect) now succeeds end to end for
         # the approved path, without ever touching the real file.
@@ -50,11 +73,32 @@ class ProductionSqlitePathExceptionTest(unittest.TestCase):
                 connection.close()
 
             with mock.patch.object(config_module, "PRODUCTION_DB_PATH", stand_in_path):
-                connection = cli._connect_read_write(str(stand_in_path))
+                connection = cli._connect_read_write(str(stand_in_path), allow_production_path=True)
                 try:
                     connection.execute("SELECT 1")
                 finally:
                     connection.close()
+
+    def test_cli_connect_read_write_rejects_approved_stand_in_without_the_flag(self) -> None:
+        # Every non-morning command calls `_connect_read_write` with the default
+        # `allow_production_path=False`, so it must reject the production path exactly
+        # like any other protected ~/PersonalOS path. Path.home() is patched (see the
+        # validate_existing_sqlite_path-level test above) so the stand-in genuinely lands
+        # under the protected prefix instead of merely being an allowed temp path.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fake_home = Path(temp_dir)
+            stand_in_path = fake_home / "PersonalOS" / "personal_os.db"
+            stand_in_path.parent.mkdir(parents=True)
+            connection = sqlite3.connect(stand_in_path)
+            try:
+                apply_migrations(connection)
+            finally:
+                connection.close()
+
+            with mock.patch("personalos.path_safety.Path.home", return_value=fake_home):
+                with mock.patch.object(config_module, "PRODUCTION_DB_PATH", stand_in_path):
+                    with self.assertRaises(ValueError):
+                        cli._connect_read_write(str(stand_in_path))
 
     def test_other_paths_under_personalos_home_are_still_rejected(self) -> None:
         home = Path.home().resolve()
@@ -80,13 +124,17 @@ class ProductionSqlitePathExceptionTest(unittest.TestCase):
             with mock.patch("personalos.path_safety.Path.home", return_value=fake_home):
                 with mock.patch.object(config_module, "PRODUCTION_DB_PATH", approved_stand_in):
                     validated = validate_existing_sqlite_path(
-                        str(approved_stand_in), path_label="operator db_path"
+                        str(approved_stand_in),
+                        path_label="operator db_path",
+                        allow_production_path=True,
                     )
                     self.assertEqual(validated, approved_stand_in.resolve())
 
                     with self.assertRaises(ValueError):
                         validate_existing_sqlite_path(
-                            str(sibling_file), path_label="operator db_path"
+                            str(sibling_file),
+                            path_label="operator db_path",
+                            allow_production_path=True,
                         )
 
     def test_other_validation_functions_still_reject_personalos_home_unconditionally(self) -> None:

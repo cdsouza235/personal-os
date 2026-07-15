@@ -59,7 +59,7 @@ def _command_run_morning(args: argparse.Namespace) -> int:
         )
     resolved_date = args.date or _today_iso(args.timezone)
 
-    with closing(_connect_read_write(args.db)) as connection:
+    with closing(_connect_read_write(args.db, allow_production_path=True)) as connection:
         result = run_scheduler_job_simulated(
             connection,
             job_type="briefing_preview",

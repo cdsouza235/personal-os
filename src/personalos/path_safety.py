@@ -99,20 +99,28 @@ def reject_production_path(path: Path, *, path_label: str) -> None:
         raise ValueError(f"production-looking {path_label} is blocked in Phase 12A")
 
 
-def validate_existing_sqlite_path(path_value: str | Path, *, path_label: str) -> Path:
+def validate_existing_sqlite_path(
+    path_value: str | Path,
+    *,
+    path_label: str,
+    allow_production_path: bool = False,
+) -> Path:
     resolved = resolve_explicit_path(path_value, path_label=path_label)
     # D-PO-011 (HI-09) approved exactly one production database location, and
     # P-SCHED-02 (config.py) recorded it as `config.PRODUCTION_DB_PATH` -- the single
     # source of truth for that path, read here at call time (not copied into a
     # module-level name) so tests can monkeypatch `config.PRODUCTION_DB_PATH` to a temp
     # stand-in the same way tests/test_config.py already does, without ever touching the
-    # real path. This is the P-SCHED-03 follow-up the plist comment and P-SCHED-02's
-    # config.py docstring both flagged as missing: only this exact resolved path skips
-    # `reject_protected_path`'s blanket ~/PersonalOS block and the repo/temp-only check
-    # below. No other path under ~/PersonalOS gets this exemption, and
-    # `reject_sensitive_path`/`reject_production_path` still run unconditionally for this
-    # path exactly as for any other.
-    is_approved_production_path = resolved == config.PRODUCTION_DB_PATH.resolve()
+    # real path. P-SCHED-03 wired this exemption in unconditionally by path-match alone,
+    # which meant every CLI command sharing `_connect_read_only`/`_connect_read_write`
+    # could target production. P-SCHED-04 narrows it: the exemption only applies when the
+    # caller explicitly opts in via `allow_production_path` (threaded from
+    # `_connect_read_write`, which only `run morning`'s handler sets). No other path under
+    # ~/PersonalOS gets this exemption, and `reject_sensitive_path`/`reject_production_path`
+    # still run unconditionally for this path exactly as for any other.
+    is_approved_production_path = allow_production_path and (
+        resolved == config.PRODUCTION_DB_PATH.resolve()
+    )
     if not is_approved_production_path:
         reject_protected_path(resolved, path_label=path_label)
     reject_sensitive_path(resolved, path_label=path_label)

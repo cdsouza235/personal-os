@@ -133,4 +133,22 @@
   2026-07-13
 
 ## Reversals
-(none)
+
+- **R-PO-001 (2026-07-14) partially reverses D-PO-010's Grease-the-Groove disposition.**
+  D-PO-010 modeled GTG as individual routine rows sharing `rotation_group = "gtg"`, cadence
+  type `weekly_target_reps` (45 reps/exercise/wk), in-schema like Cleaning/Reading. When
+  actually working through how rep progress would get logged day to day (given R-PO-001's
+  same-day context: the 4x/day check-in loop dropped reply-based state updates in favor of
+  Todoist-completion-as-state), no clean fit emerged — GTG is fundamentally incremental/
+  rep-accumulating, not a single completable unit, and modeling it as many small discrete
+  "round" tasks was offered but Chris declined it. Chris's call: GTG moves OUT of the
+  routine-model schema entirely and gets folded into a separate, more comprehensive fitness-
+  tracking system he'll design on his own timeline — the SAME disposition D-PO-010 already
+  gave "Fitness/Strength (tracked externally, surfaced only, unchanged, no schema
+  involvement)," just extended to cover GTG too. PersonalOS's own routine engine/schema has
+  no GTG involvement going forward; if/when the external fitness system exists, PersonalOS
+  may surface a read-only summary of it, matching the existing Fitness/Strength pattern —
+  not decided yet, not blocking anything. D-PO-010's OTHER content (cadence types, Cleaning/
+  Reading/Stillness/Shutdown-Review modeling, the `compute_due_and_owed` engine contract)
+  is UNCHANGED and still in force — only the GTG-specific portion is reversed. — Chris,
+  2026-07-14

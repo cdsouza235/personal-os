@@ -65,8 +65,11 @@
   - **Reading** (4x/wk) and **Stillness/Prayer/Meditation** (2x/wk) in that document match
     the current confirmed seed list's cadence exactly — independent confirmation Chris's
     thinking has been consistent across this whole gap in time.
-  - **Grease-the-Groove**: not in the old document at all. Chris: build the actual exercise
-    list together from scratch, a separate future session — not started.
+  - **Grease-the-Groove**: **CLOSED, 2026-07-14 (R-PO-001)** — moved OUT of the routine-model
+    schema entirely. No clean fit emerged for rep-accumulation under the Todoist-as-state
+    design (discrete "round" tasks were offered, declined); Chris will fold GTG into a
+    separate, more comprehensive fitness-tracking system on his own timeline instead. Not a
+    PersonalOS routine-engine concern going forward.
   - **Podcast/Media routine**: NOT in the current confirmed seed list at all (dropped
     somewhere between the old document and D-PO-010). Chris says it's "gotten more
     important" since — now 4x/week, Monday–Thursday evenings, curated YouTube/podcast

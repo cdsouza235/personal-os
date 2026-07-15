@@ -18,6 +18,10 @@ from personalos.routines import (
 
 def _command_routines_create(args: argparse.Namespace) -> int:
     settings = _parse_json_object_arg(args.settings_json, field_name="--settings-json")
+    cadence_config = _parse_json_object_arg(
+        args.cadence_config_json,
+        field_name="--cadence-config-json",
+    )
     try:
         with closing(_connect_read_write(args.db)) as connection:
             routine = create_routine_record(
@@ -28,6 +32,11 @@ def _command_routines_create(args: argparse.Namespace) -> int:
                 enabled=args.enabled,
                 settings=settings,
                 notes=args.notes,
+                cadence_type=args.cadence_type,
+                cadence_config=cadence_config,
+                missed_behavior_default=args.missed_behavior,
+                rotation_group=args.rotation_group,
+                weekly_target=args.weekly_target,
             )
     except RoutineEnginePermissionDenied as error:
         raise CliError(str(error)) from error
@@ -58,16 +67,27 @@ def _command_routines_create(args: argparse.Namespace) -> int:
 
 def _command_routines_update(args: argparse.Namespace) -> int:
     settings = _parse_json_object_arg(args.settings_json, field_name="--settings-json")
+    cadence_config = _parse_json_object_arg(
+        args.cadence_config_json,
+        field_name="--cadence-config-json",
+    )
     if (
         args.name is None
         and args.status is None
         and args.enabled is None
         and args.notes is None
         and settings is None
+        and args.cadence_type is None
+        and cadence_config is None
+        and args.missed_behavior is None
+        and args.rotation_group is None
+        and args.weekly_target is None
     ):
         raise CliError(
             "routines update requires at least one of "
-            "--name/--status/--enabled/--no-enabled/--notes/--settings-json"
+            "--name/--status/--enabled/--no-enabled/--notes/--settings-json/"
+            "--cadence-type/--cadence-config-json/--missed-behavior/--rotation-group/"
+            "--weekly-target"
         )
     try:
         with closing(_connect_read_write(args.db)) as connection:
@@ -79,6 +99,11 @@ def _command_routines_update(args: argparse.Namespace) -> int:
                 enabled=args.enabled,
                 settings=settings,
                 notes=args.notes,
+                cadence_type=args.cadence_type,
+                cadence_config=cadence_config,
+                missed_behavior_default=args.missed_behavior,
+                rotation_group=args.rotation_group,
+                weekly_target=args.weekly_target,
             )
     except RoutineEnginePermissionDenied as error:
         raise CliError(str(error)) from error

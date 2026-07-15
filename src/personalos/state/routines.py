@@ -230,10 +230,29 @@ def update_routine(
     settings: Mapping[str, Any] | None = None,
     notes: str | None = None,
     updated_at_utc: str | None = None,
+    cadence_type: str | None = None,
+    cadence_config: Mapping[str, Any] | None = None,
+    missed_behavior_default: str | None = None,
+    rotation_group: str | None = None,
+    weekly_target: int | None = None,
 ) -> dict[str, Any]:
     routine_id = _validate_required_text("routine_id", routine_id)
-    if name is None and status is None and enabled is None and settings is None and notes is None:
-        raise ValueError("name, status, enabled, settings, or notes must be provided")
+    if (
+        name is None
+        and status is None
+        and enabled is None
+        and settings is None
+        and notes is None
+        and cadence_type is None
+        and cadence_config is None
+        and missed_behavior_default is None
+        and rotation_group is None
+        and weekly_target is None
+    ):
+        raise ValueError(
+            "name, status, enabled, settings, notes, cadence_type, cadence_config, "
+            "missed_behavior_default, rotation_group, or weekly_target must be provided"
+        )
 
     current = get_routine(connection, routine_id)
     if current is None:
@@ -247,6 +266,34 @@ def update_routine(
     )
     settings_json = _serialize_metadata(next_settings)
     next_notes = current["notes"] if notes is None else _validate_text("notes", notes)
+    next_cadence_type = (
+        current["cadence_type"]
+        if cadence_type is None
+        else validate_routine_cadence_type(cadence_type)
+    )
+    next_cadence_config = (
+        current["cadence_config"]
+        if cadence_config is None
+        else _validate_metadata("cadence_config", cadence_config)
+    )
+    cadence_config_json = (
+        _serialize_metadata(next_cadence_config) if next_cadence_config else None
+    )
+    next_missed_behavior_default = (
+        current["missed_behavior_default"]
+        if missed_behavior_default is None
+        else validate_routine_missed_behavior(missed_behavior_default)
+    )
+    next_rotation_group = (
+        current["rotation_group"]
+        if rotation_group is None
+        else _validate_required_text("rotation_group", rotation_group)
+    )
+    next_weekly_target = (
+        current["weekly_target"]
+        if weekly_target is None
+        else _validate_optional_nonnegative_int("weekly_target", weekly_target)
+    )
     updated_at = updated_at_utc or _utc_now()
 
     with connection:
@@ -258,7 +305,12 @@ def update_routine(
                 enabled = ?,
                 settings_json = ?,
                 notes = ?,
-                updated_at_utc = ?
+                updated_at_utc = ?,
+                cadence_type = ?,
+                cadence_config_json = ?,
+                missed_behavior_default = ?,
+                rotation_group = ?,
+                weekly_target = ?
             WHERE routine_id = ?
             """,
             (
@@ -268,6 +320,11 @@ def update_routine(
                 settings_json,
                 next_notes,
                 updated_at,
+                next_cadence_type,
+                cadence_config_json,
+                next_missed_behavior_default,
+                next_rotation_group,
+                next_weekly_target,
                 routine_id,
             ),
         )

@@ -36,7 +36,12 @@ from personalos.routines import (
     read_routines,
     update_routine_record,
 )
-from personalos.state import PRIORITY_STATUSES, ROUTINE_STATUSES
+from personalos.state import (
+    PRIORITY_STATUSES,
+    ROUTINE_CADENCE_TYPES,
+    ROUTINE_MISSED_BEHAVIOR_TYPES,
+    ROUTINE_STATUSES,
+)
 from personalos.synthesis_import import (
     ALLOWED_SOURCE_TYPES,
     REPORT_SAFETY_FLAGS,
@@ -496,6 +501,14 @@ def render_routines_page_html(
     status_options = "".join(
         f'<option value="{_e(status)}">{_e(status)}</option>' for status in ROUTINE_STATUSES
     )
+    cadence_type_options = "<option value=\"\">(unset)</option>" + "".join(
+        f'<option value="{_e(cadence_type)}">{_e(cadence_type)}</option>'
+        for cadence_type in ROUTINE_CADENCE_TYPES
+    )
+    missed_behavior_options = "<option value=\"\">(unset)</option>" + "".join(
+        f'<option value="{_e(missed_behavior)}">{_e(missed_behavior)}</option>'
+        for missed_behavior in ROUTINE_MISSED_BEHAVIOR_TYPES
+    )
     create_form = f"""
 <form method="post" action="/routines/create">
   <label for="routine_id">Routine ID</label>
@@ -514,6 +527,21 @@ def render_routines_page_html(
 
   <label for="settings_json">Settings JSON (optional)</label>
   <input id="settings_json" name="settings_json" type="text">
+
+  <label for="cadence_type">Cadence type (optional)</label>
+  <select id="cadence_type" name="cadence_type">{cadence_type_options}</select>
+
+  <label for="cadence_config_json">Cadence config JSON (optional)</label>
+  <textarea id="cadence_config_json" name="cadence_config_json"></textarea>
+
+  <label for="missed_behavior">Missed behavior (optional)</label>
+  <select id="missed_behavior" name="missed_behavior">{missed_behavior_options}</select>
+
+  <label for="rotation_group">Rotation group (optional)</label>
+  <input id="rotation_group" name="rotation_group" type="text">
+
+  <label for="weekly_target">Weekly target (optional)</label>
+  <input id="weekly_target" name="weekly_target" type="number" min="0">
 
   <button type="submit">Create routine</button>
 </form>
@@ -558,6 +586,28 @@ def _render_routine_edit_form(routine: Mapping[str, Any]) -> str:
         f"{_e(value)}</option>"
         for value in ("true", "false")
     )
+    cadence_type_options = (
+        f'<option value=""{" selected" if routine["cadence_type"] is None else ""}>(unset)</option>'
+        + "".join(
+            f'<option value="{_e(cadence_type)}"'
+            f'{" selected" if cadence_type == routine["cadence_type"] else ""}>'
+            f"{_e(cadence_type)}</option>"
+            for cadence_type in ROUTINE_CADENCE_TYPES
+        )
+    )
+    missed_behavior_options = (
+        f'<option value=""{" selected" if routine["missed_behavior_default"] is None else ""}>'
+        "(unset)</option>"
+        + "".join(
+            f'<option value="{_e(missed_behavior)}"'
+            f'{" selected" if missed_behavior == routine["missed_behavior_default"] else ""}>'
+            f"{_e(missed_behavior)}</option>"
+            for missed_behavior in ROUTINE_MISSED_BEHAVIOR_TYPES
+        )
+    )
+    cadence_config_json = json.dumps(routine["cadence_config"]) if routine["cadence_config"] else ""
+    rotation_group = routine["rotation_group"] or ""
+    weekly_target = "" if routine["weekly_target"] is None else str(routine["weekly_target"])
     return f"""
 <form method="post" action="/routines/update">
   <h3>{_e(routine["name"])} ({_e(routine["routine_id"])})</h3>
@@ -574,6 +624,21 @@ def _render_routine_edit_form(routine: Mapping[str, Any]) -> str:
 
   <label>Notes</label>
   <textarea name="notes">{_e(routine["notes"])}</textarea>
+
+  <label>Cadence type</label>
+  <select name="cadence_type">{cadence_type_options}</select>
+
+  <label>Cadence config JSON</label>
+  <textarea name="cadence_config_json">{_e(cadence_config_json)}</textarea>
+
+  <label>Missed behavior</label>
+  <select name="missed_behavior">{missed_behavior_options}</select>
+
+  <label>Rotation group</label>
+  <input name="rotation_group" type="text" value="{_e(rotation_group)}">
+
+  <label>Weekly target</label>
+  <input name="weekly_target" type="number" min="0" value="{_e(weekly_target)}">
 
   <button type="submit">Save changes</button>
 </form>
@@ -594,6 +659,14 @@ def create_dashboard_routine(
             _field_optional_text(form_fields, "settings_json"),
             field_name="settings_json",
         )
+        cadence_type = _field_optional_text(form_fields, "cadence_type")
+        cadence_config = _parse_json_object_field(
+            _field_optional_text(form_fields, "cadence_config_json"),
+            field_name="cadence_config_json",
+        )
+        missed_behavior_default = _field_optional_text(form_fields, "missed_behavior")
+        rotation_group = _field_optional_text(form_fields, "rotation_group")
+        weekly_target = _field_optional_int(form_fields, "weekly_target")
         routine = create_routine_record(
             connection,
             routine_id=routine_id,
@@ -602,6 +675,11 @@ def create_dashboard_routine(
             enabled=enabled,
             settings=settings,
             notes=notes,
+            cadence_type=cadence_type,
+            cadence_config=cadence_config,
+            missed_behavior_default=missed_behavior_default,
+            rotation_group=rotation_group,
+            weekly_target=weekly_target,
         )
     except RoutineEnginePermissionDenied as error:
         return _engine_write_result(status="blocked", reason=str(error), record=None)
@@ -637,16 +715,30 @@ def update_dashboard_routine(
             _field_optional_text(form_fields, "settings_json"),
             field_name="settings_json",
         )
+        cadence_type = _field_optional_text(form_fields, "cadence_type")
+        cadence_config = _parse_json_object_field(
+            _field_optional_text(form_fields, "cadence_config_json"),
+            field_name="cadence_config_json",
+        )
+        missed_behavior_default = _field_optional_text(form_fields, "missed_behavior")
+        rotation_group = _field_optional_text(form_fields, "rotation_group")
+        weekly_target = _field_optional_int(form_fields, "weekly_target")
         if (
             name is None
             and status is None
             and enabled is None
             and notes is None
             and settings is None
+            and cadence_type is None
+            and cadence_config is None
+            and missed_behavior_default is None
+            and rotation_group is None
+            and weekly_target is None
         ):
             raise ValueError(
                 "routines update requires at least one of "
-                "name/status/enabled/notes/settings_json"
+                "name/status/enabled/notes/settings_json/cadence_type/"
+                "cadence_config_json/missed_behavior/rotation_group/weekly_target"
             )
         routine = update_routine_record(
             connection,
@@ -656,6 +748,11 @@ def update_dashboard_routine(
             enabled=enabled,
             settings=settings,
             notes=notes,
+            cadence_type=cadence_type,
+            cadence_config=cadence_config,
+            missed_behavior_default=missed_behavior_default,
+            rotation_group=rotation_group,
+            weekly_target=weekly_target,
         )
     except RoutineEnginePermissionDenied as error:
         return _engine_write_result(status="blocked", reason=str(error), record=None)
@@ -1653,6 +1750,16 @@ def _field_optional_text(form_fields: Mapping[str, object], field_name: str) -> 
 def _field_checked(form_fields: Mapping[str, object], field_name: str) -> bool:
     value = _field_text(form_fields, field_name, default="", strict=False)
     return value not in ("", "false", "0", "off")
+
+
+def _field_optional_int(form_fields: Mapping[str, object], field_name: str) -> int | None:
+    value = _field_optional_text(form_fields, field_name)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError as error:
+        raise ValueError(f"{field_name} must be an integer") from error
 
 
 def _parse_json_object_field(value: str | None, *, field_name: str) -> dict[str, Any] | None:

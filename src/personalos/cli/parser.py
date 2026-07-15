@@ -42,7 +42,12 @@ from personalos.scheduler import (
     SAFE_NO_SEND_SEED_PROFILE,
     SIMULATED_JOB_TYPES,
 )
-from personalos.state import PRIORITY_STATUSES, ROUTINE_STATUSES
+from personalos.state import (
+    PRIORITY_STATUSES,
+    ROUTINE_CADENCE_TYPES,
+    ROUTINE_MISSED_BEHAVIOR_TYPES,
+    ROUTINE_STATUSES,
+)
 from personalos.synthesis_import import ALLOWED_SOURCE_TYPES
 
 
@@ -275,6 +280,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     routines_create_parser.add_argument("--notes", default="")
     routines_create_parser.add_argument("--settings-json", default=None)
+    routines_create_parser.add_argument(
+        "--cadence-type",
+        choices=ROUTINE_CADENCE_TYPES,
+        default=None,
+    )
+    routines_create_parser.add_argument("--cadence-config-json", default=None)
+    routines_create_parser.add_argument(
+        "--missed-behavior",
+        choices=ROUTINE_MISSED_BEHAVIOR_TYPES,
+        default=None,
+    )
+    routines_create_parser.add_argument("--rotation-group", default=None)
+    routines_create_parser.add_argument("--weekly-target", type=int, default=None)
     _add_json_arg(routines_create_parser)
     routines_create_parser.set_defaults(func=_command_routines_create)
 
@@ -296,6 +314,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     routines_update_parser.add_argument("--notes", default=None)
     routines_update_parser.add_argument("--settings-json", default=None)
+    routines_update_parser.add_argument(
+        "--cadence-type",
+        choices=ROUTINE_CADENCE_TYPES,
+        default=None,
+    )
+    routines_update_parser.add_argument("--cadence-config-json", default=None)
+    routines_update_parser.add_argument(
+        "--missed-behavior",
+        choices=ROUTINE_MISSED_BEHAVIOR_TYPES,
+        default=None,
+    )
+    routines_update_parser.add_argument("--rotation-group", default=None)
+    routines_update_parser.add_argument("--weekly-target", type=int, default=None)
     _add_json_arg(routines_update_parser)
     routines_update_parser.set_defaults(func=_command_routines_update)
 

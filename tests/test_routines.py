@@ -27,6 +27,7 @@ from personalos.state import (
     list_routine_completions,
     list_routines,
     record_routine_completion,
+    update_routine,
     update_routine_status_enabled,
     upsert_permission_setting,
     validate_routine_cadence_type,
@@ -242,6 +243,82 @@ class RoutineCadenceSchemaTest(unittest.TestCase):
 
         self.assertEqual(fetched["cadence_type"], "manual_only")
         self.assertEqual(fetched["cadence_config"], {})
+
+    def test_update_routine_with_cadence_fields_round_trips(self) -> None:
+        with _migrated_test_connection() as connection:
+            create_routine(
+                connection,
+                routine_id="routine-update-cadence",
+                name="Reading",
+            )
+            updated = update_routine(
+                connection,
+                routine_id="routine-update-cadence",
+                cadence_type="weekly_target_count",
+                cadence_config={"target": 4},
+                missed_behavior_default="carry_forward_within_week",
+                rotation_group="reading-pool",
+                weekly_target=4,
+            )
+            fetched = get_routine(connection, "routine-update-cadence")
+
+        for routine in (updated, fetched):
+            self.assertEqual(routine["cadence_type"], "weekly_target_count")
+            self.assertEqual(routine["cadence_config"], {"target": 4})
+            self.assertEqual(routine["missed_behavior_default"], "carry_forward_within_week")
+            self.assertEqual(routine["rotation_group"], "reading-pool")
+            self.assertEqual(routine["weekly_target"], 4)
+
+    def test_update_routine_omitting_cadence_args_leaves_existing_values_unchanged(self) -> None:
+        with _migrated_test_connection() as connection:
+            create_routine(
+                connection,
+                routine_id="routine-update-cadence-noop",
+                name="Reading",
+                cadence_type="weekly_target_count",
+                cadence_config={"target": 4},
+                missed_behavior_default="carry_forward_within_week",
+                rotation_group="reading-pool",
+                weekly_target=4,
+            )
+            updated = update_routine(
+                connection,
+                routine_id="routine-update-cadence-noop",
+                name="Reading (renamed)",
+            )
+            fetched = get_routine(connection, "routine-update-cadence-noop")
+
+        for routine in (updated, fetched):
+            self.assertEqual(routine["name"], "Reading (renamed)")
+            self.assertEqual(routine["cadence_type"], "weekly_target_count")
+            self.assertEqual(routine["cadence_config"], {"target": 4})
+            self.assertEqual(routine["missed_behavior_default"], "carry_forward_within_week")
+            self.assertEqual(routine["rotation_group"], "reading-pool")
+            self.assertEqual(routine["weekly_target"], 4)
+
+    def test_update_routine_rejects_invalid_cadence_type_and_missed_behavior(self) -> None:
+        with _migrated_test_connection() as connection:
+            create_routine(
+                connection,
+                routine_id="routine-update-cadence-invalid",
+                name="Reading",
+            )
+            with self.assertRaises(ValueError):
+                update_routine(
+                    connection,
+                    routine_id="routine-update-cadence-invalid",
+                    cadence_type="not_a_real_type",
+                )
+            with self.assertRaises(ValueError):
+                update_routine(
+                    connection,
+                    routine_id="routine-update-cadence-invalid",
+                    missed_behavior_default="not_a_real_behavior",
+                )
+            fetched = get_routine(connection, "routine-update-cadence-invalid")
+
+        self.assertIsNone(fetched["cadence_type"])
+        self.assertIsNone(fetched["missed_behavior_default"])
 
 
 class RoutineEnginePermissionTest(unittest.TestCase):

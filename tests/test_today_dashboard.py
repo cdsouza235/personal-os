@@ -978,6 +978,49 @@ class DashboardRoutinesAndPrioritiesRoutesTest(unittest.TestCase):
         self.assertIn(ROUTINE_ENGINE_WRITE_PERMISSION, body)
         self.assertEqual(routine_count_after, routine_count_before)
 
+    def test_dashboard_create_and_update_routine_functions_round_trip_cadence_fields(
+        self,
+    ) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _set_permission(connection, ROUTINE_ENGINE_WRITE_PERMISSION)
+
+                create_result = dashboard.create_dashboard_routine(
+                    connection,
+                    {
+                        "routine_id": "routine-dashboard-cadence-test",
+                        "name": "Weekly workout target",
+                        "status": "active",
+                        "enabled": "true",
+                        "cadence_type": "weekly_target_count",
+                        "weekly_target": "4",
+                    },
+                )
+                self.assertEqual(create_result["status"], "created")
+                self.assertEqual(
+                    create_result["record"]["cadence_type"], "weekly_target_count"
+                )
+                self.assertEqual(create_result["record"]["weekly_target"], 4)
+
+                update_result = dashboard.update_dashboard_routine(
+                    connection,
+                    {
+                        "routine_id": "routine-dashboard-cadence-test",
+                        "cadence_type": "daily",
+                        "cadence_config_json": '{"note": "switched"}',
+                        "missed_behavior": "skip_and_continue",
+                        "rotation_group": "chores-pool",
+                    },
+                )
+
+        self.assertEqual(update_result["status"], "updated")
+        updated_routine = update_result["record"]
+        self.assertEqual(updated_routine["cadence_type"], "daily")
+        self.assertEqual(updated_routine["cadence_config"], {"note": "switched"})
+        self.assertEqual(updated_routine["missed_behavior_default"], "skip_and_continue")
+        self.assertEqual(updated_routine["rotation_group"], "chores-pool")
+        self.assertEqual(updated_routine["weekly_target"], 4)
+
     def test_post_priorities_create_then_update_round_trips_via_http(self) -> None:
         with _seeded_runtime_db() as db_path:
             with _sqlite_connection(db_path) as connection:

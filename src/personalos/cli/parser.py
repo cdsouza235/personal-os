@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 
 from personalos.cli.briefing import _command_briefing_export, _command_briefing_preview
+from personalos.cli.dispatch import _command_dispatch_morning
 from personalos.cli.priorities import (
     _command_priorities_create,
     _command_priorities_list,
@@ -169,6 +170,49 @@ def build_parser() -> argparse.ArgumentParser:
     run_morning_parser.add_argument("--output-file")
     _add_json_arg(run_morning_parser)
     run_morning_parser.set_defaults(func=_command_run_morning)
+
+    dispatch_parser = subparsers.add_parser(
+        "dispatch",
+        help=(
+            "Dispatch a real top-level Personal OS job to its live rails; CAN make a "
+            "real external write."
+        ),
+        description=(
+            "Dispatch a real top-level Personal OS job. For each computed candidate, "
+            "if -- and only if -- its rail is live (personalos.status.RAIL_STATES), "
+            "this calls the real rail adapter and CAN make a genuine external write "
+            "(a real Todoist task, a real Gmail send to the one controlled recipient). "
+            "Every candidate whose rail is not live is reported as a preview, exactly "
+            "like `run morning`. This is a manual-trigger entry point: it never "
+            "installs or activates a scheduler, LaunchAgent, crontab, daemon, "
+            "background loop, or production runtime, and it is NOT threaded through "
+            "the simulated scheduler."
+        ),
+    )
+    dispatch_subparsers = dispatch_parser.add_subparsers(dest="dispatch_command", required=True)
+
+    dispatch_morning_parser = dispatch_subparsers.add_parser(
+        "morning",
+        help="Dispatch the morning cycle's candidates: live rails write for real, inert rails preview.",
+        description=(
+            "Compute the morning cycle's candidates identically to `run morning`, then "
+            "for each candidate: if its rail (Todoist, Gmail) is live, call the real "
+            "rail adapter (a genuine external write CAN happen); otherwise report a "
+            "preview. Calendar candidates and follow-ups are always previewed (no live "
+            "calendar rail in scope, and follow-ups have no rail at all). Todoist "
+            "candidates dispatch before the Gmail candidate, in that order, so a Gmail "
+            "failure never blocks or rolls back Todoist tasks already created; nothing "
+            "is ever automatically retried."
+        ),
+    )
+    _add_db_arg(dispatch_morning_parser)
+    dispatch_morning_parser.add_argument(
+        "--date",
+        help="Source date in YYYY-MM-DD format. Defaults to today in --timezone.",
+    )
+    dispatch_morning_parser.add_argument("--timezone", default=DEFAULT_TIMEZONE)
+    _add_json_arg(dispatch_morning_parser)
+    dispatch_morning_parser.set_defaults(func=_command_dispatch_morning)
 
     briefing_parser = subparsers.add_parser("briefing", help="No-send briefing workflows.")
     briefing_subparsers = briefing_parser.add_subparsers(dest="briefing_command", required=True)

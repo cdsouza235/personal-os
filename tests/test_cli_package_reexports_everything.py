@@ -54,6 +54,7 @@ ORIGINAL_NAMES = {
     "_command_briefing_preview",
     "_command_dashboard_render",
     "_command_demo_no_send_e2e",
+    "_command_dispatch_morning",
     "_command_priorities_create",
     "_command_priorities_list",
     "_command_priorities_update",
@@ -155,6 +156,7 @@ class CliPackageReexportsEverythingTest(unittest.TestCase):
         new_submodules = {
             "briefing",
             "db",
+            "dispatch",
             "errors",
             "parser",
             "priorities",

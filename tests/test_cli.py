@@ -1460,6 +1460,83 @@ class OperatorCliRunMorningWorkflowTest(unittest.TestCase):
         self.assertTrue(payload["no_send_mode"])
 
 
+class OperatorCliDispatchMorningWorkflowTest(unittest.TestCase):
+    """H2/D-PO-017: `personalos dispatch morning` is the genuinely separate,
+    live-capable sibling of `run morning`."""
+
+    def test_dispatch_command_description_is_explicit_about_live_writes(self) -> None:
+        parser = cli.build_parser()
+        subparsers_action = next(
+            action
+            for action in parser._subparsers._group_actions
+            if action.dest == "command"
+        )
+        run_parser = subparsers_action.choices["run"]
+        dispatch_parser = subparsers_action.choices["dispatch"]
+
+        # run's description must remain permanently, unambiguously "simulation only".
+        self.assertIn("no-send simulation only", run_parser.description)
+
+        # dispatch's own description must say it can make a real external write.
+        self.assertIn("CAN make a genuine external write", dispatch_parser.description)
+        self.assertNotIn("simulation only", dispatch_parser.description)
+
+        dispatch_subparsers_action = next(
+            action
+            for action in dispatch_parser._subparsers._group_actions
+            if action.dest == "dispatch_command"
+        )
+        dispatch_morning_parser = dispatch_subparsers_action.choices["morning"]
+        self.assertIn("genuine external write CAN happen", dispatch_morning_parser.description)
+
+    def test_dispatch_morning_all_inert_previews_everything_and_calls_no_rail(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _enable_briefing_permissions(connection)
+                _enable_composer_permissions(connection)
+                create_routine(
+                    connection,
+                    routine_id="routine-dispatch-cli-due-1",
+                    name="Dispatch CLI due routine",
+                    status="active",
+                    enabled=True,
+                    cadence_type="daily",
+                    created_at_utc=f"{SOURCE_DATE}T00:00:00+00:00",
+                    updated_at_utc=f"{SOURCE_DATE}T00:00:00+00:00",
+                )
+
+            with mock.patch(
+                "personalos.rail_dispatch.todoist_rail.create_live_todoist_task"
+            ) as todoist_call, mock.patch(
+                "personalos.rail_dispatch.gmail_rail.send_live_gmail_message"
+            ) as gmail_call:
+                result = _run_cli(
+                    [
+                        "dispatch",
+                        "morning",
+                        "--db",
+                        str(db_path),
+                        "--date",
+                        SOURCE_DATE,
+                        "--timezone",
+                        DEFAULT_TIMEZONE,
+                        "--json",
+                    ]
+                )
+                todoist_call.assert_not_called()
+                gmail_call.assert_not_called()
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.code, 0)
+        self.assertEqual(payload["status"], "completed")
+        self.assertFalse(payload["live_write"])
+        self.assertTrue(payload["no_external_writes"])
+        self.assertTrue(payload["candidates"])
+        outcomes = {candidate["outcome"] for candidate in payload["candidates"]}
+        self.assertEqual(outcomes, {"preview"})
+        self.assertIn("Todoist: 0 dispatched", payload["report_text"])
+
+
 class OperatorCliProductionPathNarrowingTest(unittest.TestCase):
     """P-SCHED-04: only `run morning` may target the D-PO-011 approved production path
     through the CLI's --db flag. Every other command must still reject it exactly as it

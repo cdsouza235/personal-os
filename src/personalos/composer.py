@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
@@ -14,6 +15,7 @@ from personalos import execution_rails as rails
 from personalos.calendar_blocks import preview_calendar_block
 from personalos.config import DEFAULT_TIMEZONE
 from personalos.permissions import evaluate_auto_write_gate
+from personalos.rails.gmail import GMAIL_RAIL_CONTROLLED_RECIPIENT_ENV_VAR
 from personalos.routines_engine import compute_due_and_owed
 from personalos.state import (
     count_calendar_blocks,
@@ -200,6 +202,7 @@ class FakeComposerAdapter:
 
         start_time = _local_datetime_for_source_date(source_date, hour=9)
         end_time = _local_datetime_for_source_date(source_date, hour=9, minute=30)
+        email_body = f"## {briefing_window.title()} Brief\n\n{readable_text}"
         output_json = {
             "schema_version": COMPOSER_OUTPUT_SCHEMA_VERSION,
             "packet_id": packet_id,
@@ -207,9 +210,7 @@ class FakeComposerAdapter:
                 {
                     "briefing_window": briefing_window,
                     "subject": f"Personal OS {briefing_window} brief for {source_date}",
-                    "body_markdown": (
-                        f"## {briefing_window.title()} Brief\n\n{readable_text}"
-                    ),
+                    "body_markdown": email_body,
                     "summary": _render_email_summary(
                         due_routines=due_routines,
                         new_priorities=new_priorities,
@@ -217,13 +218,22 @@ class FakeComposerAdapter:
                         new_followups=new_followups,
                         carryover_followups=carryover_followups,
                     ),
+                    # Day-stable identity (source_date/briefing_window only, never
+                    # packet_id/started_at) so rail_dispatch.py's live Gmail send and
+                    # its rail-level idempotency key stay stable across two runs the
+                    # same day -- see D-PO-017 item 3.
+                    "source_type": "composer_output",
+                    "source_id": f"{source_date}:{briefing_window}:email-brief",
+                    "body": email_body,
+                    "to_address": os.environ.get(GMAIL_RAIL_CONTROLLED_RECIPIENT_ENV_VAR, ""),
+                    "dedupe_key": f"composer:{source_date}:{briefing_window}:gmail:brief",
                 }
             ],
             "todoist_tasks": [
                 _routine_todoist_candidate(
                     routine,
-                    packet_id=packet_id,
                     source_date=source_date,
+                    briefing_window=briefing_window,
                 )
                 for routine in due_routines
             ],
@@ -914,8 +924,20 @@ def _validate_email_brief(item: Any, index: int) -> dict[str, Any]:
     _validate_exact_keys(
         f"email_briefs[{index}]",
         item,
-        {"briefing_window", "subject", "body_markdown", "summary"},
+        {
+            "briefing_window",
+            "subject",
+            "body_markdown",
+            "summary",
+            "source_type",
+            "source_id",
+            "body",
+            "to_address",
+            "dedupe_key",
+        },
     )
+    if item["source_type"] != "composer_output":
+        raise ComposerValidationError("Email brief candidate source_type must be composer_output.")
     return {
         "briefing_window": _validate_choice(
             "briefing_window",
@@ -925,6 +947,14 @@ def _validate_email_brief(item: Any, index: int) -> dict[str, Any]:
         "subject": _validate_required_text("subject", item["subject"]),
         "body_markdown": _validate_required_text("body_markdown", item["body_markdown"]),
         "summary": _validate_required_text("summary", item["summary"]),
+        "source_type": item["source_type"],
+        "source_id": _validate_required_text("source_id", item["source_id"]),
+        "body": _validate_required_text("body", item["body"]),
+        # Empty is legal (env var not set yet, e.g. before D-PO-015 credentials
+        # landed): rail_dispatch.py treats an unresolved to_address as "preview,
+        # never guess a recipient", not a validation failure.
+        "to_address": _validate_text("to_address", item["to_address"]),
+        "dedupe_key": rails.normalize_dedupe_key(item["dedupe_key"]),
     }
 
 
@@ -1634,23 +1664,32 @@ def _render_email_summary(
 def _routine_todoist_candidate(
     routine: Mapping[str, Any],
     *,
-    packet_id: str,
     source_date: str,
+    briefing_window: str,
 ) -> dict[str, Any]:
     routine_id = str(routine.get("routine_id", ""))
     name = str(routine.get("name") or routine_id or "routine")
+    # Day-stable identity (source_date/briefing_window/routine_id only -- never
+    # packet_id, which embeds the per-run wall-clock started_at) so two `run
+    # morning`/`dispatch morning` invocations for the same day mint the SAME
+    # dedupe_key/source_id, and the live Todoist rail's idempotency gate actually
+    # catches a re-run instead of silently double-creating the task. See
+    # D-PO-017 item 3 / audits/h2-rail-dispatch-design-consult-fable-report.md §4.6.
+    # packet_id itself is untouched -- it remains the correct identity for
+    # composer packet/model-run tracking elsewhere in this file.
+    day_stable_source_id = f"{source_date}:{briefing_window}:routine:{routine_id}"
     return {
         "task_title": f"Complete: {name}",
         "description": f"Routine due today ({source_date}) per routine tracking.",
         "source_type": "composer_output",
-        "source_id": packet_id,
+        "source_id": day_stable_source_id,
         "project": "Routines",
         "labels": ["composer", "routine"],
         "due_date_or_due_string": source_date,
         "priority": 2,
         "risk_level": "low",
         "approval_mode": "auto_allowed",
-        "dedupe_key": f"composer:{packet_id}:todoist:routine:{routine_id}",
+        "dedupe_key": f"composer:{source_date}:{briefing_window}:todoist:routine:{routine_id}",
         "status": "proposed",
     }
 

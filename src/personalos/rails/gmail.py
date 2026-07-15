@@ -398,14 +398,18 @@ def _build_gmail_message_record(
     source_id = validate_required_text("source_id", source_id)
     subject = validate_required_text("subject", subject)
     body = validate_text("body", body)
-    to_address = validate_required_text("to_address", to_address)
+    # Deliberately `validate_text` (allows empty), not `validate_required_text`: an
+    # empty/unresolved to_address must surface as the recipient_scoping gate's own
+    # structured refusal below, not as an uncaught ValueError here -- this function is
+    # the sole authority on whether a recipient is acceptable, including "absent".
+    to_address = validate_text("to_address", to_address)
     dedupe_key = generate_dedupe_key(
         module_name="gmail",
         object_type="message",
         source_type=source_type,
         source_id=source_id,
         title=subject,
-        scheduled_marker=to_address,
+        scheduled_marker=to_address or "(unresolved-recipient)",
     )
     return {
         "gmail_message_id": stable_local_id("gmail-message", dedupe_key),

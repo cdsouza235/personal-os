@@ -1059,14 +1059,7 @@ def _valid_output(**overrides: object) -> dict[str, object]:
     output: dict[str, object] = {
         "schema_version": "composer_output.v1",
         "packet_id": packet_id,
-        "email_briefs": [
-            {
-                "briefing_window": "morning",
-                "subject": "Morning brief",
-                "body_markdown": "Review the safe dev/test summary.",
-                "summary": "Safe summary.",
-            }
-        ],
+        "email_briefs": [_email_brief_candidate(packet_id=packet_id)],
         "todoist_tasks": [_todoist_candidate(packet_id=packet_id)],
         "calendar_blocks": [_calendar_candidate(packet_id=packet_id)],
         "followups": [_followup_candidate(packet_id=packet_id)],
@@ -1074,6 +1067,23 @@ def _valid_output(**overrides: object) -> dict[str, object]:
     }
     output.update(overrides)
     return output
+
+
+def _email_brief_candidate(**overrides: object) -> dict[str, object]:
+    packet_id = str(overrides.pop("packet_id", "packet-1"))
+    candidate: dict[str, object] = {
+        "briefing_window": "morning",
+        "subject": "Morning brief",
+        "body_markdown": "Review the safe dev/test summary.",
+        "summary": "Safe summary.",
+        "source_type": "composer_output",
+        "source_id": f"{packet_id}:email-brief",
+        "body": "Review the safe dev/test summary.",
+        "to_address": "",
+        "dedupe_key": f"composer:{packet_id}:gmail:brief",
+    }
+    candidate.update(overrides)
+    return candidate
 
 
 def _todoist_candidate(**overrides: object) -> dict[str, object]:

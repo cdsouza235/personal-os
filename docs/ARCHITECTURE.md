@@ -1,7 +1,8 @@
-# Personal OS — Architecture v0.4
+# Personal OS — Architecture v0.5
 
-Status: draft for Conductor approval (replaces v0.3; v0.3 → `docs/archive/`)
-Updated: 2026-07-08
+Status: draft for Conductor approval (adds the Knowledge Edge module shape and invariant
+#5 rewording, D-PO-016; no prior revision archived — v0.4's content is unchanged elsewhere)
+Updated: 2026-07-15
 
 ## System shape (target, post Phase B–D)
 
@@ -25,17 +26,57 @@ Updated: 2026-07-08
                             └── high-stakes → blocked      └─ calendar (post-MVP)
 ```
 
+## System shape — Knowledge Edge (target, Phase 0–6; D-PO-016, launch-blocking)
+
+A parallel pipeline, sharing the dashboard shell, the SQLite file, and the `rails/**`
+network boundary, but its own domain package and its own scheduler agent (see invariant
+#5 below). Full design: `docs/knowledge_edge/PHASE0_ARCHITECTURE_DECISIONS.md`.
+
+```
+ due-work dispatcher (Knowledge Edge LaunchAgent, Session 2/3-gated) ──┐
+                                                                       ▼
+   rails/knowledge_edge/ (podcasts, youtube, earnings_calendar,   scan orchestrator
+   sec_edgar, person_search — read-only, credential-gated)  ◀────────┤
+                                                                       │
+                                        knowledge_edge/engine/ (pure: canonicalize,
+                                        directness, dedup, ranking, thesis matching)
+                                                                       │
+                                                                       ▼
+                                        knowledge_edge/state/ (registries, media,
+                                        events, decisions, scan health, synthesis)
+                                                                       │
+                                                                       ▼
+                              Dashboard (localhost, new KE routes) ──▶ Chris triages
+                                                                       │
+                                                        synthesis handoff → ChatGPT/Obsidian
+                                                        (staging only until Session 3)
+```
+
 ## Critical invariants (machine-checkable; RISK_REGISTER triggers reference these)
 1. **Single write path:** all state mutation goes through core APIs; schema only via
    `migrations/**`.
 2. **Engine purity:** cadence computation is side-effect-free; no I/O, no clock reads
-   (date is an argument).
+   (date is an argument). Knowledge Edge's own engine (`knowledge_edge/engine/`) carries
+   the identical purity rule: canonicalization, directness classification, deduplication,
+   ranking, and thesis matching are pure functions over already-fetched records — no
+   network or clock access inside `engine/`.
 3. **Rail gating order is fixed:** permission → ledger/dedupe → rail-state → credentials;
    a rail write with any check unsatisfied fails closed and ledgers the refusal.
+   Knowledge Edge's adapters are read-only discovery, not writes to Chris's accounts, so
+   the permission/ledger legs of this gate do not apply to them the same way; the
+   credentials-present, fail-closed leg still applies unconditionally (see
+   `docs/knowledge_edge/PHASE0_ARCHITECTURE_DECISIONS.md`).
 4. **One permission evaluator** (post P-DEBT-01); no module carries a private copy.
-5. **No background execution** other than the one P-SCHED LaunchAgent.
+5. **No background execution other than the approved P-SCHED LaunchAgent(s):** the
+   morning-brief fixed-time agent (`com.personalos.morning`) and, once its own Session
+   2/3 gate clears, the Knowledge Edge due-work dispatcher agent — two independently
+   unload-proof-verifiable LaunchAgents, never a single shared one (D-PO-016; see
+   `docs/knowledge_edge/PHASE0_ARCHITECTURE_DECISIONS.md` for the reconciliation this
+   rewording records). No other background/daemon/watcher process is permitted.
 6. **Network capability is enumerated:** only `rails/**` (and the manifest-listed legacy
-   smoke modules until P-CLEAN-02) may import network primitives.
+   smoke modules until P-CLEAN-02) may import network primitives. Knowledge Edge's
+   adapters live at `src/personalos/rails/knowledge_edge/**`, inside this same glob — no
+   manifest/RISK_REGISTER edit is required to grant them network capability.
 7. **Localhost-only UI; no credential values in repo, state, logs, or UI.**
 
 ## Layering rules
@@ -44,6 +85,9 @@ Updated: 2026-07-08
 - Generators (briefing/task-planning) consume engine output; only rails touch the world.
 - Governance/process artifacts live in `governance/` + `audits/`, never imported by product
   code (the Phase 0 today.py↔readiness coupling is dissolved in P-CLEAN-02).
+- Knowledge Edge mirrors this exactly at smaller scope: `knowledge_edge/state/` knows
+  nothing of `rails/knowledge_edge/`; `knowledge_edge/engine/` knows state shapes, not
+  rails; only the scan orchestrator and `rails/knowledge_edge/**` touch the network.
 
 ## Routine model (target design — D-PO-010; ships in P-CORE-01/02)
 Replaces the semantics-free `settings_json` blob with first-class columns on the routine
@@ -94,3 +138,10 @@ pipeline, Today View, dashboard shell, permission tables. Missing: cadence engin
 (P-CORE), routine/priority user surfaces (P-CORE-03), template generator (P-BRIEF-01),
 rails/ (Phase D), scheduler (P-SCHED). Being deleted: phase-14C process layer, readiness
 machinery, dead skeletons (P-CLEAN). See `governance/ROADMAP.md`.
+
+**Knowledge Edge (D-PO-016, launch-blocking, Phase 0 of 7 complete as of this edit):**
+none of `src/personalos/knowledge_edge/`, `src/personalos/rails/knowledge_edge/`, its
+migrations, its dashboard routes, or its LaunchAgent exist yet — Packet 0B is a
+documents-and-decisions packet only. See `docs/knowledge_edge/PHASE0_PLAN.md` for the
+phase/packet sequence and `docs/knowledge_edge/PHASE0_ARCHITECTURE_DECISIONS.md` for the
+module/data design Packet 1A implements against.

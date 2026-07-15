@@ -75,6 +75,7 @@ from personalos.today import create_today_view_summary
 
 from personalos.cli.briefing import _command_briefing_export, _command_briefing_preview
 from personalos.cli.db import _connect_read_only, _connect_read_write, _with_workflow_context
+from personalos.cli.dispatch import _command_dispatch_morning
 from personalos.cli.errors import CliError
 from personalos.cli.parser import (
     PersonalOSArgumentParser,

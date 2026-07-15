@@ -101,34 +101,29 @@ def select_briefing_window(
     )
 
 
-def generate_no_send_briefing_preview(
+def build_no_send_candidate_output(
     connection: sqlite3.Connection,
     *,
     source_date: date | str,
     timezone: str = DEFAULT_TIMEZONE,
     briefing_window_name: str,
-    delivery_mode: str = "no_send",
     adapter: ComposerAdapter | None = None,
     run_at: str | None = None,
 ) -> dict[str, Any]:
+    """Resolve the briefing window, ensure the day's daily plan, build the Composer
+    packet from real DB state, and run the fake Composer model.
+
+    Shared by the no-send preview path (`generate_no_send_briefing_preview`) and the
+    live rail dispatcher (`personalos.rail_dispatch`) so both operate on the exact
+    same candidate computation for the same inputs -- what gets reviewed as a preview
+    is provably the same set that gets dispatched. Does not evaluate briefing-loop
+    permissions and does not persist a briefing_output record; callers own those.
+    """
     source_date_iso = _validate_iso_date("source_date", source_date)
     timezone_name = _validate_timezone(timezone)
     briefing_window_name = _validate_briefing_window_name(briefing_window_name)
-    delivery_mode = _validate_delivery_mode(delivery_mode)
     started_at = _validate_iso_datetime("run_at", run_at or _utc_now())
     selected_adapter = _require_fake_composer_adapter(adapter or FakeComposerAdapter())
-
-    permissions = _evaluate_generation_permissions(connection)
-    denied = next((permission for permission in permissions.values() if not permission["allowed"]), None)
-    if denied is not None:
-        return _blocked_result(
-            reason=denied["reason"],
-            source_date=source_date_iso,
-            timezone=timezone_name,
-            briefing_window_name=briefing_window_name,
-            delivery_mode=delivery_mode,
-            permissions=permissions,
-        )
 
     window = _select_briefing_window_unchecked(
         connection,
@@ -169,6 +164,58 @@ def generate_no_send_briefing_preview(
         adapter=selected_adapter,
         run_at=started_at,
     )
+    return {
+        "source_date": source_date_iso,
+        "timezone": timezone_name,
+        "briefing_window_name": briefing_window_name,
+        "started_at": started_at,
+        "window": window,
+        "daily_plan": daily_plan,
+        "packet_id": packet_id,
+        "composer_result": composer_result,
+    }
+
+
+def generate_no_send_briefing_preview(
+    connection: sqlite3.Connection,
+    *,
+    source_date: date | str,
+    timezone: str = DEFAULT_TIMEZONE,
+    briefing_window_name: str,
+    delivery_mode: str = "no_send",
+    adapter: ComposerAdapter | None = None,
+    run_at: str | None = None,
+) -> dict[str, Any]:
+    source_date_iso = _validate_iso_date("source_date", source_date)
+    timezone_name = _validate_timezone(timezone)
+    briefing_window_name = _validate_briefing_window_name(briefing_window_name)
+    delivery_mode = _validate_delivery_mode(delivery_mode)
+
+    permissions = evaluate_briefing_generation_permissions(connection)
+    denied = next((permission for permission in permissions.values() if not permission["allowed"]), None)
+    if denied is not None:
+        return _blocked_result(
+            reason=denied["reason"],
+            source_date=source_date_iso,
+            timezone=timezone_name,
+            briefing_window_name=briefing_window_name,
+            delivery_mode=delivery_mode,
+            permissions=permissions,
+        )
+
+    candidates = build_no_send_candidate_output(
+        connection,
+        source_date=source_date_iso,
+        timezone=timezone_name,
+        briefing_window_name=briefing_window_name,
+        adapter=adapter,
+        run_at=run_at,
+    )
+    started_at = candidates["started_at"]
+    window = candidates["window"]
+    daily_plan = candidates["daily_plan"]
+    packet_id = candidates["packet_id"]
+    composer_result = candidates["composer_result"]
 
     if composer_result["status"] != "completed":
         return _record_failed_briefing_output(
@@ -684,7 +731,14 @@ def _blocked_result(
     }
 
 
-def _evaluate_generation_permissions(connection: sqlite3.Connection) -> dict[str, dict[str, Any]]:
+def evaluate_briefing_generation_permissions(
+    connection: sqlite3.Connection,
+) -> dict[str, dict[str, Any]]:
+    """The dev/test permission gate on whether the candidate-generation pipeline can
+    run at all (BRIEFING_LOOP_WRITE/RUN_PERMISSION) -- orthogonal to any rail's live
+    write permission. Shared by the no-send preview path and `personalos.rail_dispatch`
+    so both gate candidate generation identically.
+    """
     return {
         "write": evaluate_briefing_loop_permission(
             connection,

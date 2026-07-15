@@ -55,8 +55,16 @@ def _connect_read_only(db_path: str) -> sqlite3.Connection:
     return connection
 
 
-def _connect_read_write(db_path: str) -> sqlite3.Connection:
-    validated_path = validate_existing_sqlite_path(db_path, path_label="operator db_path")
+def _connect_read_write(
+    db_path: str,
+    *,
+    allow_production_path: bool = False,
+) -> sqlite3.Connection:
+    validated_path = validate_existing_sqlite_path(
+        db_path,
+        path_label="operator db_path",
+        allow_production_path=allow_production_path,
+    )
     connection = sqlite3.connect(validated_path)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")

@@ -225,18 +225,10 @@ def _dispatch_gmail_candidate(
             candidate=candidate,
             reason=f"Gmail rail state is '{rail_state}', not 'live'; routed to preview.",
         )
-    to_address = candidate.get("to_address")
-    if not isinstance(to_address, str) or not to_address.strip():
-        return _preview_entry(
-            rail="gmail",
-            candidate_type="email_brief",
-            index=index,
-            candidate=candidate,
-            reason=(
-                "No resolvable controlled recipient for this email brief "
-                "(to_address is empty); routed to preview, never guessing a recipient."
-            ),
-        )
+    # No recipient pre-check here: `to_address` is populated unconditionally from the
+    # controlled-recipient env var at candidate-construction time (composer.py), and
+    # `send_live_gmail_message`'s own recipient_scoping gate is the sole authority on
+    # whether it's acceptable -- this dispatcher must not re-derive that decision.
     result = gmail_rail.send_live_gmail_message(connection, **candidate)
     external_id = None
     if result.get("status") == gmail_rail.STATUS_CLIENT_CALL_PASSED:

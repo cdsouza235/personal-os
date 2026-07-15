@@ -22,6 +22,7 @@ from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.permissions import PermissionMode
 from personalos.rail_dispatch import (
+    OUTCOME_BLOCKED,
     OUTCOME_DISPATCHED,
     OUTCOME_FAILED,
     OUTCOME_PREVIEW,
@@ -187,10 +188,14 @@ class RailDispatchGmailLiveTest(unittest.TestCase):
         todoist_entries = [c for c in result["candidates"] if c["rail"] == "todoist"]
         self.assertEqual(todoist_entries[0]["outcome"], OUTCOME_PREVIEW)
 
-    def test_unresolved_controlled_recipient_previews_and_never_calls_the_rail(self) -> None:
+    def test_unresolved_controlled_recipient_is_blocked_by_the_rails_own_gate(self) -> None:
         # Gmail rail is live and credentials/permission are all satisfied, but the
         # controlled-recipient env var is unset -> to_address on the candidate is
-        # empty. The dispatcher must never guess a recipient: preview, don't call.
+        # empty. The dispatcher does NOT pre-check this itself (that duplicated the
+        # rail's own decision); it routes to the rail exactly like any other live
+        # candidate, and `send_live_gmail_message`'s own recipient_scoping gate is
+        # the sole authority that refuses it -- as a structured `blocked` result, not
+        # an uncaught exception, and never by guessing a recipient or sending mail.
         with _migrated_test_connection() as connection:
             _seed_dispatchable_state(connection)
             _set_permission(connection, GMAIL_RAIL_LIVE_SEND_PERMISSION)
@@ -203,8 +208,8 @@ class RailDispatchGmailLiveTest(unittest.TestCase):
                 with mock.patch.dict(os.environ, env):
                     os.environ.pop(GMAIL_RAIL_CONTROLLED_RECIPIENT_ENV_VAR, None)
                     with mock.patch(
-                        "personalos.rail_dispatch.gmail_rail.send_live_gmail_message"
-                    ) as gmail_call:
+                        "personalos.rails.gmail.GmailSmtpClient"
+                    ) as smtp_client_class:
                         result = dispatch_morning_candidates(
                             connection,
                             source_date=SOURCE_DATE,
@@ -212,10 +217,13 @@ class RailDispatchGmailLiveTest(unittest.TestCase):
                             briefing_window_name=BRIEFING_WINDOW,
                             run_at=f"{SOURCE_DATE}T09:00:00+00:00",
                         )
-                        gmail_call.assert_not_called()
+                        # The rail was reached (it's the one that refused), but it
+                        # refused before ever constructing a send client.
+                        smtp_client_class.assert_not_called()
 
         gmail_entries = [c for c in result["candidates"] if c["rail"] == "gmail"]
-        self.assertEqual(gmail_entries[0]["outcome"], OUTCOME_PREVIEW)
+        self.assertEqual(gmail_entries[0]["outcome"], OUTCOME_BLOCKED)
+        self.assertEqual(gmail_entries[0]["gate_failed"], "recipient_scoping")
 
 
 class RailDispatchPartialFailureTest(unittest.TestCase):

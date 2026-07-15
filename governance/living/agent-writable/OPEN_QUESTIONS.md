@@ -58,13 +58,11 @@
   OpenClaw-era, uploaded 2026-07-14). That document's execution layer (OpenClaw, cut per
   D-PO-004) does not carry over, but its routine content and Section 11 reply-command
   grammar are real, useful input:
-  - **Cleaning** (its Section 7.1, 12 named tasks with rotation order/duration/description)
-    maps directly onto the CURRENT confirmed seed list's "Cleaning: rotating pool of 15-20
-    tasks, one rotation_group" (D-PO-010) — close to a ready-to-use starting set, pending
-    Chris's own adjustment pass (his own words: "baseline... I'll need to adjust").
-  - **Reading** (4x/wk) and **Stillness/Prayer/Meditation** (2x/wk) in that document match
-    the current confirmed seed list's cadence exactly — independent confirmation Chris's
-    thinking has been consistent across this whole gap in time.
+  - **Cleaning, Reading, Stillness**: **CLOSED, 2026-07-14 (D-PO-014)** — finalized as a
+    13-task cleaning pool (12 from the old PRD + Chris's added "Kitchen and Foyer Floor"),
+    `bump_schedule_by_one_day` missed-behavior (EoD Todoist-completion check, no reply
+    needed), Reading/Stillness unchanged (`skip_and_continue`). Shutdown/Review dropped
+    entirely rather than fleshed out. See D-PO-014 for the full list.
   - **Grease-the-Groove**: **CLOSED, 2026-07-14 (R-PO-001)** — moved OUT of the routine-model
     schema entirely. No clean fit emerged for rep-accumulation under the Todoist-as-state
     design (discrete "round" tasks were offered, declined); Chris will fold GTG into a

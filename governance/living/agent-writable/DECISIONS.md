@@ -132,7 +132,24 @@
   of the risk a fully personal-account setup would carry. Unblocks P-RAIL-CAL-02. — Chris,
   2026-07-13
 
-## Reversals
+- **D-PO-014 Finalized seed routine list: Cleaning/Reading/Stillness (closes HI-05 for
+  these three; Podcast/Media and GTG remain separately tracked/deferred).** Cleaning is a
+  13-task rotating pool (sourced from Chris's older White Space Planner PRD Section 7.1,
+  plus one addition): Furniture Surfaces, Fabric Vacuum, Stovetop, Kitchen Counters, Living
+  Room Floor, Dining Area Floor, Bedroom Floor, Office Floor, Water Leafy Plants, Towels +
+  Mats, Master Bathroom Floor, Second Bathroom Floor, and **Kitchen and Foyer Floor**
+  (Chris's addition, 2026-07-14: vacuum and Swiffer) — final count, not the "15-20" range
+  D-PO-010 estimated; Chris confirmed 13 is sufficient. Missed-cleaning-occurrence handling
+  is `bump_schedule_by_one_day` (not the per-occurrence-reply mechanism D-PO-010 originally
+  assumed — reply-parsing was eliminated project-wide per Q-PO-008's 2026-07-14 update),
+  triggered by a plain state check: the Todoist task for that occurrence is not marked
+  complete by end of day. No reply, no dashboard/CLI action needed to trigger the bump —
+  purely derived from Todoist completion state, same mechanism as the 4x/day check-in
+  loop. Reading (4x/wk) and Stillness (2x/wk) are unchanged from the prior draft —
+  `skip_and_continue`, no automatic backfill. **Shutdown/Review is DROPPED** — was never
+  fleshed out beyond a name + `daily` cadence type, Chris chose to drop it rather than
+  define it now. Podcast/Media awaits Chris's own mini-PRD (Q-PO-008); GTG is out of scope
+  per R-PO-001. — Chris, 2026-07-14
 
 - **R-PO-001 (2026-07-14) partially reverses D-PO-010's Grease-the-Groove disposition.**
   D-PO-010 modeled GTG as individual routine rows sharing `rotation_group = "gtg"`, cadence

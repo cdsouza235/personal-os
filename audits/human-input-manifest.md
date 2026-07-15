@@ -11,7 +11,7 @@ name-present preflight + the activation packet's bounded live probe).
 | HI-02 | Ratification of D-PO-004 (OpenClaw cut) — rides with HI-01 | ROADMAP | DECISIONS.md | **requested** |
 | HI-03 | Per-module keep/delete calls on orphans (fitness, reports, runtime_bootstrap, completion) | P-DEBT-03 | gate decision | **provided** (D-PO-012, 2026-07-10: delete fitness/reports/completion; runtime_bootstrap excluded, actually in use) |
 | HI-04 | Routine model sign-off: confirm PRD §3.1 cadence/missed-behavior semantics match how you actually live (esp. GTG rotation + weekly targets) | P-DESIGN-01 (G6) | gate decision | pending |
-| HI-05 | Seed routine list confirmation (names, cadences, windows) | P-CORE-03 | state seed review | pending |
+| HI-05 | Seed routine list confirmation (names, cadences, windows) | P-CORE-03 | state seed review | **provided for Cleaning/Reading/Stillness** (D-PO-014, 2026-07-14: 13-task cleaning pool, `bump_schedule_by_one_day` missed-behavior, Shutdown/Review dropped); Podcast/Media still pending Chris's mini-PRD (Q-PO-008) |
 | HI-06 | `TODOIST_API_TOKEN` present in env (name-only) | P-RAIL-TD-02 | env/keychain | pending |
 | HI-07 | Gmail app password + sender + controlled recipient (names only) | P-RAIL-GM-02 | env/keychain | pending |
 | HI-08 | Briefing quality judgment on soak artifacts (Q-PO-003) | P-BRIEF-01→GM-02 | gate decision | pending |

@@ -16,6 +16,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest import mock
 
 import personalos.knowledge_edge.state as ke
 from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
@@ -165,7 +166,9 @@ def _four_lane_records() -> dict:
 
 
 def _build_adapters(records: dict):
-    podcast_adapter = FixturePodcastFeedAdapter({"src-dwarkesh": (records["podcast_episode"],)})
+    podcast_adapter = FixturePodcastFeedAdapter(
+        {"src-dwarkesh": tuple(records.get("podcast_items", (records["podcast_episode"],)))}
+    )
     channel_adapter = FixtureChannelVideoAdapter(
         {
             "src-frontier-ai": tuple(records.get("frontier_ai_items", (records["p0_interview"],))),
@@ -428,6 +431,81 @@ class CapEnforcementTest(unittest.TestCase):
             )
             p0_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p0_consequential_leaders")
             self.assertEqual(len(p0_rows), total)
+
+    def _many_podcast_items(self, count: int) -> tuple[DiscoveredMediaItem, ...]:
+        items = []
+        for index in range(count):
+            items.append(
+                DiscoveredMediaItem(
+                    source_id="src-dwarkesh",
+                    source_specific_id=f"ep-p1-{index}",
+                    canonical_url=f"https://dwarkesh.com/ep-p1-{index}",
+                    title=f"Podcast Episode {index}",
+                    media_type="podcast_episode",
+                    source_precedence="official",
+                    format_hint="original_podcast_guest",
+                    feed_guid=f"dwarkesh-guid-p1-{index}",
+                    published_at="2026-07-16T18:00:00+00:00",
+                    duration_seconds=1200 + index,
+                    cursor_value=f"2026-07-16T18:00:0{index}+00:00" if index < 10 else f"2026-07-16T18:00:{index}+00:00",
+                )
+            )
+        return tuple(items)
+
+    def test_total_cross_lane_cap_trims_combined_p1_p2_pool_by_score(self) -> None:
+        """§12.1: the candidate surface is bounded by a total cap across P1+P2,
+        not just a per-lane cap -- a strong P2 item can out-rank a weak P1 item
+        for one of the shared total slots. The per-lane cap (5) alone can never
+        exceed the provisional total cap (12) with only two cappable lanes, so
+        this test patches the total cap down to below what the per-lane caps
+        alone would admit (5 + 5 = 10) to actually exercise the trim."""
+        per_lane_cap = ranking.PROVISIONAL_PER_LANE_CANDIDATE_CAP
+        total_cap = per_lane_cap  # deliberately below per_lane_cap * 2 == 10
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            records = _four_lane_records()
+            records["podcast_items"] = self._many_podcast_items(per_lane_cap)
+            records["cnbc_items"] = self._many_market_voice_items(per_lane_cap)
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+
+            with mock.patch.object(ranking, "PROVISIONAL_TOTAL_P1_P2_CANDIDATE_CAP", total_cap):
+                run_scan(
+                    connection,
+                    scan_run_id="run-1",
+                    run_type="full_scan",
+                    triggered_by="scheduler",
+                    now=NOW,
+                    queue_date="2026-07-16",
+                    podcast_adapter=podcast_adapter,
+                    channel_adapter=channel_adapter,
+                    earnings_adapter=earnings_adapter,
+                    filings_adapter=filings_adapter,
+                )
+
+            p1_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p1_core_podcasts")
+            p2_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
+            self.assertEqual(len(p1_rows) + len(p2_rows), total_cap)
+
+            podcast_items = ke.list_media_items(connection, source_id="src-dwarkesh")
+            voice_items = ke.list_media_items(connection, source_id="src-cnbc")
+            combined = list(podcast_items) + list(voice_items)
+            self.assertEqual(len(combined), 2 * per_lane_cap)
+
+            expected_queued_ids = {
+                item["media_item_id"]
+                for item in sorted(
+                    combined, key=lambda item: (-(item["priority_score"] or 0.0), item["media_item_id"])
+                )[:total_cap]
+            }
+            actual_queued_ids = {
+                item["media_item_id"] for item in combined if item["queue_visibility_state"] == "queued"
+            }
+            self.assertEqual(actual_queued_ids, expected_queued_ids)
+
+            actual_still_candidate = {
+                item["media_item_id"] for item in combined if item["queue_visibility_state"] == "candidate"
+            }
+            self.assertEqual(actual_still_candidate, {item["media_item_id"] for item in combined} - expected_queued_ids)
 
 
 class P0BoundaryCaseTest(unittest.TestCase):

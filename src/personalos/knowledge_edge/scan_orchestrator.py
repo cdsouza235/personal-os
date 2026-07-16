@@ -602,17 +602,54 @@ def _build_and_record_queue(
                 {"entity_id": item["media_item_id"], "priority_score": item["priority_score"] or 0.0, "row": item}
             )
 
-    section_caps = {
-        "p0_consequential_leaders": None,
-        "p1_core_podcasts": ranking.PROVISIONAL_PER_LANE_CANDIDATE_CAP,
-        "p2_market_voices": ranking.PROVISIONAL_PER_LANE_CANDIDATE_CAP,
-    }
-    for section in ("p0_consequential_leaders", "p1_core_podcasts", "p2_market_voices"):
+    # §12.1: the candidate surface is bounded by both a per-lane cap and a total
+    # (cross-lane) cap. P0 is exempt from both -- never capped, per
+    # ranking.select_promoted(cap=None) below. P1/P2 first apply their own
+    # per-lane cap, then the union of what survives that is trimmed again to
+    # PROVISIONAL_TOTAL_P1_P2_CANDIDATE_CAP by combined priority_score, so a
+    # strong P2 item can still outrank a weak P1 item for one of the total slots.
+    p0_candidates = media_by_section.get("p0_consequential_leaders", [])
+    p0_ordered = ranking.order_candidates(p0_candidates)
+    p0_promoted, _p0_overflow = ranking.select_promoted(p0_ordered, cap=None)
+    rows_created += _record_section(
+        connection,
+        queue_date=queue_date,
+        section="p0_consequential_leaders",
+        entity_type="media_item",
+        ordered_entity_ids=p0_promoted,
+        items_by_id={c["entity_id"]: c["row"] for c in p0_candidates},
+    )
+
+    per_lane_promoted: dict[str, list[str]] = {}
+    cross_lane_pool: list[dict] = []
+    for section in ("p1_core_podcasts", "p2_market_voices"):
         candidates = media_by_section.get(section, [])
         ordered = ranking.order_candidates(candidates)
-        promoted, _overflow = ranking.select_promoted(ordered, cap=section_caps[section])
+        promoted, _overflow = ranking.select_promoted(
+            ordered, cap=ranking.PROVISIONAL_PER_LANE_CANDIDATE_CAP
+        )
+        per_lane_promoted[section] = promoted
+        promoted_set = set(promoted)
+        cross_lane_pool.extend(item for item in candidates if item["entity_id"] in promoted_set)
+
+    cross_lane_ordered = ranking.order_candidates(cross_lane_pool)
+    total_promoted, _total_overflow = ranking.select_promoted(
+        cross_lane_ordered, cap=ranking.PROVISIONAL_TOTAL_P1_P2_CANDIDATE_CAP
+    )
+    total_promoted_set = set(total_promoted)
+
+    for section in ("p1_core_podcasts", "p2_market_voices"):
+        candidates = media_by_section.get(section, [])
+        final_ids = [
+            entity_id for entity_id in per_lane_promoted[section] if entity_id in total_promoted_set
+        ]
         rows_created += _record_section(
-            connection, queue_date=queue_date, section=section, entity_type="media_item", ordered_entity_ids=promoted, items_by_id={c["entity_id"]: c["row"] for c in candidates}
+            connection,
+            queue_date=queue_date,
+            section=section,
+            entity_type="media_item",
+            ordered_entity_ids=final_ids,
+            items_by_id={c["entity_id"]: c["row"] for c in candidates},
         )
 
     saved_media = [

@@ -14,10 +14,14 @@ are enforced at decision-acceptance time -- that is Packet 1C's dashboard/CLI
 surface, not this one. What Packet 1B *can* and does enforce here, because it is
 computed once per scan run independent of any UI, is:
 
-- the per-lane **candidate cap** that bounds how many ranked candidates are
-  promoted into today's ``queue_snapshot`` for the P1/P2 sections, with P0 always
-  fully promoted (never dropped, only visually collapsed beyond the cap -- §12.1's
-  own "qualifying P0 items beyond the candidate caps remain visible in a collapsed
+- the per-lane **and total** candidate caps (§12.1: "bounded by configurable
+  per-lane and total candidate caps") that bound how many ranked candidates are
+  promoted into today's ``queue_snapshot`` for the P1/P2 sections -- the per-lane
+  cap is applied first within each lane, then the combined P1+P2 survivors are
+  trimmed again to the total cap by priority_score across both lanes (so a strong
+  P2 item can out-rank a weak P1 item for a shared slot) -- with P0 always fully
+  promoted (never dropped, only visually collapsed beyond the cap -- §12.1's own
+  "qualifying P0 items beyond the candidate caps remain visible in a collapsed
   ... section rather than being lost");
 - the Saved-to-Reconsider **resurfacing** cap (at most 2 saved items included in a
   given day's snapshot) and 14-day **expiry** (pinned items exempt);

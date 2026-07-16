@@ -67,6 +67,44 @@ FORBIDDEN_IMPORT_ROOTS = {
     "telnetlib",
 }
 
+# urllib.parse is pure string/URL manipulation -- no socket access -- and is the
+# standard-library tool engine/canonicalize.py legitimately needs for §11.2 URL
+# canonicalization. It is the one named exception to the otherwise-blanket
+# "urllib" root ban; urllib.request (or bare "import urllib") stays forbidden.
+_ALLOWED_NETWORK_ROOT_EXCEPTIONS = ("urllib.parse",)
+
+
+def _is_allowed_exception(dotted_name: str) -> bool:
+    return any(
+        dotted_name == exception or dotted_name.startswith(exception + ".")
+        for exception in _ALLOWED_NETWORK_ROOT_EXCEPTIONS
+    )
+
+
+def _find_network_import_offenders(package_dir: Path) -> list[str]:
+    offenders: list[str] = []
+    for path in sorted(package_dir.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        relative_name = path.relative_to(package_dir).as_posix()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if _is_allowed_exception(alias.name):
+                        continue
+                    root = alias.name.split(".")[0]
+                    if root in FORBIDDEN_IMPORT_ROOTS:
+                        offenders.append(f"{relative_name}: import {alias.name}")
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if _is_allowed_exception(module):
+                    continue
+                root = module.split(".")[0]
+                if root in FORBIDDEN_IMPORT_ROOTS:
+                    offenders.append(f"{relative_name}: from {module} import ...")
+    return offenders
+
 
 class KnowledgeEdgeMigrationSchemaTest(unittest.TestCase):
     def test_migrations_00017_through_00021_create_expected_tables(self) -> None:
@@ -187,45 +225,16 @@ class KnowledgeEdgeNoNetworkImportsTest(unittest.TestCase):
         import personalos.knowledge_edge.state as ke_state
 
         package_dir = Path(ke_state.__file__).parent
-        offenders: list[str] = []
-
-        for path in sorted(package_dir.glob("*.py")):
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        root = alias.name.split(".")[0]
-                        if root in FORBIDDEN_IMPORT_ROOTS:
-                            offenders.append(f"{path.name}: import {alias.name}")
-                elif isinstance(node, ast.ImportFrom):
-                    module = node.module or ""
-                    root = module.split(".")[0]
-                    if root in FORBIDDEN_IMPORT_ROOTS:
-                        offenders.append(f"{path.name}: from {module} import ...")
-
-        self.assertEqual(offenders, [])
+        self.assertEqual(_find_network_import_offenders(package_dir), [])
 
     def test_knowledge_edge_package_root_has_no_network_capable_imports(self) -> None:
+        """Recursive: covers every subpackage (state/, engine/, adapters/) and
+        scan_orchestrator.py -- not just the top-level package directory -- so
+        Packet 1B's new engine/ and adapters/ modules are in scope too."""
         import personalos.knowledge_edge as ke_package
 
         package_dir = Path(ke_package.__file__).parent
-        offenders: list[str] = []
-
-        for path in sorted(package_dir.glob("*.py")):
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        root = alias.name.split(".")[0]
-                        if root in FORBIDDEN_IMPORT_ROOTS:
-                            offenders.append(f"{path.name}: import {alias.name}")
-                elif isinstance(node, ast.ImportFrom):
-                    module = node.module or ""
-                    root = module.split(".")[0]
-                    if root in FORBIDDEN_IMPORT_ROOTS:
-                        offenders.append(f"{path.name}: from {module} import ...")
-
-        self.assertEqual(offenders, [])
+        self.assertEqual(_find_network_import_offenders(package_dir), [])
 
 
 def _config_for(runtime_dir: Path, environment: Environment) -> PersonalOSConfig:

@@ -14,7 +14,10 @@ Governance context read first, per the task's own instruction: `governance/livin
 D-PO-016 (lines 166–195) records three decisions already made by Chris before this packet
 ran: (1) launch-blocking is intentional; (2) "no new Fable role" — use the harness's
 existing auditor + phase-end-auditor setup as-is; (3) earnings-calendar provider = Financial
-Modeling Prep, paid tier, exact entitlement TBD (Packet 0B's job). All three are treated as
+Modeling Prep, paid tier, exact entitlement TBD (Packet 0B's job). [Superseded 2026-07-15:
+D-PO-019 rejected FMP at its real price at Session 1; earnings coverage now uses the bounded
+market-cap roster via SEC EDGAR + official IR pages — see PHASE0_ROSTER.md. Historical
+references to FMP below stand as records of what was true when 0A ran.] All three are treated as
 settled below, not re-litigated.
 
 ---

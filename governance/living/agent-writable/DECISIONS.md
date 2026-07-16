@@ -280,7 +280,9 @@
   5. **Launch role appendix ratified — 5 seats** (occupants web-verified 2026-07-15):
      Federal Reserve Chair = Kevin Warsh (eff. 2026-05-22, succeeded Powell); U.S. Treasury
      Secretary = Scott Bessent (eff. 2025-01); SEC Chair = Paul Atkins (eff. 2025-04-21);
-     CFTC Chair = Michael Selig (confirmed 2025-12-18, sworn in early 2026); Apple CEO =
+     CFTC Chair = Michael Selig (confirmed 2025-12-18, sworn in 2025-12-22 — date
+     precision corrected 2026-07-16 against CFTC press release 9164-25 during the
+     P-KE-1A audit; the original record said "early 2026"); Apple CEO =
      Tim Cook, with **John Ternus effective 2026-09-01** (transition announced 2026-04-20).
      Company-head seats (OpenAI/Anthropic/DeepMind/NVIDIA/AMD) deliberately NOT created —
      current holders are already tracked as named Lane B/C individuals; a seat is added

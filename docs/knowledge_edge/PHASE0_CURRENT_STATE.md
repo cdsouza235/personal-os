@@ -281,12 +281,14 @@ The convention is real, consistent, and already used by three live rail adapters
 - **Governing invariant:** `governance/RUNBOOK.md:4-5` — "**No agent ever holds production
   credentials.** Live-rail runtime uses credentials from the host environment under Chris's
   account; agent sandboxes get name-only preflight." This is exactly the posture the
-  amendment needs for FMP/YouTube/broad-person-search credentials.
+  amendment needs for EDGAR user-agent identification, YouTube, and (if later adopted)
+  broad-person-search credentials (D-PO-019: FMP retired, not a live credential target).
 - **Real precedent for exactly this kind of decision:** D-PO-013 (`DECISIONS.md:123-133`)
   and D-PO-015 (`DECISIONS.md:154-164`) already resolved analogous OAuth/API-credential
   identity questions (which account holds the credential vs. which account is the
   read/write target) for Calendar and Gmail/Todoist — a directly reusable precedent
-  structure for Packet 0B's FMP/YouTube/broad-search credential plan.
+  structure for Packet 0B's EDGAR/YouTube/broad-search credential plan (FMP retired
+  per D-PO-019).
 
 **Genuinely stale artifact found here:** `.env.example` (repo root) still documents the
 *retired* Phase-14C-era variable names (`PERSONALOS_PHASE14C_GMAIL_CREDENTIAL`,
@@ -466,7 +468,8 @@ standalone amendment work**, to be integrated into the canonical `docs/PRD.md` d
   `src/personalos/rails/todoist.py:1-18`'s own docstring for the canonical description of
   the pattern).
 - **The `PERSONALOS_RAIL_<NAME>_<FIELD>` env-var convention** (§6 above) — directly reusable
-  naming scheme for FMP/YouTube/broad-person-search credentials, with real precedent
+  naming scheme for EDGAR/YouTube/broad-person-search credentials (FMP retired per
+  D-PO-019), with real precedent
   (D-PO-013, D-PO-015) for how to resolve "which account holds the credential vs. which
   target it operates on" questions.
 - **The `state/` package's domain-submodule structure** (§8 above) — precedent for adding

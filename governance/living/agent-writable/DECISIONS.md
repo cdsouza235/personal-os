@@ -291,3 +291,24 @@
   confirmation, both keys into `.env.local` (placeholders already written). Packet 0C's
   bounded probe waits on these. — Chris (Conductor approvals) + Fable seat (record),
   2026-07-15
+- **D-PO-019 FMP rejected at real price; earnings coverage moves to a bounded manual
+  roster (amends D-PO-016 item 3, closes D-PO-018's FMP open item).** At Session 1
+  credential creation Chris verified FMP's actual pricing: earnings/corporate-events
+  access requires a ~$50/month tier — the figure D-PO-016 explicitly could not confirm
+  when it chose paid-FMP-over-scrapers. Chris rejected it as over budget ("not down with
+  that"). Replacement, defined by Chris: a **bounded, rule-defined company roster** —
+  top 10 Nasdaq-100 companies + top 3 publicly listed crypto-native companies + top 5
+  WGMI-ETF (CoinShares/Valkyrie Bitcoin Miners) constituents, all ranked by market cap
+  (~18 names, overlap deduped) — with the roster **refreshed quarterly** (Chris allowed
+  quarterly or semi-annual; quarterly recorded as default, aligned to earnings seasons).
+  Earnings dates for this universe come from already-approved free sources: SEC EDGAR
+  (approved Session 1, no key) + the companies' official IR pages, which the §10.3
+  allowlist already admits as "official company/investor-relations channels." D-PO-016's
+  anti-scraper rationale targeted an unbounded 20-40-company universe; a fixed ~18-name
+  roster with quarterly human refresh does not reopen it. Consequences: the FMP key
+  created today is NOT adopted (commented inert in `.env.local`; Chris may cancel the
+  account); Packet 0C's probe scope drops FMP and probes EDGAR + YouTube only; the
+  concrete roster seed list is built and web-verified in the next KE packet and returns
+  to Chris for confirmation (same pattern as the launch role appendix); the providers
+  doc + plan get a corresponding docs amendment in that packet, not ad-hoc. — Chris
+  (Conductor decision) + Fable seat (record), 2026-07-15

@@ -6,9 +6,12 @@
   concur, G0/G-GOV/G1 Chris-approved, pushed). Session 1 (the human gate) decisions
   ratified and recorded as **D-PO-018**: allowlist, IR-redirect mechanism, scope limits,
   EDGAR user-agent, 5-seat launch role appendix (Warsh/Bessent/Atkins/Selig/Cook→Ternus
-  2026-09-01). **Open before Session 1 closes:** FMP key + entitlement artifacts, YouTube
-  Data API key + quota confirmation → `.env.local` (placeholders staged). Then Packet 0C
-  (bounded credentialed probe).
+  2026-09-01). **D-PO-019:** FMP rejected at real price ($50/mo earnings tier) —
+  replaced by a bounded manual roster (top-10 NDX + top-3 crypto cos + top-5 WGMI, by
+  market cap, quarterly refresh) via free SEC EDGAR + IR pages. YouTube key saved
+  (search.list-restricted), EDGAR UA set — `.env.local` live. **Open:** YouTube daily-
+  quota confirmation; roster seed list (next KE packet, returns to Chris). Then Packet
+  0C (bounded probe: EDGAR + YouTube only, no FMP).
 - **★★★ P-DESIGN-01 MERGED (`6897253`, `--no-ff`)** — routine model + cadence engine design
   formalized as D-PO-010 in DECISIONS.md + ARCHITECTURE.md v0.4. **First personal-os packet
   driven end-to-end by `harness run --project personal-os`** (the harness's own production

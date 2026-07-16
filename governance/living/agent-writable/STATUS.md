@@ -35,8 +35,18 @@
   Exact per-iteration/per-commit test-count attribution and merge SHAs are not
   reconstructable in this sandbox (no `.git`/`git` binary present here) — see
   the packet's own handoff for what this session specifically touched.
-  **PHASE0_TRACEABILITY.md's Phase-1 rows for §7.3/§12.1(expiry)/§13.4/§8.1/§8.2/
-  §8.3 corrected from overstated "delivered" to reflect C1's actual closure.**
+  **PHASE0_TRACEABILITY.md corrected AND re-vocabularied (iteration 6 rework, this
+  packet):** §7.3/§12.1(expiry)/§13.4/§8.1/§8.2/§8.3 first corrected from overstated
+  "delivered" to reflect C1's actual closure; then a second, whole-table pass fixed
+  the broader class the auditor found on re-review — "delivered" had predated Phase 1
+  (0B used it to mean "requirement mapped to a packet," not "packet executed and
+  in-tree") and rows citing wholly- or partly-future packets (e.g. §7.1 → P-KE-4A,
+  §8.4 → P-KE-3A/3B/3C, and most of §9-§18/§20-§21) still read "delivered." Every row
+  in the table now uses one of: `delivered (P-KE-xx)` only for packets actually
+  merged in the current tree (Phase 1: P-KE-1A/1B/1C/1D, plus adopted planning
+  artifacts), `partial: ... delivered (P-KE-xx); ... planned (Phase N, P-KE-yy)` where
+  the requirement spans landed and future work, or `planned (Phase N, P-KE-yy)` for
+  wholly future rows. §22's `deferred` rows were already honest and are untouched.
 - **★★★★ KNOWLEDGE EDGE PHASE 0 COMPLETE + SESSION 1 IN PROGRESS (2026-07-15).**
   P-KE-00B merged (`57bdff4`, crash-recovered relaunch i4: Codex 0 findings, third-reviewer
   concur, G0/G-GOV/G1 Chris-approved, pushed). Session 1 (the human gate) decisions

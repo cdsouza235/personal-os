@@ -501,3 +501,70 @@ def _entity_match_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     item = dict(row)
     item["is_false_positive"] = bool(item["is_false_positive"])
     return item
+
+
+# --------------------------------------------------------------------- appearance history
+
+
+def list_entity_appearance_history(
+    connection: sqlite3.Connection,
+    *,
+    matched_entity_type: str,
+    matched_entity_id: str,
+    as_of_date: str,
+    window_days: int = 90,
+    include_false_positives: bool = False,
+) -> list[dict[str, Any]]:
+    """Media items matching a person/role/company/topic within a rolling window ending
+    on ``as_of_date`` (amendment §8.2: "a rolling 90-day appearance history").
+
+    Confidence, reason, and the false-positive flag live on ``ke_entity_matches``
+    itself (§8.2/§8.3's required per-match fields); this is a read-side join over that
+    table plus the matched ``ke_media_items`` row, not a separate storage structure.
+    """
+    matched_entity_type = validate_entity_match_entity_type(matched_entity_type)
+    matched_entity_id = _validate_required_text("matched_entity_id", matched_entity_id)
+    as_of_date = _validate_required_text("as_of_date", as_of_date)
+    if type(window_days) is not int or window_days <= 0:
+        raise ValueError("window_days must be a positive integer")
+
+    clauses = [
+        "m.target_type = 'media_item'",
+        "m.matched_entity_type = ?",
+        "m.matched_entity_id = ?",
+        "date(mi.discovered_at) <= date(?)",
+        "date(mi.discovered_at) > date(?, ?)",
+    ]
+    params: list[Any] = [
+        matched_entity_type,
+        matched_entity_id,
+        as_of_date,
+        as_of_date,
+        f"-{window_days} days",
+    ]
+    if not include_false_positives:
+        clauses.append("m.is_false_positive = 0")
+    where = " AND ".join(clauses)
+
+    rows = connection.execute(
+        f"""
+        SELECT mi.*, m.confidence AS match_confidence_score, m.reason AS match_reason,
+               m.match_method AS match_method, m.is_false_positive AS match_is_false_positive,
+               m.entity_match_id AS entity_match_id
+        FROM ke_entity_matches m
+        JOIN ke_media_items mi ON mi.media_item_id = m.target_id
+        WHERE {where}
+        ORDER BY mi.discovered_at DESC, mi.media_item_id
+        """,
+        params,
+    ).fetchall()
+    _ = window_start
+    results = []
+    for row in rows:
+        item = dict(row)
+        item["is_canonical"] = bool(item["is_canonical"])
+        item["pinned"] = bool(item["pinned"])
+        item["alternate_urls"] = _deserialize_json_array(item.pop("alternate_urls_json"))
+        item["match_is_false_positive"] = bool(item["match_is_false_positive"])
+        results.append(item)
+    return results

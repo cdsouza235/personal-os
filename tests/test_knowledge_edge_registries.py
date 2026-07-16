@@ -99,14 +99,14 @@ class RoleAppendixSeedDataTest(unittest.TestCase):
         self.assertIsNone(before)
         self.assertEqual(on_date["person"]["display_name"], "Paul Atkins")
 
-    def test_cftc_chair_selig_seeded_with_estimated_precision(self) -> None:
+    def test_cftc_chair_selig_seeded_with_exact_precision(self) -> None:
         with _migrated_connection() as connection:
             occupant = ke.get_role_occupant_as_of(
                 connection, role_id="ke-role-cftc-chair", as_of_date="2026-07-16"
             )
         self.assertEqual(occupant["person"]["display_name"], "Michael Selig")
-        self.assertEqual(occupant["effective_start_date"], "2025-12-18")
-        self.assertEqual(occupant["date_precision"], "estimated")
+        self.assertEqual(occupant["effective_start_date"], "2025-12-22")
+        self.assertEqual(occupant["date_precision"], "exact")
 
     def test_no_officeholders_beyond_the_seed_authority_are_seeded(self) -> None:
         with _migrated_connection() as connection:

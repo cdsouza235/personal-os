@@ -547,10 +547,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00020",
                     "00021",
                     "00022",
+                    "00023",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 22)
+            self.assertEqual(len(rows), 23)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -2388,6 +2389,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00020",
                 "00021",
                 "00022",
+                "00023",
             ],
         )
         self.assertEqual(
@@ -2415,6 +2417,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "knowledge_edge_scan_health",
                 "knowledge_edge_roster_synthesis",
                 "knowledge_edge_launch_rosters",
+                "knowledge_edge_lane_a_endpoints",
             ],
         )
 
@@ -2429,7 +2432,9 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
             runtime_dir = Path(runtime_dir_name)
             config = _config_for(runtime_dir, Environment.TEST)
 
-            post15_versions = {"00016", "00017", "00018", "00019", "00020", "00021", "00022"}
+            post15_versions = {
+                "00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023",
+            }
             pre16_migrations_dir = Path(pre16_dir_name)
             for migration in discover_migrations():
                 if migration.version in post15_versions:
@@ -2502,7 +2507,7 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
                 applied_16 = apply_migrations(connection)
                 self.assertEqual(
                     [migration.version for migration in applied_16],
-                    ["00016", "00017", "00018", "00019", "00020", "00021", "00022"],
+                    ["00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023"],
                 )
 
                 post_intents = [dict(row) for row in connection.execute(

@@ -218,17 +218,28 @@ class LaunchRosterSeedDataTest(unittest.TestCase):
         )
         self.assertTrue(all(source["source_type"] == "podcast_feed" for source in sources))
 
-    def test_lane_a_sources_have_no_invented_endpoint(self) -> None:
-        """No RSS/feed URL is given by the ratified source data (verified against
-        PHASE0_PROVIDERS_AND_ACCESS.md §6): no `ke_source_endpoints` row is seeded
-        for any of the nine, and each source's status is `trial` (not `active`) to
-        keep `scan_orchestrator.run_scan`'s active-source loop from polling an
-        endpoint that does not exist yet."""
+    def test_lane_a_sources_have_resolved_but_conductor_unverified_endpoint(self) -> None:
+        """Migration 00022 seeded no `ke_source_endpoints` row (no RSS/feed URL was
+        given by the ratified source data at that point). Migration 00023 (P-KE-2A)
+        adds the resolved endpoint URL for all nine, but explicit Conductor
+        acknowledgment of that resolution is still pending at this packet's own gate
+        (docs/knowledge_edge/PACKET_2A_PODCAST_SUPERVISED_SMOKE.md), so every
+        source's status stays `trial` (not `active`) and every endpoint's
+        `endpoint_verified_at`/`verified_by` stays `NULL` -- both
+        `scan_orchestrator.run_scan`'s active-source loop and
+        `rails/knowledge_edge/podcasts.py`'s own gating refuse to poll any of them
+        until the supervised smoke records a per-feed verification."""
         with _migrated_connection() as connection:
             sources = ke.list_sources(connection, lane="curated_podcasts")
             for source in sources:
                 self.assertEqual(source["status"], "trial")
-                self.assertEqual(ke.list_source_endpoints(connection, source_id=source["source_id"]), [])
+                endpoints = ke.list_source_endpoints(connection, source_id=source["source_id"])
+                self.assertEqual(len(endpoints), 1)
+                endpoint = endpoints[0]
+                self.assertEqual(endpoint["endpoint_type"], "rss")
+                self.assertTrue(endpoint["url"].startswith("https://"))
+                self.assertIsNone(endpoint["endpoint_verified_at"])
+                self.assertIsNone(endpoint["verified_by"])
 
     def test_eight_lane_b_market_voices_are_seeded(self) -> None:
         with _migrated_connection() as connection:

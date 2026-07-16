@@ -1,6 +1,14 @@
 # STATUS.md — Personal OS (living state; Builder-owned; git-diff-verified, not trusted)
 
 ## Current
+- **★★★★ KNOWLEDGE EDGE PHASE 0 COMPLETE + SESSION 1 IN PROGRESS (2026-07-15).**
+  P-KE-00B merged (`57bdff4`, crash-recovered relaunch i4: Codex 0 findings, third-reviewer
+  concur, G0/G-GOV/G1 Chris-approved, pushed). Session 1 (the human gate) decisions
+  ratified and recorded as **D-PO-018**: allowlist, IR-redirect mechanism, scope limits,
+  EDGAR user-agent, 5-seat launch role appendix (Warsh/Bessent/Atkins/Selig/Cook→Ternus
+  2026-09-01). **Open before Session 1 closes:** FMP key + entitlement artifacts, YouTube
+  Data API key + quota confirmation → `.env.local` (placeholders staged). Then Packet 0C
+  (bounded credentialed probe).
 - **★★★ P-DESIGN-01 MERGED (`6897253`, `--no-ff`)** — routine model + cadence engine design
   formalized as D-PO-010 in DECISIONS.md + ARCHITECTURE.md v0.4. **First personal-os packet
   driven end-to-end by `harness run --project personal-os`** (the harness's own production

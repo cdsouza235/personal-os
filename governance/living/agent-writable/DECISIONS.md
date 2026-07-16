@@ -261,3 +261,33 @@
      Gmail … becoming reachable" clause) — it merges through the normal harness
      high-stakes path (same as H1/F1/F4), not a lighter one, even though no rail goes
      live as part of it. — Chris + Builder, 2026-07-15
+- **D-PO-018 Knowledge Edge Session 1 decisions (partial — credentials pending).** P-KE-00B
+  merged (`57bdff4`); Chris then ratified the Session 1 bundle items that need no browser
+  work, via structured prompts in the Conductor session (2026-07-15, mobile):
+  1. **Source/channel allowlist approved as listed** in `PHASE0_PROVIDERS_AND_ACCESS.md` §6
+     (9 podcast feeds §8.1 + video/network channels §10.3). Later additions require explicit
+     Conductor acknowledgment before first fetch — never silent.
+  2. **IR/webcast redirects: mechanism-only approved.** Concrete vendor-domain list is
+     assembled at Packet 3A and returns as its own named approval gate ("Packet 3A
+     vendor-domain-list approval") before any live fetch; until then unknown destinations
+     quarantine as `Link pending (unknown vendor)`.
+  3. **Scope limits approved** for every Session 1 credential: read-only, named endpoints
+     only, shadow DB only (`var/shadow/personalos-shadow.sqlite3`), no production writes /
+     notifications / Obsidian / scheduler before Sessions 2–3.
+  4. **SEC EDGAR user-agent approved:** app name `PersonalOS` + Chris's contact email
+     (exact string lives ONLY in `PERSONALOS_RAIL_KE_EDGAR_USER_AGENT` in `.env.local`,
+     uncommitted — this repo is public, so the email itself is not recorded here).
+  5. **Launch role appendix ratified — 5 seats** (occupants web-verified 2026-07-15):
+     Federal Reserve Chair = Kevin Warsh (eff. 2026-05-22, succeeded Powell); U.S. Treasury
+     Secretary = Scott Bessent (eff. 2025-01); SEC Chair = Paul Atkins (eff. 2025-04-21);
+     CFTC Chair = Michael Selig (confirmed 2025-12-18, sworn in early 2026); Apple CEO =
+     Tim Cook, with **John Ternus effective 2026-09-01** (transition announced 2026-04-20).
+     Company-head seats (OpenAI/Anthropic/DeepMind/NVIDIA/AMD) deliberately NOT created —
+     current holders are already tracked as named Lane B/C individuals; a seat is added
+     via the normal roster gate only if one changes hands. Packet 1A seeds from this list.
+  6. **Broad person-search deferral stands** as documented (§3 of the providers doc).
+  **Still open before Session 1 closes:** FMP account + API key + entitlement artifacts
+  (§2 items 1–6), YouTube Data API key (search.list-restricted) + current quota
+  confirmation, both keys into `.env.local` (placeholders already written). Packet 0C's
+  bounded probe waits on these. — Chris (Conductor approvals) + Fable seat (record),
+  2026-07-15

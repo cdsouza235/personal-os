@@ -708,6 +708,58 @@ def _build_and_record_queue(
     return rows_created
 
 
+# Lanes whose mapped queue_snapshot section is priority-gated (§8.3): the only
+# lanes where a candidate can be excluded from its section for eligibility
+# reasons rather than lane membership alone, and therefore the only lanes an
+# `ambiguous` item can be silently missing from the composed view for.
+_GATED_MEDIA_LANES = frozenset({"consequential_leaders", "market_voices"})
+
+
+def build_queue_snapshot_view(connection, *, queue_date: str) -> dict[str, list[dict]]:
+    """Compose the full evening-queue view for ``queue_date`` (§7.2): every
+    persisted ``ke_queue_snapshots`` section plus ``demoted_ambiguous`` -- the
+    queue's home for approved-source media items whose directness is
+    ``ambiguous`` (§8.3, unknown-duration financial-media segments).
+
+    ``ambiguous`` items are never P0/P2-eligible (enforced per-candidate in
+    ``_build_and_record_queue``, lane-independently) but §8.3 forbids silently
+    dropping them too -- they must be "surfaced demoted ... with an ambiguity
+    label". ``state``'s ``QUEUE_SECTIONS`` enum has no seventh value for this
+    tier, and this packet's scope excludes adding one (no migrations), so this
+    tier is composed at read time from already-persisted, non-suppressed media
+    items rather than a new ``ke_queue_snapshots`` row.
+    """
+    view: dict[str, list[dict]] = {
+        section: ke.list_queue_snapshot(connection, queue_date=queue_date, section=section)
+        for section in ke.QUEUE_SECTIONS
+    }
+    view["demoted_ambiguous"] = _list_demoted_ambiguous_media(connection)
+    return view
+
+
+def _list_demoted_ambiguous_media(connection) -> list[dict]:
+    rows = []
+    for state in ("candidate", "queued"):
+        for item in ke.list_media_items(connection, queue_visibility_state=state):
+            if item["directness_class"] != "ambiguous":
+                continue
+            source = ke.get_source(connection, item["source_id"])
+            if source is None or source["lane"] not in _GATED_MEDIA_LANES:
+                continue
+            decision = ke.get_user_decision(connection, entity_type="media_item", entity_id=item["media_item_id"])
+            decision_state = decision["decision_state"] if decision else "undecided"
+            if decision_state in ("skip", "watched"):
+                continue
+            rows.append(
+                {
+                    "entity_type": "media_item",
+                    "entity_id": item["media_item_id"],
+                    "explanation": item["priority_explanation"],
+                }
+            )
+    return sorted(rows, key=lambda row: row["entity_id"])
+
+
 def _event_decision_state(connection, event: Mapping) -> str:
     decision = ke.get_user_decision(connection, entity_type="scheduled_event", entity_id=event["event_id"])
     return decision["decision_state"] if decision else "undecided"

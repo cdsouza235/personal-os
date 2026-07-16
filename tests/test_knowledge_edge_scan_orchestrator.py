@@ -34,7 +34,7 @@ from personalos.knowledge_edge.adapters.fixtures import (
     FixturePodcastFeedAdapter,
 )
 from personalos.knowledge_edge.engine import ranking
-from personalos.knowledge_edge.scan_orchestrator import run_scan
+from personalos.knowledge_edge.scan_orchestrator import build_queue_snapshot_view, run_scan
 
 NOW = datetime(2026, 7, 16, 21, 0, 0, tzinfo=UTC)
 
@@ -579,6 +579,16 @@ class P0BoundaryCaseTest(unittest.TestCase):
             p2_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
             self.assertNotIn(item["media_item_id"], [row["entity_id"] for row in p2_rows])
 
+            # "surfaced demoted", not silently dropped: it must actually be present
+            # somewhere in the composed queue view, not merely absent from P0/P2.
+            snapshot = build_queue_snapshot_view(connection, queue_date="2026-07-16")
+            demoted_ids = {row["entity_id"] for row in snapshot["demoted_ambiguous"]}
+            self.assertIn(item["media_item_id"], demoted_ids)
+            demoted_row = next(
+                row for row in snapshot["demoted_ambiguous"] if row["entity_id"] == item["media_item_id"]
+            )
+            self.assertIn("ambiguous_unknown_duration_demoted", demoted_row["explanation"])
+
     def test_unknown_duration_financial_segment_in_market_voices_lane_is_not_promoted_to_p2(self) -> None:
         """Same §8.3 rule, applied via engine/directness.py's shared P0/P2 gate to
         Lane B (market_voices): the eligibility check is per-candidate and
@@ -623,6 +633,14 @@ class P0BoundaryCaseTest(unittest.TestCase):
             self.assertNotIn(item["media_item_id"], [row["entity_id"] for row in p2_rows])
             p0_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p0_consequential_leaders")
             self.assertNotIn(item["media_item_id"], [row["entity_id"] for row in p0_rows])
+
+            snapshot = build_queue_snapshot_view(connection, queue_date="2026-07-16")
+            demoted_ids = {row["entity_id"] for row in snapshot["demoted_ambiguous"]}
+            self.assertIn(item["media_item_id"], demoted_ids)
+            demoted_row = next(
+                row for row in snapshot["demoted_ambiguous"] if row["entity_id"] == item["media_item_id"]
+            )
+            self.assertIn("ambiguous_unknown_duration_demoted", demoted_row["explanation"])
 
     def test_ambiguous_item_never_promoted_even_when_mixed_with_eligible_p0_candidates(self) -> None:
         """Regression guard for the exact bug: lane membership alone (every candidate
@@ -680,6 +698,11 @@ class P0BoundaryCaseTest(unittest.TestCase):
             p0_ids = [row["entity_id"] for row in p0_rows]
             self.assertIn(eligible["media_item_id"], p0_ids)
             self.assertNotIn(ambiguous["media_item_id"], p0_ids)
+
+            snapshot = build_queue_snapshot_view(connection, queue_date="2026-07-16")
+            demoted_ids = {row["entity_id"] for row in snapshot["demoted_ambiguous"]}
+            self.assertIn(ambiguous["media_item_id"], demoted_ids)
+            self.assertNotIn(eligible["media_item_id"], demoted_ids)
 
     def test_below_threshold_known_duration_financial_segment_is_suppressed_not_ambiguous(self) -> None:
         with _migrated_connection() as connection:

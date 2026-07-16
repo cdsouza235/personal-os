@@ -607,6 +607,15 @@ def _sweep_expired_decisions(connection, *, now: datetime) -> None:
     it would otherwise resurface into on this same scan (both sections already
     filter out ``queue_visibility_state in ("expired", "archived", "suppressed")``
     candidates).
+
+    Each expiry is also a decision-state transition, so it must leave a §13.4
+    audit row like any other transition -- the checkpoint's iteration-7 rework
+    found the sweep flipped ``queue_visibility_state`` without ever calling
+    ``record_decision_history``, silently breaking the "every decision path"
+    guarantee for this one, system-initiated path. ``changed_by`` names the
+    sweep (not a human actor) and ``reason`` names which §12.1/§12.2 rule fired
+    plus the timestamps the rule compared, so an auditor can reconstruct the
+    decision without re-deriving it from ``now``.
     """
     for item in ke.list_media_items(connection, decision_state="save_for_later"):
         if item["queue_visibility_state"] in ("expired", "archived", "suppressed"):
@@ -615,8 +624,23 @@ def _sweep_expired_decisions(connection, *, now: datetime) -> None:
         if decision is None:
             continue
         if ranking.is_saved_item_expired(decided_at=decision["decided_at"], now=now, pinned=item["pinned"]):
+            from_value = item["queue_visibility_state"]
             ke.update_media_queue_visibility(
                 connection, media_item_id=item["media_item_id"], queue_visibility_state="expired"
+            )
+            ke.record_decision_history(
+                connection,
+                history_id=_sid("ke-decision-history-expiry", "media_item", item["media_item_id"]),
+                entity_type="media_item",
+                entity_id=item["media_item_id"],
+                track="queue_visibility_state",
+                from_value=from_value,
+                to_value="expired",
+                changed_at=_iso(now),
+                changed_by="system:expiry_sweep",
+                reason=(
+                    f"saved-14d rule: decided_at={decision['decided_at']}, now={_iso(now)}"
+                ),
             )
 
     for event in ke.list_scheduled_events(connection, event_status="replay_available"):
@@ -627,8 +651,23 @@ def _sweep_expired_decisions(connection, *, now: datetime) -> None:
             continue
         ended_at = _replay_ended_at_proxy(event)
         if ranking.is_replay_item_expired(ended_at=ended_at, now=now, pinned=event["pinned"]):
+            from_value = event["queue_visibility_state"]
             ke.update_event_queue_visibility(
                 connection, event_id=event["event_id"], queue_visibility_state="expired"
+            )
+            ke.record_decision_history(
+                connection,
+                history_id=_sid("ke-decision-history-expiry", "scheduled_event", event["event_id"]),
+                entity_type="scheduled_event",
+                entity_id=event["event_id"],
+                track="queue_visibility_state",
+                from_value=from_value,
+                to_value="expired",
+                changed_at=_iso(now),
+                changed_by="system:expiry_sweep",
+                reason=(
+                    f"replay-7d rule: ended_at={ended_at}, now={_iso(now)}"
+                ),
             )
 
 

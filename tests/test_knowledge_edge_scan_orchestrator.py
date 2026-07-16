@@ -1190,6 +1190,17 @@ class ExpirySweepProductionPathTest(unittest.TestCase):
             expired_item = ke.get_media_item(connection, "media-saved-old")
             self.assertEqual(expired_item["queue_visibility_state"], "expired")
 
+            history = ke.list_decision_history(
+                connection, entity_type="media_item", entity_id="media-saved-old"
+            )
+            expiry_rows = [row for row in history if row["track"] == "queue_visibility_state"]
+            self.assertEqual(len(expiry_rows), 1)
+            expiry_row = expiry_rows[0]
+            self.assertEqual(expiry_row["to_value"], "expired")
+            self.assertEqual(expiry_row["changed_by"], "system:expiry_sweep")
+            self.assertIn("saved-14d", expiry_row["reason"])
+            self.assertIn(fifteen_days_ago, expiry_row["reason"])
+
     def test_scan_does_not_expire_a_saved_media_item_within_the_14_day_cap(self) -> None:
         with _migrated_connection() as connection:
             _seed_registries(connection)
@@ -1241,6 +1252,13 @@ class ExpirySweepProductionPathTest(unittest.TestCase):
             # the same _record_section path every other queued section uses.
             self.assertEqual(fresh_item["queue_visibility_state"], "queued")
 
+            history = ke.list_decision_history(
+                connection, entity_type="media_item", entity_id="media-saved-fresh"
+            )
+            self.assertFalse(
+                [row for row in history if row["changed_by"] == "system:expiry_sweep"]
+            )
+
     def test_scan_expires_a_replay_item_past_the_7_day_cap(self) -> None:
         with _migrated_connection() as connection:
             _seed_registries(connection)
@@ -1285,6 +1303,16 @@ class ExpirySweepProductionPathTest(unittest.TestCase):
 
             expired_event = ke.get_scheduled_event(connection, "event-replay-old")
             self.assertEqual(expired_event["queue_visibility_state"], "expired")
+
+            history = ke.list_decision_history(
+                connection, entity_type="scheduled_event", entity_id="event-replay-old"
+            )
+            expiry_rows = [row for row in history if row["track"] == "queue_visibility_state"]
+            self.assertEqual(len(expiry_rows), 1)
+            expiry_row = expiry_rows[0]
+            self.assertEqual(expiry_row["to_value"], "expired")
+            self.assertEqual(expiry_row["changed_by"], "system:expiry_sweep")
+            self.assertIn("replay-7d", expiry_row["reason"])
 
 
 if __name__ == "__main__":

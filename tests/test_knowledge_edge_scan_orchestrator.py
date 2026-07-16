@@ -544,9 +544,120 @@ class P0BoundaryCaseTest(unittest.TestCase):
 
             item = ke.get_media_item_by_dedupe_key(connection, "src-frontier-ai:vid-ambiguous-1")
             self.assertEqual(item["directness_class"], "ambiguous")
+            # §8.3: ambiguous is "surfaced demoted with an ambiguity label" -- never
+            # promoted to P0, never dropped. Not dropped: the row survives with a
+            # non-suppressed visibility state and its ambiguity label intact in the
+            # explanation. Never P0: it must not appear in the p0_consequential_leaders
+            # (or any other priority-gated) queue_snapshot section, regardless of its
+            # source lane being consequential_leaders.
             self.assertNotEqual(item["queue_visibility_state"], "suppressed")
+            self.assertIn("ambiguous_unknown_duration_demoted", item["priority_explanation"])
             p0_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p0_consequential_leaders")
-            self.assertIn(item["media_item_id"], [row["entity_id"] for row in p0_rows])
+            self.assertNotIn(item["media_item_id"], [row["entity_id"] for row in p0_rows])
+            p2_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
+            self.assertNotIn(item["media_item_id"], [row["entity_id"] for row in p2_rows])
+
+    def test_unknown_duration_financial_segment_in_market_voices_lane_is_not_promoted_to_p2(self) -> None:
+        """Same §8.3 rule, applied via engine/directness.py's shared P0/P2 gate to
+        Lane B (market_voices): the eligibility check is per-candidate and
+        lane-independent, so an ambiguous item must not win a p2_market_voices slot
+        either, not just a p0_consequential_leaders one."""
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            ambiguous_item = DiscoveredMediaItem(
+                source_id="src-cnbc",
+                source_specific_id="vid-mv-ambiguous-1",
+                canonical_url="https://example.com/watch?v=mv-ambiguous-1",
+                title="Tom Lee Segment (duration unknown)",
+                media_type="video_interview",
+                source_precedence="reputable_secondary",
+                format_hint="financial_media_segment",
+                matched_person_id="ke-person-tom-lee",
+                duration_seconds=None,
+                published_at="2026-07-16T10:00:00+00:00",
+                cursor_value="0001",
+            )
+            records = _four_lane_records()
+            records["cnbc_items"] = (ambiguous_item,)
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+
+            item = ke.get_media_item_by_dedupe_key(connection, "src-cnbc:vid-mv-ambiguous-1")
+            self.assertEqual(item["directness_class"], "ambiguous")
+            self.assertNotEqual(item["queue_visibility_state"], "suppressed")
+            p2_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
+            self.assertNotIn(item["media_item_id"], [row["entity_id"] for row in p2_rows])
+            p0_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p0_consequential_leaders")
+            self.assertNotIn(item["media_item_id"], [row["entity_id"] for row in p0_rows])
+
+    def test_ambiguous_item_never_promoted_even_when_mixed_with_eligible_p0_candidates(self) -> None:
+        """Regression guard for the exact bug: lane membership alone (every candidate
+        in the consequential_leaders lane mapped straight into p0_consequential_leaders)
+        must not promote an ambiguous item just because genuinely eligible P0 items
+        share its lane in the same scan."""
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            eligible_item = DiscoveredMediaItem(
+                source_id="src-frontier-ai",
+                source_specific_id="vid-eligible-1",
+                canonical_url="https://example.com/watch?v=eligible-1",
+                title="Jensen Huang: Keynote",
+                media_type="video_interview",
+                source_precedence="official",
+                format_hint="original_long_form_interview",
+                matched_person_id="ke-person-jensen-huang",
+                duration_seconds=1800,
+                published_at="2026-07-16T09:00:00+00:00",
+                cursor_value="0001",
+            )
+            ambiguous_item = DiscoveredMediaItem(
+                source_id="src-frontier-ai",
+                source_specific_id="vid-ambiguous-2",
+                canonical_url="https://example.com/watch?v=ambiguous-2",
+                title="Jensen Huang Segment (duration unknown)",
+                media_type="video_interview",
+                source_precedence="reputable_secondary",
+                format_hint="financial_media_segment",
+                matched_person_id="ke-person-jensen-huang",
+                duration_seconds=None,
+                published_at="2026-07-16T10:00:00+00:00",
+                cursor_value="0002",
+            )
+            records = _four_lane_records()
+            records["frontier_ai_items"] = (eligible_item, ambiguous_item)
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+
+            eligible = ke.get_media_item_by_dedupe_key(connection, "src-frontier-ai:vid-eligible-1")
+            ambiguous = ke.get_media_item_by_dedupe_key(connection, "src-frontier-ai:vid-ambiguous-2")
+            p0_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p0_consequential_leaders")
+            p0_ids = [row["entity_id"] for row in p0_rows]
+            self.assertIn(eligible["media_item_id"], p0_ids)
+            self.assertNotIn(ambiguous["media_item_id"], p0_ids)
 
     def test_below_threshold_known_duration_financial_segment_is_suppressed_not_ambiguous(self) -> None:
         with _migrated_connection() as connection:

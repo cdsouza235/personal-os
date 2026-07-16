@@ -423,11 +423,14 @@ def _persist_media_batch(
         ke.update_media_content_status(connection, media_item_id=media_item_id, content_status="ranked")
 
         # §8.3: "ambiguous" (unknown-duration financial-media segment) must never be
-        # silently dropped -- it stays a visible, demoted candidate (its low
-        # directness weight already ranks it below qualifying appearances). Only
-        # genuinely non-eligible directness classes (commentary_about,
-        # mentioned_only, host_or_interviewer) and explicitly excluded formats are
-        # suppressed from the Market Voices / Consequential Leaders lanes.
+        # silently dropped -- it stays a visible, non-suppressed candidate. It is
+        # never P0/P2 priority-eligible either, though: that per-candidate exclusion
+        # is enforced separately in _build_and_record_queue (not here, and not by
+        # ranking alone -- lane membership must never be trusted to imply priority
+        # eligibility). Only genuinely non-eligible directness classes
+        # (commentary_about, mentioned_only, host_or_interviewer) and explicitly
+        # excluded formats are suppressed from the Market Voices / Consequential
+        # Leaders lanes.
         if canonical_group_id is not None and not is_canonical:
             ke.update_media_queue_visibility(connection, media_item_id=media_item_id, queue_visibility_state="suppressed")
         elif (
@@ -585,6 +588,16 @@ def _build_and_record_queue(
         "p2_market_voices": [],
         "p0_consequential_leaders": [],
     }
+    # §8.3's P0 inclusion rule (reused for Lane B's P2 gate per its own docstring in
+    # engine/directness.py) is per-CANDIDATE and lane-independent: lane membership
+    # alone must never promote a candidate into a priority section. A candidate
+    # that reached this point with directness_class "ambiguous" survived
+    # suppression on purpose (§8.3: "surfaced demoted ... rather than promoted to
+    # P0 or silently dropped") -- its ambiguity label already lives in
+    # priority_explanation (see _persist_media_batch). It must still never win a
+    # p0/p2 slot, so it is excluded here rather than trusted to assign_queue_section
+    # (which only knows the source's lane, not the candidate's own eligibility).
+    _PRIORITY_GATED_SECTIONS = frozenset({"p0_consequential_leaders", "p2_market_voices"})
     for state in ("candidate", "queued"):
         for item in ke.list_media_items(connection, queue_visibility_state=state):
             source = ke.get_source(connection, item["source_id"])
@@ -597,6 +610,11 @@ def _build_and_record_queue(
             # resurfacing/expiry policy, not per-lane candidate-cap ranking); skip
             # them here rather than build an unused bucket.
             if section not in media_by_section:
+                continue
+            if (
+                section in _PRIORITY_GATED_SECTIONS
+                and item["directness_class"] not in directness.P0_P2_ELIGIBLE_DIRECTNESS_CLASSES
+            ):
                 continue
             media_by_section[section].append(
                 {"entity_id": item["media_item_id"], "priority_score": item["priority_score"] or 0.0, "row": item}

@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -1125,6 +1125,166 @@ class SameDateRescanTest(unittest.TestCase):
             entity_ids = [row["entity_id"] for row in second_rows]
             self.assertNotIn(item4["media_item_id"], entity_ids)
             self.assertIn(item5["media_item_id"], entity_ids)
+
+
+class ExpirySweepProductionPathTest(unittest.TestCase):
+    """C1 (phase-end checkpoint 2026-07-16): before this packet,
+    ``ranking.is_saved_item_expired``/``is_replay_item_expired`` were unit-tested
+    only -- nothing on any driveable path ever called them, so a saved or replay
+    item lived forever. ``run_scan`` now calls ``_sweep_expired_decisions`` before
+    building the day's queue (re-verification recipe item (1))."""
+
+    def _empty_adapters(self):
+        return (
+            FixturePodcastFeedAdapter({}),
+            FixtureChannelVideoAdapter({}),
+            FixtureEarningsEventAdapter({}),
+            FixtureFilingsAdapter({}),
+        )
+
+    def test_scan_expires_a_saved_media_item_past_the_14_day_cap(self) -> None:
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            ke.create_media_item(
+                connection,
+                media_item_id="media-saved-old",
+                source_id="src-dwarkesh",
+                source_specific_id="ep-saved-old",
+                canonical_url="https://dwarkesh.com/ep-saved-old",
+                title="A Saved Episode",
+                media_type="podcast_episode",
+                source_precedence="official",
+                dedupe_key="src-dwarkesh:ep-saved-old",
+                published_at="2026-07-01T00:00:00+00:00",
+                discovered_at="2026-07-01T00:00:00+00:00",
+                directness_class="direct_primary",
+                priority_score=100.0,
+            )
+            ke.update_media_decision_state(
+                connection, media_item_id="media-saved-old", decision_state="save_for_later"
+            )
+            fifteen_days_ago = (NOW - timedelta(days=15)).isoformat()
+            ke.upsert_user_decision(
+                connection,
+                decision_id="decision-saved-old",
+                entity_type="media_item",
+                entity_id="media-saved-old",
+                decision_state="save_for_later",
+                decided_at=fifteen_days_ago,
+            )
+
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = self._empty_adapters()
+            run_scan(
+                connection,
+                scan_run_id="run-sweep",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+
+            expired_item = ke.get_media_item(connection, "media-saved-old")
+            self.assertEqual(expired_item["queue_visibility_state"], "expired")
+
+    def test_scan_does_not_expire_a_saved_media_item_within_the_14_day_cap(self) -> None:
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            ke.create_media_item(
+                connection,
+                media_item_id="media-saved-fresh",
+                source_id="src-dwarkesh",
+                source_specific_id="ep-saved-fresh",
+                canonical_url="https://dwarkesh.com/ep-saved-fresh",
+                title="A Freshly Saved Episode",
+                media_type="podcast_episode",
+                source_precedence="official",
+                dedupe_key="src-dwarkesh:ep-saved-fresh",
+                published_at="2026-07-10T00:00:00+00:00",
+                discovered_at="2026-07-10T00:00:00+00:00",
+                directness_class="direct_primary",
+                priority_score=100.0,
+            )
+            ke.update_media_decision_state(
+                connection, media_item_id="media-saved-fresh", decision_state="save_for_later"
+            )
+            seven_days_ago = (NOW - timedelta(days=7)).isoformat()
+            ke.upsert_user_decision(
+                connection,
+                decision_id="decision-saved-fresh",
+                entity_type="media_item",
+                entity_id="media-saved-fresh",
+                decision_state="save_for_later",
+                decided_at=seven_days_ago,
+            )
+
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = self._empty_adapters()
+            run_scan(
+                connection,
+                scan_run_id="run-sweep",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+
+            fresh_item = ke.get_media_item(connection, "media-saved-fresh")
+            # Not expired -- it is instead resurfaced into "saved_to_reconsider" this
+            # scan (it is the only saved item), which flips candidate -> queued via
+            # the same _record_section path every other queued section uses.
+            self.assertEqual(fresh_item["queue_visibility_state"], "queued")
+
+    def test_scan_expires_a_replay_item_past_the_7_day_cap(self) -> None:
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            eight_days_before_now = NOW - timedelta(days=8)
+            ke.create_scheduled_event(
+                connection,
+                event_id="event-replay-old",
+                company_id="ke-company-nvda",
+                event_type="quarterly_earnings",
+                scheduled_date=eight_days_before_now.date().isoformat(),
+                schedule_confidence="confirmed_official",
+                end_time_utc=eight_days_before_now.isoformat(),
+                replay_url="https://example.com/replay/old",
+            )
+            for status in ("confirmed", "scheduled", "live", "ended", "replay_pending", "replay_available"):
+                ke.update_event_status(connection, event_id="event-replay-old", event_status=status)
+            ke.update_event_decision_state(
+                connection, event_id="event-replay-old", decision_state="save_replay"
+            )
+            ke.upsert_user_decision(
+                connection,
+                decision_id="decision-replay-old",
+                entity_type="scheduled_event",
+                entity_id="event-replay-old",
+                decision_state="save_replay",
+                decided_at=eight_days_before_now.isoformat(),
+            )
+
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = self._empty_adapters()
+            run_scan(
+                connection,
+                scan_run_id="run-sweep",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+
+            expired_event = ke.get_scheduled_event(connection, "event-replay-old")
+            self.assertEqual(expired_event["queue_visibility_state"], "expired")
 
 
 if __name__ == "__main__":

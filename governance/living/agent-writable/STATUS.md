@@ -1,6 +1,42 @@
 # STATUS.md — Personal OS (living state; Builder-owned; git-diff-verified, not trusted)
 
 ## Current
+- **★★★★ KNOWLEDGE EDGE PHASE 1 HOLD CLOSED BY P-KE-1D (2026-07-16).** Phase 1
+  (P-KE-1A state layer + migrations 00017–00021 + D-PO-018/019 seeds; P-KE-1B queue
+  engine + fixture adapters; P-KE-1C dashboard + CLI) was Fable-checkpointed
+  `hold` with conditions C1–C5 (`audits/ke-phase-1-phase-end-fable-report.md`,
+  2026-07-16): C1 (Packet 1C's Watch/Save/Skip/Watched + Watch-live/Save-replay
+  decision surface existed only as unreachable state-layer plumbing — zero
+  production callers, Tonight/Saved caps and both expiry rules unenforced
+  anywhere driveable) was the hold's structural blocker. **P-KE-1D closes it:**
+  `personalos knowledge-edge decide {watch,save,skip,watched,watch-live,
+  save-replay}` is now the first production caller of `upsert_user_decision`/
+  `update_media_decision_state`/`update_event_decision_state`/
+  `record_decision_history` (every decision path writes an append-only
+  `ke_decision_history` row, §13.4); the Tonight cap (3 items / 90 known-duration
+  minutes) and Saved cap (12 items) are enforced at decision-acceptance with
+  honest CLI refusal messages (`engine/ranking.TONIGHT_ITEM_CAP`/
+  `TONIGHT_KNOWN_DURATION_CAP_SECONDS`, new this packet); `_sweep_expired_decisions`
+  is wired into `run_scan` before queue-build, so `is_saved_item_expired`/
+  `is_replay_item_expired` (14d/7d) now actually set `queue_visibility_state=
+  "expired"` on the production path; `knowledge-edge synthesis {list,export}` is
+  the first production caller of `state/synthesis.py`. C2 (same-date rescan
+  ranks), C3 (§8.1/8.2/8.3 launch-roster seeds, migration `00022`), C4 (urllib.parse
+  gate scoped to `engine/canonicalize.py` only), and the demoted-tier persistence
+  fold-in were already closed in-tree when this packet's work began (visible in
+  `scan_orchestrator.py`'s `_record_section`/`_sweep_expired_decisions`, migration
+  `00022`, and `tests/test_knowledge_edge_migrations.py`'s
+  `_ALLOWED_NETWORK_IMPORT_EXCEPTIONS`) — this session verified each still holds
+  and added the C1 surface plus its own drive tests. **Declared test delta:
+  checkpoint-verified 567 (pre-phase) → 757 (checkpoint, end of 1C) → 781 now**
+  (suite green; +24, itemized: 9 new `decide`/`synthesis` CLI tests + 3 new
+  `run_scan` expiry-sweep production-path integration tests added this session,
+  plus C2/C3/C4 tests already present in the tree before this session started).
+  Exact per-iteration/per-commit test-count attribution and merge SHAs are not
+  reconstructable in this sandbox (no `.git`/`git` binary present here) — see
+  the packet's own handoff for what this session specifically touched.
+  **PHASE0_TRACEABILITY.md's Phase-1 rows for §7.3/§12.1(expiry)/§13.4/§8.1/§8.2/
+  §8.3 corrected from overstated "delivered" to reflect C1's actual closure.**
 - **★★★★ KNOWLEDGE EDGE PHASE 0 COMPLETE + SESSION 1 IN PROGRESS (2026-07-15).**
   P-KE-00B merged (`57bdff4`, crash-recovered relaunch i4: Codex 0 findings, third-reviewer
   concur, G0/G-GOV/G1 Chris-approved, pushed). Session 1 (the human gate) decisions

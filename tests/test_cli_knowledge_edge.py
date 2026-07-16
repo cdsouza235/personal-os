@@ -377,5 +377,374 @@ class FlagFalsePositiveCommandTest(unittest.TestCase):
             self.assertIn("does-not-exist", result.stderr)
 
 
+def _title_to_media_item_id(connection: sqlite3.Connection, title: str) -> str:
+    for item in ke.list_media_items(connection):
+        if item["title"] == title:
+            return item["media_item_id"]
+    raise AssertionError(f"no media item with title {title!r}")
+
+
+class DecideMediaCommandTest(unittest.TestCase):
+    """C1 (phase-end checkpoint 2026-07-16): `knowledge-edge decide ...` is the
+    first production caller of the decision APIs, decision-history writes, and
+    the Tonight/Saved caps -- exercised here through the real CLI end to end
+    (re-verification recipe item (1))."""
+
+    def _scanned_db(self) -> Path:
+        db_path_cm = _migrated_db_path()
+        db_path = db_path_cm.__enter__()
+        self.addCleanup(db_path_cm.__exit__, None, None, None)
+        result = _run_cli(
+            [
+                "knowledge-edge", "scan", "--db", str(db_path),
+                "--date", QUEUE_DATE, "--now", "2026-07-16T21:00:00+00:00", "--json",
+            ]
+        )
+        self.assertEqual(result.code, 0, result.stderr)
+        return db_path
+
+    def test_watch_then_watched_stages_and_exports_a_synthesis_handoff(self) -> None:
+        db_path = self._scanned_db()
+        with _sqlite_connection(db_path) as connection:
+            media_item_id = _title_to_media_item_id(
+                connection, "Tom Lee on Bitcoin and Market Outlook"
+            )
+
+        watch_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "watch", "--db", str(db_path),
+                "--media-item-id", media_item_id, "--json",
+            ]
+        )
+        self.assertEqual(watch_result.code, 0, watch_result.stderr)
+        watch_payload = json.loads(watch_result.stdout)
+        self.assertEqual(watch_payload["decision_state"], "watch")
+        self.assertNotIn("synthesis_handoff_id", watch_payload)
+
+        watched_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "watched", "--db", str(db_path),
+                "--media-item-id", media_item_id, "--json",
+            ]
+        )
+        self.assertEqual(watched_result.code, 0, watched_result.stderr)
+        watched_payload = json.loads(watched_result.stdout)
+        self.assertEqual(watched_payload["decision_state"], "watched")
+        handoff_id = watched_payload["synthesis_handoff_id"]
+        self.assertEqual(watched_payload["synthesis_handoff_status"], "staged")
+
+        with _sqlite_connection(db_path) as connection:
+            history_rows = ke.list_decision_history(
+                connection, entity_type="media_item", entity_id=media_item_id
+            )
+            self.assertEqual(
+                [(row["from_value"], row["to_value"]) for row in history_rows],
+                [("undecided", "watch"), ("watch", "watched")],
+            )
+            for row in history_rows:
+                self.assertEqual(row["changed_by"], "operator")
+            decision = ke.get_user_decision(
+                connection, entity_type="media_item", entity_id=media_item_id
+            )
+            self.assertEqual(decision["decision_state"], "watched")
+            media_item = ke.get_media_item(connection, media_item_id)
+            self.assertEqual(media_item["decision_state"], "watched")
+
+        list_result = _run_cli(
+            ["knowledge-edge", "synthesis", "list", "--db", str(db_path), "--json"]
+        )
+        self.assertEqual(list_result.code, 0, list_result.stderr)
+        handoffs = json.loads(list_result.stdout)["synthesis_handoffs"]
+        self.assertEqual([h["handoff_id"] for h in handoffs], [handoff_id])
+        self.assertEqual(handoffs[0]["status"], "staged")
+
+        export_result = _run_cli(
+            [
+                "knowledge-edge", "synthesis", "export", "--db", str(db_path),
+                "--handoff-id", handoff_id, "--json",
+            ]
+        )
+        self.assertEqual(export_result.code, 0, export_result.stderr)
+        export_payload = json.loads(export_result.stdout)
+        self.assertEqual(export_payload["status"], "exported")
+        self.assertEqual(
+            export_payload["synthesis_packet"]["media_item_id"], media_item_id
+        )
+
+        with _sqlite_connection(db_path) as connection:
+            handoff = ke.get_synthesis_handoff(connection, handoff_id)
+            self.assertEqual(handoff["status"], "completed")
+
+    def test_save_then_skip_round_trip_via_cli(self) -> None:
+        db_path = self._scanned_db()
+        with _sqlite_connection(db_path) as connection:
+            media_item_id = _title_to_media_item_id(
+                connection, "A Long Conversation"
+            )
+
+        save_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "save", "--db", str(db_path),
+                "--media-item-id", media_item_id, "--json",
+            ]
+        )
+        self.assertEqual(save_result.code, 0, save_result.stderr)
+        self.assertEqual(json.loads(save_result.stdout)["decision_state"], "save_for_later")
+
+        skip_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "skip", "--db", str(db_path),
+                "--media-item-id", media_item_id, "--json",
+            ]
+        )
+        self.assertEqual(skip_result.code, 0, skip_result.stderr)
+        self.assertEqual(json.loads(skip_result.stdout)["decision_state"], "skip")
+
+    def test_decide_watched_directly_from_undecided_is_a_clean_cli_error(self) -> None:
+        db_path = self._scanned_db()
+        with _sqlite_connection(db_path) as connection:
+            media_item_id = _title_to_media_item_id(
+                connection, "A Long Conversation"
+            )
+        result = _run_cli(
+            [
+                "knowledge-edge", "decide", "watched", "--db", str(db_path),
+                "--media-item-id", media_item_id,
+            ]
+        )
+        self.assertEqual(result.code, 1)
+        self.assertIn("error:", result.stderr)
+        self.assertIn("Invalid decision_state transition", result.stderr)
+
+    def test_decide_skip_requires_exactly_one_entity_id(self) -> None:
+        db_path = self._scanned_db()
+        both_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "skip", "--db", str(db_path),
+                "--media-item-id", "x", "--event-id", "y",
+            ]
+        )
+        self.assertEqual(both_result.code, 1)
+        self.assertIn("Specify exactly one of", both_result.stderr)
+
+        neither_result = _run_cli(
+            ["knowledge-edge", "decide", "skip", "--db", str(db_path)]
+        )
+        self.assertEqual(neither_result.code, 1)
+        self.assertIn("Specify exactly one of", neither_result.stderr)
+
+    def test_tonight_known_duration_cap_refuses_a_watch_that_would_exceed_90_minutes(self) -> None:
+        db_path = self._scanned_db()
+        with _sqlite_connection(db_path) as connection:
+            dwarkesh_id = _title_to_media_item_id(connection, "A Long Conversation")  # 5400s
+            jensen_id = _title_to_media_item_id(
+                connection, "Jensen Huang: The Future of Compute"
+            )  # 3600s
+
+        first = _run_cli(
+            [
+                "knowledge-edge", "decide", "watch", "--db", str(db_path),
+                "--media-item-id", dwarkesh_id, "--json",
+            ]
+        )
+        self.assertEqual(first.code, 0, first.stderr)
+
+        second = _run_cli(
+            [
+                "knowledge-edge", "decide", "watch", "--db", str(db_path),
+                "--media-item-id", jensen_id,
+            ]
+        )
+        self.assertEqual(second.code, 1)
+        self.assertIn("Tonight known-duration cap reached", second.stderr)
+
+        with _sqlite_connection(db_path) as connection:
+            untouched = ke.get_media_item(connection, jensen_id)
+            self.assertEqual(untouched["decision_state"], "undecided")
+
+    def test_tonight_item_cap_refuses_a_fourth_watch(self) -> None:
+        db_path = self._scanned_db()
+        with _sqlite_connection(db_path) as connection:
+            for index in range(3):
+                ke.create_media_item(
+                    connection,
+                    media_item_id=f"media-tonight-cap-{index}",
+                    source_id="ke-cli-src-cnbc",
+                    source_specific_id=f"tonight-cap-{index}",
+                    canonical_url=f"https://example.com/tonight-cap-{index}",
+                    title=f"Tonight Cap Item {index}",
+                    media_type="video_interview",
+                    source_precedence="official",
+                    dedupe_key=f"ke-cli-src-cnbc:tonight-cap-{index}",
+                    published_at="2026-07-16T09:00:00+00:00",
+                    discovered_at="2026-07-16T09:00:00+00:00",
+                    duration_seconds=300,
+                    directness_class="direct_primary",
+                    priority_score=100.0,
+                )
+
+        for index in range(3):
+            result = _run_cli(
+                [
+                    "knowledge-edge", "decide", "watch", "--db", str(db_path),
+                    "--media-item-id", f"media-tonight-cap-{index}", "--json",
+                ]
+            )
+            self.assertEqual(result.code, 0, result.stderr)
+
+        with _sqlite_connection(db_path) as connection:
+            ke.create_media_item(
+                connection,
+                media_item_id="media-tonight-cap-3",
+                source_id="ke-cli-src-cnbc",
+                source_specific_id="tonight-cap-3",
+                canonical_url="https://example.com/tonight-cap-3",
+                title="Tonight Cap Item 3",
+                media_type="video_interview",
+                source_precedence="official",
+                dedupe_key="ke-cli-src-cnbc:tonight-cap-3",
+                published_at="2026-07-16T09:00:00+00:00",
+                discovered_at="2026-07-16T09:00:00+00:00",
+                duration_seconds=300,
+                directness_class="direct_primary",
+                priority_score=100.0,
+            )
+
+        fourth = _run_cli(
+            [
+                "knowledge-edge", "decide", "watch", "--db", str(db_path),
+                "--media-item-id", "media-tonight-cap-3",
+            ]
+        )
+        self.assertEqual(fourth.code, 1)
+        self.assertIn("Tonight cap reached", fourth.stderr)
+
+    def test_saved_cap_refuses_a_13th_save(self) -> None:
+        db_path = self._scanned_db()
+        with _sqlite_connection(db_path) as connection:
+            for index in range(13):
+                ke.create_media_item(
+                    connection,
+                    media_item_id=f"media-saved-cap-{index}",
+                    source_id="ke-cli-src-cnbc",
+                    source_specific_id=f"saved-cap-{index}",
+                    canonical_url=f"https://example.com/saved-cap-{index}",
+                    title=f"Saved Cap Item {index}",
+                    media_type="video_interview",
+                    source_precedence="official",
+                    dedupe_key=f"ke-cli-src-cnbc:saved-cap-{index}",
+                    published_at="2026-07-16T09:00:00+00:00",
+                    discovered_at="2026-07-16T09:00:00+00:00",
+                    directness_class="direct_primary",
+                    priority_score=100.0,
+                )
+
+        for index in range(12):
+            result = _run_cli(
+                [
+                    "knowledge-edge", "decide", "save", "--db", str(db_path),
+                    "--media-item-id", f"media-saved-cap-{index}", "--json",
+                ]
+            )
+            self.assertEqual(result.code, 0, result.stderr)
+
+        thirteenth = _run_cli(
+            [
+                "knowledge-edge", "decide", "save", "--db", str(db_path),
+                "--media-item-id", "media-saved-cap-12",
+            ]
+        )
+        self.assertEqual(thirteenth.code, 1)
+        self.assertIn("Saved cap reached", thirteenth.stderr)
+
+
+class DecideEventCommandTest(unittest.TestCase):
+    def test_watch_live_and_save_replay_and_skip(self) -> None:
+        db_path_cm = _migrated_db_path()
+        db_path = db_path_cm.__enter__()
+        self.addCleanup(db_path_cm.__exit__, None, None, None)
+        scan_result = _run_cli(
+            [
+                "knowledge-edge", "scan", "--db", str(db_path),
+                "--date", QUEUE_DATE, "--now", "2026-07-16T21:00:00+00:00", "--json",
+            ]
+        )
+        self.assertEqual(scan_result.code, 0, scan_result.stderr)
+        with _sqlite_connection(db_path) as connection:
+            event_id = ke.list_scheduled_events(connection)[0]["event_id"]
+
+        watch_live_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "watch-live", "--db", str(db_path),
+                "--event-id", event_id, "--json",
+            ]
+        )
+        self.assertEqual(watch_live_result.code, 0, watch_live_result.stderr)
+        self.assertEqual(json.loads(watch_live_result.stdout)["decision_state"], "watch_live")
+
+        watched_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "watched", "--db", str(db_path),
+                "--event-id", event_id, "--json",
+            ]
+        )
+        self.assertEqual(watched_result.code, 0, watched_result.stderr)
+        watched_payload = json.loads(watched_result.stdout)
+        self.assertEqual(watched_payload["decision_state"], "watched")
+        self.assertIn("synthesis_handoff_id", watched_payload)
+
+        with _sqlite_connection(db_path) as connection:
+            history_rows = ke.list_decision_history(
+                connection, entity_type="scheduled_event", entity_id=event_id
+            )
+            self.assertEqual(
+                [(row["from_value"], row["to_value"]) for row in history_rows],
+                [("undecided", "watch_live"), ("watch_live", "watched")],
+            )
+
+    def test_save_replay_then_skip_on_a_second_event(self) -> None:
+        db_path_cm = _migrated_db_path()
+        db_path = db_path_cm.__enter__()
+        self.addCleanup(db_path_cm.__exit__, None, None, None)
+        with _sqlite_connection(db_path) as connection:
+            ke.create_company(
+                connection,
+                company_id="company-second",
+                legal_name="Second Co",
+                display_name="Second Co",
+                roster_group="nasdaq100_top10",
+                roster_status="confirmed",
+                priority_tier="tier_a",
+            )
+            ke.create_scheduled_event(
+                connection,
+                event_id="event-second",
+                company_id="company-second",
+                event_type="quarterly_earnings",
+                scheduled_date=QUEUE_DATE,
+                schedule_confidence="confirmed_official",
+            )
+
+        save_replay_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "save-replay", "--db", str(db_path),
+                "--event-id", "event-second", "--json",
+            ]
+        )
+        self.assertEqual(save_replay_result.code, 0, save_replay_result.stderr)
+        self.assertEqual(
+            json.loads(save_replay_result.stdout)["decision_state"], "save_replay"
+        )
+
+        skip_result = _run_cli(
+            [
+                "knowledge-edge", "decide", "skip", "--db", str(db_path),
+                "--event-id", "event-second", "--json",
+            ]
+        )
+        self.assertEqual(skip_result.code, 0, skip_result.stderr)
+        self.assertEqual(json.loads(skip_result.stdout)["decision_state"], "skip")
+
+
 if __name__ == "__main__":
     unittest.main()

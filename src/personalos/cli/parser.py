@@ -7,9 +7,17 @@ import argparse
 from personalos.cli.briefing import _command_briefing_export, _command_briefing_preview
 from personalos.cli.dispatch import _command_dispatch_morning
 from personalos.cli.knowledge_edge import (
+    _command_knowledge_edge_decide_save,
+    _command_knowledge_edge_decide_save_replay,
+    _command_knowledge_edge_decide_skip,
+    _command_knowledge_edge_decide_watch,
+    _command_knowledge_edge_decide_watch_live,
+    _command_knowledge_edge_decide_watched,
     _command_knowledge_edge_flag_false_positive,
     _command_knowledge_edge_queue_show,
     _command_knowledge_edge_scan,
+    _command_knowledge_edge_synthesis_export,
+    _command_knowledge_edge_synthesis_list,
 )
 from personalos.cli.priorities import (
     _command_priorities_create,
@@ -598,6 +606,100 @@ def build_parser() -> argparse.ArgumentParser:
     knowledge_edge_flag_parser.add_argument("--entity-match-id", required=True)
     _add_json_arg(knowledge_edge_flag_parser)
     knowledge_edge_flag_parser.set_defaults(func=_command_knowledge_edge_flag_false_positive)
+
+    knowledge_edge_decide_parser = knowledge_edge_subparsers.add_parser(
+        "decide",
+        help="Accept a Watch/Save/Skip/Watched or Watch-live/Save-replay decision.",
+    )
+    knowledge_edge_decide_subparsers = knowledge_edge_decide_parser.add_subparsers(
+        dest="knowledge_edge_decide_command",
+        required=True,
+    )
+
+    knowledge_edge_decide_watch_parser = knowledge_edge_decide_subparsers.add_parser(
+        "watch",
+        help="Watch a media item tonight (Tonight cap: 3 items / 90 known-duration minutes).",
+    )
+    _add_db_arg(knowledge_edge_decide_watch_parser)
+    knowledge_edge_decide_watch_parser.add_argument("--media-item-id", required=True)
+    _add_json_arg(knowledge_edge_decide_watch_parser)
+    knowledge_edge_decide_watch_parser.set_defaults(func=_command_knowledge_edge_decide_watch)
+
+    knowledge_edge_decide_save_parser = knowledge_edge_decide_subparsers.add_parser(
+        "save",
+        help="Save a media item for later (Saved cap: 12 items).",
+    )
+    _add_db_arg(knowledge_edge_decide_save_parser)
+    knowledge_edge_decide_save_parser.add_argument("--media-item-id", required=True)
+    _add_json_arg(knowledge_edge_decide_save_parser)
+    knowledge_edge_decide_save_parser.set_defaults(func=_command_knowledge_edge_decide_save)
+
+    knowledge_edge_decide_skip_parser = knowledge_edge_decide_subparsers.add_parser(
+        "skip",
+        help="Skip a media item or scheduled event.",
+    )
+    _add_db_arg(knowledge_edge_decide_skip_parser)
+    knowledge_edge_decide_skip_parser.add_argument("--media-item-id")
+    knowledge_edge_decide_skip_parser.add_argument("--event-id")
+    _add_json_arg(knowledge_edge_decide_skip_parser)
+    knowledge_edge_decide_skip_parser.set_defaults(func=_command_knowledge_edge_decide_skip)
+
+    knowledge_edge_decide_watched_parser = knowledge_edge_decide_subparsers.add_parser(
+        "watched",
+        help="Mark a media item or scheduled event watched; stages a synthesis handoff.",
+    )
+    _add_db_arg(knowledge_edge_decide_watched_parser)
+    knowledge_edge_decide_watched_parser.add_argument("--media-item-id")
+    knowledge_edge_decide_watched_parser.add_argument("--event-id")
+    _add_json_arg(knowledge_edge_decide_watched_parser)
+    knowledge_edge_decide_watched_parser.set_defaults(func=_command_knowledge_edge_decide_watched)
+
+    knowledge_edge_decide_watch_live_parser = knowledge_edge_decide_subparsers.add_parser(
+        "watch-live",
+        help="Watch a scheduled event live (2/day is an advisory limit only; not enforced).",
+    )
+    _add_db_arg(knowledge_edge_decide_watch_live_parser)
+    knowledge_edge_decide_watch_live_parser.add_argument("--event-id", required=True)
+    _add_json_arg(knowledge_edge_decide_watch_live_parser)
+    knowledge_edge_decide_watch_live_parser.set_defaults(func=_command_knowledge_edge_decide_watch_live)
+
+    knowledge_edge_decide_save_replay_parser = knowledge_edge_decide_subparsers.add_parser(
+        "save-replay",
+        help="Monitor a scheduled event for its official replay instead of attending live.",
+    )
+    _add_db_arg(knowledge_edge_decide_save_replay_parser)
+    knowledge_edge_decide_save_replay_parser.add_argument("--event-id", required=True)
+    _add_json_arg(knowledge_edge_decide_save_replay_parser)
+    knowledge_edge_decide_save_replay_parser.set_defaults(func=_command_knowledge_edge_decide_save_replay)
+
+    knowledge_edge_synthesis_parser = knowledge_edge_subparsers.add_parser(
+        "synthesis",
+        help="List or export staged synthesis handoffs (from Watched decisions).",
+    )
+    knowledge_edge_synthesis_subparsers = knowledge_edge_synthesis_parser.add_subparsers(
+        dest="knowledge_edge_synthesis_command",
+        required=True,
+    )
+
+    knowledge_edge_synthesis_list_parser = knowledge_edge_synthesis_subparsers.add_parser(
+        "list",
+        help="List synthesis handoffs, optionally filtered by status.",
+    )
+    _add_db_arg(knowledge_edge_synthesis_list_parser)
+    knowledge_edge_synthesis_list_parser.add_argument(
+        "--status", choices=("staged", "completed"), default=None
+    )
+    _add_json_arg(knowledge_edge_synthesis_list_parser)
+    knowledge_edge_synthesis_list_parser.set_defaults(func=_command_knowledge_edge_synthesis_list)
+
+    knowledge_edge_synthesis_export_parser = knowledge_edge_synthesis_subparsers.add_parser(
+        "export",
+        help="Export one staged synthesis handoff's packet and mark it completed.",
+    )
+    _add_db_arg(knowledge_edge_synthesis_export_parser)
+    knowledge_edge_synthesis_export_parser.add_argument("--handoff-id", required=True)
+    _add_json_arg(knowledge_edge_synthesis_export_parser)
+    knowledge_edge_synthesis_export_parser.set_defaults(func=_command_knowledge_edge_synthesis_export)
 
     return parser
 

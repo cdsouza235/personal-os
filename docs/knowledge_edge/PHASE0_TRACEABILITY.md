@@ -32,18 +32,18 @@ disposition supporting the narrowing — always cited).
 |---|---|---|---|---|
 | §7.1 Primary daily schedule | 4:30pm scan, 6:15am refresh, T-60/T-15 checks, scan-now | P-KE-4A (due-work dispatcher) | §20.2 due-work dispatcher tests (missed-run, DST, time-zone) | delivered |
 | §7.2 Evening queue layout | 6 named sections incl. earnings-separate-from-media-cap | P-KE-1C | §20.3 full four-lane queue test | delivered |
-| §7.3 Standard media decisions | Watch/Save/Skip/Watched | P-KE-1C | §20.1 valid/invalid decision-transition tests | delivered |
+| §7.3 Standard media decisions | Watch/Save/Skip/Watched | P-KE-1A (transition tables), P-KE-1D (`knowledge-edge decide` CLI decision surface — driveable path; P-KE-1C had shipped only the queue/scan/flag-false-positive surface, leaving the decision APIs uncalled; closed as phase-end checkpoint C1, `audits/ke-phase-1-phase-end-fable-report.md`) | §20.1 valid/invalid decision-transition tests; `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest`/`DecideEventCommandTest` drive-test the CLI end to end | delivered |
 | §7.4 Earnings/event decisions | Watch live/Save replay/Skip/Watched | P-KE-1A (event transition tables), P-KE-3C | §20.1 transition tests; §20.3 T-1 earnings E2E | delivered |
 | §7.5 Minimum viable triage | Card information density requirements | P-KE-1C | Manual UI check + P-KE-1C acceptance | delivered |
-| §7.6 Knowledge handoff | Copy synthesis packet / Obsidian draft / no-impact / promote-to-session-note | P-KE-5A | §20.3 Watched→synthesis-handoff E2E | delivered |
+| §7.6 Knowledge handoff | Copy synthesis packet / Obsidian draft / no-impact / promote-to-session-note | P-KE-1A (`ke_synthesis_handoffs` schema), P-KE-1D (`knowledge-edge decide watched` stages a handoff; `knowledge-edge synthesis export` is the first production caller of `state/synthesis.py`, fixture-rung stand-in — P-KE-1C had left this schema-only, per phase-end checkpoint C1), P-KE-5A (Obsidian draft write, Session 3 gate) | `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest::test_watch_then_watched_stages_and_exports_a_synthesis_handoff`; §20.3 Watched→synthesis-handoff E2E (full Obsidian path, later phase) | delivered |
 
 ## 8. Lane requirements
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §8.1 Lane A — Curated Podcasts | 9-feed launch roster + adapter requirements (stable IDs, grouping, corrected-episode handling, cadence expectation) | P-KE-1A (schema/seed), P-KE-2A (live adapter) | Phase 2 acceptance: "all nine core podcasts monitored or documented exception" | delivered |
-| §8.2 Lane B — Market Voices | 8-person roster; alias/spelling variants; affiliation as effective-dated attribute, not hardcoded label | P-KE-1A (schema), P-KE-2B (live search) | Phase 2 acceptance: ground-truth precision/recall by lane | delivered |
-| §8.3 Lane C — Consequential Leaders + P0 rule | Named individuals + role-based watches; role model preserves history; deterministic "substantive" rule (5-min default) | P-KE-1A (role/occupancy schema, seeded from Session 1 launch role appendix), P-KE-2B | Phase 2 acceptance; §20.1 direct-vs-commentary classification tests | delivered |
+| §8.1 Lane A — Curated Podcasts | 9-feed launch roster + adapter requirements (stable IDs, grouping, corrected-episode handling, cadence expectation) | P-KE-1A (schema), P-KE-1D (migration `00022` seeds the 9-feed roster itself, `trial` status + "Endpoint: TBC" where no feed URL is named — P-KE-1A had seeded only the ratified role/company authorities, leaving this roster empty; closed as phase-end checkpoint C3), P-KE-2A (live adapter) | Phase 2 acceptance: "all nine core podcasts monitored or documented exception"; `tests/test_knowledge_edge_registries.py::LaunchRosterSeedDataTest` | delivered |
+| §8.2 Lane B — Market Voices | 8-person roster; alias/spelling variants; affiliation as effective-dated attribute, not hardcoded label | P-KE-1A (schema), P-KE-1D (migration `00022` seeds the 8-person roster + the Mohamed/Mohammed El-Erian alias; closed as phase-end checkpoint C3), P-KE-2B (live search) | Phase 2 acceptance: ground-truth precision/recall by lane; `tests/test_knowledge_edge_registries.py::LaunchRosterSeedDataTest` alias-resolution test | delivered |
+| §8.3 Lane C — Consequential Leaders + P0 rule | Named individuals + role-based watches; role model preserves history; deterministic "substantive" rule (5-min default) | P-KE-1A (role/occupancy schema, seeded from Session 1 launch role appendix; deterministic substantive rule), P-KE-1D (migration `00022` seeds the 15 named individuals; closed as phase-end checkpoint C3), P-KE-2B | Phase 2 acceptance; §20.1 direct-vs-commentary classification tests; `tests/test_knowledge_edge_registries.py::LaunchRosterSeedDataTest` 15-person seed test | delivered |
 | §8.4 Lane D — Earnings & Corporate Events | Event types, 3-track lifecycle, T-minus workflow, link hierarchy, primary materials, schedule confidence, material-change taxonomy | P-KE-1A (transition tables), P-KE-3A/3B/3C | Phase 3 acceptance (T-1→T-0→replay lifecycle in shadow mode) | delivered |
 
 ## 9. Priority company universe
@@ -79,8 +79,8 @@ disposition supporting the narrowing — always cited).
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §12.1 Evening media caps | Tonight cap 3 / 90min, Saved cap 12 / 14-day expiry, resurfacing ≤2, explicit-Watch-only, candidate caps with overflow section | P-KE-1C | §20.1 Tonight/Saved caps + expiry/pin tests | delivered |
-| §12.2 Earnings caps | Confirmed-only T-1 visibility, ≤2-recommended Watch-live/day, 7-day replay expiry | P-KE-1A (schema), P-KE-3C | §20.1 event caps/expiry tests | delivered |
+| §12.1 Evening media caps | Tonight cap 3 / 90min, Saved cap 12 / 14-day expiry, resurfacing ≤2, explicit-Watch-only, candidate caps with overflow section | P-KE-1B (per-lane/total candidate caps, resurfacing, `is_saved_item_expired`), P-KE-1D (Tonight/Saved caps enforced at decision-acceptance in `knowledge-edge decide`, `ranking.TONIGHT_ITEM_CAP`/`TONIGHT_KNOWN_DURATION_CAP_SECONDS`; 14-day saved expiry wired into `run_scan` via `_sweep_expired_decisions` — P-KE-1C had left all of this unenforced on any driveable path; closed as phase-end checkpoint C1) | §20.1 Tonight/Saved caps + expiry/pin unit tests; `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest` cap-refusal drive tests; `tests/test_knowledge_edge_scan_orchestrator.py::ExpirySweepProductionPathTest` production-path expiry tests | delivered |
+| §12.2 Earnings caps | Confirmed-only T-1 visibility, ≤2-recommended Watch-live/day, 7-day replay expiry | P-KE-1A (schema), P-KE-1D (7-day replay expiry wired into `run_scan` via `_sweep_expired_decisions`/`is_replay_item_expired` — previously unit-tested only, per phase-end checkpoint C1), P-KE-3C | §20.1 event caps/expiry unit tests; `tests/test_knowledge_edge_scan_orchestrator.py::ExpirySweepProductionPathTest::test_scan_expires_a_replay_item_past_the_7_day_cap` | delivered |
 | §12.3 Empty state | Coverage-qualified wording, never asserts absence | P-KE-1C, P-KE-2C | Manual/UI acceptance | delivered |
 
 ## 13. Data model
@@ -90,7 +90,7 @@ disposition supporting the narrowing — always cited).
 | §13.1 Required entities (22) | Full entity list | P-KE-1A (`PHASE0_ARCHITECTURE_DECISIONS.md` AD-1 module layout + migrations 00017-00021) | Migration application + FK tests | delivered |
 | §13.2 Media item fields | Full field list incl. queue-visibility state (R3-03) | P-KE-1A schema | Schema validation tests | delivered |
 | §13.3 Scheduled event fields | Full field list incl. nullable fiscal period, time-precision indicator, queue-visibility state (R3-03) | P-KE-1A schema | Schema validation tests | delivered |
-| §13.4 Audit history | Append-only, excludes refreshable provider metadata | P-KE-1A schema + P-KE-2A/2B cache-lifecycle tests | §20.2 cache expiry/refresh/deletion tests | delivered |
+| §13.4 Audit history | Append-only, excludes refreshable provider metadata | P-KE-1A (`ke_decision_history` schema, insert-only API), P-KE-1D (`knowledge-edge decide` is the first production caller of `record_decision_history` — every decision path writes one row; P-KE-1C had left this schema-only, per phase-end checkpoint C1) + P-KE-2A/2B cache-lifecycle tests | §20.2 cache expiry/refresh/deletion tests; `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest::test_watch_then_watched_stages_and_exports_a_synthesis_handoff` asserts the append-only history rows | delivered |
 
 ## 14. Personal OS integration
 

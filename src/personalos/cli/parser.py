@@ -6,6 +6,11 @@ import argparse
 
 from personalos.cli.briefing import _command_briefing_export, _command_briefing_preview
 from personalos.cli.dispatch import _command_dispatch_morning
+from personalos.cli.knowledge_edge import (
+    _command_knowledge_edge_flag_false_positive,
+    _command_knowledge_edge_queue_show,
+    _command_knowledge_edge_scan,
+)
 from personalos.cli.priorities import (
     _command_priorities_create,
     _command_priorities_list,
@@ -38,6 +43,10 @@ from personalos.cli.workflows import (
     _command_workflows,
 )
 from personalos.config import DEFAULT_TIMEZONE
+from personalos.knowledge_edge.dashboard import (
+    DEFAULT_KNOWLEDGE_EDGE_FEATURE_MODE,
+    KNOWLEDGE_EDGE_FEATURE_MODES,
+)
 from personalos.scheduler import (
     BRIEFING_WINDOWS,
     SAFE_NO_SEND_SEED_PROFILE,
@@ -445,6 +454,12 @@ def build_parser() -> argparse.ArgumentParser:
     _add_db_arg(dashboard_render_parser)
     _add_date_timezone_args(dashboard_render_parser)
     dashboard_render_parser.add_argument("--output-file", required=True)
+    dashboard_render_parser.add_argument(
+        "--knowledge-edge-mode",
+        choices=KNOWLEDGE_EDGE_FEATURE_MODES,
+        default=DEFAULT_KNOWLEDGE_EDGE_FEATURE_MODE,
+        help="Knowledge Edge dashboard section feature mode (default: disabled/invisible).",
+    )
     _add_json_arg(dashboard_render_parser)
     dashboard_render_parser.set_defaults(func=_command_dashboard_render)
 
@@ -527,6 +542,62 @@ def build_parser() -> argparse.ArgumentParser:
     scheduler_seed_parser.add_argument("--timezone", default=DEFAULT_TIMEZONE)
     _add_json_arg(scheduler_seed_parser)
     scheduler_seed_parser.set_defaults(func=_command_scheduler_seed_dev)
+
+    knowledge_edge_parser = subparsers.add_parser(
+        "knowledge-edge",
+        help="Knowledge Edge fixture scan, queue preview, and false-positive flag (Phase 1: fixture-only).",
+        description=(
+            "Knowledge Edge Daily Intelligence Queue commands. Phase 1: fixture-only, "
+            "no live network access, no scheduler activation."
+        ),
+    )
+    knowledge_edge_subparsers = knowledge_edge_parser.add_subparsers(
+        dest="knowledge_edge_command",
+        required=True,
+    )
+
+    knowledge_edge_scan_parser = knowledge_edge_subparsers.add_parser(
+        "scan",
+        help="Run a fixture-only Knowledge Edge scan (no live network access).",
+    )
+    _add_db_arg(knowledge_edge_scan_parser)
+    knowledge_edge_scan_parser.add_argument(
+        "--date", required=True, help="Queue date in YYYY-MM-DD format."
+    )
+    knowledge_edge_scan_parser.add_argument(
+        "--now", default=None, help="ISO-8601 UTC instant to run the scan as of (default: current time)."
+    )
+    knowledge_edge_scan_parser.add_argument("--scan-run-id", default=None)
+    _add_json_arg(knowledge_edge_scan_parser)
+    knowledge_edge_scan_parser.set_defaults(func=_command_knowledge_edge_scan)
+
+    knowledge_edge_queue_parser = knowledge_edge_subparsers.add_parser(
+        "queue",
+        help="Show the composed Daily Intelligence Queue for one date.",
+    )
+    knowledge_edge_queue_subparsers = knowledge_edge_queue_parser.add_subparsers(
+        dest="knowledge_edge_queue_command",
+        required=True,
+    )
+    knowledge_edge_queue_show_parser = knowledge_edge_queue_subparsers.add_parser(
+        "show",
+        help="Show the composed four-lane queue, demoted/ambiguous items, and coverage.",
+    )
+    _add_db_arg(knowledge_edge_queue_show_parser)
+    knowledge_edge_queue_show_parser.add_argument(
+        "--date", required=True, help="Queue date in YYYY-MM-DD format."
+    )
+    _add_json_arg(knowledge_edge_queue_show_parser)
+    knowledge_edge_queue_show_parser.set_defaults(func=_command_knowledge_edge_queue_show)
+
+    knowledge_edge_flag_parser = knowledge_edge_subparsers.add_parser(
+        "flag-false-positive",
+        help="Flag one entity match as a false positive.",
+    )
+    _add_db_arg(knowledge_edge_flag_parser)
+    knowledge_edge_flag_parser.add_argument("--entity-match-id", required=True)
+    _add_json_arg(knowledge_edge_flag_parser)
+    knowledge_edge_flag_parser.set_defaults(func=_command_knowledge_edge_flag_false_positive)
 
     return parser
 

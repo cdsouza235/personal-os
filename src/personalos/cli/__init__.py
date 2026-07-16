@@ -77,6 +77,11 @@ from personalos.cli.briefing import _command_briefing_export, _command_briefing_
 from personalos.cli.db import _connect_read_only, _connect_read_write, _with_workflow_context
 from personalos.cli.dispatch import _command_dispatch_morning
 from personalos.cli.errors import CliError
+from personalos.cli.knowledge_edge import (
+    _command_knowledge_edge_flag_false_positive,
+    _command_knowledge_edge_queue_show,
+    _command_knowledge_edge_scan,
+)
 from personalos.cli.parser import (
     PersonalOSArgumentParser,
     _add_date_timezone_args,

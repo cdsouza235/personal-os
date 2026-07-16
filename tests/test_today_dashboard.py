@@ -11,10 +11,20 @@ import unittest
 import warnings
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
+import personalos.knowledge_edge.state as ke
 from personalos import dashboard
+from personalos.knowledge_edge.adapters.contracts import DiscoveredMediaItem
+from personalos.knowledge_edge.adapters.fixtures import (
+    FixtureChannelVideoAdapter,
+    FixtureEarningsEventAdapter,
+    FixtureFilingsAdapter,
+    FixturePodcastFeedAdapter,
+)
+from personalos.knowledge_edge.scan_orchestrator import run_scan
 from personalos.briefings import (
     BRIEFING_LOOP_READ_PERMISSION,
     BRIEFING_LOOP_RUN_PERMISSION,
@@ -568,6 +578,141 @@ class DashboardShellTest(unittest.TestCase):
             pattern = rf"^\s*(from|import)\s+{re.escape(module_name)}\b"
             with self.subTest(module_name=module_name):
                 self.assertIsNone(re.search(pattern, source, re.MULTILINE))
+
+
+_GENERATED_AT_UTC_PATTERN = re.compile(r"Generated at UTC</dt><dd>[^<]+</dd>")
+
+
+def _normalize_volatile_timestamp(html: str) -> str:
+    return _GENERATED_AT_UTC_PATTERN.sub("Generated at UTC</dt><dd>X</dd>", html)
+
+
+def _seed_knowledge_edge_ambiguous_fixture(connection: sqlite3.Connection, *, queue_date: str) -> None:
+    """Seed one approved-source, unknown-duration financial-media segment (amendment
+    Sec8.3): the deterministic classifier must produce ``ambiguous`` for it, and the
+    composed queue view must surface it demoted rather than dropping it."""
+    ke.create_source(
+        connection,
+        source_id="ke-dash-src-frontier-ai",
+        source_type="youtube_channel",
+        lane="consequential_leaders",
+        name="Official Frontier AI Lab Channel",
+    )
+    ke.create_person(
+        connection,
+        person_id="ke-dash-person-jensen",
+        display_name="Jensen Huang",
+        category="consequential_leader",
+    )
+    ambiguous_item = DiscoveredMediaItem(
+        source_id="ke-dash-src-frontier-ai",
+        source_specific_id="vid-ambiguous-1",
+        canonical_url="https://example.com/watch?v=ambiguous-1",
+        title="Jensen Huang Segment (duration unknown)",
+        media_type="video_interview",
+        source_precedence="reputable_secondary",
+        format_hint="financial_media_segment",
+        matched_person_id="ke-dash-person-jensen",
+        duration_seconds=None,
+        published_at=f"{queue_date}T10:00:00+00:00",
+        cursor_value="0001",
+    )
+    run_scan(
+        connection,
+        scan_run_id="dash-test-run-1",
+        run_type="full_scan",
+        triggered_by="scheduler",
+        now=datetime(2026, 6, 15, 21, 0, 0, tzinfo=UTC),
+        queue_date=queue_date,
+        podcast_adapter=FixturePodcastFeedAdapter({}),
+        channel_adapter=FixtureChannelVideoAdapter({"ke-dash-src-frontier-ai": (ambiguous_item,)}),
+        earnings_adapter=FixtureEarningsEventAdapter({}),
+        filings_adapter=FixtureFilingsAdapter({}),
+    )
+
+
+class DashboardKnowledgeEdgeIntegrationTest(unittest.TestCase):
+    """P-KE-1C: the Knowledge Edge dashboard hook is additive and feature-mode-gated
+    (amendment Sec14.1/14.4) -- disabled is the default and must render byte-identical
+    output (module docstring's own "no behavior change to existing sections"
+    requirement), while fixture mode must render the composed queue including the
+    demoted/ambiguous section and its label."""
+
+    def test_disabled_mode_is_the_default_and_renders_byte_identical_output(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                default_html = dashboard.render_today_view_html_from_connection(
+                    connection, source_date=SOURCE_DATE, timezone=DEFAULT_TIMEZONE
+                )
+            with _sqlite_connection(db_path) as connection:
+                explicit_disabled_html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                    knowledge_edge_mode="disabled",
+                )
+
+        self.assertEqual(
+            _normalize_volatile_timestamp(default_html),
+            _normalize_volatile_timestamp(explicit_disabled_html),
+        )
+        self.assertNotIn("Knowledge Edge", default_html)
+        self.assertNotIn("knowledge-edge-queue", default_html)
+
+    def test_disabled_mode_never_reads_knowledge_edge_tables(self) -> None:
+        """Disabled mode must short-circuit before touching any ``ke_*`` table --
+        proven here by seeding an ambiguous Knowledge Edge item and confirming it
+        never appears when the feature mode stays at its default."""
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _seed_knowledge_edge_ambiguous_fixture(connection, queue_date=SOURCE_DATE)
+                html = dashboard.render_today_view_html_from_connection(
+                    connection, source_date=SOURCE_DATE, timezone=DEFAULT_TIMEZONE
+                )
+
+        self.assertNotIn("Knowledge Edge", html)
+        self.assertNotIn("Jensen Huang Segment", html)
+
+    def test_fixture_mode_renders_four_lane_queue_and_demoted_ambiguous_label(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _seed_knowledge_edge_ambiguous_fixture(connection, queue_date=SOURCE_DATE)
+                html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                    knowledge_edge_mode="fixture",
+                )
+
+        self.assertIn("Knowledge Edge: Daily Intelligence Queue", html)
+        self.assertIn("Demoted / Ambiguous", html)
+        self.assertIn("Jensen Huang Segment (duration unknown)", html)
+        self.assertIn(
+            "Approved-source items whose directness could not be confirmed", html
+        )
+        self.assertIn("P0: Consequential Leader Appearances", html)
+        self.assertIn("P1: Core Podcast Releases", html)
+        self.assertIn("P2: Market Voice Appearances", html)
+        self.assertIn("Tomorrow: Earnings &amp; Corporate Events", html)
+        self.assertIn("Coverage &amp; Source Health", html)
+        self.assertIn(
+            "absence of a result is never proof that no appearance occurred", html
+        )
+
+    def test_invalid_knowledge_edge_feature_mode_is_rejected(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                with self.assertRaises(ValueError):
+                    dashboard.render_today_view_html_from_connection(
+                        connection,
+                        source_date=SOURCE_DATE,
+                        timezone=DEFAULT_TIMEZONE,
+                        knowledge_edge_mode="shadow_live",
+                    )
 
 
 class DashboardSynthesisImportPreviewTest(unittest.TestCase):

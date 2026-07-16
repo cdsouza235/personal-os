@@ -190,6 +190,15 @@ def _human_report(report: Mapping[str, Any]) -> str:
         "background_process_started",
         "preview_id",
         "approval_source_hash",
+        "fixture_set",
+        "scan_run_id",
+        "media_items_created",
+        "media_items_reprocessed",
+        "events_created",
+        "events_reprocessed",
+        "sources_healthy",
+        "sources_failed",
+        "queue_snapshot_rows_created",
     ):
         if key in report:
             lines.append(f"{key}: {_format_scalar(report[key])}")
@@ -230,6 +239,31 @@ def _human_report(report: Mapping[str, Any]) -> str:
                     f"{key}={value}" for key, value in sorted(candidate_counts.items())
                 )
             )
+
+    queue_summary = report.get("queue_summary")
+    if isinstance(queue_summary, Mapping):
+        lines.append(f"knowledge_edge_feature_mode: {queue_summary.get('feature_mode')}")
+        if queue_summary.get("available"):
+            sections = queue_summary.get("sections")
+            if isinstance(sections, Mapping):
+                lines.append(
+                    "knowledge_edge_section_counts: "
+                    + ", ".join(f"{name}={len(rows)}" for name, rows in sorted(sections.items()))
+                )
+            demoted = queue_summary.get("demoted_ambiguous")
+            if isinstance(demoted, list):
+                lines.append(f"knowledge_edge_demoted_ambiguous_count: {len(demoted)}")
+            empty_state = queue_summary.get("empty_state")
+            if empty_state:
+                lines.append(f"knowledge_edge_empty_state: {empty_state}")
+            coverage = queue_summary.get("coverage")
+            if isinstance(coverage, Mapping):
+                lines.append(f"knowledge_edge_coverage_overall: {coverage.get('overall_summary')}")
+
+    entity_match = report.get("entity_match")
+    if isinstance(entity_match, Mapping):
+        lines.append(f"entity_match_id: {entity_match.get('entity_match_id')}")
+        lines.append(f"is_false_positive: {_format_scalar(entity_match.get('is_false_positive'))}")
 
     warnings = report.get("warnings")
     if isinstance(warnings, list) and warnings:

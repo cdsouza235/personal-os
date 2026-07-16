@@ -67,6 +67,28 @@ def _migrated_connection() -> Iterator[sqlite3.Connection]:
             yield connection
 
 
+def _reset_all_cursors(connection: sqlite3.Connection) -> None:
+    """Reset every source's persisted cursor to "never scanned", via public state APIs only.
+
+    Simulates the amendment's §11.1 catch-up/overlap-window scenario (the source's
+    cursor is reset, as if the Mac was off and the same window is being re-scanned)
+    without touching ``ke_scan_cursors`` directly: reads each source's current cursor
+    row with ``get_scan_cursor`` and rewrites it with ``advance_scan_cursor``, which is
+    the same state-layer entry point ``run_scan`` itself uses to persist cursors.
+    """
+    for source in ke.list_sources(connection):
+        cursor = ke.get_scan_cursor(connection, source_id=source["source_id"])
+        if cursor is None:
+            continue
+        ke.advance_scan_cursor(
+            connection,
+            cursor_id=cursor["cursor_id"],
+            source_id=cursor["source_id"],
+            last_successful_cursor_value=None,
+            overlap_window_seconds=cursor["overlap_window_seconds"],
+        )
+
+
 def _seed_registries(connection: sqlite3.Connection) -> None:
     ke.create_source(
         connection, source_id="src-dwarkesh", source_type="podcast_feed", lane="curated_podcasts", name="Dwarkesh Podcast"
@@ -313,7 +335,7 @@ class IdempotencyTest(unittest.TestCase):
             # Simulate the amendment's own §11.1 catch-up/overlap-window scenario:
             # the source's cursor is reset (as if the Mac was off and the same
             # window is being re-scanned).
-            connection.execute("UPDATE ke_scan_cursors SET last_successful_cursor_value = NULL")
+            _reset_all_cursors(connection)
 
             run_scan(
                 connection,

@@ -124,6 +124,7 @@ def _command_dashboard_render(args: argparse.Namespace) -> int:
             source_date=args.date,
             timezone=args.timezone,
             include_synthesis_import_form=False,
+            knowledge_edge_mode=args.knowledge_edge_mode,
         )
     output_path.write_text(html, encoding="utf-8")
     report = _with_workflow_context(

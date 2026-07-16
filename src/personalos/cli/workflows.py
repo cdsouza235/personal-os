@@ -81,6 +81,23 @@ SAFE_LOCAL_WORKFLOW_SPECS: tuple[dict[str, Any], ...] = (
         "output": "stdout report with simulated job counts",
     },
     {
+        "name": "Knowledge Edge fixture scan/queue/false-positive flag",
+        "safe_local_action": "Run a fixture-only Knowledge Edge scan and review the queue",
+        "command": (
+            "personalos knowledge-edge scan --db <safe_db> --date <YYYY-MM-DD>; "
+            "personalos knowledge-edge queue show --db <safe_db> --date <YYYY-MM-DD>; "
+            "personalos knowledge-edge flag-false-positive --db <safe_db> "
+            "--entity-match-id <id>"
+        ),
+        "mode": "inert / no-send / fixture-only (Phase 1: no live network, no scheduler)",
+        "local_effect": (
+            "scan writes local SQLite ke_* rows only from a built-in synthetic fixture "
+            "dataset; queue show is read-only; flag-false-positive updates one "
+            "ke_entity_matches row"
+        ),
+        "output": "stdout report with queue sections, coverage, and false-positive flags",
+    },
+    {
         "name": "synthetic no-send end-to-end demo",
         "safe_local_action": "Generate Phase 13E-D synthetic no-send evidence bundle",
         "command": "personalos demo no-send-e2e --output-dir <safe_output_dir> --json",

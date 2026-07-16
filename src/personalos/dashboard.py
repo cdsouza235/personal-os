@@ -15,6 +15,11 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 from personalos.config import DEFAULT_TIMEZONE
+from personalos.knowledge_edge.dashboard import (
+    DEFAULT_KNOWLEDGE_EDGE_FEATURE_MODE,
+    build_knowledge_edge_queue_summary,
+    render_knowledge_edge_queue_html,
+)
 from personalos.path_safety import (
     DATABASE_SUFFIXES,
     is_under_repo,
@@ -65,15 +70,24 @@ def render_today_view_html_from_connection(
     source_date: str | None = None,
     timezone: str = DEFAULT_TIMEZONE,
     include_synthesis_import_form: bool = True,
+    knowledge_edge_mode: str = DEFAULT_KNOWLEDGE_EDGE_FEATURE_MODE,
 ) -> str:
     summary = create_today_view_summary(
         connection,
         source_date=source_date,
         timezone=timezone,
     )
+    knowledge_edge_summary = None
+    if knowledge_edge_mode != DEFAULT_KNOWLEDGE_EDGE_FEATURE_MODE:
+        knowledge_edge_summary = build_knowledge_edge_queue_summary(
+            connection,
+            queue_date=summary["source_date"],
+            feature_mode=knowledge_edge_mode,
+        )
     return render_today_view_html(
         summary,
         include_synthesis_import_form=include_synthesis_import_form,
+        knowledge_edge_summary=knowledge_edge_summary,
     )
 
 
@@ -82,12 +96,14 @@ def render_today_view_html_from_db_path(
     *,
     source_date: str | None = None,
     timezone: str = DEFAULT_TIMEZONE,
+    knowledge_edge_mode: str = DEFAULT_KNOWLEDGE_EDGE_FEATURE_MODE,
 ) -> str:
     with closing(connect_dashboard_db_read_only(db_path)) as connection:
         return render_today_view_html_from_connection(
             connection,
             source_date=source_date,
             timezone=timezone,
+            knowledge_edge_mode=knowledge_edge_mode,
         )
 
 
@@ -110,6 +126,7 @@ def render_today_view_html(
     summary: Mapping[str, Any],
     *,
     include_synthesis_import_form: bool = True,
+    knowledge_edge_summary: Mapping[str, Any] | None = None,
 ) -> str:
     no_external_writes = _format_bool(summary["no_external_writes"])
     rail_states = summary.get("rail_state_summary")
@@ -123,6 +140,14 @@ def render_today_view_html(
     synthesis_form_html = (
         render_synthesis_import_preview_form_html()
         if include_synthesis_import_form
+        else ""
+    )
+    # Additive-only: `knowledge_edge_summary` is None unless a caller explicitly
+    # requests a non-disabled mode, so every pre-existing call site renders the
+    # exact same bytes as before Knowledge Edge existed (amendment Sec14.1/14.4).
+    knowledge_edge_html = (
+        render_knowledge_edge_queue_html(knowledge_edge_summary)
+        if knowledge_edge_summary is not None
         else ""
     )
     return f"""<!doctype html>
@@ -286,7 +311,7 @@ def render_today_view_html(
   {_render_scheduler_summary(summary["scheduler_summary"])}
   {_render_permission_summary(summary["permission_summary"])}
   {_render_system_status_summary(summary["system_status_summary"])}
-  {_render_warnings(summary["warnings"])}
+  {_render_warnings(summary["warnings"])}{knowledge_edge_html}
 </main>
 </body>
 </html>

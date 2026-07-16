@@ -190,6 +190,15 @@ def _human_report(report: Mapping[str, Any]) -> str:
         "background_process_started",
         "preview_id",
         "approval_source_hash",
+        "fixture_set",
+        "scan_run_id",
+        "media_items_created",
+        "media_items_reprocessed",
+        "events_created",
+        "events_reprocessed",
+        "sources_healthy",
+        "sources_failed",
+        "queue_snapshot_rows_created",
     ):
         if key in report:
             lines.append(f"{key}: {_format_scalar(report[key])}")
@@ -231,11 +240,98 @@ def _human_report(report: Mapping[str, Any]) -> str:
                 )
             )
 
+    queue_summary = report.get("queue_summary")
+    if isinstance(queue_summary, Mapping):
+        _append_knowledge_edge_queue_lines(lines, queue_summary)
+
+    entity_match = report.get("entity_match")
+    if isinstance(entity_match, Mapping):
+        lines.append(f"entity_match_id: {entity_match.get('entity_match_id')}")
+        lines.append(f"is_false_positive: {_format_scalar(entity_match.get('is_false_positive'))}")
+
     warnings = report.get("warnings")
     if isinstance(warnings, list) and warnings:
         lines.append("warnings:")
         lines.extend(f"- {warning}" for warning in warnings)
     return "\n".join(lines)
+
+
+# Mirrors knowledge_edge/dashboard.py's own section titles/order (PRD amendment
+# Sec7.2) so the CLI human view surfaces the same section headings as the dashboard,
+# not just their row counts.
+_KNOWLEDGE_EDGE_SECTION_TITLES: dict[str, str] = {
+    "tomorrow_earnings_events": "Tomorrow: Earnings & Corporate Events",
+    "p0_consequential_leaders": "P0: Consequential Leader Appearances",
+    "p1_core_podcasts": "P1: Core Podcast Releases",
+    "p2_market_voices": "P2: Market Voice Appearances",
+    "saved_to_reconsider": "Saved to Reconsider",
+}
+_KNOWLEDGE_EDGE_SECTION_ORDER = (
+    "tomorrow_earnings_events",
+    "p0_consequential_leaders",
+    "p1_core_podcasts",
+    "p2_market_voices",
+    "saved_to_reconsider",
+)
+
+
+def _append_knowledge_edge_queue_lines(
+    lines: list[str],
+    queue_summary: Mapping[str, Any],
+) -> None:
+    lines.append(f"knowledge_edge_feature_mode: {queue_summary.get('feature_mode')}")
+    if not queue_summary.get("available"):
+        return
+
+    empty_state = queue_summary.get("empty_state")
+    if empty_state:
+        lines.append(f"knowledge_edge_empty_state: {empty_state}")
+
+    sections = queue_summary.get("sections")
+    if isinstance(sections, Mapping):
+        for section_name in _KNOWLEDGE_EDGE_SECTION_ORDER:
+            cards = sections.get(section_name)
+            if not isinstance(cards, list):
+                continue
+            title = _KNOWLEDGE_EDGE_SECTION_TITLES.get(section_name, section_name)
+            lines.append(f"{title} ({len(cards)}):")
+            lines.extend(f"- {_format_knowledge_edge_card_line(card)}" for card in cards)
+
+    demoted = queue_summary.get("demoted_ambiguous")
+    if isinstance(demoted, list):
+        lines.append(f"Demoted / Ambiguous ({len(demoted)}):")
+        lines.extend(f"- {_format_knowledge_edge_card_line(card)}" for card in demoted)
+
+    coverage = queue_summary.get("coverage")
+    if isinstance(coverage, Mapping):
+        lines.append(f"Coverage & Source Health: {coverage.get('overall_summary')}")
+        per_adapter_lines = coverage.get("per_adapter_lines")
+        if isinstance(per_adapter_lines, list):
+            lines.extend(f"- {line}" for line in per_adapter_lines)
+        honesty_note = coverage.get("honesty_note")
+        if honesty_note:
+            lines.append(f"knowledge_edge_coverage_honesty_note: {honesty_note}")
+
+
+def _format_knowledge_edge_card_line(card: Mapping[str, Any]) -> str:
+    if card.get("entity_type") == "scheduled_event":
+        link = card.get("link")
+        link_text = "no link available"
+        if isinstance(link, Mapping):
+            label = link.get("label", "")
+            url = link.get("url")
+            link_text = f"{label}: {url}" if url else label
+        return (
+            f"{card.get('company_display_name', 'unknown')} "
+            f"({card.get('event_type', 'unknown')}, {card.get('scheduled_date', 'unknown')}, "
+            f"{card.get('event_status', 'unknown')}) -- {link_text}"
+        )
+    flag = " [flagged false-positive]" if card.get("false_positive_flagged") else ""
+    return (
+        f"{card.get('title', 'unknown')} "
+        f"[{card.get('directness_class', 'unknown')}]{flag} "
+        f"-- {card.get('why_surfaced', '')}"
+    )
 
 
 def _append_workflow_completion_lines(

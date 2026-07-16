@@ -19,6 +19,7 @@ from pathlib import Path
 
 import personalos.knowledge_edge.state as ke
 from personalos import cli
+from personalos.cli.reporting import _human_report
 from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
@@ -170,7 +171,7 @@ class QueueShowCommandTest(unittest.TestCase):
             self.assertIn("healthy", queue_summary["coverage"]["overall_summary"])
             self.assertFalse(payload["database_write"])
 
-    def test_queue_show_human_output_summarizes_sections(self) -> None:
+    def test_queue_show_human_output_renders_full_queue_content(self) -> None:
         with _migrated_db_path() as db_path:
             _run_cli(
                 [
@@ -182,9 +183,123 @@ class QueueShowCommandTest(unittest.TestCase):
                 ["knowledge-edge", "queue", "show", "--db", str(db_path), "--date", QUEUE_DATE]
             )
             self.assertEqual(show_result.code, 0, show_result.stderr)
-            self.assertIn("knowledge_edge_feature_mode: fixture", show_result.stdout)
-            self.assertIn("p0_consequential_leaders=1", show_result.stdout)
-            self.assertIn("knowledge_edge_coverage_overall:", show_result.stdout)
+            output = show_result.stdout
+            self.assertIn("knowledge_edge_feature_mode: fixture", output)
+
+            # Section headings and item titles -- not just row counts.
+            self.assertIn("P0: Consequential Leader Appearances (1):", output)
+            self.assertIn("Jensen Huang: The Future of Compute", output)
+            self.assertIn("P1: Core Podcast Releases (1):", output)
+            self.assertIn("A Long Conversation", output)
+            self.assertIn("P2: Market Voice Appearances (1):", output)
+            self.assertIn("Tom Lee on Bitcoin and Market Outlook", output)
+            self.assertIn("Tomorrow: Earnings & Corporate Events (1):", output)
+            self.assertIn("NVIDIA", output)
+
+            # Directness / why-surfaced labels, not summarized away.
+            self.assertIn("direct_primary", output)
+            self.assertIn("directness=direct_primary", output)
+
+            # The demoted/ambiguous section still renders (empty for this fixture set).
+            self.assertIn("Demoted / Ambiguous (0):", output)
+
+            # Coverage gaps/health, per-adapter, not a single collapsed line.
+            self.assertIn("Coverage & Source Health:", output)
+            self.assertIn("Earnings Calendar:", output)
+            self.assertIn(
+                "Coverage reflects only sources successfully checked this scan",
+                output,
+            )
+
+    def test_human_report_renders_demoted_ambiguous_labels_and_quarantined_links(self) -> None:
+        """Unit-tests the reporting-layer rendering directly against a synthetic
+        queue_summary shaped like ``build_knowledge_edge_queue_summary``'s output,
+        since the CLI's own built-in fixture scan never produces an ambiguous item
+        or an unapproved-vendor webcast link (see knowledge_edge/dashboard.py's
+        ``DEFAULT_APPROVED_WEBCAST_VENDOR_DOMAINS`` -- empty by default, so every
+        live_webcast_url is quarantined, but the built-in CLI fixture events never
+        set one)."""
+        queue_summary = {
+            "feature_mode": "fixture",
+            "available": True,
+            "queue_date": QUEUE_DATE,
+            "sections": {
+                "tomorrow_earnings_events": [
+                    {
+                        "entity_type": "scheduled_event",
+                        "event_id": "evt-1",
+                        "company_display_name": "NVIDIA",
+                        "event_type": "quarterly_earnings",
+                        "scheduled_date": QUEUE_DATE,
+                        "event_status": "scheduled",
+                        "link": {
+                            "label": "Link pending (unknown vendor)",
+                            "url": None,
+                            "official_event_page_url": None,
+                            "quarantined": True,
+                        },
+                    }
+                ],
+                "p0_consequential_leaders": [
+                    {
+                        "entity_type": "media_item",
+                        "media_item_id": "med-1",
+                        "title": "Jensen Huang: The Future of Compute",
+                        "directness_class": "direct_primary",
+                        "false_positive_flagged": False,
+                        "why_surfaced": "directness=direct_primary (+100)",
+                    }
+                ],
+                "p1_core_podcasts": [],
+                "p2_market_voices": [],
+                "saved_to_reconsider": [],
+            },
+            "demoted_ambiguous": [
+                {
+                    "entity_type": "media_item",
+                    "media_item_id": "med-2",
+                    "title": "Jensen Huang Segment (duration unknown)",
+                    "directness_class": "ambiguous",
+                    "false_positive_flagged": False,
+                    "why_surfaced": (
+                        "directness=ambiguous (+20); not substantive "
+                        "(ambiguous_unknown_duration_demoted)"
+                    ),
+                }
+            ],
+            "coverage": {
+                "overall_summary": "5 of 5 sources healthy",
+                "report": {"sources_healthy": 5, "sources_total": 5},
+                "per_adapter_lines": [
+                    "Dwarkesh Podcast: healthy; last success 2026-07-16T18:00:00+00:00",
+                ],
+                "honesty_note": (
+                    "Coverage reflects only sources successfully checked this scan; "
+                    "absence of a result is never proof that no appearance occurred."
+                ),
+            },
+            "empty_state": None,
+        }
+        rendered = _human_report(
+            {"command": "knowledge-edge queue show", "status": "completed", "queue_summary": queue_summary}
+        )
+
+        self.assertIn("P0: Consequential Leader Appearances (1):", rendered)
+        self.assertIn("Jensen Huang: The Future of Compute", rendered)
+        self.assertIn("directness=direct_primary", rendered)
+
+        self.assertIn("Demoted / Ambiguous (1):", rendered)
+        self.assertIn("Jensen Huang Segment (duration unknown)", rendered)
+        self.assertIn("ambiguous_unknown_duration_demoted", rendered)
+
+        self.assertIn("Tomorrow: Earnings & Corporate Events (1):", rendered)
+        self.assertIn("Link pending (unknown vendor)", rendered)
+
+        self.assertIn("Coverage & Source Health:", rendered)
+        self.assertIn("Dwarkesh Podcast: healthy", rendered)
+        self.assertIn(
+            "Coverage reflects only sources successfully checked this scan", rendered
+        )
 
     def test_queue_show_on_empty_database_reports_unavailable_empty_state(self) -> None:
         with _migrated_db_path() as db_path:

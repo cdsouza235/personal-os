@@ -541,10 +541,15 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00014",
                     "00015",
                     "00016",
+                    "00017",
+                    "00018",
+                    "00019",
+                    "00020",
+                    "00021",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 16)
+            self.assertEqual(len(rows), 21)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -2376,6 +2381,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00014",
                 "00015",
                 "00016",
+                "00017",
+                "00018",
+                "00019",
+                "00020",
+                "00021",
             ],
         )
         self.assertEqual(
@@ -2397,6 +2407,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "project_followup_status_constraints",
                 "routine_first_class_cadence_columns",
                 "live_write_ledger_states",
+                "knowledge_edge_registries",
+                "knowledge_edge_media_events",
+                "knowledge_edge_decisions_queue",
+                "knowledge_edge_scan_health",
+                "knowledge_edge_roster_synthesis",
             ],
         )
 
@@ -2411,9 +2426,10 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
             runtime_dir = Path(runtime_dir_name)
             config = _config_for(runtime_dir, Environment.TEST)
 
+            post15_versions = {"00016", "00017", "00018", "00019", "00020", "00021"}
             pre16_migrations_dir = Path(pre16_dir_name)
             for migration in discover_migrations():
-                if migration.version == "00016":
+                if migration.version in post15_versions:
                     continue
                 (pre16_migrations_dir / migration.path.name).write_text(
                     migration.sql, encoding="utf-8"
@@ -2483,7 +2499,7 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
                 applied_16 = apply_migrations(connection)
                 self.assertEqual(
                     [migration.version for migration in applied_16],
-                    ["00016"],
+                    ["00016", "00017", "00018", "00019", "00020", "00021"],
                 )
 
                 post_intents = [dict(row) for row in connection.execute(

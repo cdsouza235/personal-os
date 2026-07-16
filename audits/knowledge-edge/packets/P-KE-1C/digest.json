@@ -1,0 +1,74 @@
+{
+  "auditor_objections": [],
+  "base_sha": "2f0c32c6f8f763b94f8b5de3177d19d14c1f4e19",
+  "changed_files": 12,
+  "coverage": {
+    "scanned_clean": 4,
+    "unmatched": 8
+  },
+  "diff_size_lines": 1853,
+  "family_concentration_note": null,
+  "files_not_covered_by_tests": [],
+  "gate_evidence": [
+    {
+      "blocking": true,
+      "command": "PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'",
+      "exit_code": 0,
+      "id": "unittest",
+      "output_head": "....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................",
+      "tested_sha": "4594e0d43784034345c21d1a6f9b71f13c27d6a3"
+    },
+    {
+      "blocking": true,
+      "command": "test -z \"$(find . -maxdepth 2 -name var -print)\" && test -z \"$(find . -path ./.git -prune -o \\( -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.db' \\) -print)\"",
+      "exit_code": 0,
+      "id": "artifact-hygiene",
+      "output_head": "",
+      "tested_sha": "4594e0d43784034345c21d1a6f9b71f13c27d6a3"
+    },
+    {
+      "blocking": true,
+      "command": "gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9",
+      "exit_code": 0,
+      "id": "secret-scan",
+      "output_head": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m6:53PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~5929717 bytes (5.93 MB) in 259ms\u001b[0m\n\u001b[90m6:53PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+      "tested_sha": "4594e0d43784034345c21d1a6f9b71f13c27d6a3"
+    }
+  ],
+  "gate_states": {
+    "G-GOV": "pending",
+    "G0": "pending",
+    "G1": "pending"
+  },
+  "generated_at_target_head": "2f0c32c6f8f763b94f8b5de3177d19d14c1f4e19",
+  "head_sha": "4594e0d43784034345c21d1a6f9b71f13c27d6a3",
+  "header_status": "pass",
+  "iteration_count": 4,
+  "packet_id": "P-KE-1C",
+  "required_gates": [
+    "G0",
+    "G-GOV",
+    "G1"
+  ],
+  "review_tier_declared": "routine",
+  "review_tier_effective": "high_stakes",
+  "risk_flags": [
+    "new_top_level_dir:src/personalos/cli/__init__.py",
+    "new_top_level_dir:src/personalos/cli/knowledge_edge.py",
+    "new_top_level_dir:src/personalos/cli/parser.py",
+    "new_top_level_dir:src/personalos/cli/reporting.py",
+    "new_top_level_dir:src/personalos/cli/today.py",
+    "new_top_level_dir:src/personalos/cli/workflows.py",
+    "new_top_level_dir:src/personalos/dashboard.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/dashboard.py",
+    "test_weakening",
+    "over_diff_cap",
+    "iteration_cap"
+  ],
+  "rollback_note": "revert the merge commit",
+  "rubber_stamp_note": "",
+  "rubber_stamp_tripped": false,
+  "third_reviewer_reasoning": "The diff is well-scoped, additive, and feature-mode-gated: the dashboard integration only builds Knowledge Edge HTML when a non-default mode is explicitly requested, preserving byte-identical output when disabled (verified by construction and by tests). No network-capable imports appear in the new modules, HTML is properly escaped throughout, and the false-positive flag path correctly routes through the state API rather than raw SQL. The first auditor's 'fail' recommendation is inconsistent with their own report (0 issues found, summary says 'accept_with_conditions' purely due to sandbox tool limitations), so I see no reject-level concern that should block human merge review.",
+  "verified_by": "orchestrator",
+  "ways_this_could_be_wrong": []
+}

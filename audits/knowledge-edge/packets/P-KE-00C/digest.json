@@ -1,0 +1,73 @@
+{
+  "auditor_objections": [],
+  "base_sha": "ef76aaa7baed834871fb83cd80fd5346d5fe5375",
+  "changed_files": 8,
+  "coverage": {
+    "scanned_clean": 0,
+    "unmatched": 8
+  },
+  "diff_size_lines": 397,
+  "family_concentration_note": null,
+  "files_not_covered_by_tests": [],
+  "gate_evidence": [
+    {
+      "blocking": true,
+      "command": "PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'",
+      "exit_code": 0,
+      "id": "unittest",
+      "output_head": "....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................",
+      "tested_sha": "dd20db8ba74b42be638f6999349f7065faa145cf"
+    },
+    {
+      "blocking": true,
+      "command": "test -z \"$(find . -maxdepth 2 -name var -print)\" && test -z \"$(find . -path ./.git -prune -o \\( -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.db' \\) -print)\"",
+      "exit_code": 0,
+      "id": "artifact-hygiene",
+      "output_head": "",
+      "tested_sha": "dd20db8ba74b42be638f6999349f7065faa145cf"
+    },
+    {
+      "blocking": true,
+      "command": "gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9",
+      "exit_code": 0,
+      "id": "secret-scan",
+      "output_head": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m3:17AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~4970880 bytes (4.97 MB) in 417ms\u001b[0m\n\u001b[90m3:17AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+      "tested_sha": "dd20db8ba74b42be638f6999349f7065faa145cf"
+    }
+  ],
+  "gate_states": {
+    "G-GOV": "pending",
+    "G0": "pending",
+    "G1": "pending"
+  },
+  "generated_at_target_head": "ef76aaa7baed834871fb83cd80fd5346d5fe5375",
+  "head_sha": "dd20db8ba74b42be638f6999349f7065faa145cf",
+  "header_status": "pass",
+  "iteration_count": 4,
+  "packet_id": "P-KE-00C",
+  "required_gates": [
+    "G0",
+    "G-GOV",
+    "G1"
+  ],
+  "review_tier_declared": "routine",
+  "review_tier_effective": "high_stakes",
+  "risk_flags": [
+    "new_top_level_dir:docs/PRD.md",
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_ARCHITECTURE_DECISIONS.md",
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_CURRENT_STATE.md",
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_PLAN.md",
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_PROBE_PLAN.md",
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_PROVIDERS_AND_ACCESS.md",
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_ROSTER.md",
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_TRACEABILITY.md",
+    "project_governance_manifest",
+    "iteration_cap"
+  ],
+  "rollback_note": "revert the merge commit",
+  "rubber_stamp_note": "",
+  "rubber_stamp_tripped": false,
+  "third_reviewer_reasoning": "The diff is a coherent, documentation-only change that amends multiple docs to implement D-PO-019's reversal of the Financial Modeling Prep decision, replacing it with a bounded company roster sourced via SEC EDGAR and official IR pages. The changes preserve human gates (Packet 3A vendor-domain-list approval), narrow Packet 0C's probe to supervised EDGAR plus YouTube access with clear stop-on-anomaly/no-retry rules, and consistently mark FMP references as superseded history rather than deleting the evaluation record. No code, tests, or credentials are touched, and the auditor's fail recommendation appears to stem solely from an environment limitation (git/ripgrep unavailable) rather than any substantive content issue.",
+  "verified_by": "orchestrator",
+  "ways_this_could_be_wrong": []
+}

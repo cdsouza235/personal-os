@@ -314,3 +314,16 @@
   to Chris for confirmation (same pattern as the launch role appendix); the providers
   doc + plan get a corresponding docs amendment in that packet, not ad-hoc. — Chris
   (Conductor decision) + Fable seat (record), 2026-07-15
+- **D-PO-020 Audit-record convention for harness-run packets (closes phase-end
+  checkpoint C5's decision half).** Adopted by Chris ("adopt the audit-record
+  convention", Conductor session 2026-07-16). Every harness-run packet commits its
+  final-round Codex audit report + last run-record digest to
+  `audits/knowledge-edge/packets/<packet>/` (KE track; parallel dirs for other tracks)
+  as a Conductor-record commit before the phase closes, with one AUDIT-LOG.md line per
+  packet. From Phase 2 onward, per-ROUND reports are copied out at each iteration
+  (the harness overwrites AUDIT.md per round). Retroactive backfill for P-KE-00B
+  through P-KE-1D carries the final-round-only caveat (see
+  `audits/knowledge-edge/packets/README.md`); intermediate-round findings are narrated
+  in STATUS.md's Phase 1 entry and the phase-end checkpoint report. C5's other half
+  (STATUS catch-up + truthful traceability) closed in P-KE-1D. — Chris (adoption) +
+  Fable seat (record), 2026-07-16

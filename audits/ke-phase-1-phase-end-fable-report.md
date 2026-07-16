@@ -8,6 +8,11 @@
 - **Method:** everything below was reproduced in-session by driving the real code (fresh migrated DBs, my own fixture datasets, my own boundary cases, positive-control discipline). The Builder's and packets' own test evidence was treated as untrusted.
 
 ## RESOLUTION: **hold** — with located conditions C1–C5 below
+> **Superseded 2026-07-16 (same day, post-P-KE-1D):** the §3 re-verification recipe was
+> executed against the merged P-KE-1D tree and C1–C4 are verified closed — resolution
+> converts to **sign_off**. See the dated addendum at the end of this file. C5 remains
+> open as a process condition to the Conductor. The original hold text below is
+> preserved unedited as the record of what the checkpoint found.
 
 The phase's core guarantee — the fixture-rung daily loop — is genuinely delivered and
 survived adversarial probing on every axis this checkpoint was scoped to attack (§8.3
@@ -356,3 +361,129 @@ in-session with `git status` verified clean afterward. All probe artifacts live 
 session scratchpad, outside the repo.
 
 — Fable, Phase-End Auditor seat, 2026-07-16
+
+---
+
+# ADDENDUM — §3 re-verification outcome (2026-07-16, post-P-KE-1D)
+
+- **Seat:** Phase-End Auditor (Fable), same session lineage as the checkpoint above;
+  P-KE-1D was built by the Builder seat, not by this session.
+- **Range examined:** `f224bd5` (conductor record of the hold) → `6fc4180` (last
+  P-KE-1D commit on `main`).
+
+## RESOLUTION UPDATE: **sign_off**
+
+C1–C4 are verified closed by driving the merged tree, per the §3 recipe. C5 remains
+open (process condition to the Conductor — see below). One new **minor** display-parity
+note (N1) is recorded for the next KE packet; it does not gate Phase 2.
+
+## Recipe execution — every probe reproduced in-session
+
+**(1) Decision surface end-to-end (C1) — closed.** Driven through the real CLI
+(`personalos knowledge-edge decide {watch,save,skip,watched,watch-live,save-replay}`)
+on fresh migrated scratch DBs:
+
+- **Tonight caps refuse honestly, at decision-acceptance:** a 4th Watch is refused
+  with "Tonight cap reached: 3 items…" (item cap); adding a 90-minute item on top of a
+  60-minute active Watch is refused by the known-duration cap with the projected
+  minutes named in the message; a 15-minute item is still accepted immediately after a
+  refusal (positive control — the refusal is a cap, not a broken probe); three items
+  totalling exactly 90 known minutes are accepted (cap is `>`, not `>=`).
+- **Saved cap:** exactly 12 saves accepted, the 13th refused with "Saved cap
+  reached: 12…".
+- **Expiry now runs on the production path:** `_sweep_expired_decisions` is wired into
+  `run_scan` before queue-build. A scan with `--now` 15 days after 12 items were saved
+  swept all 12 to `queue_visibility_state="expired"`; the previously-refused 13th save
+  was then accepted (freed slot — positive control). A `save_replay` event whose
+  replay was 8 days old (clocked from `end_time_utc`, deterministically — the
+  `_replay_ended_at_proxy` design correctly avoids wall-clock `updated_at`) was swept
+  expired.
+- **§13.4 audit trail:** every accepted decision wrote a `ke_decision_history` row
+  (verified per entity: watch→watched pairs, watch_live, save_replay), and every
+  sweep expiry wrote one with `changed_by="system:expiry_sweep"` and a reason naming
+  the rule and the compared timestamps (12 saved-14d rows + 1 replay-7d row).
+- **Synthesis staging:** `decide watched` staged a handoff; `synthesis export`
+  emits the packet (title/URL verified in output) and marks it completed —
+  `state/synthesis.py` has its first production caller.
+- **Queue reacts to decisions:** `decide skip` on a demoted-ambiguous item removes it
+  from the composed demoted view on the next read.
+- Invalid transitions still refused via the CLI path (CliError, not stack trace).
+
+**(2) Same-date rescan (C2) — closed.** Re-ran the original failing probe plus a
+harder variant (new items in two lanes mid-day): every section's ranks are contiguous
+and unique from 1; P2 held at exactly its cap of 5 across same-date scans
+(recompute-and-supersede in `_record_section`, plus the `entity_id` tiebreak in
+`list_queue_snapshot`). The demoted-tier persistence fold-in also landed (migration
+00022's `ke_queue_snapshot_demoted`): persisted rows match the composed view exactly
+and are superseded per scan.
+
+**(3) Launch-roster seeds (C3) — closed, verified as data.** Queried the migrated DB:
+9 Lane-A podcast sources (names verbatim from §8.1), 8 Lane-B market voices, 15 Lane-C
+leaders (role-based watches correctly NOT duplicated as people), and the one
+amendment-named alias — "Mohammed El-Erian" resolves to the canonical person through
+`resolve_alias`. Sources are seeded `status='trial'` with an explicit endpoint-TBC
+note — the right call: no endpoint URLs exist in any ratified source, and `run_scan`
+only polls `active` sources, so nothing fake is polled and healthy-source counts stay
+honest. Flip-to-active is correctly deferred to P-KE-2A endpoint verification.
+
+**(4) urllib.parse scope (C4) — closed, positive controls re-run.**
+`import urllib.parse` planted in `state/` now **fires** the guard; planted in a second
+`engine/` file it **fires**; the clean tree (import present only in
+`engine/canonicalize.py`) passes. The exception table
+(`_ALLOWED_NETWORK_IMPORT_EXCEPTIONS`) is file-scoped exactly as the Conductor's
+"exactly one file" authorization requires. Probe files deleted; `git status` clean.
+
+**(5) Suite + gates:** **781 tests green** on both the canonical and
+ResourceWarning-sensitive passes — matching STATUS.md's declared delta
+(567 → 757 → 781) exactly, the first packet in this phase with an in-repo declared
+delta to check against. Artifact hygiene, gitleaks, and env hygiene all clean.
+
+**Regression sweep:** the checkpoint's full original probe set (all 41 §8.3 /
+idempotency / caps / determinism / lifecycle probes) re-ran green against the 1D tree
+— including byte-identical fixed-`now` double runs, so the expiry sweep and
+recompute-and-supersede changes did not perturb determinism. Migrations re-proof
+including 00022: pre-phase schema still byte-identical, fresh-apply 22 / re-apply 0.
+Disabled-mode dashboard output re-verified byte-identical to the pre-phase worktree
+(modulo the pre-existing wall-clock field). Manifest attestation for the 1D range:
+no manifest-listed or protected file touched except the sanctioned additive
+`migrations/00022` (high-stakes, in-scope); STATUS.md and PHASE0_TRACEABILITY edits
+are Builder-owned living-doc/docs paths, in-scope.
+
+## Still open / new notes
+
+- **C5 (open, Conductor):** the per-packet Codex audit artifacts and reports for
+  P-KE-1A/1B/1C — and now 1D — remain harness-side only (`audits/AUDIT-LOG.md` still
+  ends at Phase A). P-KE-1D materially improved the in-repo record (STATUS.md updated
+  with an itemized declared delta; PHASE0_TRACEABILITY corrected and re-vocabularied
+  table-wide so "delivered" now means merged-in-tree only), but the durable-home
+  decision for harness-run audit records is still unmade. Should not persist silently
+  into Phase 2.
+- **N1 (new, minor — next KE packet):** `knowledge-edge synthesis list` and
+  `synthesis export` carry their payloads (`synthesis_handoffs`, `synthesis_packet`)
+  only on the `--json` surface; `_human_report` (`cli/reporting.py`) has no renderer
+  for either key, so the human output of `synthesis list` shows a completed workflow
+  with no handoffs visible — indistinguishable from an empty list. Same family as the
+  1C "summarized into counts" class but milder (data intact on the sibling surface,
+  command pair is new and non-load-bearing in Phase 1). Add the two renderers; a
+  one-line test pinning "handoff id appears in human output" closes it.
+- Carried-forward notes from the checkpoint (orchestrator gaps 1–2, provisional
+  candidate-cap numbers needing a Session-2 value) stand unchanged.
+
+## WAYS_THIS_ADDENDUM_COULD_BE_WRONG
+
+The checkpoint's §4 caveats all carry forward, including the same-family caveat
+(Builder and reviewer both Anthropic; the Codex cross-family trail for 1D, like
+1A–1C, is not in-repo — I verified 1D's code conduct directly but took its audit
+history on the prompt's/STATUS's word). New to this addendum: the cap and expiry
+probes drove the CLI surface with the builtin fixture set plus my own constructed
+events — cap arithmetic at other duration mixes, and expiry behavior at exactly-14 /
+exactly-7 days (boundary equality), were covered by the packet's own tests but not
+independently re-derived here; and my C1 verification accepts `trial`-status roster
+rows as correct seeding on the strength of the migration's own documented reasoning —
+if Phase 2 flips them `active` without endpoint verification, the honest-coverage
+guarantee this relies on erodes.
+
+**Net: Phase 1 sign_off.** Phase 2 (live read-only media discovery, G5 territory) may
+proceed; C5 goes to the Conductor; N1 rides with the next KE packet.
+
+— Fable, Phase-End Auditor seat, 2026-07-16 (addendum)

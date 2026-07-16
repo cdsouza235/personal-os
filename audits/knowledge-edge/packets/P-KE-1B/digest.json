@@ -1,0 +1,80 @@
+{
+  "auditor_objections": [],
+  "base_sha": "585e16584bdac8dc1c7feabf603bb9d5e6be6a93",
+  "changed_files": 19,
+  "coverage": {
+    "scanned_clean": 8,
+    "unmatched": 8
+  },
+  "diff_size_lines": 3792,
+  "family_concentration_note": null,
+  "files_not_covered_by_tests": [],
+  "gate_evidence": [
+    {
+      "blocking": true,
+      "command": "PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'",
+      "exit_code": 0,
+      "id": "unittest",
+      "output_head": "....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................",
+      "tested_sha": "a4f9ae25ab6526055508d583f255b468d98dab37"
+    },
+    {
+      "blocking": true,
+      "command": "test -z \"$(find . -maxdepth 2 -name var -print)\" && test -z \"$(find . -path ./.git -prune -o \\( -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.db' \\) -print)\"",
+      "exit_code": 0,
+      "id": "artifact-hygiene",
+      "output_head": "",
+      "tested_sha": "a4f9ae25ab6526055508d583f255b468d98dab37"
+    },
+    {
+      "blocking": true,
+      "command": "gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9",
+      "exit_code": 0,
+      "id": "secret-scan",
+      "output_head": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m4:56PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~5763127 bytes (5.76 MB) in 260ms\u001b[0m\n\u001b[90m4:56PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+      "tested_sha": "a4f9ae25ab6526055508d583f255b468d98dab37"
+    }
+  ],
+  "gate_states": {
+    "G-GOV": "pending",
+    "G0": "pending",
+    "G1": "pending"
+  },
+  "generated_at_target_head": "585e16584bdac8dc1c7feabf603bb9d5e6be6a93",
+  "head_sha": "a4f9ae25ab6526055508d583f255b468d98dab37",
+  "header_status": "pass",
+  "iteration_count": 8,
+  "packet_id": "P-KE-1B",
+  "required_gates": [
+    "G0",
+    "G-GOV",
+    "G1"
+  ],
+  "review_tier_declared": "routine",
+  "review_tier_effective": "high_stakes",
+  "risk_flags": [
+    "new_top_level_dir:src/personalos/knowledge_edge/__init__.py",
+    "protected_path:src/personalos/knowledge_edge/adapters/__init__.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/adapters/__init__.py",
+    "protected_path:src/personalos/knowledge_edge/adapters/contracts.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/adapters/contracts.py",
+    "protected_path:src/personalos/knowledge_edge/adapters/fixtures.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/adapters/fixtures.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/engine/__init__.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/engine/canonicalize.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/engine/dedup.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/engine/directness.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/engine/matching.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/engine/ranking.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/scan_orchestrator.py",
+    "test_weakening",
+    "over_diff_cap",
+    "iteration_cap"
+  ],
+  "rollback_note": "revert the merge commit",
+  "rubber_stamp_note": "",
+  "rubber_stamp_tripped": false,
+  "third_reviewer_reasoning": "The diff is well-structured with proper separation of concerns: pure-function engine modules with no I/O or wall-clock reads, fixture-only adapters with no network imports, and a single orchestrator entrypoint that takes `now` explicitly. The urllib.parse carve-out in canonicalize.py is justified (pure URL string manipulation) and the recursive network-import ban test properly scopes this single exception while keeping bare urllib and urllib.request forbidden. The \u00a78.3 ambiguous-duration financial-media-segment handling is correctly implemented: classified as 'ambiguous', excluded from P0/P2 per-candidate (not per-lane), and surfaced in a composed `demoted_ambiguous` view rather than silently dropped, with thorough tests covering the boundary cases including mixed eligible/ambiguous candidates in the same lane. Idempotency, caps (per-lane, total cross-lane, P0-exempt), dedup grouping, and deterministic ordering all have direct test coverage. The provisional cap constants are explicitly flagged as planning gaps, not silently treated as authoritative.",
+  "verified_by": "orchestrator",
+  "ways_this_could_be_wrong": []
+}

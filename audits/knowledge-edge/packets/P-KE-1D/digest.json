@@ -1,0 +1,79 @@
+{
+  "auditor_objections": [],
+  "base_sha": "f224bd5724946de841f56d75672190dc3966cd14",
+  "changed_files": 15,
+  "coverage": {
+    "scanned_clean": 6,
+    "unmatched": 7
+  },
+  "diff_size_lines": 2113,
+  "family_concentration_note": null,
+  "files_not_covered_by_tests": [],
+  "gate_evidence": [
+    {
+      "blocking": true,
+      "command": "PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'",
+      "exit_code": 0,
+      "id": "unittest",
+      "output_head": "....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................",
+      "tested_sha": "336925e3fa949322bb25df89a64c2a2c913cf25c"
+    },
+    {
+      "blocking": true,
+      "command": "test -z \"$(find . -maxdepth 2 -name var -print)\" && test -z \"$(find . -path ./.git -prune -o \\( -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.db' \\) -print)\"",
+      "exit_code": 0,
+      "id": "artifact-hygiene",
+      "output_head": "",
+      "tested_sha": "336925e3fa949322bb25df89a64c2a2c913cf25c"
+    },
+    {
+      "blocking": true,
+      "command": "gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9",
+      "exit_code": 0,
+      "id": "secret-scan",
+      "output_head": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m11:17PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~6139659 bytes (6.14 MB) in 254ms\u001b[0m\n\u001b[90m11:17PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+      "tested_sha": "336925e3fa949322bb25df89a64c2a2c913cf25c"
+    }
+  ],
+  "gate_states": {
+    "G-GOV": "pending",
+    "G0": "pending",
+    "G1": "pending"
+  },
+  "generated_at_target_head": "f224bd5724946de841f56d75672190dc3966cd14",
+  "head_sha": "336925e3fa949322bb25df89a64c2a2c913cf25c",
+  "header_status": "pass",
+  "iteration_count": 9,
+  "packet_id": "P-KE-1D",
+  "required_gates": [
+    "G0",
+    "G-GOV",
+    "G1"
+  ],
+  "review_tier_declared": "routine",
+  "review_tier_effective": "high_stakes",
+  "risk_flags": [
+    "new_top_level_dir:docs/knowledge_edge/PHASE0_TRACEABILITY.md",
+    "scope_drift_forbidden:governance/living/agent-writable/STATUS.md",
+    "protected_path:governance/living/agent-writable/STATUS.md",
+    "protected_path:migrations/00022_knowledge_edge_launch_rosters.sql",
+    "new_top_level_dir:migrations/00022_knowledge_edge_launch_rosters.sql",
+    "unknown_extension:migrations/00022_knowledge_edge_launch_rosters.sql",
+    "new_top_level_dir:src/personalos/cli/knowledge_edge.py",
+    "new_top_level_dir:src/personalos/cli/parser.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/engine/ranking.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/scan_orchestrator.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/__init__.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/decisions.py",
+    "test_weakening",
+    "project_governance_manifest",
+    "over_diff_cap",
+    "iteration_cap"
+  ],
+  "rollback_note": "revert the merge commit",
+  "rubber_stamp_note": "",
+  "rubber_stamp_tripped": false,
+  "third_reviewer_reasoning": "The change is well-structured with comprehensive test coverage and no safety concerns: the migration is purely additive (new seed INSERTs + one new table), the CLI decision surface correctly enforces Tonight/Saved caps before acceptance and writes append-only audit history, the expiry sweep is properly wired into run_scan before queue-build with deterministic IDs to prevent duplicate history rows, the recompute-and-supersede fix for _record_section correctly deletes prior rows before re-inserting to eliminate duplicate ranks and cap leakage, and the urllib.parse exception is properly scoped to engine/canonicalize.py only. The only minor edge case I found (a watch\u2192watch re-decision would falsely trigger the Tonight cap since the item counts itself) is a trivial UX issue on an invalid transition path, not a correctness or safety concern.",
+  "verified_by": "orchestrator",
+  "ways_this_could_be_wrong": []
+}

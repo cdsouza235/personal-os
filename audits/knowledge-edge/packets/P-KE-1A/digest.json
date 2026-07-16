@@ -1,0 +1,93 @@
+{
+  "auditor_objections": [],
+  "base_sha": "fccabf8d928dc22dd21d00b4aab68fe6ed00789c",
+  "changed_files": 23,
+  "coverage": {
+    "scanned_clean": 8,
+    "unmatched": 10
+  },
+  "diff_size_lines": 5971,
+  "family_concentration_note": null,
+  "files_not_covered_by_tests": [],
+  "gate_evidence": [
+    {
+      "blocking": true,
+      "command": "PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'",
+      "exit_code": 0,
+      "id": "unittest",
+      "output_head": "....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................",
+      "tested_sha": "59576309b3746a02f48e03684b2815a199eab9c9"
+    },
+    {
+      "blocking": true,
+      "command": "test -z \"$(find . -maxdepth 2 -name var -print)\" && test -z \"$(find . -path ./.git -prune -o \\( -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.db' \\) -print)\"",
+      "exit_code": 0,
+      "id": "artifact-hygiene",
+      "output_head": "",
+      "tested_sha": "59576309b3746a02f48e03684b2815a199eab9c9"
+    },
+    {
+      "blocking": true,
+      "command": "gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9",
+      "exit_code": 0,
+      "id": "secret-scan",
+      "output_head": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m2:09PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~5420948 bytes (5.42 MB) in 237ms\u001b[0m\n\u001b[90m2:09PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+      "tested_sha": "59576309b3746a02f48e03684b2815a199eab9c9"
+    }
+  ],
+  "gate_states": {
+    "G-GOV": "pending",
+    "G0": "pending",
+    "G1": "pending"
+  },
+  "generated_at_target_head": "fccabf8d928dc22dd21d00b4aab68fe6ed00789c",
+  "head_sha": "59576309b3746a02f48e03684b2815a199eab9c9",
+  "header_status": "pass",
+  "iteration_count": 8,
+  "packet_id": "P-KE-1A",
+  "required_gates": [
+    "G0",
+    "G-GOV",
+    "G1"
+  ],
+  "review_tier_declared": "routine",
+  "review_tier_effective": "high_stakes",
+  "risk_flags": [
+    "protected_path:migrations/00017_knowledge_edge_registries.sql",
+    "new_top_level_dir:migrations/00017_knowledge_edge_registries.sql",
+    "unknown_extension:migrations/00017_knowledge_edge_registries.sql",
+    "protected_path:migrations/00018_knowledge_edge_media_events.sql",
+    "new_top_level_dir:migrations/00018_knowledge_edge_media_events.sql",
+    "unknown_extension:migrations/00018_knowledge_edge_media_events.sql",
+    "protected_path:migrations/00019_knowledge_edge_decisions_queue.sql",
+    "new_top_level_dir:migrations/00019_knowledge_edge_decisions_queue.sql",
+    "unknown_extension:migrations/00019_knowledge_edge_decisions_queue.sql",
+    "protected_path:migrations/00020_knowledge_edge_scan_health.sql",
+    "new_top_level_dir:migrations/00020_knowledge_edge_scan_health.sql",
+    "unknown_extension:migrations/00020_knowledge_edge_scan_health.sql",
+    "protected_path:migrations/00021_knowledge_edge_roster_synthesis.sql",
+    "new_top_level_dir:migrations/00021_knowledge_edge_roster_synthesis.sql",
+    "unknown_extension:migrations/00021_knowledge_edge_roster_synthesis.sql",
+    "new_top_level_dir:src/personalos/knowledge_edge/__init__.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/__init__.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/_shared.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/decisions.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/events.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/media.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/registries.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/roster.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/scan.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/synthesis.py",
+    "test_weakening",
+    "project_governance_manifest",
+    "over_diff_cap",
+    "iteration_cap",
+    "third_review_unavailable"
+  ],
+  "rollback_note": "revert the merge commit",
+  "rubber_stamp_note": "",
+  "rubber_stamp_tripped": false,
+  "third_reviewer_reasoning": "The CFTC Chair seed for Michael Selig stores 2025-12-18 (the Senate confirmation date) as effective_start_date, but the authority explicitly states he was ",
+  "verified_by": "orchestrator",
+  "ways_this_could_be_wrong": []
+}

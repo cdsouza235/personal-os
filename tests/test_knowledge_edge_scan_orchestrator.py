@@ -871,5 +871,261 @@ class DeterministicOrderingTest(unittest.TestCase):
         self.assertTrue(first_run)
 
 
+class DemotedAmbiguousPersistenceTest(unittest.TestCase):
+    """C5 fold-in (phase-end checkpoint 2026-07-16): the demoted/ambiguous tier is
+    now persisted per scan into ``ke_queue_snapshot_demoted`` (migration 00022),
+    not just composed at read time, so a past date's queue is fully recorded."""
+
+    def test_demoted_ambiguous_item_is_persisted_after_scan(self) -> None:
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            ambiguous_item = DiscoveredMediaItem(
+                source_id="src-frontier-ai",
+                source_specific_id="vid-ambiguous-persist-1",
+                canonical_url="https://example.com/watch?v=ambiguous-persist-1",
+                title="Jensen Huang Segment (duration unknown, persisted)",
+                media_type="video_interview",
+                source_precedence="reputable_secondary",
+                format_hint="financial_media_segment",
+                matched_person_id="ke-person-jensen-huang",
+                duration_seconds=None,
+                published_at="2026-07-16T10:00:00+00:00",
+                cursor_value="0001",
+            )
+            records = _four_lane_records()
+            records["frontier_ai_items"] = (ambiguous_item,)
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+
+            item = ke.get_media_item_by_dedupe_key(connection, "src-frontier-ai:vid-ambiguous-persist-1")
+            persisted = ke.list_queue_snapshot_demoted(connection, queue_date="2026-07-16")
+            self.assertEqual([row["entity_id"] for row in persisted], [item["media_item_id"]])
+            self.assertIn("ambiguous_unknown_duration_demoted", persisted[0]["explanation"])
+
+            # Matches the same-run live composition exactly.
+            live = build_queue_snapshot_view(connection, queue_date="2026-07-16")
+            self.assertEqual(
+                {row["entity_id"] for row in persisted},
+                {row["entity_id"] for row in live["demoted_ambiguous"]},
+            )
+
+    def test_demoted_ambiguous_persistence_is_recomputed_not_accumulated_across_scans(self) -> None:
+        """A second same-date scan must leave exactly the current demoted set
+        persisted, not grow without bound (same C2 recompute-and-supersede
+        discipline applied to this table)."""
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            records = _four_lane_records()
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+            self.assertEqual(ke.list_queue_snapshot_demoted(connection, queue_date="2026-07-16"), [])
+
+            run_scan(
+                connection,
+                scan_run_id="run-2",
+                run_type="manual_scan_now",
+                triggered_by="operator",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+            self.assertEqual(ke.list_queue_snapshot_demoted(connection, queue_date="2026-07-16"), [])
+
+
+class SameDateRescanTest(unittest.TestCase):
+    """C2 (phase-end checkpoint 2026-07-16): a same-``queue_date`` second scan (the
+    amendment's own "scan-now" flow) must not corrupt ``ke_queue_snapshots``
+    ordering or let a section's row count drift past its per-lane cap."""
+
+    def _voice_item(
+        self,
+        *,
+        index: int,
+        cursor_value: str,
+        duration_seconds: int,
+        source_precedence: str = "official",
+    ) -> DiscoveredMediaItem:
+        return DiscoveredMediaItem(
+            source_id="src-cnbc",
+            source_specific_id=f"vid-mv-{index}",
+            canonical_url=f"https://example.com/watch?v=mv-{index}",
+            title=f"Market Voice Appearance {index}",
+            media_type="video_interview",
+            source_precedence=source_precedence,
+            format_hint="original_long_form_interview",
+            matched_person_id="ke-person-tom-lee",
+            published_at="2026-07-16T10:00:00+00:00",
+            duration_seconds=duration_seconds,
+            cursor_value=cursor_value,
+        )
+
+    def test_reordering_second_scan_produces_no_duplicate_ranks(self) -> None:
+        """Reproduces the checkpoint report's own probe: scan 1 records P2 ranks
+        1, 2; a same-date second scan discovers one new item that outranks both.
+        The fixed section must end up with three uniquely-ranked rows (the new
+        item first), never two rows sharing ``rank_position == 1``."""
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            records = _four_lane_records()
+            # item A: duration 3000s (50m) -> 3.0 penalty -> score 177
+            # item B: duration 4200s (70m) -> 5.0 penalty -> score 175
+            records["cnbc_items"] = (
+                self._voice_item(index=0, cursor_value="0000", duration_seconds=3000),
+                self._voice_item(index=1, cursor_value="0001", duration_seconds=4200),
+            )
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+            first_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
+            self.assertEqual([row["rank_position"] for row in first_rows], [1, 2])
+            item_a = ke.get_media_item_by_dedupe_key(connection, "src-cnbc:vid-mv-0")
+            item_b = ke.get_media_item_by_dedupe_key(connection, "src-cnbc:vid-mv-1")
+            self.assertEqual([row["entity_id"] for row in first_rows], [item_a["media_item_id"], item_b["media_item_id"]])
+
+            # Second same-date scan: a new, more recent-cursor item C (duration
+            # 600s -> no penalty -> score 180) outranks both A and B.
+            records2 = dict(records)
+            records2["cnbc_items"] = (
+                self._voice_item(index=2, cursor_value="0002", duration_seconds=600),
+            )
+            podcast_adapter2, channel_adapter2, earnings_adapter2, filings_adapter2 = _build_adapters(records2)
+            run_scan(
+                connection,
+                scan_run_id="run-2",
+                run_type="manual_scan_now",
+                triggered_by="operator",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter2,
+                channel_adapter=channel_adapter2,
+                earnings_adapter=earnings_adapter2,
+                filings_adapter=filings_adapter2,
+            )
+
+            second_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
+            item_c = ke.get_media_item_by_dedupe_key(connection, "src-cnbc:vid-mv-2")
+
+            # No duplicate rank positions.
+            ranks = [row["rank_position"] for row in second_rows]
+            self.assertEqual(ranks, sorted(set(ranks)))
+            self.assertEqual(len(second_rows), 3)
+            # C (highest score) now leads; A, B follow in original score order.
+            self.assertEqual(
+                [row["entity_id"] for row in second_rows],
+                [item_c["media_item_id"], item_a["media_item_id"], item_b["media_item_id"]],
+            )
+            self.assertEqual(ranks, [1, 2, 3])
+
+    def test_per_lane_cap_holds_across_same_date_scans(self) -> None:
+        """The candidate surface's per-lane cap must not be exceeded by a second
+        same-date scan: a fresh, higher-scoring item discovered on scan 2 must
+        evict the weakest already-recorded item rather than being appended
+        alongside all five prior rows (which would grow the section past its
+        cap)."""
+        cap = ranking.PROVISIONAL_PER_LANE_CANDIDATE_CAP
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            records = _four_lane_records()
+            # Four items with strictly decreasing scores via duration-penalty
+            # spread (180, 179.833, 179.667, 179.5), plus one deliberately weak
+            # item (reputable_secondary precedence -> score 150) to fill the cap
+            # at exactly 5 and be the clear eviction candidate.
+            records["cnbc_items"] = (
+                self._voice_item(index=0, cursor_value="0000", duration_seconds=1200),
+                self._voice_item(index=1, cursor_value="0001", duration_seconds=1300),
+                self._voice_item(index=2, cursor_value="0002", duration_seconds=1400),
+                self._voice_item(index=3, cursor_value="0003", duration_seconds=1500),
+                self._voice_item(
+                    index=4, cursor_value="0004", duration_seconds=1200,
+                    source_precedence="reputable_secondary",
+                ),
+            )
+            self.assertEqual(cap, 5, "test's fixed 5-item setup assumes the provisional per-lane cap is 5")
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+            first_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
+            self.assertEqual(len(first_rows), cap)
+
+            # Second same-date scan discovers one new item (duration 1250s ->
+            # 0.833 penalty -> score ~179.917): better than items 1-4, worse than
+            # item 0, so it must displace item 4 (score 150) rather than growing
+            # the section to 6 rows.
+            records2 = dict(records)
+            records2["cnbc_items"] = (
+                self._voice_item(index=5, cursor_value="0005", duration_seconds=1250),
+            )
+            podcast_adapter2, channel_adapter2, earnings_adapter2, filings_adapter2 = _build_adapters(records2)
+            run_scan(
+                connection,
+                scan_run_id="run-2",
+                run_type="manual_scan_now",
+                triggered_by="operator",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter2,
+                channel_adapter=channel_adapter2,
+                earnings_adapter=earnings_adapter2,
+                filings_adapter=filings_adapter2,
+            )
+
+            second_rows = ke.list_queue_snapshot(connection, queue_date="2026-07-16", section="p2_market_voices")
+            self.assertEqual(len(second_rows), cap, "per-lane cap must hold across same-date scans")
+            ranks = [row["rank_position"] for row in second_rows]
+            self.assertEqual(ranks, list(range(1, cap + 1)))
+
+            item4 = ke.get_media_item_by_dedupe_key(connection, "src-cnbc:vid-mv-4")
+            item5 = ke.get_media_item_by_dedupe_key(connection, "src-cnbc:vid-mv-5")
+            entity_ids = [row["entity_id"] for row in second_rows]
+            self.assertNotIn(item4["media_item_id"], entity_ids)
+            self.assertIn(item5["media_item_id"], entity_ids)
+
+
 if __name__ == "__main__":
     unittest.main()

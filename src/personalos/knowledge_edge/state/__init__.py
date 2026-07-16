@@ -159,6 +159,11 @@ from personalos.knowledge_edge.state.decisions import (
     record_queue_snapshot,
     list_queue_snapshot,
     count_queue_snapshots,
+    delete_queue_snapshot_section,
+    record_queue_snapshot_demoted,
+    list_queue_snapshot_demoted,
+    delete_queue_snapshot_demoted,
+    count_queue_snapshot_demoted,
 )
 from personalos.knowledge_edge.state.scan import (
     SCAN_RUN_TYPES,
@@ -221,6 +226,7 @@ KE_COUNTABLE_TABLES = (
     "ke_user_decisions",
     "ke_decision_history",
     "ke_queue_snapshots",
+    "ke_queue_snapshot_demoted",
     "ke_scan_runs",
     "ke_scan_cursors",
     "ke_source_health",

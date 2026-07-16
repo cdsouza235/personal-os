@@ -185,6 +185,8 @@ def run_scan(
 
     _advance_event_lifecycles(connection, now=now)
 
+    _sweep_expired_decisions(connection, now=now)
+
     queue_rows = _build_and_record_queue(connection, queue_date=queue_date, now=now, theses=theses)
 
     _record_coverage_report(connection, scan_run_id=scan_run_id, queue_date=queue_date, sources=sources)
@@ -577,6 +579,59 @@ def _next_event_status(event: Mapping, *, now: datetime) -> str | None:
     return None
 
 
+def _replay_ended_at_proxy(event: Mapping) -> str:
+    """Deterministic stand-in for "when this event ended" (§12.2 7-day replay
+    expiry clock), built only from adapter-supplied event fields and never from a
+    wall-clock-stamped column. ``ke_scheduled_events`` has no persisted
+    ``ended_at`` (adding one would be a non-additive ``ALTER TABLE``, forbidden by
+    AD-5), and ``updated_at`` is bumped by the state layer's own real-wall-clock
+    ``_utc_now()`` on every status transition -- using it here would make the
+    scan's expiry decision depend on when the transition actually ran in real
+    time rather than on the caller-supplied ``now``, breaking the orchestrator's
+    now-is-a-parameter purity guarantee (verified by the phase-end checkpoint's
+    fixed-``now`` byte-identical double-run tests). ``end_time_utc``, when an
+    adapter supplied one, is exact; otherwise the scheduled date's end-of-day is
+    the best available deterministic anchor for a same-day event.
+    """
+    if event["end_time_utc"]:
+        return event["end_time_utc"]
+    return f"{event['scheduled_date']}T23:59:59+00:00"
+
+
+def _sweep_expired_decisions(connection, *, now: datetime) -> None:
+    """C1 (phase-end checkpoint 2026-07-16): wire the §12.1/§12.2 expiry rules
+    into the production scan path. Previously ``ranking.is_saved_item_expired``
+    / ``is_replay_item_expired`` were unit-tested but had no caller anywhere on a
+    driveable path -- a saved or replay item lived forever. Runs before
+    ``_build_and_record_queue`` so an expired item is excluded from the section
+    it would otherwise resurface into on this same scan (both sections already
+    filter out ``queue_visibility_state in ("expired", "archived", "suppressed")``
+    candidates).
+    """
+    for item in ke.list_media_items(connection, decision_state="save_for_later"):
+        if item["queue_visibility_state"] in ("expired", "archived", "suppressed"):
+            continue
+        decision = ke.get_user_decision(connection, entity_type="media_item", entity_id=item["media_item_id"])
+        if decision is None:
+            continue
+        if ranking.is_saved_item_expired(decided_at=decision["decided_at"], now=now, pinned=item["pinned"]):
+            ke.update_media_queue_visibility(
+                connection, media_item_id=item["media_item_id"], queue_visibility_state="expired"
+            )
+
+    for event in ke.list_scheduled_events(connection, event_status="replay_available"):
+        if event["queue_visibility_state"] in ("expired", "archived", "suppressed"):
+            continue
+        decision = ke.get_user_decision(connection, entity_type="scheduled_event", entity_id=event["event_id"])
+        if decision is None or decision["decision_state"] != "save_replay":
+            continue
+        ended_at = _replay_ended_at_proxy(event)
+        if ranking.is_replay_item_expired(ended_at=ended_at, now=now, pinned=event["pinned"]):
+            ke.update_event_queue_visibility(
+                connection, event_id=event["event_id"], queue_visibility_state="expired"
+            )
+
+
 def _build_and_record_queue(
     connection, *, queue_date: str, now: datetime, theses: Sequence[Mapping]
 ) -> int:
@@ -705,7 +760,38 @@ def _build_and_record_queue(
         items_by_id={c["entity_id"]: c["row"] for c in earnings_candidates},
     )
 
+    _record_demoted_ambiguous_section(connection, queue_date=queue_date)
+
     return rows_created
+
+
+def _record_demoted_ambiguous_section(connection, *, queue_date: str) -> None:
+    """Persist today's demoted/ambiguous tier into ``ke_queue_snapshot_demoted``
+    (migration 00022; C5 fold-in, phase-end checkpoint 2026-07-16), so a past
+    date's queue can be audited without re-deriving it from since-changed media
+    state. Recompute-and-supersede, matching :func:`_record_section`'s C2
+    semantics: cleared and rewritten from the current live computation on every
+    scan for this ``queue_date``.
+
+    ``build_queue_snapshot_view`` (below) still composes its own
+    ``demoted_ambiguous`` key from live state via :func:`_list_demoted_ambiguous_media`
+    rather than reading this table back -- that keeps the dashboard/CLI queue-show
+    surface reacting immediately to a decision made after the day's last scan (e.g.
+    a Skip on a demoted item), which is the behavior already verified correct on
+    every axis by the phase-end checkpoint. This table is the durable audit record
+    of what a given scan actually produced, not the live read path.
+    """
+    demoted_rows = _list_demoted_ambiguous_media(connection)
+    ke.delete_queue_snapshot_demoted(connection, queue_date=queue_date)
+    for row in demoted_rows:
+        ke.record_queue_snapshot_demoted(
+            connection,
+            snapshot_id=_sid("qsnap-demoted", queue_date, row["entity_type"], row["entity_id"]),
+            queue_date=queue_date,
+            entity_type=row["entity_type"],
+            entity_id=row["entity_id"],
+            explanation=row["explanation"],
+        )
 
 
 # Lanes whose mapped queue_snapshot section is priority-gated (§8.3): the only
@@ -804,12 +890,30 @@ def _record_section(
     ordered_entity_ids: Sequence[str],
     items_by_id: Mapping[str, Mapping],
 ) -> int:
+    """Record one section's ranked membership for ``queue_date``, recomputing and
+    superseding whatever was previously persisted for this ``(queue_date, section)``
+    pair (C2, phase-end checkpoint 2026-07-16).
+
+    A same-``queue_date`` rescan (the amendment's own "scan-now" flow) recomputes
+    ``ordered_entity_ids`` from current state on every call -- it is already the
+    full, freshly-capped membership for the section, not a delta. Previously this
+    function only inserted entity IDs not already recorded and renumbered
+    ``rank_position`` from 1 every time, which produced duplicate rank positions
+    within a section (two different entities both at rank 1) once a second same-day
+    scan promoted a new item ahead of ones already recorded, and let per-lane caps
+    leak across scans (a capped section could grow past its cap as rankings shifted
+    between scans). Deleting the section's prior rows before re-recording the fresh
+    ordering makes both bugs structurally impossible: there is only ever one row per
+    entity per section per date, rank positions are contiguous from 1, and the
+    section's row count is always exactly what this call's cap-enforced
+    ``ordered_entity_ids`` says it should be.
+    """
     existing_rows = ke.list_queue_snapshot(connection, queue_date=queue_date, section=section)
     existing_entity_ids = {row["entity_id"] for row in existing_rows}
-    created = 0
+    ke.delete_queue_snapshot_section(connection, queue_date=queue_date, section=section)
+
+    newly_added = 0
     for position, entity_id in enumerate(ordered_entity_ids, start=1):
-        if entity_id in existing_entity_ids:
-            continue
         row = items_by_id.get(entity_id, {})
         explanation = row.get("priority_explanation", "")
         ke.record_queue_snapshot(
@@ -826,8 +930,9 @@ def _record_section(
             current_state = row.get("queue_visibility_state")
             if current_state == "candidate":
                 ke.update_media_queue_visibility(connection, media_item_id=entity_id, queue_visibility_state="queued")
-        created += 1
-    return created
+        if entity_id not in existing_entity_ids:
+            newly_added += 1
+    return newly_added
 
 
 def _record_coverage_report(connection, *, scan_run_id: str, queue_date: str, sources: Sequence[Mapping]) -> None:

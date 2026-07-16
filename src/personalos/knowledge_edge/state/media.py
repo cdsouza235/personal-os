@@ -558,7 +558,6 @@ def list_entity_appearance_history(
         """,
         params,
     ).fetchall()
-    _ = window_start
     results = []
     for row in rows:
         item = dict(row)

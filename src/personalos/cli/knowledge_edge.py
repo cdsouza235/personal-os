@@ -1,10 +1,25 @@
-"""Knowledge Edge CLI surface (P-KE-1C): fixture scan, queue preview, false-positive flag.
+"""Knowledge Edge CLI surface: fixture scan, queue preview, false-positive flag,
+decision surface, synthesis-handoff export (P-KE-1C, plus the ``decide``/
+``synthesis`` groups added by P-KE-1D closing the phase-end checkpoint's C1
+condition -- audits/ke-phase-1-phase-end-fable-report.md).
 
 Mirrors ``cli/priorities.py``/``cli/routines.py`` conventions. No network-capable
 import appears anywhere in this module -- ``scan`` runs the same fixture-only
 ``run_scan`` entrypoint Packet 1B's own tests exercise (``adapters/fixtures.py``)
 against a small built-in synthetic dataset; it is never a live scan and never
 activates a scheduler.
+
+``decide`` is the first production caller of the decision APIs
+(``upsert_user_decision``, ``update_media_decision_state``,
+``update_event_decision_state``), ``record_decision_history``, and the Tonight/
+Saved caps: before this packet those had zero callers outside tests (C1). Every
+decide subcommand writes an append-only ``ke_decision_history`` row and mirrors
+the accepted decision into both the entity's own ``decision_state`` column
+(read by the sweep/saved-media paths in ``scan_orchestrator.py``) and
+``ke_user_decisions`` (read by the queue-section/skip-exclusion paths there) --
+see those two tables' docstrings in ``state/decisions.py``/``state/events.py``
+for why both exist. ``synthesis export`` is the first production caller of
+``state/synthesis.py``.
 """
 
 from __future__ import annotations
@@ -18,6 +33,7 @@ import personalos.knowledge_edge.state as ke
 from personalos.cli.db import _connect_read_only, _connect_read_write, _with_workflow_context
 from personalos.cli.errors import CliError
 from personalos.cli.reporting import _emit_report
+from personalos.idempotency import stable_side_effect_id
 from personalos.knowledge_edge.adapters.contracts import (
     DiscoveredEvent,
     DiscoveredFiling,
@@ -30,6 +46,7 @@ from personalos.knowledge_edge.adapters.fixtures import (
     FixturePodcastFeedAdapter,
 )
 from personalos.knowledge_edge.dashboard import build_knowledge_edge_queue_summary
+from personalos.knowledge_edge.engine import ranking
 from personalos.knowledge_edge.scan_orchestrator import run_scan
 
 BUILTIN_FIXTURE_SET_NAME = "cli-builtin-demo"
@@ -270,6 +287,417 @@ def _command_knowledge_edge_flag_false_positive(args: argparse.Namespace) -> int
         output_kind="stdout_json" if args.json else "stdout_human",
         safe_next_actions=(
             "Re-run personalos knowledge-edge queue show to confirm the flag is reflected.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+# --------------------------------------------------------------------- decision surface
+
+
+def _decision_id_for(entity_type: str, entity_id: str) -> str:
+    return stable_side_effect_id("ke-decision", f"{entity_type}:{entity_id}")
+
+
+def _record_decision(
+    connection,
+    *,
+    entity_type: str,
+    entity_id: str,
+    decision_state: str,
+    from_value: str,
+    changed_by: str,
+) -> None:
+    """Write both decision-acceptance side effects that C1 found missing:
+    the ``ke_user_decisions`` row (read by the queue-section/skip-exclusion
+    paths in ``scan_orchestrator.py``) and one append-only ``ke_decision_history``
+    row (§13.4). Called after the entity's own ``decision_state`` column has
+    already been updated (and validated) by the caller.
+    """
+    ke.upsert_user_decision(
+        connection,
+        decision_id=_decision_id_for(entity_type, entity_id),
+        entity_type=entity_type,
+        entity_id=entity_id,
+        decision_state=decision_state,
+    )
+    ke.record_decision_history(
+        connection,
+        history_id=f"ke-decision-history-{uuid.uuid4().hex}",
+        entity_type=entity_type,
+        entity_id=entity_id,
+        track="decision_state",
+        from_value=from_value,
+        to_value=decision_state,
+        changed_by=changed_by,
+    )
+
+
+def _stage_watched_synthesis_handoff(connection, *, entity_type: str, entity_id: str, packet: dict) -> dict:
+    return ke.create_synthesis_handoff(
+        connection,
+        handoff_id=f"ke-synthesis-{uuid.uuid4().hex}",
+        entity_type=entity_type,
+        entity_id=entity_id,
+        handoff_type="copy_synthesis_packet",
+        packet=packet,
+    )
+
+
+def _enforce_tonight_cap(connection, *, candidate_duration_seconds: int | None) -> None:
+    """§12.1 Tonight cap, enforced at decision-acceptance (C1). Refuses honestly
+    rather than silently dropping or bumping another item off Tonight.
+    """
+    active = ke.list_media_items(connection, decision_state="watch")
+    if len(active) >= ranking.TONIGHT_ITEM_CAP:
+        raise CliError(
+            f"Tonight cap reached: {ranking.TONIGHT_ITEM_CAP} items are already on "
+            "Watch for tonight. Mark one Watched or Skip it before adding another."
+        )
+    if candidate_duration_seconds is not None:
+        known_duration_total = sum(
+            item["duration_seconds"] for item in active if item["duration_seconds"] is not None
+        )
+        projected_minutes = (known_duration_total + candidate_duration_seconds) / 60.0
+        cap_minutes = ranking.TONIGHT_KNOWN_DURATION_CAP_SECONDS / 60.0
+        if (known_duration_total + candidate_duration_seconds) > ranking.TONIGHT_KNOWN_DURATION_CAP_SECONDS:
+            raise CliError(
+                f"Tonight known-duration cap reached: adding this item would bring "
+                f"tonight's known-duration Watch total to {projected_minutes:.0f} minutes, "
+                f"over the {cap_minutes:.0f}-minute cap. Mark one Watched or Skip it "
+                "before adding another."
+            )
+
+
+def _enforce_saved_cap(connection) -> None:
+    """§12.1 Saved cap (12 items), enforced at decision-acceptance (C1). Only
+    active saved items count (mirrors the filter ``scan_orchestrator.py`` already
+    uses to decide what is resurfaced) -- an item already swept to
+    ``queue_visibility_state == "expired"`` is no longer occupying a saved slot.
+    """
+    active = [
+        item
+        for item in ke.list_media_items(connection, decision_state="save_for_later")
+        if item["queue_visibility_state"] not in ("expired", "archived")
+    ]
+    if len(active) >= ranking.SAVED_CAP:
+        raise CliError(
+            f"Saved cap reached: {ranking.SAVED_CAP} items are already saved for later. "
+            "Watch, Skip, or let one expire before saving another."
+        )
+
+
+def _accept_media_decision(connection, *, media_item_id: str, decision_state: str, changed_by: str) -> tuple[dict, dict | None]:
+    media_item = ke.get_media_item(connection, media_item_id)
+    if media_item is None:
+        raise CliError(f"Media item does not exist: {media_item_id}")
+    from_value = media_item["decision_state"]
+
+    if decision_state == "watch":
+        _enforce_tonight_cap(connection, candidate_duration_seconds=media_item["duration_seconds"])
+    elif decision_state == "save_for_later":
+        _enforce_saved_cap(connection)
+
+    try:
+        updated = ke.update_media_decision_state(
+            connection, media_item_id=media_item_id, decision_state=decision_state
+        )
+    except ValueError as error:
+        raise CliError(str(error)) from error
+
+    _record_decision(
+        connection,
+        entity_type="media_item",
+        entity_id=media_item_id,
+        decision_state=decision_state,
+        from_value=from_value,
+        changed_by=changed_by,
+    )
+
+    handoff = None
+    if decision_state == "watched":
+        handoff = _stage_watched_synthesis_handoff(
+            connection,
+            entity_type="media_item",
+            entity_id=media_item_id,
+            packet={
+                "media_item_id": media_item_id,
+                "title": media_item["title"],
+                "canonical_url": media_item["canonical_url"],
+            },
+        )
+    return updated, handoff
+
+
+def _accept_event_decision(connection, *, event_id: str, decision_state: str, changed_by: str) -> tuple[dict, dict | None]:
+    event = ke.get_scheduled_event(connection, event_id)
+    if event is None:
+        raise CliError(f"Scheduled event does not exist: {event_id}")
+    from_value = event["decision_state"]
+
+    try:
+        updated = ke.update_event_decision_state(
+            connection, event_id=event_id, decision_state=decision_state
+        )
+    except ValueError as error:
+        raise CliError(str(error)) from error
+
+    _record_decision(
+        connection,
+        entity_type="scheduled_event",
+        entity_id=event_id,
+        decision_state=decision_state,
+        from_value=from_value,
+        changed_by=changed_by,
+    )
+
+    handoff = None
+    if decision_state == "watched":
+        handoff = _stage_watched_synthesis_handoff(
+            connection,
+            entity_type="scheduled_event",
+            entity_id=event_id,
+            packet={
+                "event_id": event_id,
+                "company_id": event["company_id"],
+                "event_type": event["event_type"],
+            },
+        )
+    return updated, handoff
+
+
+def _decide_report(
+    args: argparse.Namespace,
+    *,
+    command: str,
+    entity_type: str,
+    entity_id: str,
+    entity: dict,
+    handoff: dict | None,
+) -> dict:
+    payload = {
+        "command": command,
+        "status": "decided",
+        "database_write": True,
+        "external_mutation": False,
+        "no_external_writes": True,
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "decision_state": entity["decision_state"],
+    }
+    if handoff is not None:
+        payload["synthesis_handoff_id"] = handoff["handoff_id"]
+        payload["synthesis_handoff_status"] = handoff["status"]
+    safe_next_actions = [
+        "Run personalos knowledge-edge queue show to confirm the decision is reflected.",
+    ]
+    if handoff is not None:
+        safe_next_actions.append(
+            f"Run personalos knowledge-edge synthesis export --handoff-id {handoff['handoff_id']} "
+            "to retrieve the staged synthesis packet."
+        )
+    return _with_workflow_context(
+        payload,
+        workflow_name=f"Knowledge Edge decision: {command}",
+        workflow_mode="inert / no-send / local write",
+        database_path=args.db,
+        database_access="read_write_knowledge_edge_decision",
+        local_sqlite_read=True,
+        local_sqlite_changed=True,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=tuple(safe_next_actions),
+    )
+
+
+def _command_knowledge_edge_decide_watch(args: argparse.Namespace) -> int:
+    with closing(_connect_read_write(args.db)) as connection:
+        media_item, handoff = _accept_media_decision(
+            connection, media_item_id=args.media_item_id, decision_state="watch", changed_by="operator"
+        )
+    report = _decide_report(
+        args,
+        command="knowledge-edge decide watch",
+        entity_type="media_item",
+        entity_id=args.media_item_id,
+        entity=media_item,
+        handoff=handoff,
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_knowledge_edge_decide_save(args: argparse.Namespace) -> int:
+    with closing(_connect_read_write(args.db)) as connection:
+        media_item, handoff = _accept_media_decision(
+            connection, media_item_id=args.media_item_id, decision_state="save_for_later", changed_by="operator"
+        )
+    report = _decide_report(
+        args,
+        command="knowledge-edge decide save",
+        entity_type="media_item",
+        entity_id=args.media_item_id,
+        entity=media_item,
+        handoff=handoff,
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_knowledge_edge_decide_watch_live(args: argparse.Namespace) -> int:
+    with closing(_connect_read_write(args.db)) as connection:
+        event, handoff = _accept_event_decision(
+            connection, event_id=args.event_id, decision_state="watch_live", changed_by="operator"
+        )
+    report = _decide_report(
+        args,
+        command="knowledge-edge decide watch-live",
+        entity_type="scheduled_event",
+        entity_id=args.event_id,
+        entity=event,
+        handoff=handoff,
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_knowledge_edge_decide_save_replay(args: argparse.Namespace) -> int:
+    with closing(_connect_read_write(args.db)) as connection:
+        event, handoff = _accept_event_decision(
+            connection, event_id=args.event_id, decision_state="save_replay", changed_by="operator"
+        )
+    report = _decide_report(
+        args,
+        command="knowledge-edge decide save-replay",
+        entity_type="scheduled_event",
+        entity_id=args.event_id,
+        entity=event,
+        handoff=handoff,
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _require_exactly_one_entity_id(args: argparse.Namespace) -> tuple[str, str]:
+    media_item_id = getattr(args, "media_item_id", None)
+    event_id = getattr(args, "event_id", None)
+    if bool(media_item_id) == bool(event_id):
+        raise CliError("Specify exactly one of --media-item-id or --event-id.")
+    if media_item_id:
+        return "media_item", media_item_id
+    return "scheduled_event", event_id
+
+
+def _command_knowledge_edge_decide_skip(args: argparse.Namespace) -> int:
+    entity_type, entity_id = _require_exactly_one_entity_id(args)
+    with closing(_connect_read_write(args.db)) as connection:
+        if entity_type == "media_item":
+            entity, handoff = _accept_media_decision(
+                connection, media_item_id=entity_id, decision_state="skip", changed_by="operator"
+            )
+        else:
+            entity, handoff = _accept_event_decision(
+                connection, event_id=entity_id, decision_state="skip", changed_by="operator"
+            )
+    report = _decide_report(
+        args,
+        command="knowledge-edge decide skip",
+        entity_type=entity_type,
+        entity_id=entity_id,
+        entity=entity,
+        handoff=handoff,
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_knowledge_edge_decide_watched(args: argparse.Namespace) -> int:
+    entity_type, entity_id = _require_exactly_one_entity_id(args)
+    with closing(_connect_read_write(args.db)) as connection:
+        if entity_type == "media_item":
+            entity, handoff = _accept_media_decision(
+                connection, media_item_id=entity_id, decision_state="watched", changed_by="operator"
+            )
+        else:
+            entity, handoff = _accept_event_decision(
+                connection, event_id=entity_id, decision_state="watched", changed_by="operator"
+            )
+    report = _decide_report(
+        args,
+        command="knowledge-edge decide watched",
+        entity_type=entity_type,
+        entity_id=entity_id,
+        entity=entity,
+        handoff=handoff,
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+# ------------------------------------------------------------------ synthesis handoff
+
+
+def _command_knowledge_edge_synthesis_list(args: argparse.Namespace) -> int:
+    with closing(_connect_read_only(args.db)) as connection:
+        handoffs = ke.list_synthesis_handoffs(connection, status=args.status)
+    report = _with_workflow_context(
+        {
+            "command": "knowledge-edge synthesis list",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "synthesis_handoffs": handoffs,
+        },
+        workflow_name="List Knowledge Edge synthesis handoffs",
+        workflow_mode="inert / no-send / report-only",
+        database_path=args.db,
+        database_access="read_only_knowledge_edge_synthesis",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Run personalos knowledge-edge synthesis export --handoff-id <id> to export one.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_knowledge_edge_synthesis_export(args: argparse.Namespace) -> int:
+    """Production caller of ``state/synthesis.py`` (C1): exports one staged
+    handoff's packet to stdout/JSON and marks it completed. This is the
+    fixture-rung stand-in for the later-phase Obsidian draft write (Session 3
+    gate) -- it performs no file write and no network call, only a local state
+    transition plus a report emission.
+    """
+    with closing(_connect_read_write(args.db)) as connection:
+        handoff = ke.get_synthesis_handoff(connection, args.handoff_id)
+        if handoff is None:
+            raise CliError(f"Synthesis handoff does not exist: {args.handoff_id}")
+        exported_packet = handoff["packet"]
+        completed = ke.complete_synthesis_handoff(connection, handoff_id=args.handoff_id)
+    report = _with_workflow_context(
+        {
+            "command": "knowledge-edge synthesis export",
+            "status": "exported",
+            "database_write": True,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "handoff_id": completed["handoff_id"],
+            "entity_type": completed["entity_type"],
+            "entity_id": completed["entity_id"],
+            "synthesis_packet": exported_packet,
+        },
+        workflow_name="Export Knowledge Edge synthesis handoff",
+        workflow_mode="inert / no-send / local write",
+        database_path=args.db,
+        database_access="read_write_knowledge_edge_synthesis",
+        local_sqlite_read=True,
+        local_sqlite_changed=True,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Copy the synthesis_packet contents into the manual ChatGPT/Obsidian loop.",
         ),
     )
     _emit_report(report, json_output=args.json)

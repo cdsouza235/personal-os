@@ -6,13 +6,16 @@ Pure functions only: no I/O, no clock reads -- every function that cares about
 identical inputs always produce identical scores, explanations, and queue-section
 assignments (the Phase 1 determinism requirement).
 
-## Scope note: caps split between this packet (1B) and the queue/decision surface (1C)
+## Scope note: caps split between this packet (1B) and the decision/CLI surface (1C/1D)
 
-Per ``PHASE0_PLAN.md``'s packet table, §12.1's *Tonight cap* (3 items / 90 minutes)
-and *Saved cap* (12 items) are triggered by explicit user Watch/Save decisions and
-are enforced at decision-acceptance time -- that is Packet 1C's dashboard/CLI
-surface, not this one. What Packet 1B *can* and does enforce here, because it is
-computed once per scan run independent of any UI, is:
+Per ``PHASE0_PLAN.md``'s packet table, §12.1's *Tonight cap* (3 items / 90 known-
+duration minutes: ``TONIGHT_ITEM_CAP``/``TONIGHT_KNOWN_DURATION_CAP_SECONDS`` below)
+and *Saved cap* (``SAVED_CAP``) are triggered by explicit user Watch/Save decisions
+and are enforced at decision-acceptance time -- ``cli/knowledge_edge.py``'s
+``decide watch``/``decide save`` handlers (P-KE-1D; P-KE-1C had shipped no
+decision-acceptance surface at all, so these two caps had zero enforcement anywhere
+driveable until P-KE-1D closed that as phase-end-checkpoint condition C1). What
+Packet 1B computes here, once per scan run independent of any UI, is:
 
 - the per-lane **and total** candidate caps (§12.1: "bounded by configurable
   per-lane and total candidate caps") that bound how many ranked candidates are
@@ -24,8 +27,11 @@ computed once per scan run independent of any UI, is:
   "qualifying P0 items beyond the candidate caps remain visible in a collapsed
   ... section rather than being lost");
 - the Saved-to-Reconsider **resurfacing** cap (at most 2 saved items included in a
-  given day's snapshot) and 14-day **expiry** (pinned items exempt);
-- the Lane D replay-item 7-day expiry.
+  given day's snapshot);
+- the pure ``is_saved_item_expired``/``is_replay_item_expired`` predicates (14-day/
+  7-day, pinned items exempt) -- ``scan_orchestrator.run_scan``'s
+  ``_sweep_expired_decisions`` is these predicates' production caller (P-KE-1D;
+  previously unit-tested only, per checkpoint condition C1).
 
 `PHASE0_PLAN.md`/the amendment both state the per-lane/total candidate cap has "a
 default set in Phase 0," but no Phase 0 document actually records that numeric
@@ -98,6 +104,15 @@ SAVED_EXPIRY_DAYS = 14
 SAVED_RESURFACE_MAX_PER_DAY = 2
 EARNINGS_REPLAY_EXPIRY_DAYS = 7
 RECOMMENDED_WATCH_LIVE_PER_DAY = 2  # advisory only, per §12.2 -- never hides additional calls.
+
+# §12.1 Tonight caps, enforced at decision-acceptance time (C1, phase-end checkpoint
+# 2026-07-16 -- see cli/knowledge_edge.py's ``decide watch`` handler, the first
+# production caller). TONIGHT_ITEM_CAP is a hard count of active (decision_state
+# == "watch") media items; TONIGHT_KNOWN_DURATION_CAP_SECONDS bounds only the
+# known-duration subset (an unknown-duration item never contributes to the minutes
+# sum, since there is nothing to sum) -- both are refused, not silently trimmed.
+TONIGHT_ITEM_CAP = 3
+TONIGHT_KNOWN_DURATION_CAP_SECONDS = 90 * 60
 
 
 @dataclass(frozen=True)

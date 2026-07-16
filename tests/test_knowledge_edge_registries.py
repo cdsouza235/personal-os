@@ -197,6 +197,91 @@ class CompanyRosterSeedDataTest(unittest.TestCase):
             self.assertIsNone(company["removed_effective_date"])
 
 
+class LaunchRosterSeedDataTest(unittest.TestCase):
+    """P-KE-1D / migration 00022 (C3, phase-end checkpoint 2026-07-16): the §8.1/
+    §8.2/§8.3 launch rosters 00017 left unseeded. Re-verification recipe item (3):
+    "confirm lane-roster seeds present as data (9 sources, 8+15 people, aliases
+    resolve)"."""
+
+    def test_nine_lane_a_podcast_sources_are_seeded(self) -> None:
+        with _migrated_connection() as connection:
+            sources = ke.list_sources(connection, lane="curated_podcasts")
+        self.assertEqual(len(sources), 9)
+        names = {source["name"] for source in sources}
+        self.assertEqual(
+            names,
+            {
+                "Dwarkesh Podcast", "Latent Space", "No Priors",
+                "Unchained", "Bankless", "Forward Guidance",
+                "Odd Lots", "Macro Voices", "The Compound and Friends",
+            },
+        )
+        self.assertTrue(all(source["source_type"] == "podcast_feed" for source in sources))
+
+    def test_lane_a_sources_have_no_invented_endpoint(self) -> None:
+        """No RSS/feed URL is given by the ratified source data (verified against
+        PHASE0_PROVIDERS_AND_ACCESS.md §6): no `ke_source_endpoints` row is seeded
+        for any of the nine, and each source's status is `trial` (not `active`) to
+        keep `scan_orchestrator.run_scan`'s active-source loop from polling an
+        endpoint that does not exist yet."""
+        with _migrated_connection() as connection:
+            sources = ke.list_sources(connection, lane="curated_podcasts")
+            for source in sources:
+                self.assertEqual(source["status"], "trial")
+                self.assertEqual(ke.list_source_endpoints(connection, source_id=source["source_id"]), [])
+
+    def test_eight_lane_b_market_voices_are_seeded(self) -> None:
+        with _migrated_connection() as connection:
+            people = ke.list_people(connection, category="market_voice")
+        self.assertEqual(len(people), 8)
+        names = {person["display_name"] for person in people}
+        self.assertEqual(
+            names,
+            {
+                "Tom Lee", "Dan Ives", "Mohamed El-Erian", "Liz Ann Sonders",
+                "Mike Wilson", "Gene Munster", "Mike Novogratz", "Stephanie Link",
+            },
+        )
+
+    def test_mohamed_el_erian_spelling_variant_alias_resolves(self) -> None:
+        with _migrated_connection() as connection:
+            aliases = ke.list_person_aliases(connection, person_id="ke-person-mv-mohamed-el-erian")
+        self.assertEqual(len(aliases), 1)
+        self.assertEqual(aliases[0]["alias"], "Mohammed El-Erian")
+        self.assertEqual(aliases[0]["alias_type"], "spelling_variant")
+
+    def test_fifteen_lane_c_named_individuals_are_seeded(self) -> None:
+        with _migrated_connection() as connection:
+            people = ke.list_people(connection, category="consequential_leader")
+        self.assertEqual(len(people), 15)
+        names = {person["display_name"] for person in people}
+        self.assertEqual(
+            names,
+            {
+                "Sam Altman", "Dario Amodei", "Demis Hassabis",
+                "Jensen Huang", "Lisa Su", "Satya Nadella", "Sundar Pichai",
+                "Mark Zuckerberg", "Andy Jassy", "Elon Musk",
+                "Alex Karp", "Gavin Baker", "Brad Gerstner", "Brian Armstrong",
+                "Vitalik Buterin",
+            },
+        )
+        # "Apple CEO role" is a role-based watch (already seeded as
+        # ke-role-apple-ceo in 00017), not a named Lane C individual to seed again.
+        self.assertNotIn("Tim Cook", names)
+        self.assertNotIn("John Ternus", names)
+
+    def test_launch_roster_person_ids_do_not_collide_with_fixture_person_ids(self) -> None:
+        """The test suite's own ad hoc scan/dashboard fixtures create people at the
+        bare `ke-person-tom-lee` / `ke-person-jensen-huang` IDs; the migration seeds
+        the real roster under a disjoint `ke-person-mv-*` / `ke-person-cl-*`
+        namespace specifically to avoid a primary-key collision with those."""
+        with _migrated_connection() as connection:
+            self.assertIsNone(ke.get_person(connection, "ke-person-tom-lee"))
+            self.assertIsNone(ke.get_person(connection, "ke-person-jensen-huang"))
+            self.assertIsNotNone(ke.get_person(connection, "ke-person-mv-tom-lee"))
+            self.assertIsNotNone(ke.get_person(connection, "ke-person-cl-jensen-huang"))
+
+
 class RegistryRoundTripTest(unittest.TestCase):
     def test_create_and_get_source(self) -> None:
         with _migrated_connection() as connection:

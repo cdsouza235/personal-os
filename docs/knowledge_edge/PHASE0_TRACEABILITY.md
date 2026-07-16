@@ -6,10 +6,23 @@ to the packet that delivers it and the validation that proves it, per amendment 
 Packet 0B. Packet IDs follow `P-KE-<phase-letter>` (e.g. `P-KE-2B`), matching the
 amendment's own Phase/Packet lettering exactly — see `PHASE0_PLAN.md` for the full
 packet-to-repo-artifact mapping this table references. "Disposition" is one of:
-**delivered** (a named packet implements and tests it), **deferred** (post-launch
-candidate, with the amendment's own §22 or explicit text supporting the deferral), or
+**delivered (P-KE-xx)** (that named packet is merged in the current tree, implements
+the requirement, and is tested — never used for a packet that hasn't landed yet),
+**partial: ... delivered (P-KE-xx); ... planned (Phase N, P-KE-yy)** (the requirement
+spans a packet already in-tree and a packet that is still future work — the two parts
+are named separately, never blended into one "delivered"), **planned (Phase N,
+P-KE-yy)** (wholly future work; naming the packet that will deliver it is a routing
+note, not a completion claim), **deferred** (post-launch candidate, with the
+amendment's own §22 or explicit text supporting the deferral), or
 **descoped-with-support** (narrowed at launch, with the amendment's own revision-log
 disposition supporting the narrowing — always cited).
+As of this revision (P-KE-1D, 2026-07-16) only Phase 1 (P-KE-1A/1B/1C/1D) and Session 1
+ratification/planning artifacts are actually in the tree; every P-KE-2x/3x/4x/5x/6x
+packet is future work regardless of how confidently earlier revisions of this table
+named it — this pass corrects every row that had blended a future packet's scope into
+a present-tense "delivered" (the class the phase-end checkpoint's C1-C4 audit found and
+this packet's iteration 6 rework specifically targets; see
+`audits/ke-phase-1-phase-end-fable-report.md`).
 
 ---
 
@@ -17,53 +30,53 @@ disposition supporting the narrowing — always cited).
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §1 Executive summary | Four-lane Daily Intelligence Queue, 4:30pm scan / 6:15am refresh / manual scan-now, launch-blocking | P-KE-1C (queue UX), P-KE-4A (schedule), all phases (launch-blocking gate) | Phase 6 activation acceptance (§21) | delivered |
-| §2 Problem statement | Drift failure mode named as the thing the product must prevent | Informs P-KE-1C queue-cap design (§12) | Queue-cap/expiry tests (20.1) | delivered (design input, not a standalone test) |
-| §3 Product thesis | Discover→Triage→Consume→Interpret→Synthesize→Store→Review; system owns Discover+Triage only | P-KE-1C, P-KE-5A (handoff boundary) | E2E test "Watched → synthesis handoff" (§20.3) | delivered |
-| §4.1 User goals | Evening finite menu, decision controls, coverage honesty, etc. | P-KE-1C, P-KE-2C (coverage report) | §20.3 E2E four-lane queue test | delivered |
-| §4.2 System goals | Reliable schedule, local-first, bounded registries, idempotent cursors, no live-LLM requirement | P-KE-1A (registries), P-KE-1B (cursors/idempotency), P-KE-4A (schedule) | §20.2 idempotent-scan / cursor-commit tests | delivered |
-| §4.3 Launch outcome | Autonomous queue build + triage + earnings lifecycle at go-live | Phase 6 acceptance (all packets feed this) | Phase 6 pre-activation + activation acceptance (§19 Phase 6, §21) | delivered |
-| §5 Non-goals/prohibited behavior | No trades, no auto-thesis-change, no media download, no exhaustive monitoring, etc. | Enforced as negative acceptance criteria across every phase; explicit boundary in `docs/PRD.md` §7.2 | Safety assertions every major-phase report (§20.4) | delivered (as standing constraint, not a feature) |
-| §6 Product principles (1-12) | Queue not feed; human judgment authoritative; primary before commentary; etc. | Cross-cutting; principle 3 (primary before commentary) → P-KE-3B link hierarchy; principle 7 (bound backlog) → P-KE-1C caps; principle 10 (coverage honesty) → P-KE-2C/§10.5 | Distributed across §20.1/20.2 unit/integration tests per principle | delivered |
+| §1 Executive summary | Four-lane Daily Intelligence Queue, 4:30pm scan / 6:15am refresh / manual scan-now, launch-blocking | P-KE-1C (queue UX), P-KE-4A (schedule), all phases (launch-blocking gate) | Phase 6 activation acceptance (§21) | partial: queue UX delivered (P-KE-1C); scheduled scan cadence planned (Phase 4, P-KE-4A); launch-blocking gate planned (Phase 6) |
+| §2 Problem statement | Drift failure mode named as the thing the product must prevent | Informs P-KE-1C queue-cap design (§12) | Queue-cap/expiry tests (20.1) | delivered (design input, not a standalone test; the informed packet, P-KE-1C, is itself delivered) |
+| §3 Product thesis | Discover→Triage→Consume→Interpret→Synthesize→Store→Review; system owns Discover+Triage only | P-KE-1C, P-KE-5A (handoff boundary) | E2E test "Watched → synthesis handoff" (§20.3) | partial: Discover+Triage loop delivered (P-KE-1C); Obsidian-handoff boundary enforcement planned (Phase 5, P-KE-5A) |
+| §4.1 User goals | Evening finite menu, decision controls, coverage honesty, etc. | P-KE-1C, P-KE-2C (coverage report) | §20.3 E2E four-lane queue test | partial: evening menu/decision controls delivered (P-KE-1C); coverage-honesty report planned (Phase 2, P-KE-2C) |
+| §4.2 System goals | Reliable schedule, local-first, bounded registries, idempotent cursors, no live-LLM requirement | P-KE-1A (registries), P-KE-1B (cursors/idempotency), P-KE-4A (schedule) | §20.2 idempotent-scan / cursor-commit tests | partial: registries/cursors/idempotency delivered (P-KE-1A/1B); reliable-schedule dispatcher planned (Phase 4, P-KE-4A) |
+| §4.3 Launch outcome | Autonomous queue build + triage + earnings lifecycle at go-live | Phase 6 acceptance (all packets feed this) | Phase 6 pre-activation + activation acceptance (§19 Phase 6, §21) | planned (Phase 6; every earlier phase feeds this gate but none of them satisfies it alone) |
+| §5 Non-goals/prohibited behavior | No trades, no auto-thesis-change, no media download, no exhaustive monitoring, etc. | Enforced as negative acceptance criteria across every phase; explicit boundary in `docs/PRD.md` §7.2 | Safety assertions every major-phase report (§20.4) | partial: enforced and safety-asserted through Phase 1 (P-KE-1A/1B/1C/1D); remains a standing constraint each future phase's report must still assert (planned per-phase, Phase 2-6) |
+| §6 Product principles (1-12) | Queue not feed; human judgment authoritative; primary before commentary; etc. | Cross-cutting; principle 3 (primary before commentary) → P-KE-3B link hierarchy; principle 7 (bound backlog) → P-KE-1C caps; principle 10 (coverage honesty) → P-KE-2C/§10.5 | Distributed across §20.1/20.2 unit/integration tests per principle | partial: principle 7 (bound backlog, P-KE-1C caps) delivered; principle 3 (link hierarchy, P-KE-3B) and principle 10 (coverage honesty, P-KE-2C) planned |
 
 ## 7. User experience and daily operating model
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §7.1 Primary daily schedule | 4:30pm scan, 6:15am refresh, T-60/T-15 checks, scan-now | P-KE-4A (due-work dispatcher) | §20.2 due-work dispatcher tests (missed-run, DST, time-zone) | delivered |
-| §7.2 Evening queue layout | 6 named sections incl. earnings-separate-from-media-cap | P-KE-1C | §20.3 full four-lane queue test | delivered |
-| §7.3 Standard media decisions | Watch/Save/Skip/Watched | P-KE-1C | §20.1 valid/invalid decision-transition tests | delivered |
-| §7.4 Earnings/event decisions | Watch live/Save replay/Skip/Watched | P-KE-1A (event transition tables), P-KE-3C | §20.1 transition tests; §20.3 T-1 earnings E2E | delivered |
-| §7.5 Minimum viable triage | Card information density requirements | P-KE-1C | Manual UI check + P-KE-1C acceptance | delivered |
-| §7.6 Knowledge handoff | Copy synthesis packet / Obsidian draft / no-impact / promote-to-session-note | P-KE-5A | §20.3 Watched→synthesis-handoff E2E | delivered |
+| §7.1 Primary daily schedule | 4:30pm scan, 6:15am refresh, T-60/T-15 checks, scan-now | P-KE-4A (due-work dispatcher) | §20.2 due-work dispatcher tests (missed-run, DST, time-zone) | planned (Phase 4, P-KE-4A) |
+| §7.2 Evening queue layout | 6 named sections incl. earnings-separate-from-media-cap | P-KE-1C | §20.3 full four-lane queue test | delivered (P-KE-1C) |
+| §7.3 Standard media decisions | Watch/Save/Skip/Watched | P-KE-1A (transition tables), P-KE-1D (`knowledge-edge decide` CLI decision surface — driveable path; P-KE-1C had shipped only the queue/scan/flag-false-positive surface, leaving the decision APIs uncalled; closed as phase-end checkpoint C1, `audits/ke-phase-1-phase-end-fable-report.md`) | §20.1 valid/invalid decision-transition tests; `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest`/`DecideEventCommandTest` drive-test the CLI end to end | delivered |
+| §7.4 Earnings/event decisions | Watch live/Save replay/Skip/Watched | P-KE-1A (event transition tables), P-KE-3C | §20.1 transition tests; §20.3 T-1 earnings E2E | partial: event decision-state transition tables delivered (P-KE-1A/1D `decide watch-live`/`save-replay`); full T-1 earnings E2E workflow planned (Phase 3, P-KE-3C) |
+| §7.5 Minimum viable triage | Card information density requirements | P-KE-1C | Manual UI check + P-KE-1C acceptance | delivered (P-KE-1C) |
+| §7.6 Knowledge handoff | Copy synthesis packet / Obsidian draft / no-impact / promote-to-session-note | P-KE-1A (`ke_synthesis_handoffs` schema), P-KE-1D (`knowledge-edge decide watched` stages a handoff; `knowledge-edge synthesis export` is the first production caller of `state/synthesis.py`, fixture-rung stand-in — P-KE-1C had left this schema-only, per phase-end checkpoint C1), P-KE-5A (Obsidian draft write, Session 3 gate) | `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest::test_watch_then_watched_stages_and_exports_a_synthesis_handoff`; §20.3 Watched→synthesis-handoff E2E (full Obsidian path, later phase) | partial: schema + fixture-rung handoff staging/export delivered (P-KE-1A/1D); Obsidian draft write and promote-to-session-note planned (Phase 5, P-KE-5A) |
 
 ## 8. Lane requirements
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §8.1 Lane A — Curated Podcasts | 9-feed launch roster + adapter requirements (stable IDs, grouping, corrected-episode handling, cadence expectation) | P-KE-1A (schema/seed), P-KE-2A (live adapter) | Phase 2 acceptance: "all nine core podcasts monitored or documented exception" | delivered |
-| §8.2 Lane B — Market Voices | 8-person roster; alias/spelling variants; affiliation as effective-dated attribute, not hardcoded label | P-KE-1A (schema), P-KE-2B (live search) | Phase 2 acceptance: ground-truth precision/recall by lane | delivered |
-| §8.3 Lane C — Consequential Leaders + P0 rule | Named individuals + role-based watches; role model preserves history; deterministic "substantive" rule (5-min default) | P-KE-1A (role/occupancy schema, seeded from Session 1 launch role appendix), P-KE-2B | Phase 2 acceptance; §20.1 direct-vs-commentary classification tests | delivered |
-| §8.4 Lane D — Earnings & Corporate Events | Event types, 3-track lifecycle, T-minus workflow, link hierarchy, primary materials, schedule confidence, material-change taxonomy | P-KE-1A (transition tables), P-KE-3A/3B/3C | Phase 3 acceptance (T-1→T-0→replay lifecycle in shadow mode) | delivered |
+| §8.1 Lane A — Curated Podcasts | 9-feed launch roster + adapter requirements (stable IDs, grouping, corrected-episode handling, cadence expectation) | P-KE-1A (schema), P-KE-1D (migration `00022` seeds the 9-feed roster itself, `trial` status + "Endpoint: TBC" where no feed URL is named — P-KE-1A had seeded only the ratified role/company authorities, leaving this roster empty; closed as phase-end checkpoint C3), P-KE-2A (live adapter) | Phase 2 acceptance: "all nine core podcasts monitored or documented exception"; `tests/test_knowledge_edge_registries.py::LaunchRosterSeedDataTest` | partial: schema + 9-feed roster seed data delivered (P-KE-1A/1D); live adapter monitoring planned (Phase 2, P-KE-2A) |
+| §8.2 Lane B — Market Voices | 8-person roster; alias/spelling variants; affiliation as effective-dated attribute, not hardcoded label | P-KE-1A (schema), P-KE-1D (migration `00022` seeds the 8-person roster + the Mohamed/Mohammed El-Erian alias; closed as phase-end checkpoint C3), P-KE-2B (live search) | Phase 2 acceptance: ground-truth precision/recall by lane; `tests/test_knowledge_edge_registries.py::LaunchRosterSeedDataTest` alias-resolution test | partial: schema + 8-person roster/alias seed data delivered (P-KE-1A/1D); live search implementation planned (Phase 2, P-KE-2B) |
+| §8.3 Lane C — Consequential Leaders + P0 rule | Named individuals + role-based watches; role model preserves history; deterministic "substantive" rule (5-min default) | P-KE-1A (role/occupancy schema, seeded from Session 1 launch role appendix; deterministic substantive rule), P-KE-1D (migration `00022` seeds the 15 named individuals; closed as phase-end checkpoint C3), P-KE-2B | Phase 2 acceptance; §20.1 direct-vs-commentary classification tests; `tests/test_knowledge_edge_registries.py::LaunchRosterSeedDataTest` 15-person seed test | partial: role/occupancy schema + 15-person seed data delivered (P-KE-1A/1D); live direct-vs-commentary classification planned (Phase 2, P-KE-2B) |
+| §8.4 Lane D — Earnings & Corporate Events | Event types, 3-track lifecycle, T-minus workflow, link hierarchy, primary materials, schedule confidence, material-change taxonomy | P-KE-1A (transition tables), P-KE-3A/3B/3C | Phase 3 acceptance (T-1→T-0→replay lifecycle in shadow mode) | partial: event-type/decision-state transition tables delivered (P-KE-1A); 3-track lifecycle, T-minus workflow, link hierarchy, and material-change taxonomy planned (Phase 3, P-KE-3A/3B/3C) |
 
 ## 9. Priority company universe
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §9.1 Tier A (20 companies) | Must-surface-T-1 cap | P-KE-3A (verify identifiers/IR roots) | Phase 3 acceptance: "every Tier A company has verified identifiers" | delivered |
-| §9.2 Tier B (conditionally surfaced) | Tracked, conditionally surfaced | P-KE-3A | Phase 3 acceptance | delivered |
-| §9.3 Required company fields | 15 fields incl. CIK, aliases, IR URLs | P-KE-1A (schema), P-KE-3A (live verification — "must verify current tickers/identifiers... not assumed static") | Schema validation tests (§20.1) | delivered |
-| §9.4 Roster governance | Caps, no auto-promote/demote, monthly review | P-KE-5C (monthly yield/roster review) | Phase 5 acceptance: "no automatic policy mutation" | delivered |
+| §9.1 Tier A (20 companies) | Must-surface-T-1 cap | P-KE-3A (verify identifiers/IR roots) | Phase 3 acceptance: "every Tier A company has verified identifiers" | planned (Phase 3, P-KE-3A) |
+| §9.2 Tier B (conditionally surfaced) | Tracked, conditionally surfaced | P-KE-3A | Phase 3 acceptance | planned (Phase 3, P-KE-3A) |
+| §9.3 Required company fields | 15 fields incl. CIK, aliases, IR URLs | P-KE-1A (schema), P-KE-3A (live verification — "must verify current tickers/identifiers... not assumed static") | Schema validation tests (§20.1) | partial: field schema delivered (P-KE-1A); live identifier verification planned (Phase 3, P-KE-3A) |
+| §9.4 Roster governance | Caps, no auto-promote/demote, monthly review | P-KE-5C (monthly yield/roster review) | Phase 5 acceptance: "no automatic policy mutation" | planned (Phase 5, P-KE-5C) |
 
 ## 10. Source strategy and precedence
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §10.1 Approved source classes | 8 adapter classes | P-KE-2A/2B/3A/3B (per-class adapters) | Per-adapter fixture + live-shadow tests | delivered |
-| §10.2 Source precedence | 5-level precedence for schedule/identity/location claims | `knowledge_edge/engine/ranking.py` design (`PHASE0_ARCHITECTURE_DECISIONS.md` AD-1) | §20.1 deterministic ranking tests | delivered |
-| §10.3 Launch video/network allowlist | CNBC/Bloomberg/Yahoo/official channels/gov channels | Session 1 approval (`PHASE0_PROVIDERS_AND_ACCESS.md` §6); P-KE-2B implements | Coverage report (§10.5) shows allowlist health | delivered |
-| §10.4 Candidate technical sources + D-YT | Provider comparison; D-YT decision; quota budget; cache/TTL rules | **This packet** (`PHASE0_PROVIDERS_AND_ACCESS.md` §2-5) | Session 1 ratification; Packet 2B/3A implement against the ratified choice | delivered (decision), implementation delivered P-KE-2B/3A |
-| §10.5 Coverage reporting | Per-adapter health string, "never imply completeness" | P-KE-2C, P-KE-4C (health dashboard) | §17.3 health-surface acceptance | delivered |
+| §10.1 Approved source classes | 8 adapter classes | P-KE-2A/2B/3A/3B (per-class adapters) | Per-adapter fixture + live-shadow tests | planned (Phase 2/3, P-KE-2A/2B/3A/3B) |
+| §10.2 Source precedence | 5-level precedence for schedule/identity/location claims | `knowledge_edge/engine/ranking.py` design (`PHASE0_ARCHITECTURE_DECISIONS.md` AD-1) | §20.1 deterministic ranking tests | delivered (P-KE-1B; `ranking.py` and its tests are in the current tree) |
+| §10.3 Launch video/network allowlist | CNBC/Bloomberg/Yahoo/official channels/gov channels | Session 1 approval (`PHASE0_PROVIDERS_AND_ACCESS.md` §6); P-KE-2B implements | Coverage report (§10.5) shows allowlist health | partial: allowlist ratified (Session 1, D-PO-018 item 1); live implementation against it planned (Phase 2, P-KE-2B) |
+| §10.4 Candidate technical sources + D-YT | Provider comparison; D-YT decision; quota budget; cache/TTL rules | **This packet** (`PHASE0_PROVIDERS_AND_ACCESS.md` §2-5) | Session 1 ratification; Packet 2B/3A implement against the ratified choice | partial: provider comparison and D-YT decision ratified (Session 1, `PHASE0_PROVIDERS_AND_ACCESS.md`); implementation against the ratified choice planned (Phase 2/3, P-KE-2B/3A) |
+| §10.5 Coverage reporting | Per-adapter health string, "never imply completeness" | P-KE-2C, P-KE-4C (health dashboard) | §17.3 health-surface acceptance | planned (Phase 2/4, P-KE-2C/4C) |
 
 ## 11. Discovery, normalization, matching, and deduplication
 
@@ -79,9 +92,9 @@ disposition supporting the narrowing — always cited).
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §12.1 Evening media caps | Tonight cap 3 / 90min, Saved cap 12 / 14-day expiry, resurfacing ≤2, explicit-Watch-only, candidate caps with overflow section | P-KE-1C | §20.1 Tonight/Saved caps + expiry/pin tests | delivered |
-| §12.2 Earnings caps | Confirmed-only T-1 visibility, ≤2-recommended Watch-live/day, 7-day replay expiry | P-KE-1A (schema), P-KE-3C | §20.1 event caps/expiry tests | delivered |
-| §12.3 Empty state | Coverage-qualified wording, never asserts absence | P-KE-1C, P-KE-2C | Manual/UI acceptance | delivered |
+| §12.1 Evening media caps | Tonight cap 3 / 90min, Saved cap 12 / 14-day expiry, resurfacing ≤2, explicit-Watch-only, candidate caps with overflow section | P-KE-1B (per-lane/total candidate caps, resurfacing, `is_saved_item_expired`), P-KE-1D (Tonight/Saved caps enforced at decision-acceptance in `knowledge-edge decide`, `ranking.TONIGHT_ITEM_CAP`/`TONIGHT_KNOWN_DURATION_CAP_SECONDS`; 14-day saved expiry wired into `run_scan` via `_sweep_expired_decisions` — P-KE-1C had left all of this unenforced on any driveable path; closed as phase-end checkpoint C1) | §20.1 Tonight/Saved caps + expiry/pin unit tests; `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest` cap-refusal drive tests; `tests/test_knowledge_edge_scan_orchestrator.py::ExpirySweepProductionPathTest` production-path expiry tests | delivered |
+| §12.2 Earnings caps | Confirmed-only T-1 visibility, ≤2-recommended Watch-live/day, 7-day replay expiry | P-KE-1A (schema), P-KE-1D (7-day replay expiry wired into `run_scan` via `_sweep_expired_decisions`/`is_replay_item_expired` — previously unit-tested only, per phase-end checkpoint C1), P-KE-3C | §20.1 event caps/expiry unit tests; `tests/test_knowledge_edge_scan_orchestrator.py::ExpirySweepProductionPathTest::test_scan_expires_a_replay_item_past_the_7_day_cap` | partial: schema + 7-day replay expiry delivered (P-KE-1A/1D); confirmed-only T-1 visibility and the ≤2-recommended Watch-live/day advisory planned (Phase 3, P-KE-3C) |
+| §12.3 Empty state | Coverage-qualified wording, never asserts absence | P-KE-1C, P-KE-2C | Manual/UI acceptance | partial: empty-state wording delivered (P-KE-1C); coverage-qualification data source planned (Phase 2, P-KE-2C) |
 
 ## 13. Data model
 
@@ -90,48 +103,48 @@ disposition supporting the narrowing — always cited).
 | §13.1 Required entities (22) | Full entity list | P-KE-1A (`PHASE0_ARCHITECTURE_DECISIONS.md` AD-1 module layout + migrations 00017-00021) | Migration application + FK tests | delivered |
 | §13.2 Media item fields | Full field list incl. queue-visibility state (R3-03) | P-KE-1A schema | Schema validation tests | delivered |
 | §13.3 Scheduled event fields | Full field list incl. nullable fiscal period, time-precision indicator, queue-visibility state (R3-03) | P-KE-1A schema | Schema validation tests | delivered |
-| §13.4 Audit history | Append-only, excludes refreshable provider metadata | P-KE-1A schema + P-KE-2A/2B cache-lifecycle tests | §20.2 cache expiry/refresh/deletion tests | delivered |
+| §13.4 Audit history | Append-only, excludes refreshable provider metadata | P-KE-1A (`ke_decision_history` schema, insert-only API), P-KE-1D (`knowledge-edge decide` is the first production caller of `record_decision_history` — every decision path writes one row; P-KE-1C had left this schema-only, per phase-end checkpoint C1) + P-KE-2A/2B cache-lifecycle tests | §20.2 cache expiry/refresh/deletion tests; `tests/test_cli_knowledge_edge.py::DecideMediaCommandTest::test_watch_then_watched_stages_and_exports_a_synthesis_handoff` asserts the append-only history rows | partial: append-only decision audit trail delivered and driven end to end (P-KE-1A/1D); adapter cache-lifecycle (expiry/refresh/deletion) tests planned (Phase 2, P-KE-2A/2B) |
 
 ## 14. Personal OS integration
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
 | §14.1 Architectural rule | Extend existing primitives; no standalone app unless proven unsafe | `PHASE0_ARCHITECTURE_DECISIONS.md` AD-1/AD-2 (module placement decision) | This packet's own design review | delivered |
-| §14.2 Required surfaces | Dashboard, 7-day view, saved queue, watched history, registries, source health, scan-now, kill switch, synthesis handoff, yield report, mode indicator | P-KE-1C (most surfaces), P-KE-4C (health/kill switch), P-KE-5C (yield report) | Per-surface UI acceptance across Phases 1/4/5 | delivered |
-| §14.3 Configuration | Rosters/thresholds human-readable, schema-validated, version-controlled | P-KE-1A | Schema validation tests | delivered |
-| §14.4 Feature modes | `disabled/fixture/shadow_live/active_read_only/active_with_obsidian_handoff`, scheduler activation orthogonal | Mapped onto the existing `RAIL_STATES`-shaped ladder (`PHASE0_CURRENT_STATE.md` reuse-opportunities note); implemented P-KE-1A/4A | Mode-change logging tests | delivered |
+| §14.2 Required surfaces | Dashboard, 7-day view, saved queue, watched history, registries, source health, scan-now, kill switch, synthesis handoff, yield report, mode indicator | P-KE-1C (most surfaces), P-KE-4C (health/kill switch), P-KE-5C (yield report) | Per-surface UI acceptance across Phases 1/4/5 | partial: dashboard/queue/registry/decision surfaces delivered (P-KE-1C/1D); source-health + kill-switch surface planned (Phase 4, P-KE-4C); yield report planned (Phase 5, P-KE-5C) |
+| §14.3 Configuration | Rosters/thresholds human-readable, schema-validated, version-controlled | P-KE-1A | Schema validation tests | delivered (P-KE-1A) |
+| §14.4 Feature modes | `disabled/fixture/shadow_live/active_read_only/active_with_obsidian_handoff`, scheduler activation orthogonal | Mapped onto the existing `RAIL_STATES`-shaped ladder (`PHASE0_CURRENT_STATE.md` reuse-opportunities note); implemented P-KE-1A/4A | Mode-change logging tests | partial: mode ladder mapping and non-scheduler modes delivered (P-KE-1A); scheduler-orthogonal activation planned (Phase 4, P-KE-4A) |
 
 ## 15. Mac mini scheduling and notifications
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §15.1 Scheduler | Due-work dispatcher contract, bounded 1-15min interval, America/Chicago deadlines, declared operating conditions | P-KE-4A; scheduler-reconciliation ADR in `PHASE0_ARCHITECTURE_DECISIONS.md` AD-6 (second LaunchAgent, ARCHITECTURE.md invariant #5 reworded) | §20.2 due-work dispatcher test list (missed-run, DST, time-zone change, logged-out, post-reboot) | delivered |
-| §15.2 Notifications | Queue-ready, watched-event reminder, material-change notice, failure-threshold notice, no storm | P-KE-4B | §20.2 notification-deduplication-per-material-change-class tests | delivered |
+| §15.1 Scheduler | Due-work dispatcher contract, bounded 1-15min interval, America/Chicago deadlines, declared operating conditions | P-KE-4A; scheduler-reconciliation ADR in `PHASE0_ARCHITECTURE_DECISIONS.md` AD-6 (second LaunchAgent, ARCHITECTURE.md invariant #5 reworded) | §20.2 due-work dispatcher test list (missed-run, DST, time-zone change, logged-out, post-reboot) | partial: scheduler-reconciliation architecture decision (AD-6) delivered; due-work dispatcher implementation planned (Phase 4, P-KE-4A) |
+| §15.2 Notifications | Queue-ready, watched-event reminder, material-change notice, failure-threshold notice, no storm | P-KE-4B | §20.2 notification-deduplication-per-material-change-class tests | planned (Phase 4, P-KE-4B) |
 
 ## 16. Security, privacy, licensing, operational boundaries
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §16.1 Credentials | Read-only APIs, existing secrets convention, no secrets in repo/logs, redact headers | Session 1 bundle (`PHASE0_PROVIDERS_AND_ACCESS.md` §6); P-KE-2A/2B/3A adapters | §20.1 no-secret-logging tests | delivered |
-| §16.2 Network controls | Allowlist incl. vendor-domain list, documented APIs, rate/robots/SEC compliance, timeouts/retries/circuit breakers, isolated failure | P-KE-2A/2B/3A/3B | §20.2 quota/rate-limit degradation, partial-source-failure tests | delivered |
-| §16.3 Content storage | Metadata/links/notes only; no full video/audio/unlicensed transcript | Enforced by adapter design (no download code path exists) | Safety assertions (§20.4) every phase | delivered |
-| §16.4 Financial boundary | No buy/sell instructions, no brokerage, no unlabeled materiality claims | `docs/PRD.md` §7.2 boundary; enforced across all packets | Safety assertions (§20.4) | delivered |
+| §16.1 Credentials | Read-only APIs, existing secrets convention, no secrets in repo/logs, redact headers | Session 1 bundle (`PHASE0_PROVIDERS_AND_ACCESS.md` §6); P-KE-2A/2B/3A adapters | §20.1 no-secret-logging tests | partial: secrets convention ratified (Session 1); adapter-level redaction/no-secret-logging implementation planned (Phase 2/3, P-KE-2A/2B/3A) |
+| §16.2 Network controls | Allowlist incl. vendor-domain list, documented APIs, rate/robots/SEC compliance, timeouts/retries/circuit breakers, isolated failure | P-KE-2A/2B/3A/3B | §20.2 quota/rate-limit degradation, partial-source-failure tests | planned (Phase 2/3, P-KE-2A/2B/3A/3B) |
+| §16.3 Content storage | Metadata/links/notes only; no full video/audio/unlicensed transcript | Enforced by adapter design (no download code path exists) | Safety assertions (§20.4) every phase | partial: enforced by design through Phase 1 (no download code path exists in P-KE-1A/1B/1C/1D); remains a standing constraint each future adapter packet must still satisfy (planned per-phase, Phase 2-3) |
+| §16.4 Financial boundary | No buy/sell instructions, no brokerage, no unlabeled materiality claims | `docs/PRD.md` §7.2 boundary; enforced across all packets | Safety assertions (§20.4) | partial: enforced through Phase 1; remains a standing constraint each future phase's report must still assert (planned per-phase, Phase 2-6) |
 
 ## 17. Reliability and failure handling
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §17.1 Required failure cases (19 cases) | Powered-off, quota exhaustion, credential revoked, malformed feed, DB locked/corrupted, etc. | Distributed: P-KE-1B (cursor/catch-up), P-KE-2A-3B (per-adapter failure), P-KE-4C (recovery/kill switch) | §20.2 full failure-case test list (R2-24 mapped all 19 cases to explicit tests) | delivered |
-| §17.2 Degraded behavior | Partial queue, preserve decisions, never erase on empty response, never advance failed cursor | P-KE-1B, P-KE-4C | §20.2 partial-source-failure tests | delivered |
-| §17.3 Health surface | Last-scan status, per-adapter success, rate-limit state, next-run, redacted errors | P-KE-4C | Phase 4 acceptance | delivered |
+| §17.1 Required failure cases (19 cases) | Powered-off, quota exhaustion, credential revoked, malformed feed, DB locked/corrupted, etc. | Distributed: P-KE-1B (cursor/catch-up), P-KE-2A-3B (per-adapter failure), P-KE-4C (recovery/kill switch) | §20.2 full failure-case test list (R2-24 mapped all 19 cases to explicit tests) | partial: cursor/catch-up failure cases delivered (P-KE-1B); per-adapter failure cases (Phase 2/3, P-KE-2A/2B/3A/3B) and recovery/kill-switch cases (Phase 4, P-KE-4C) planned |
+| §17.2 Degraded behavior | Partial queue, preserve decisions, never erase on empty response, never advance failed cursor | P-KE-1B, P-KE-4C | §20.2 partial-source-failure tests | partial: partial-queue/preserve-decisions/never-erase-on-empty behavior delivered (P-KE-1B); recovery-surface-dependent behavior planned (Phase 4, P-KE-4C) |
+| §17.3 Health surface | Last-scan status, per-adapter success, rate-limit state, next-run, redacted errors | P-KE-4C | Phase 4 acceptance | planned (Phase 4, P-KE-4C) |
 
 ## 18. Metrics and controlled improvement
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §18.1 Product reliability metrics | Scan completion %, queue-ready-by-4:45pm, source-health rate, duplicate rate, precision/recall, link-acquisition metrics (3 separate), schedule-change detection, MTTR | P-KE-2C (measurement), P-KE-6B (reconciliation) | Phase 6 pre-activation acceptance thresholds | delivered |
-| §18.2 Habit/usefulness metrics | Decision completion rate, triage time, W/S/S distribution, conversion rates, yield | P-KE-5C | Phase 5 acceptance | delivered |
-| §18.3 Recommendations | Deterministic roster/threshold suggestions; never auto-applied; ≤1 major change/monthly review | P-KE-5C | Phase 5 acceptance: "no automatic policy mutation" | delivered |
+| §18.1 Product reliability metrics | Scan completion %, queue-ready-by-4:45pm, source-health rate, duplicate rate, precision/recall, link-acquisition metrics (3 separate), schedule-change detection, MTTR | P-KE-2C (measurement), P-KE-6B (reconciliation) | Phase 6 pre-activation acceptance thresholds | planned (Phase 2/6, P-KE-2C/6B) |
+| §18.2 Habit/usefulness metrics | Decision completion rate, triage time, W/S/S distribution, conversion rates, yield | P-KE-5C | Phase 5 acceptance | planned (Phase 5, P-KE-5C) |
+| §18.3 Recommendations | Deterministic roster/threshold suggestions; never auto-applied; ≤1 major change/monthly review | P-KE-5C | Phase 5 acceptance: "no automatic policy mutation" | planned (Phase 5, P-KE-5C) |
 
 ## 19. Major phases and packets
 
@@ -146,16 +159,17 @@ begins Packet 0C post-Session-1).**
 
 | Section | Requirement | Packet(s) | Validation | Disposition |
 |---|---|---|---|---|
-| §20.1 Unit tests (16 areas) | Schema validation through no-secret-logging | Distributed across P-KE-1A/1B/1C | New `tests/test_knowledge_edge_*.py` files, one family per `knowledge_edge/` submodule | delivered |
-| §20.2 Integration tests (22 areas) | Idempotent scan through cache lifecycle | Distributed across P-KE-1B/2A-2C/3A-3C/4A-4C | Integration test suite additions, network-free (fake clients) per `governance/QUALITY_GATES.md`'s standing network rule | delivered |
-| §20.3 E2E tests (8 areas) | Full four-lane queue through uninstall/rollback | P-KE-1C, P-KE-2C, P-KE-3C, P-KE-4C, P-KE-5A | Fixture-based E2E suite | delivered |
-| §20.4 Safety assertions | 12-item per-phase safety statement | Every major-phase final report (P-KE-0 through P-KE-6) | Report template in `PHASE0_PLAN.md` | delivered |
+| §20.1 Unit tests (16 areas) | Schema validation through no-secret-logging | Distributed across P-KE-1A/1B/1C | New `tests/test_knowledge_edge_*.py` files, one family per `knowledge_edge/` submodule | delivered (P-KE-1A/1B/1C/1D — Phase 1's areas are in the tree; no future-phase unit-test areas are claimed here) |
+| §20.2 Integration tests (22 areas) | Idempotent scan through cache lifecycle | Distributed across P-KE-1B/2A-2C/3A-3C/4A-4C | Integration test suite additions, network-free (fake clients) per `governance/QUALITY_GATES.md`'s standing network rule | partial: P-KE-1B's idempotent-scan/cursor/expiry-sweep integration tests delivered; remaining areas (per-adapter, cache-lifecycle, scheduler) planned (Phase 2-4, P-KE-2A-2C/3A-3C/4A-4C) |
+| §20.3 E2E tests (8 areas) | Full four-lane queue through uninstall/rollback | P-KE-1C, P-KE-2C, P-KE-3C, P-KE-4C, P-KE-5A | Fixture-based E2E suite | partial: full four-lane fixture-rung E2E delivered (P-KE-1C/1D); remaining E2E areas planned (Phase 2-5, P-KE-2C/3C/4C/5A) |
+| §20.4 Safety assertions | 12-item per-phase safety statement | Every major-phase final report (P-KE-0 through P-KE-6) | Report template in `PHASE0_PLAN.md` | partial: Phase 0/1 safety assertions delivered; Phase 2-6 assertions planned (each future major-phase final report) |
 
 ## 21. Launch definition of done
 
 All 16 items map 1:1 onto Phase 6 acceptance criteria already itemized in the amendment's
 own §19 Phase 6 section and restated in `PHASE0_PLAN.md`'s Phase 6 table. **Disposition:
-delivered (tracked as the final gate, not a separate deliverable).**
+planned (Phase 6; tracked as the final gate, not a separate deliverable — none of the 16
+items is satisfied by any packet landed to date).**
 
 ## 22. Post-launch candidates (explicitly excluded from launch gate)
 

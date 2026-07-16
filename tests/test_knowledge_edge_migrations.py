@@ -25,7 +25,7 @@ from personalos.db.migrations import (
     discover_migrations,
 )
 
-NEW_MIGRATION_VERSIONS = ("00017", "00018", "00019", "00020", "00021")
+NEW_MIGRATION_VERSIONS = ("00017", "00018", "00019", "00020", "00021", "00022")
 
 EXPECTED_KE_TABLES = {
     "ke_sources",
@@ -46,6 +46,7 @@ EXPECTED_KE_TABLES = {
     "ke_user_decisions",
     "ke_decision_history",
     "ke_queue_snapshots",
+    "ke_queue_snapshot_demoted",
     "ke_scan_runs",
     "ke_scan_cursors",
     "ke_source_health",
@@ -71,14 +72,19 @@ FORBIDDEN_IMPORT_ROOTS = {
 # standard-library tool engine/canonicalize.py legitimately needs for §11.2 URL
 # canonicalization. It is the one named exception to the otherwise-blanket
 # "urllib" root ban; urllib.request (or bare "import urllib") stays forbidden.
-_ALLOWED_NETWORK_ROOT_EXCEPTIONS = ("urllib.parse",)
+# The exception is scoped to that one authorized file (C4, phase-end checkpoint
+# 2026-07-16): the Conductor's authorization was "exactly one file", not the whole
+# package, so `urllib.parse` planted anywhere else must still fire this guard.
+_ALLOWED_NETWORK_IMPORT_EXCEPTIONS: dict[str, frozenset[str]] = {
+    "urllib.parse": frozenset({"engine/canonicalize.py"}),
+}
 
 
-def _is_allowed_exception(dotted_name: str) -> bool:
-    return any(
-        dotted_name == exception or dotted_name.startswith(exception + ".")
-        for exception in _ALLOWED_NETWORK_ROOT_EXCEPTIONS
-    )
+def _is_allowed_exception(dotted_name: str, *, relative_name: str) -> bool:
+    for exception, allowed_paths in _ALLOWED_NETWORK_IMPORT_EXCEPTIONS.items():
+        if dotted_name == exception or dotted_name.startswith(exception + "."):
+            return relative_name in allowed_paths
+    return False
 
 
 def _find_network_import_offenders(package_dir: Path) -> list[str]:
@@ -91,14 +97,14 @@ def _find_network_import_offenders(package_dir: Path) -> list[str]:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if _is_allowed_exception(alias.name):
+                    if _is_allowed_exception(alias.name, relative_name=relative_name):
                         continue
                     root = alias.name.split(".")[0]
                     if root in FORBIDDEN_IMPORT_ROOTS:
                         offenders.append(f"{relative_name}: import {alias.name}")
             elif isinstance(node, ast.ImportFrom):
                 module = node.module or ""
-                if _is_allowed_exception(module):
+                if _is_allowed_exception(module, relative_name=relative_name):
                     continue
                 root = module.split(".")[0]
                 if root in FORBIDDEN_IMPORT_ROOTS:
@@ -122,7 +128,7 @@ class KnowledgeEdgeMigrationSchemaTest(unittest.TestCase):
 
         new_indexes = [versions.index(version) for version in NEW_MIGRATION_VERSIONS]
         self.assertEqual(new_indexes, sorted(new_indexes))
-        self.assertEqual(versions[-5:], list(NEW_MIGRATION_VERSIONS))
+        self.assertEqual(versions[-6:], list(NEW_MIGRATION_VERSIONS))
 
     def test_migrations_are_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -135,14 +141,14 @@ class KnowledgeEdgeMigrationSchemaTest(unittest.TestCase):
 
                 rows = connection.execute(
                     f"SELECT version, checksum FROM {MIGRATION_METADATA_TABLE} "
-                    "WHERE version IN (?, ?, ?, ?, ?)",
+                    "WHERE version IN (?, ?, ?, ?, ?, ?)",
                     NEW_MIGRATION_VERSIONS,
                 ).fetchall()
 
         applied_new = [m.version for m in first_applied if m.version in NEW_MIGRATION_VERSIONS]
         self.assertEqual(applied_new, list(NEW_MIGRATION_VERSIONS))
         self.assertEqual(second_applied, [])
-        self.assertEqual(len(rows), 5)
+        self.assertEqual(len(rows), 6)
         for row in rows:
             self.assertTrue(row["checksum"])
 
@@ -235,6 +241,41 @@ class KnowledgeEdgeNoNetworkImportsTest(unittest.TestCase):
 
         package_dir = Path(ke_package.__file__).parent
         self.assertEqual(_find_network_import_offenders(package_dir), [])
+
+    def test_urllib_parse_exception_is_scoped_to_canonicalize_py_only(self) -> None:
+        """C4 (phase-end checkpoint 2026-07-16): the authorized carve-out is
+        "exactly one file" (engine/canonicalize.py), not the whole package. This
+        plants `urllib.parse` in a second, unauthorized file and confirms the
+        guard still fires there while staying silent for the one authorized file
+        -- reproducing the checkpoint report's gap probe against a synthetic
+        package tree (never against the real repo, so nothing needs reverting)."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            package_dir = Path(temp_dir)
+            (package_dir / "engine").mkdir()
+            (package_dir / "state").mkdir()
+
+            (package_dir / "engine" / "canonicalize.py").write_text(
+                "from urllib.parse import urlsplit\n", encoding="utf-8"
+            )
+            (package_dir / "state" / "evil.py").write_text(
+                "import urllib.parse\n", encoding="utf-8"
+            )
+
+            offenders = _find_network_import_offenders(package_dir)
+
+        self.assertEqual(offenders, ["state/evil.py: import urllib.parse"])
+
+    def test_urllib_parse_alias_smuggle_still_fires_outside_canonicalize_py(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            package_dir = Path(temp_dir)
+            (package_dir / "state").mkdir()
+            (package_dir / "state" / "evil.py").write_text(
+                "from urllib import parse as p\n", encoding="utf-8"
+            )
+
+            offenders = _find_network_import_offenders(package_dir)
+
+        self.assertEqual(offenders, ["state/evil.py: from urllib import ..."])
 
 
 def _config_for(runtime_dir: Path, environment: Environment) -> PersonalOSConfig:

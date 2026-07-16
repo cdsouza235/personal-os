@@ -272,12 +272,21 @@ def record_queue_snapshot(
 def list_queue_snapshot(
     connection: sqlite3.Connection, *, queue_date: str, section: str | None = None
 ) -> list[dict[str, Any]]:
+    """List a day's (optionally section-scoped) snapshot rows.
+
+    Ordered by ``rank_position`` with ``entity_id`` as a deterministic tiebreak
+    (C2, phase-end checkpoint 2026-07-16): ``rank_position`` alone is not
+    guaranteed unique within a ``(queue_date, section)`` pair at the schema level
+    (the UNIQUE constraint is on ``(queue_date, section, entity_type, entity_id)``,
+    not rank), so display order for any tie must not depend on SQLite's
+    unspecified row order.
+    """
     queue_date = _validate_required_text("queue_date", queue_date)
     if section is None:
         rows = connection.execute(
             """
             SELECT * FROM ke_queue_snapshots WHERE queue_date = ?
-            ORDER BY section, rank_position
+            ORDER BY section, rank_position, entity_id
             """,
             (queue_date,),
         ).fetchall()
@@ -286,7 +295,7 @@ def list_queue_snapshot(
         rows = connection.execute(
             """
             SELECT * FROM ke_queue_snapshots WHERE queue_date = ? AND section = ?
-            ORDER BY rank_position
+            ORDER BY rank_position, entity_id
             """,
             (queue_date, section),
         ).fetchall()
@@ -295,3 +304,100 @@ def list_queue_snapshot(
 
 def count_queue_snapshots(connection: sqlite3.Connection) -> int:
     return _count_rows(connection, "ke_queue_snapshots")
+
+
+def delete_queue_snapshot_section(
+    connection: sqlite3.Connection, *, queue_date: str, section: str
+) -> int:
+    """Clear every persisted row for one ``(queue_date, section)`` pair.
+
+    Used to implement recompute-and-supersede queue-build semantics (C2, phase-end
+    checkpoint 2026-07-16): a same-date rescan recomputes a section's full ranked
+    membership from current state, so the prior snapshot for that section is
+    cleared before the fresh ranking is recorded, rather than appended to (which
+    previously produced duplicate ``rank_position`` values within a section when a
+    later same-day scan discovered a new, higher-ranked item). Returns the number
+    of rows deleted.
+    """
+    queue_date = _validate_required_text("queue_date", queue_date)
+    section = validate_queue_section(section)
+    with connection:
+        cursor = connection.execute(
+            "DELETE FROM ke_queue_snapshots WHERE queue_date = ? AND section = ?",
+            (queue_date, section),
+        )
+    return cursor.rowcount
+
+
+# ---------------------------------------------------------- demoted/ambiguous snapshots
+
+
+def record_queue_snapshot_demoted(
+    connection: sqlite3.Connection,
+    *,
+    snapshot_id: str,
+    queue_date: str,
+    entity_type: str,
+    entity_id: str,
+    explanation: str = "",
+) -> dict[str, Any]:
+    """Persist one row of the demoted/ambiguous queue tier (migration 00022;
+    C5 fold-in, phase-end checkpoint 2026-07-16). Kept in its own table rather
+    than as a seventh ``QUEUE_SECTIONS`` value: ``ke_queue_snapshots.section``
+    carries a fixed ``CHECK`` constraint that a purely-additive migration cannot
+    extend without recreating the table. This tier has no ``rank_position`` --
+    §8.3 defines it as uncapped and unranked.
+    """
+    snapshot_id = _validate_required_text("snapshot_id", snapshot_id)
+    queue_date = _validate_required_text("queue_date", queue_date)
+    entity_type = validate_entity_type(entity_type)
+    entity_id = _validate_required_text("entity_id", entity_id)
+    explanation = _validate_text("explanation", explanation)
+    now = _utc_now()
+
+    with connection:
+        connection.execute(
+            """
+            INSERT INTO ke_queue_snapshot_demoted (
+                snapshot_id, queue_date, entity_type, entity_id, explanation, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (snapshot_id, queue_date, entity_type, entity_id, explanation, now),
+        )
+
+    row = connection.execute(
+        "SELECT * FROM ke_queue_snapshot_demoted WHERE snapshot_id = ?", (snapshot_id,)
+    ).fetchone()
+    if row is None:
+        raise RuntimeError(f"Demoted queue snapshot was not persisted for snapshot_id: {snapshot_id}")
+    return dict(row)
+
+
+def list_queue_snapshot_demoted(
+    connection: sqlite3.Connection, *, queue_date: str
+) -> list[dict[str, Any]]:
+    queue_date = _validate_required_text("queue_date", queue_date)
+    rows = connection.execute(
+        """
+        SELECT * FROM ke_queue_snapshot_demoted WHERE queue_date = ?
+        ORDER BY entity_id
+        """,
+        (queue_date,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def delete_queue_snapshot_demoted(connection: sqlite3.Connection, *, queue_date: str) -> int:
+    """Clear a date's persisted demoted/ambiguous rows (recompute-and-supersede,
+    mirroring :func:`delete_queue_snapshot_section`)."""
+    queue_date = _validate_required_text("queue_date", queue_date)
+    with connection:
+        cursor = connection.execute(
+            "DELETE FROM ke_queue_snapshot_demoted WHERE queue_date = ?", (queue_date,)
+        )
+    return cursor.rowcount
+
+
+def count_queue_snapshot_demoted(connection: sqlite3.Connection) -> int:
+    return _count_rows(connection, "ke_queue_snapshot_demoted")

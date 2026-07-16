@@ -69,7 +69,9 @@ src/personalos/rails/knowledge_edge/      # new subpackage INSIDE the existing r
     youtube.py                            # Lane B/C: Data API (person search only,
                                            #   per D-YT option 1) + channel RSS/
                                            #   upload-playlist polling
-    earnings_calendar.py                  # Lane D: Financial Modeling Prep
+    earnings_calendar.py                  # Lane D: roster/EDGAR/official-IR earnings
+                                           #   coverage (D-PO-019; FMP rejected, see
+                                           #   PHASE0_ROSTER.md)
     sec_edgar.py                          # Lane D: SEC EDGAR public APIs
     person_search.py                      # Lane B/C: broad person-search provider —
                                            #   see PHASE0_PROVIDERS_AND_ACCESS.md

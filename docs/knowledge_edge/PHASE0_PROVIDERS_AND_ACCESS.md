@@ -1,13 +1,17 @@
 # Knowledge Edge — Packet 0B: Provider Evaluation and External-Access Bundle
 
 Status: proposed, for Session 1 approval. Owner: Builder (Packet 0B) · Date: 2026-07-15
+**Amended 2026-07-16 (P-KE-00C): §2's Financial Modeling Prep evaluation was superseded
+at Session 1 — see the disposition banner at the top of §2 and D-PO-019. §2 is retained
+as the evaluation record; it is no longer a live spec. Nothing else in this document is
+changed by that amendment.**
 Zero credentials created, zero live network requests, zero live pricing/rate-limit pages
 fetched in producing this document (hard constraint, amendment §0). Every figure that
 would normally require live external confirmation is marked **TBC — verify at Session 1**
 rather than invented; this is deliberate, per this packet's own instructions, not an
-oversight. D-PO-016 already fixed the earnings-calendar provider (Financial Modeling
-Prep); this document evaluates that decision against the amendment's criteria and defines
-what Session 1 must additionally capture — it does not reopen the choice.
+oversight. D-PO-016 originally fixed the earnings-calendar provider (Financial Modeling
+Prep); §2 below evaluates that decision against the amendment's criteria — see the §2
+disposition banner for how that choice was subsequently reversed by D-PO-019.
 
 ---
 
@@ -19,7 +23,21 @@ the same six questions in the same order.
 
 ---
 
-## 2. Earnings-calendar provider — Financial Modeling Prep (decided, D-PO-016)
+## 2. Earnings-calendar provider — Financial Modeling Prep (decided, D-PO-016) — **REJECTED at Session 1 (D-PO-019, 2026-07-15)**
+
+> **Disposition banner (2026-07-15):** At Session 1 credential creation, Chris verified
+> FMP's actual pricing: earnings/corporate-events access requires a ~$50/month tier — the
+> figure this section explicitly could not confirm when D-PO-016 chose paid-FMP-over-
+> scrapers. Chris rejected it as over budget ("not down with that") — see **D-PO-019** in
+> `governance/living/agent-writable/DECISIONS.md`. **FMP is out entirely; the FMP key
+> created at Session 1 is inert (commented out in `.env.local`; Chris may cancel the
+> account).** The replacement is a bounded, rule-defined company roster sourced from SEC
+> EDGAR + official IR pages — see `PHASE0_ROSTER.md`. The section below is **retained
+> as-is as the evaluation record** (it is why FMP was rejected once real pricing was
+> known, not despite that record); the entitlement-artifact list in this section (items
+> 1-6 below) is **no longer applicable** — no entitlement artifact will ever be captured
+> for FMP, since no plan is being purchased. Do not build against this section; it is
+> history, not a live spec.
 
 | Criterion | Finding |
 |---|---|
@@ -39,6 +57,10 @@ name; it should read the entitlement artifact (below) to know which endpoints an
 limits apply, so a future plan change does not require a code change.
 
 ### Entitlement artifacts Session 1 must capture (per amendment §0 Session 1 bundle + R2-17)
+
+**No longer applicable (D-PO-019, 2026-07-15) — FMP is not adopted, so no entitlement
+artifact is ever captured against it.** Retained below unedited as the evaluation record
+of what *would* have been required had FMP been adopted.
 
 A named, dated record (screenshot or saved terms excerpt, referenced from — not
 necessarily committed verbatim into — the repo, since raw vendor terms text may itself
@@ -194,12 +216,19 @@ alias consolidation is possible) — a Packet 2B design detail, not decided here
 Every item Session 1 must approve, in one place, expanded from the amendment's own §0
 Session 1 bullet:
 
-- [ ] **Financial Modeling Prep API key** — env var `PERSONALOS_RAIL_KE_FMP_API_KEY`
-      (naming convention: `PERSONALOS_RAIL_<RAIL>_<FIELD>`, per the existing
-      `rails/todoist.py`/`rails/gmail.py`/`rails/calendar.py` precedent, `KE` prefix
-      scoping it under Knowledge Edge as the sub-rail namespace). Read-only endpoints
-      only. Entitlement artifact per §2 above required before this key is exercised
-      beyond Packet 0C's bounded probe.
+- [x] **Financial Modeling Prep API key** — env var `PERSONALOS_RAIL_KE_FMP_API_KEY`.
+      **NOT ADOPTED (D-PO-019, 2026-07-15)** — rejected at real price (~$50/month tier)
+      once verified at Session 1. The key created at Session 1 is **inert** (commented
+      out in `.env.local`; Chris may cancel the account). No entitlement artifact will be
+      captured against it. Superseded by the roster-source item below.
+- [x] **Earnings-coverage roster source (EDGAR + IR pages)** — replacement for the item
+      above per D-PO-019. Two sources, both already approved, **no credential
+      required**: (1) SEC EDGAR (`data.sec.gov`), approved Session 1 with the
+      `PERSONALOS_RAIL_KE_EDGAR_USER_AGENT` string per D-PO-018 item 4 — no API key; (2)
+      the companies' official investor-relations pages, already admitted by the §10.3
+      allowlist below as "official company/investor-relations channels" — no separate
+      approval needed. Roster membership rule, candidate seed list, and quarterly
+      refresh procedure: `PHASE0_ROSTER.md`.
 - [ ] **YouTube Data API key** — env var `PERSONALOS_RAIL_KE_YOUTUBE_API_KEY`. Scope:
       `search.list` for person-search only (D-YT option 1); no channel-listing/upload
       polling through this key (that path uses RSS/playlist URLs, no key required).
@@ -258,10 +287,10 @@ Session 1 bullet:
       `PHASE0_ARCHITECTURE_DECISIONS.md`) — no production database writes before
       Session 3; no production notifications; no Obsidian writes; no scheduler
       installation or loading before Session 2 (shadow) / Session 3 (production).
-- [ ] **Provider entitlement artifacts** — FMP's (§2 above, required); YouTube Data API's
-      derived-data policy is already documented in the amendment itself (§10.4) and does
-      not need a separate captured artifact, since Option 1 avoids the derived-use path
-      entirely.
+- [x] **Provider entitlement artifacts** — FMP's: **not applicable, FMP not adopted
+      (D-PO-019)**, no artifact will be captured; YouTube Data API's derived-data policy
+      is already documented in the amendment itself (§10.4) and does not need a separate
+      captured artifact, since Option 1 avoids the derived-use path entirely.
 - [ ] **Launch role appendix** — role, initial occupant, effective date, and roster cap
       for every "configured" role named in amendment §8.3 (Federal Reserve Chair, U.S.
       Treasury Secretary, SEC Chair, CFTC Chair, Apple CEO, configured frontier-lab

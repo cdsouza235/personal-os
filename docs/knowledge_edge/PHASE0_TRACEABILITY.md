@@ -186,7 +186,7 @@ All 11 items answered by this packet's documents:
 | 1 | Which module owns queue UI/data? | `PHASE0_ARCHITECTURE_DECISIONS.md` AD-1 |
 | 2 | Does the harness provide safe scheduled-job semantics already? | `PHASE0_CURRENT_STATE.md` §4 (no — confirmed absent/mismatched); AD-6 (reconciliation) |
 | 3 | Which secrets mechanism is already used? | `PHASE0_CURRENT_STATE.md` §6 (`PERSONALOS_RAIL_*` env-var convention); `PHASE0_PROVIDERS_AND_ACCESS.md` §6 (KE naming) |
-| 4 | Which earnings-calendar provider? | Decided by D-PO-016 (FMP); evaluated `PHASE0_PROVIDERS_AND_ACCESS.md` §2 |
+| 4 | Which earnings-calendar provider? | Originally decided by D-PO-016 (FMP); **FMP rejected at real price, replaced by a bounded market-cap-ranked company roster sourced via SEC EDGAR + official IR pages (D-PO-019)** — evaluation record `PHASE0_PROVIDERS_AND_ACCESS.md` §2, roster definition `PHASE0_ROSTER.md` |
 | 5 | Initial official channel/network allowlist? | `PHASE0_PROVIDERS_AND_ACCESS.md` §6 (restates amendment §10.3; Session 1 ratifies) |
 | 6 | Achievable precision/recall thresholds? | `PHASE0_THESIS_MATCHING.md` Part 3 (provisional; Session 2 finalizes) |
 | 7 | Obsidian staging/final path boundary? | Confirmed absent (`PHASE0_CURRENT_STATE.md` §7); new work, Packet 5A/5B |

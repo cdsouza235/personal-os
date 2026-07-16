@@ -155,8 +155,12 @@ autonomous stretch between Session 1 and Session 2, each major phase carrying a 
 packet audit and a Fable phase-end audit reconciled before merge.
 
 ### 7.4 Providers
-Earnings calendar: **Financial Modeling Prep, paid tier** (D-PO-016 item 3 — already
-decided by Chris; exact plan and entitlement rights confirmed at Session 1). Broad
+Earnings calendar: **Financial Modeling Prep rejected at real price (D-PO-019, Session 1,
+2026-07-15) — replaced by a bounded, rule-defined company roster** (top 10 Nasdaq-100 +
+top 3 publicly listed crypto-native companies + top 5 WGMI-ETF constituents, all ranked
+by market cap, deduped, refreshed quarterly by the Conductor), sourced via SEC EDGAR
+(free, no key) and the companies' official IR pages (already in the §10.3 allowlist).
+Roster definition and seed list: `docs/knowledge_edge/PHASE0_ROSTER.md`. Broad
 person-search provider and the D-YT YouTube-sourcing option are evaluated in
 `docs/knowledge_edge/PHASE0_PROVIDERS_AND_ACCESS.md` and ratified at Session 1.
 

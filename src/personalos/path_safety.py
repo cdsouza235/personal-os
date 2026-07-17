@@ -10,6 +10,20 @@ from pathlib import Path
 from personalos import config
 from personalos.config import REPO_ROOT
 
+# The one admitted `shadow_live` database location (`PHASE0_ARCHITECTURE_DECISIONS.md`
+# AD-4, amended P-KE-2E, 2026-07-17). Originally `var/shadow/personalos-shadow.sqlite3`
+# (repo-local, admitted via the ordinary `is_under_repo` branch below); relocated
+# outside the repo because the harness wipes untracked repo files on every packet run,
+# which destroyed the shadow DB between runs and cannot coexist with a 14-day
+# accumulation (`audits/knowledge-edge/2026-07-17-packet-2c-first-shadow-run-
+# transcript.md` "COLLISION"). Lives here, not in `config.py` or
+# `knowledge_edge/shadow_mode.py`, so there is exactly one source of truth for the
+# admitted value; `shadow_mode.SHADOW_DB_PATH` imports this object directly rather than
+# redefining it. Read at call time via `is_admitted_shadow_path` below (never a captured
+# copy), the same discipline `config.PRODUCTION_DB_PATH` already gets from this module,
+# so tests can monkeypatch it to a temp stand-in.
+SHADOW_DB_PATH: Path = Path("~/.personalos/shadow/personalos-shadow.sqlite3").expanduser()
+
 DATABASE_SUFFIXES = frozenset({".sqlite", ".sqlite3", ".db"})
 PRODUCTION_MARKERS = frozenset({"prod", "production", "live"})
 SENSITIVE_PATH_MARKERS = (
@@ -99,6 +113,17 @@ def reject_production_path(path: Path, *, path_label: str) -> None:
         raise ValueError(f"production-looking {path_label} is blocked in Phase 12A")
 
 
+def is_admitted_shadow_path(path: Path) -> bool:
+    """Exact-match admission for the one `shadow_live` database location -- not a
+    general "anything under ~/.personalos" escape hatch, mirroring
+    `config.PRODUCTION_DB_PATH`'s own exact-match-only precedent in this module.
+    Reads module-level `SHADOW_DB_PATH` at call time (not a captured copy) so tests
+    can monkeypatch it to a temp stand-in exactly like `config.PRODUCTION_DB_PATH`
+    already is.
+    """
+    return path == SHADOW_DB_PATH.resolve()
+
+
 def validate_existing_sqlite_path(
     path_value: str | Path,
     *,
@@ -121,6 +146,11 @@ def validate_existing_sqlite_path(
     is_approved_production_path = allow_production_path and (
         resolved == config.PRODUCTION_DB_PATH.resolve()
     )
+    # The shadow path (AD-4, amended P-KE-2E) gets no such skip: it goes through
+    # reject_protected_path/reject_sensitive_path/reject_production_path unconditionally,
+    # like any other path, with no special-casing -- it just happens to pass all three
+    # (see the SHADOW_DB_PATH module comment above).
+    is_admitted_shadow = is_admitted_shadow_path(resolved)
     if not is_approved_production_path:
         reject_protected_path(resolved, path_label=path_label)
     reject_sensitive_path(resolved, path_label=path_label)
@@ -128,8 +158,16 @@ def validate_existing_sqlite_path(
     if resolved.suffix not in DATABASE_SUFFIXES:
         allowed = ", ".join(sorted(DATABASE_SUFFIXES))
         raise ValueError(f"{path_label} suffix must be one of: {allowed}")
-    if not (is_approved_production_path or is_under_repo(resolved) or is_under_temp(resolved)):
-        raise ValueError(f"{path_label} must stay in explicit temp or repo-local dev paths")
+    if not (
+        is_approved_production_path
+        or is_admitted_shadow
+        or is_under_repo(resolved)
+        or is_under_temp(resolved)
+    ):
+        raise ValueError(
+            f"{path_label} must stay in explicit temp, repo-local dev, or the admitted "
+            "shadow path"
+        )
     if not resolved.is_file():
         raise ValueError(f"{path_label} must point to an existing SQLite file")
     return resolved

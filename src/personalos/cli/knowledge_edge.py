@@ -770,6 +770,26 @@ def _require_shadow_admission(database_path: str) -> None:
         raise CliError(str(error)) from error
 
 
+def _mkdir_shadow_parents_0700(database_path: Path) -> None:
+    """Creates every missing ancestor directory of `database_path`, outermost
+    missing one first, mode `0o700`. `Path.mkdir(mode=..., parents=True)` only
+    applies `mode` to the one directory actually named in the call -- any
+    intermediate directories it also has to create along the way get the default
+    mode instead (CPython's own recursive-parent-creation fallback never forwards
+    `mode`). Since the admitted shadow path now lives under `~/.personalos/` (P-KE-2E)
+    rather than the repo's `var/`, both `~/.personalos` and `~/.personalos/shadow`
+    are typically newly created here, and both must end up private (0700), not just
+    the innermost one.
+    """
+    missing = []
+    for ancestor in database_path.parents:
+        if ancestor.exists():
+            break
+        missing.append(ancestor)
+    for ancestor in reversed(missing):
+        ancestor.mkdir(mode=0o700)
+
+
 def _command_knowledge_edge_shadow_bootstrap(args: argparse.Namespace) -> int:
     """Create/migrate the shadow DB and re-apply the nine Lane A verification flips
     from the smoke transcript (literal config, no re-fetching -- see
@@ -780,7 +800,7 @@ def _command_knowledge_edge_shadow_bootstrap(args: argparse.Namespace) -> int:
     """
     _require_shadow_admission(args.db)
     database_path = Path(args.db).expanduser().resolve()
-    database_path.parent.mkdir(parents=True, exist_ok=True)
+    _mkdir_shadow_parents_0700(database_path)
 
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row

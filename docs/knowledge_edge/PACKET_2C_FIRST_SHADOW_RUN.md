@@ -10,6 +10,15 @@ structure and STOP-rule discipline, applied to the `personalos knowledge-edge sh
 bootstrap|scan|sample-freeze|grade-init|report` tooling this packet ships (all
 inert/unreachable by the test suite; see each module's own docstring for why).
 
+**Amendment (P-KE-2E, 2026-07-17):** the `--db` path below was originally
+`var/shadow/personalos-shadow.sqlite3` (repo-local); it is now
+`~/.personalos/shadow/personalos-shadow.sqlite3`, moved outside the repo because the
+harness wipes untracked repo files on every packet run, which destroyed the shadow DB
+between runs (`audits/knowledge-edge/2026-07-17-packet-2c-first-shadow-run-
+transcript.md` "COLLISION") — a 14-day accumulation cannot survive that layout. See
+`PHASE0_ARCHITECTURE_DECISIONS.md` AD-4's own amendment note. Every command below
+already reflects the new path.
+
 ---
 
 ## 0. What this packet built, and what it deliberately did not run
@@ -80,7 +89,7 @@ completeness it does not have.
   **Not any packet builder, and not scheduled** — no automation, no cron, no
   unattended run. `shadow_live` scheduled execution requires the Session 2
   shadow-scheduler gate, which has not happened; every command below is run by hand.
-- **Database:** exactly `var/shadow/personalos-shadow.sqlite3`
+- **Database:** exactly `~/.personalos/shadow/personalos-shadow.sqlite3`
   (`shadow_mode.SHADOW_DB_PATH`) for every command — the tooling refuses any other
   path, including the dev/test DBs and the production path, structurally (tested in
   `tests/test_knowledge_edge_shadow_mode.py`).
@@ -105,7 +114,7 @@ completeness it does not have.
 ## 3. Step 1 — bootstrap the shadow database
 
 ```
-personalos knowledge-edge shadow bootstrap --db var/shadow/personalos-shadow.sqlite3 --json
+personalos knowledge-edge shadow bootstrap --db ~/.personalos/shadow/personalos-shadow.sqlite3 --json
 ```
 
 Expect `sources_flipped_to_active` to list all 9 Lane A source_ids on the first run
@@ -123,7 +132,7 @@ non-zero — do not proceed to Step 2 against a registry this step did not confi
 ### 4a. Lane A live RSS (the live part of this run)
 
 ```
-personalos knowledge-edge shadow scan --db var/shadow/personalos-shadow.sqlite3 \
+personalos knowledge-edge shadow scan --db ~/.personalos/shadow/personalos-shadow.sqlite3 \
   --date <today's date> --now <current UTC instant> --json
 ```
 
@@ -174,7 +183,7 @@ live data this phase, `--lane-d-window-end` may be left at its default (equal to
 `--window-end`) — there is nothing to extend it to yet.
 
 ```
-personalos knowledge-edge shadow sample-freeze --db var/shadow/personalos-shadow.sqlite3 \
+personalos knowledge-edge shadow sample-freeze --db ~/.personalos/shadow/personalos-shadow.sqlite3 \
   --window-start <YYYY-MM-DD> --window-end <YYYY-MM-DD> \
   --sample-date <today's date> \
   --markdown-output-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.md \
@@ -278,7 +287,7 @@ human.
 ## 8. Step 4 — generate the shadow report
 
 ```
-personalos knowledge-edge shadow report --db var/shadow/personalos-shadow.sqlite3 \
+personalos knowledge-edge shadow report --db ~/.personalos/shadow/personalos-shadow.sqlite3 \
   --sample-markdown-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.md \
   --sample-json-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.json \
   --grades-json-file docs/knowledge_edge/GROUND_TRUTH_GRADES_<date>.json \

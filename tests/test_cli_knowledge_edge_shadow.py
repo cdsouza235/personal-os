@@ -2,10 +2,9 @@
 CLI flows.
 
 `shadow_mode.SHADOW_DB_PATH` is monkeypatched to a temp file for every "admitted"
-test so this suite never creates or touches the real repo's `var/shadow/`
-directory (QUALITY_GATES' artifact-hygiene check requires no `var/` directory to
-exist in the repo tree at all). No live network call is made anywhere in this
-suite: `shadow scan` is only ever exercised against a freshly-bootstrapped but
+test so this suite never creates or touches the real, now outside-the-repo (P-KE-2E,
+2026-07-17), `~/.personalos/shadow/` directory. No live network call is made anywhere
+in this suite: `shadow scan` is only ever exercised against a freshly-bootstrapped but
 still-`trial`/unverified registry, so `LivePodcastFeedAdapter`'s own gate refuses
 before any HTTP client is constructed -- the same "structurally reachable, not
 actually reached" pattern `test_rails_knowledge_edge_podcasts.py` already
@@ -118,6 +117,27 @@ class ShadowBootstrapCommandTest(unittest.TestCase):
                 second_payload = json.loads(second.stdout)
                 self.assertEqual(second_payload["sources_flipped_to_active"], [])
                 self.assertEqual(len(second_payload["already_bootstrapped"]), 9)
+
+    def test_bootstrap_creates_missing_parent_directories_with_0700(self) -> None:
+        # P-KE-2E: the admitted shadow path now lives outside the repo, under a
+        # not-yet-existing home-directory tree (`~/.personalos/shadow/`), so both
+        # levels the bootstrap creates must come out private (0700), not just the
+        # innermost one -- Path.mkdir(mode=..., parents=True) does not apply `mode`
+        # to intermediate directories it also has to create.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            personalos_dir = Path(temp_dir) / ".personalos"
+            shadow_dir = personalos_dir / "shadow"
+            shadow_path = shadow_dir / "personalos-shadow.sqlite3"
+            self.assertFalse(personalos_dir.exists())
+
+            with mock.patch.object(shadow_mode, "SHADOW_DB_PATH", shadow_path):
+                result = _run_cli(
+                    ["knowledge-edge", "shadow", "bootstrap", "--db", str(shadow_path), "--json"]
+                )
+                self.assertEqual(result.code, 0, result.stderr)
+
+            self.assertEqual(personalos_dir.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(shadow_dir.stat().st_mode & 0o777, 0o700)
 
 
 class ShadowScanCommandTest(unittest.TestCase):

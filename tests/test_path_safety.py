@@ -6,6 +6,7 @@ from unittest import mock
 
 from personalos import cli
 from personalos import config as config_module
+from personalos import path_safety as path_safety_module
 from personalos.db.migrations import apply_migrations
 from personalos.path_safety import (
     reject_production_path,
@@ -157,6 +158,76 @@ class ProductionSqlitePathExceptionTest(unittest.TestCase):
 
             # A path with no production marker is unaffected by that guard.
             reject_production_path(Path(temp_dir) / "personal_os.db", path_label="db path")
+
+
+class AdmittedShadowPathTest(unittest.TestCase):
+    """P-KE-2E: the shadow DB was relocated outside the repo (AD-4 amendment,
+    2026-07-17 COLLISION finding) to `~/.personalos/shadow/personalos-shadow.sqlite3`
+    -- no longer admitted for free by `is_under_repo`. Every test here uses a temp-file
+    stand-in for `path_safety.SHADOW_DB_PATH`, monkeypatched only for the duration of
+    the test (mirroring `ProductionSqlitePathExceptionTest`'s own pattern for
+    `config.PRODUCTION_DB_PATH`). None of these tests ever resolve, stat, open, or
+    create a file at the real `~/.personalos/shadow/` location.
+    """
+
+    def test_admitted_shadow_path_stand_in_passes_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            stand_in_path = Path(temp_dir) / "not-under-repo-or-tmp" / "personalos-shadow.sqlite3"
+            stand_in_path.parent.mkdir(parents=True)
+            stand_in_path.touch()
+            with mock.patch.object(path_safety_module, "SHADOW_DB_PATH", stand_in_path):
+                validated = validate_existing_sqlite_path(
+                    str(stand_in_path), path_label="operator db_path"
+                )
+            self.assertEqual(validated, stand_in_path.resolve())
+
+    def test_admission_is_exact_path_not_a_broadened_directory_glob(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            stand_in_path = Path(temp_dir) / "personalos-shadow.sqlite3"
+            sibling_path = Path(temp_dir) / "not-the-shadow-db.sqlite3"
+            stand_in_path.touch()
+            sibling_path.touch()
+            with mock.patch.object(path_safety_module, "SHADOW_DB_PATH", stand_in_path):
+                with mock.patch("personalos.path_safety.is_under_temp", return_value=False):
+                    validated = validate_existing_sqlite_path(
+                        str(stand_in_path), path_label="operator db_path"
+                    )
+                    self.assertEqual(validated, stand_in_path.resolve())
+
+                    with self.assertRaises(ValueError):
+                        validate_existing_sqlite_path(
+                            str(sibling_path), path_label="operator db_path"
+                        )
+
+    def test_old_repo_local_shadow_path_no_longer_the_admitted_value(self) -> None:
+        # The old repo-local var/shadow/ path is still admissible as ordinary
+        # repo-local content (is_under_repo doesn't know about shadow specifically),
+        # but SHADOW_DB_PATH -- the value shadow_mode's fence actually requires an
+        # exact match against -- must no longer point at it.
+        self.assertNotEqual(
+            path_safety_module.SHADOW_DB_PATH.resolve(),
+            (config_module.RUNTIME_DIR / "shadow" / "personalos-shadow.sqlite3").resolve(),
+        )
+
+    def test_cli_connect_read_write_succeeds_for_admitted_shadow_stand_in(self) -> None:
+        # Proves the full path the shadow CLI commands take (_connect_read_write ->
+        # validate_existing_sqlite_path -> sqlite3.connect) succeeds end to end for the
+        # admitted stand-in, without ever touching the real ~/.personalos/shadow/ path.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            stand_in_path = Path(temp_dir) / "not-under-repo-or-tmp" / "personalos-shadow.sqlite3"
+            stand_in_path.parent.mkdir(parents=True)
+            connection = sqlite3.connect(stand_in_path)
+            try:
+                apply_migrations(connection)
+            finally:
+                connection.close()
+
+            with mock.patch.object(path_safety_module, "SHADOW_DB_PATH", stand_in_path):
+                connection = cli._connect_read_write(str(stand_in_path))
+                try:
+                    connection.execute("SELECT 1")
+                finally:
+                    connection.close()
 
 
 if __name__ == "__main__":

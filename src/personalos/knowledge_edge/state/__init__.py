@@ -227,6 +227,17 @@ from personalos.knowledge_edge.state.provider_cache import (
     purge_expired_person_search_cache_entries,
     count_person_search_cache_entries,
 )
+from personalos.knowledge_edge.state.edgar_identifiers import (
+    EDGAR_IDENTIFIER_STATUSES,
+    EDGAR_FILER_FORM_FAMILIES,
+    validate_edgar_identifier_status,
+    validate_edgar_filer_form_family,
+    create_edgar_identifier,
+    get_edgar_identifier,
+    list_edgar_identifiers,
+    list_confirmed_edgar_identifiers,
+    count_edgar_identifiers,
+)
 
 # Every table with a count_* helper above, i.e. every table _count_rows is allowed to
 # query (mirrors personalos.state.COUNTABLE_STATE_TABLES).
@@ -248,4 +259,5 @@ KE_COUNTABLE_TABLES = (
     "ke_roster_change_proposals",
     "ke_synthesis_handoffs",
     "ke_person_search_cache",
+    "ke_company_edgar_identifiers",
 )

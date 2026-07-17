@@ -49,16 +49,15 @@ SOURCE_ENDPOINT_STATUSES = ("active", "retired")
 # anything touching 'retired') refuses -- this helper is deliberately narrow, matching
 # exactly the flip the 2A smoke transcript's deferred-flips defect needed and no more.
 #
-# Naming note: the packet brief that requested this helper describes the pause target
-# as "suspended". `ke_sources.status`'s CHECK constraint (migration 00017) only allows
-# ('active', 'trial', 'paused', 'retired') -- there is no 'suspended' value, and adding
-# one is a schema change this packet's hard constraints forbid ("no migrations").
-# Rather than accept a status value `validate_source_status` allows but the database
-# CHECK constraint would then reject with an opaque `sqlite3.IntegrityError` (worse
-# than a clean `ValueError`), this helper maps the requested "active -> suspended ->
-# active" shape onto the schema's existing 'paused' value, which already carries the
-# same reversible, temporarily-offline meaning. Flagged here for Conductor
-# confirmation that 'paused' is the intended target, not a fourth status value.
+# Naming note, RULED (Conductor, iteration 3, 2026-07-16): the packet brief that
+# requested this helper described the pause target as "suspended". `ke_sources.status`'s
+# CHECK constraint (migration 00017) only allows ('active', 'trial', 'paused', 'retired')
+# -- there is no 'suspended' value. The Conductor has since ruled that "suspended" was
+# the brief's own vocabulary error, not an intended fourth status: the 1A schema's enum
+# is authoritative, so the transition contract is trial->active, active<->paused, and
+# everything else refuses, exactly as implemented below. The general process point
+# stands for future packets: a schema-vs-brief vocabulary conflict is stop-and-report,
+# not a silent mapping -- this instance happened to resolve in favor of the schema.
 SOURCE_STATUS_TRANSITIONS: dict[str, frozenset[str]] = {
     "trial": frozenset({"active"}),
     "active": frozenset({"paused"}),
@@ -260,6 +259,12 @@ def update_source_status(
     audits/knowledge-edge/2026-07-16-packet-2a-podcast-smoke-transcript.md). Generic
     across every `source_type` -- podcast feeds and YouTube channels/person-search
     sources share the same `ke_sources.status` column and transition rules.
+
+    Ruling note (Conductor, iteration 3, 2026-07-16): the brief's "active<->suspended"
+    wording was the Conductor's own vocabulary error; the 1A schema's status enum
+    ('paused', not 'suspended') is authoritative, so this helper's transitions stay
+    trial->active, active<->paused, everything else refused -- see the longer note on
+    `SOURCE_STATUS_TRANSITIONS` above.
     """
     source_id = _validate_required_text("source_id", source_id)
     new_status = validate_source_status(new_status)

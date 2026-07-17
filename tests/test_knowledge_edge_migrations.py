@@ -27,7 +27,7 @@ from personalos.db.migrations import (
 
 NEW_MIGRATION_VERSIONS = (
     "00017", "00018", "00019", "00020", "00021", "00022", "00023", "00024", "00025",
-    "00026",
+    "00026", "00027",
 )
 
 EXPECTED_KE_TABLES = {

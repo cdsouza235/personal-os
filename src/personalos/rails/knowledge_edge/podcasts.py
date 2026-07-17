@@ -85,7 +85,14 @@ _LANE_A_LIVE_ADMITTING_MODES = frozenset(
 )
 
 REQUEST_TIMEOUT_SECONDS = 10.0
-MAX_RESPONSE_BYTES = 2_000_000  # 2 MB; a 9-show launch roster's feeds are well under this.
+# 64 MB ceiling. The 2026-07-17 live shadow run (scan_run_id
+# shadow-scan-2026-07-17-92d26c4b...) showed the prior 2 MB cap refusing 6 of 9
+# verified feeds with STATUS_FETCH_RESPONSE_TOO_LARGE; smoke evidence (see
+# audits/knowledge-edge/2026-07-16-packet-2a-podcast-smoke-transcript.md session #2)
+# is that real verified feeds parse fine up to ~20 MB (Bankless=1342 items, Odd
+# Lots=1242, Unchained=1210). 64 MB is ~3x that measured high-water mark: enough
+# headroom for legitimate feeds while still bounding a hostile/runaway response.
+MAX_RESPONSE_BYTES = 64_000_000
 MAX_ITEMS_PER_FETCH = 200
 _EXCERPT_MAX_CHARS = 500
 
@@ -217,6 +224,21 @@ class PodcastFeedHttpClient:
             redirect_handler = _HostConfinedRedirectHandler(_extract_host(url))
             opener = urllib.request.build_opener(redirect_handler).open
         with opener(request, timeout=self._timeout_seconds) as response:
+            content_length = response.headers.get("Content-Length")
+            if content_length is not None:
+                try:
+                    declared_bytes = int(content_length)
+                except ValueError:
+                    declared_bytes = None
+                # A declared Content-Length over the cap is refused before the body is
+                # ever read -- cheap preflight, same refusal as the bounded-read check
+                # below for feeds that omit or lie about Content-Length.
+                if declared_bytes is not None and declared_bytes > self._max_response_bytes:
+                    raise PodcastFeedResponseTooLarge(
+                        f"feed response at {url!r} declared Content-Length "
+                        f"{declared_bytes} bytes, exceeding the {self._max_response_bytes}-byte "
+                        "cap; refusing before reading the body"
+                    )
             raw = response.read(self._max_response_bytes + 1)
         if len(raw) > self._max_response_bytes:
             raise PodcastFeedResponseTooLarge(

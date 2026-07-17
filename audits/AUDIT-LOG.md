@@ -18,3 +18,4 @@
 2026-07-17 | P-KE-2C | accept (i4, 0 findings; checksum redesign + ack-ordering + recall-minimum enforcement closed) | audits/knowledge-edge/packets/P-KE-2C/AUDIT.md
 2026-07-17 | P-KE-2D | accept_with_conditions (i1; fetch-cap retune, scope confirmed by orchestrator diff) | audits/knowledge-edge/packets/P-KE-2D/AUDIT.md
 2026-07-17 | P-KE-2E | accept_with_conditions (shadow DB relocated outside repo; path_safety G-GOV ratified) | audits/knowledge-edge/packets/P-KE-2E/AUDIT.md
+2026-07-17 | P-KE-3A | accept (i5, 0 findings; CIK pinning + filingDate-semantics rejects closed) | audits/knowledge-edge/packets/P-KE-3A/AUDIT.md

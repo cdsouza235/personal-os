@@ -1,0 +1,81 @@
+{
+  "auditor_objections": [],
+  "base_sha": "b9820eab6ecb19d9aed358ba2e8d87c3332d8302",
+  "changed_files": 15,
+  "coverage": {
+    "scanned_clean": 6,
+    "unmatched": 6
+  },
+  "diff_size_lines": 2272,
+  "family_concentration_note": null,
+  "files_not_covered_by_tests": [],
+  "gate_evidence": [
+    {
+      "blocking": true,
+      "command": "PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'",
+      "exit_code": 0,
+      "id": "unittest",
+      "output_head": "....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................",
+      "tested_sha": "23db85a7983208f55246b98f38562960bd60a037"
+    },
+    {
+      "blocking": true,
+      "command": "test -z \"$(find . -maxdepth 2 -name var -print)\" && test -z \"$(find . -path ./.git -prune -o \\( -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.db' \\) -print)\"",
+      "exit_code": 0,
+      "id": "artifact-hygiene",
+      "output_head": "",
+      "tested_sha": "23db85a7983208f55246b98f38562960bd60a037"
+    },
+    {
+      "blocking": true,
+      "command": "gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9",
+      "exit_code": 0,
+      "id": "secret-scan",
+      "output_head": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m1:32AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~6423687 bytes (6.42 MB) in 271ms\u001b[0m\n\u001b[90m1:32AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+      "tested_sha": "23db85a7983208f55246b98f38562960bd60a037"
+    }
+  ],
+  "gate_states": {
+    "G-GOV": "pending",
+    "G0": "pending",
+    "G1": "pending"
+  },
+  "generated_at_target_head": "b9820eab6ecb19d9aed358ba2e8d87c3332d8302",
+  "head_sha": "23db85a7983208f55246b98f38562960bd60a037",
+  "header_status": "pass",
+  "iteration_count": 6,
+  "packet_id": "P-KE-2A",
+  "required_gates": [
+    "G0",
+    "G-GOV",
+    "G1"
+  ],
+  "review_tier_declared": "routine",
+  "review_tier_effective": "high_stakes",
+  "risk_flags": [
+    "new_top_level_dir:docs/knowledge_edge/PACKET_2A_PODCAST_SUPERVISED_SMOKE.md",
+    "protected_path:migrations/00023_knowledge_edge_lane_a_endpoints.sql",
+    "new_top_level_dir:migrations/00023_knowledge_edge_lane_a_endpoints.sql",
+    "unknown_extension:migrations/00023_knowledge_edge_lane_a_endpoints.sql",
+    "protected_path:migrations/00024_knowledge_edge_media_cross_run_identity.sql",
+    "new_top_level_dir:migrations/00024_knowledge_edge_media_cross_run_identity.sql",
+    "unknown_extension:migrations/00024_knowledge_edge_media_cross_run_identity.sql",
+    "protected_path:src/personalos/knowledge_edge/adapters/contracts.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/adapters/contracts.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/scan_orchestrator.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/__init__.py",
+    "new_top_level_dir:src/personalos/knowledge_edge/state/media.py",
+    "new_top_level_dir:src/personalos/rails/knowledge_edge/__init__.py",
+    "new_top_level_dir:src/personalos/rails/knowledge_edge/podcasts.py",
+    "test_weakening",
+    "project_governance_manifest",
+    "over_diff_cap",
+    "iteration_cap"
+  ],
+  "rollback_note": "revert the merge commit",
+  "rubber_stamp_note": "",
+  "rubber_stamp_tripped": false,
+  "third_reviewer_reasoning": "The change is inert at merge time: the live adapter defaults to disabled feature mode, no caller wires it into the orchestrator, all 9 seeded sources remain status='trial', and all endpoint_verified_at/verified_by stay NULL, so the multi-layer gate refuses every live fetch regardless of feature mode. Migrations 00023/00024 are purely additive (nullable columns, new rows, one index), and the cross-run correction path routes through existing state-layer APIs with decision-history audit rows. The auditor's medium finding \u2014 the smoke-procedure doc references state-layer helpers for trial\u2192active promotion that don't exist yet \u2014 is a real post-merge procedure gap worth flagging to human reviewers, but it does not make live network reachable at merge and thus does not block proceeding to human merge review.",
+  "verified_by": "orchestrator",
+  "ways_this_could_be_wrong": []
+}

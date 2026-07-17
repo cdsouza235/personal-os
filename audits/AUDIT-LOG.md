@@ -13,3 +13,4 @@
 2026-07-16 | P-KE-1C | accept_with_conditions (i2, 0 findings; CLI-rendering reject closed) | audits/knowledge-edge/packets/P-KE-1C/AUDIT.md
 2026-07-16 | P-KE-1D | accept (i7, 0 findings; C1-C4 remediation + traceability + expiry-history rejects closed) | audits/knowledge-edge/packets/P-KE-1D/AUDIT.md
 2026-07-16 | KE Phase 1 | phase-end Fable: HOLD (C1-C5) → P-KE-1D → re-verification → SIGN_OFF | audits/ke-phase-1-phase-end-fable-report.md
+2026-07-16 | P-KE-2A | accept_with_conditions (i5; inertness+endpoints+gate-hardening+coverage-honesty+no-downgrade all closed; scope amendment ratified at G-GOV) | audits/knowledge-edge/packets/P-KE-2A/AUDIT.md

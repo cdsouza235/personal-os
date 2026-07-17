@@ -56,6 +56,7 @@ from personalos.rails.knowledge_edge.youtube import (
     MalformedSearchResponseError,
     PersonSearchCacheEntry,
     PersonSearchResult,
+    SqlitePersonSearchCache,
     YoutubeChannelFeedHttpClient,
     YoutubeRailRedirectQuarantined,
     YoutubeRailResponseTooLarge,
@@ -959,6 +960,129 @@ class InMemoryPersonSearchCacheTest(unittest.TestCase):
         self.assertEqual(removed, 1)
         self.assertIsNone(cache.get(person_id="p1", query="q-old"))
         self.assertIsNotNone(cache.get(person_id="p1", query="q-new"))
+
+
+class SqlitePersonSearchCacheTest(unittest.TestCase):
+    """P-KE-2B iteration 2 (finding F1): the SQLite-backed `PersonSearchCacheStore`
+    `LiveYoutubePersonSearchClient` now defaults to, exercised directly against a
+    migrated connection -- same Protocol contract `InMemoryPersonSearchCacheTest`
+    already covers, proven here against real persisted rows instead."""
+
+    def test_get_returns_none_when_absent(self) -> None:
+        with _migrated_test_connection() as connection:
+            cache = SqlitePersonSearchCache(connection)
+            self.assertIsNone(cache.get(person_id="p1", query="q"))
+
+    def test_put_then_get_round_trips(self) -> None:
+        with _migrated_test_connection() as connection:
+            cache = SqlitePersonSearchCache(connection)
+            result = PersonSearchResult(
+                video_id="v1", channel_id="c1", title="t", channel_title="ct",
+                published_at="2026-06-01T00:00:00+00:00", description_excerpt="d",
+            )
+            entry = PersonSearchCacheEntry(
+                person_id="p1",
+                query="Kevin Warsh",
+                results=(result,),
+                fetched_at=NOW.isoformat(),
+                expires_at=(NOW + timedelta(days=30)).isoformat(),
+            )
+            cache.put(entry)
+            fetched = cache.get(person_id="p1", query="Kevin Warsh")
+        self.assertEqual(fetched, entry)
+
+    def test_put_replaces_prior_entry_for_the_same_key(self) -> None:
+        with _migrated_test_connection() as connection:
+            cache = SqlitePersonSearchCache(connection)
+            stale_result = PersonSearchResult(
+                video_id="stale", channel_id="c", title="t", channel_title="ct",
+                published_at=None, description_excerpt="",
+            )
+            fresh_result = PersonSearchResult(
+                video_id="fresh", channel_id="c", title="t2", channel_title="ct",
+                published_at=None, description_excerpt="",
+            )
+            cache.put(PersonSearchCacheEntry(
+                person_id="p1", query="q", results=(stale_result,),
+                fetched_at=NOW.isoformat(), expires_at=(NOW + timedelta(days=30)).isoformat(),
+            ))
+            cache.put(PersonSearchCacheEntry(
+                person_id="p1", query="q", results=(fresh_result,),
+                fetched_at=NOW.isoformat(), expires_at=(NOW + timedelta(days=30)).isoformat(),
+            ))
+            entry = cache.get(person_id="p1", query="q")
+        self.assertEqual(entry.results, (fresh_result,))
+
+    def test_delete_removes_entry(self) -> None:
+        with _migrated_test_connection() as connection:
+            cache = SqlitePersonSearchCache(connection)
+            entry = PersonSearchCacheEntry(
+                person_id="p1", query="q", results=(),
+                fetched_at=NOW.isoformat(), expires_at=(NOW + timedelta(days=30)).isoformat(),
+            )
+            cache.put(entry)
+            cache.delete(person_id="p1", query="q")
+            self.assertIsNone(cache.get(person_id="p1", query="q"))
+
+    def test_purge_expired_removes_only_expired_entries(self) -> None:
+        with _migrated_test_connection() as connection:
+            cache = SqlitePersonSearchCache(connection)
+            expired = PersonSearchCacheEntry(
+                person_id="p1", query="q-old", results=(),
+                fetched_at=NOW.isoformat(), expires_at=(NOW - timedelta(days=1)).isoformat(),
+            )
+            fresh = PersonSearchCacheEntry(
+                person_id="p1", query="q-new", results=(),
+                fetched_at=NOW.isoformat(), expires_at=(NOW + timedelta(days=1)).isoformat(),
+            )
+            cache.put(expired)
+            cache.put(fresh)
+            removed = cache.purge_expired(now=NOW)
+            self.assertEqual(removed, 1)
+            self.assertIsNone(cache.get(person_id="p1", query="q-old"))
+            self.assertIsNotNone(cache.get(person_id="p1", query="q-new"))
+
+    def test_entry_survives_a_new_connection_to_the_same_database_file(self) -> None:
+        # The requirement F1 actually names: a fresh process (a brand-new connection
+        # to the same on-disk file, standing in for a real restart) must still see a
+        # previously cached result -- something InMemoryPersonSearchCache structurally
+        # cannot do.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime_dir = Path(temp_dir) / "runtime"
+            config = PersonalOSConfig(
+                environment=Environment.TEST,
+                timezone=DEFAULT_TIMEZONE,
+                database_path=runtime_dir / "test" / "personalos.sqlite3",
+            )
+            first_connection = connect_sqlite(config, runtime_dir=runtime_dir)
+            apply_migrations(first_connection)
+            entry = PersonSearchCacheEntry(
+                person_id="p1", query="Kevin Warsh", results=(),
+                fetched_at=NOW.isoformat(), expires_at=(NOW + timedelta(days=30)).isoformat(),
+            )
+            SqlitePersonSearchCache(first_connection).put(entry)
+            first_connection.close()
+
+            second_connection = connect_sqlite(config, runtime_dir=runtime_dir)
+            try:
+                fetched = SqlitePersonSearchCache(second_connection).get(
+                    person_id="p1", query="Kevin Warsh"
+                )
+            finally:
+                second_connection.close()
+        self.assertEqual(fetched, entry)
+
+    def test_default_cache_store_is_sqlite_backed_not_in_memory(self) -> None:
+        with _migrated_test_connection() as connection:
+            _seed_verified_search_source(connection, source_id="src-search-default-cache")
+            client = LiveYoutubePersonSearchClient(
+                connection,
+                feature_mode="shadow_live",
+                client=_FakeSearchClient(body=SEARCH_RESPONSE_BASIC),
+                source_id="src-search-default-cache",
+            )
+            self.assertIsInstance(client._cache_store, SqlitePersonSearchCache)
+            self.assertNotIsInstance(client._cache_store, InMemoryPersonSearchCache)
 
 
 def _seed_channel_source(

@@ -51,30 +51,30 @@ forbid migrations), so `LiveYoutubePersonSearchClient._evaluate_gates` refuses w
 credential presence, until a future packet seeds that row and runs its own
 supervised smoke.
 
-**A known, deliberately surfaced schema gap -- provider-metadata TTL cache.**
-Amendment §10.4/§13.4 requires Data-API-sourced display metadata (titles,
+**Provider-metadata TTL cache -- now SQLite-backed (P-KE-2B iteration 2, finding
+F1).** Amendment §10.4/§13.4 requires Data-API-sourced display metadata (titles,
 descriptions, channel names, for the person-search use only) to live in "a
-TTL-controlled refreshable cache with expiry, refresh, and deletion tests," and this
-packet's own brief describes that structure as something "1A's schema provides."
-That is not what this repo's migrations actually contain: `migrations/00017`-`00024`
-were re-read in full while building this packet, and none of them define any
-provider-metadata cache table -- `PHASE0_TRACEABILITY.md` §10.4/§13.4 rows
-independently confirm the cache/TTL implementation itself was always planned as
-Packet 2B/3A *implementation* work, not something 1A had already shipped. Since this
-packet's own hard constraints forbid migrations, and inventing an undocumented
-persistence mechanism for it would be worse than no persistence at all, the TTL
-cache is implemented here as a pure-Python, injectable `PersonSearchCacheStore`
-Protocol (`expiry`/`refresh`/`deletion` semantics, all covered by this module's
-tests) with an in-memory reference implementation (`InMemoryPersonSearchCache`).
-**No SQLite-backed implementation ships in this packet.** A durable store needs its
-own migration and is a named defect-back item for whichever future packet actually
-wires `LiveYoutubePersonSearchClient` into a real scan -- mirroring exactly how the
-P-KE-2A podcast smoke transcript's "flips deferred" defect got closed by naming the
-next packet's scope rather than working around the missing state-layer helpers in
-place (`audits/knowledge-edge/2026-07-16-packet-2a-podcast-smoke-transcript.md`).
-Since the channel/person-search source registries both ship empty this packet, this
-gap has no live consequence yet -- it is flagged here so it is not silently
-rediscovered later.
+TTL-controlled refreshable cache with expiry, refresh, and deletion tests." Iteration
+1 of this packet verified in full that no migration (`00017`-`00024`) actually
+defined such a table despite the amendment's text describing it as something "1A's
+schema provides," and shipped a pure-Python injectable `PersonSearchCacheStore`
+Protocol with only an in-memory reference implementation
+(`InMemoryPersonSearchCache`) while flagging the gap rather than inventing
+undocumented persistence. Iteration 2's own audit named that in-memory default a
+high-severity finding (F1: a cache that does not survive a process restart is not
+the durable cache §10.4/§13.4 require) and explicitly reopened this packet's declared
+state additions to close it. `SqlitePersonSearchCache` (below) is now the default
+`cache_store` `LiveYoutubePersonSearchClient` constructs: it persists through
+`ke_person_search_cache` (migration `00025`,
+`personalos.knowledge_edge.state.provider_cache`), so expiry/refresh/deletion
+semantics survive a restart, backed by real SQLite rows rather than a dict that dies
+with the process. `InMemoryPersonSearchCache` remains available -- still Protocol-
+conformant, still fully tested -- as an explicit, documented test/dev double a caller
+can inject, but it is no longer the default. Adding this table required one new,
+purely-additive migration despite this packet's original "no migrations" framing;
+see migration `00025`'s own header for why that deviation mirrors the identical
+precedent migration `00024` already set (a Conductor iteration-2 scope amendment
+closing an audit-named gap the original packet brief did not anticipate).
 
 **A known, deliberately surfaced classification gap -- channel-upload `format_hint`.**
 `scan_orchestrator.py` calls `engine.directness.classify_directness(format_hint=
@@ -787,12 +787,13 @@ class PersonSearchCacheStore(Protocol):
 
 
 class InMemoryPersonSearchCache:
-    """Pure-Python reference implementation of `PersonSearchCacheStore`. See module
-    docstring's "known, deliberately surfaced schema gap" section for why no
-    SQLite-backed store ships in this packet. A `put` for a key already present
-    fully replaces the prior entry (never appends), so a person/query whose result
-    set changed on refresh -- including a previously-returned video no longer coming
-    back, e.g. because it was deleted -- does not accumulate stale rows."""
+    """Pure-Python reference implementation of `PersonSearchCacheStore`, kept as an
+    explicit, documented test/dev double -- `LiveYoutubePersonSearchClient` no longer
+    defaults to this (see `SqlitePersonSearchCache` below, P-KE-2B iteration 2 finding
+    F1). A `put` for a key already present fully replaces the prior entry (never
+    appends), so a person/query whose result set changed on refresh -- including a
+    previously-returned video no longer coming back, e.g. because it was deleted --
+    does not accumulate stale rows."""
 
     def __init__(self) -> None:
         self._entries: dict[tuple[str, str], PersonSearchCacheEntry] = {}
@@ -812,6 +813,81 @@ class InMemoryPersonSearchCache:
         for key in expired_keys:
             del self._entries[key]
         return len(expired_keys)
+
+
+def _serialize_person_search_results(results: Sequence[PersonSearchResult]) -> str:
+    payload = [
+        {
+            "video_id": result.video_id,
+            "channel_id": result.channel_id,
+            "title": result.title,
+            "channel_title": result.channel_title,
+            "published_at": result.published_at,
+            "description_excerpt": result.description_excerpt,
+        }
+        for result in results
+    ]
+    return json.dumps(payload, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+
+
+def _deserialize_person_search_results(results_json: str) -> tuple[PersonSearchResult, ...]:
+    payload = json.loads(results_json)
+    return tuple(
+        PersonSearchResult(
+            video_id=item["video_id"],
+            channel_id=item["channel_id"],
+            title=item["title"],
+            channel_title=item["channel_title"],
+            published_at=item["published_at"],
+            description_excerpt=item["description_excerpt"],
+        )
+        for item in payload
+    )
+
+
+def _person_search_cache_entry_from_row(row: Mapping[str, Any]) -> PersonSearchCacheEntry:
+    return PersonSearchCacheEntry(
+        person_id=row["person_id"],
+        query=row["query"],
+        results=_deserialize_person_search_results(row["results_json"]),
+        fetched_at=row["fetched_at"],
+        expires_at=row["expires_at"],
+    )
+
+
+class SqlitePersonSearchCache:
+    """SQLite-backed `PersonSearchCacheStore`, persisted through
+    `ke_person_search_cache` (migration `00025`,
+    `personalos.knowledge_edge.state.provider_cache`) -- the default
+    `LiveYoutubePersonSearchClient` constructs, so cached display metadata survives a
+    process restart (P-KE-2B iteration 2 finding F1; see module docstring). This class
+    owns encoding/decoding `PersonSearchResult` tuples to/from `results_json`; the
+    state module itself stores that column as an opaque string and never imports this
+    module's dataclasses, matching this package's state/rails layering (AD-1)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        self._connection = connection
+
+    def get(self, *, person_id: str, query: str) -> PersonSearchCacheEntry | None:
+        row = ke.get_person_search_cache_entry(self._connection, person_id=person_id, query=query)
+        return None if row is None else _person_search_cache_entry_from_row(row)
+
+    def put(self, entry: PersonSearchCacheEntry) -> None:
+        ke.put_person_search_cache_entry(
+            self._connection,
+            person_id=entry.person_id,
+            query=entry.query,
+            results_json=_serialize_person_search_results(entry.results),
+            fetched_at=entry.fetched_at,
+            expires_at=entry.expires_at,
+        )
+
+    def delete(self, *, person_id: str, query: str) -> None:
+        ke.delete_person_search_cache_entry(self._connection, person_id=person_id, query=query)
+
+    def purge_expired(self, *, now: datetime) -> int:
+        now_iso = now.astimezone(UTC).isoformat()
+        return ke.purge_expired_person_search_cache_entries(self._connection, now=now_iso)
 
 
 @dataclass(frozen=True)
@@ -882,7 +958,9 @@ class LiveYoutubePersonSearchClient:
         self._credential_env_var = credential_env_var
         self._source_id = source_id
         self._client = client if client is not None else YoutubeSearchHttpClient()
-        self._cache_store = cache_store if cache_store is not None else InMemoryPersonSearchCache()
+        self._cache_store = (
+            cache_store if cache_store is not None else SqlitePersonSearchCache(connection)
+        )
         self._max_calls_per_scan = max_calls_per_scan
         self._calls_made_this_scan = 0
 

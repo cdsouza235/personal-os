@@ -220,6 +220,13 @@ from personalos.knowledge_edge.state.synthesis import (
     count_synthesis_handoffs,
     complete_synthesis_handoff,
 )
+from personalos.knowledge_edge.state.provider_cache import (
+    put_person_search_cache_entry,
+    get_person_search_cache_entry,
+    delete_person_search_cache_entry,
+    purge_expired_person_search_cache_entries,
+    count_person_search_cache_entries,
+)
 
 # Every table with a count_* helper above, i.e. every table _count_rows is allowed to
 # query (mirrors personalos.state.COUNTABLE_STATE_TABLES).
@@ -240,4 +247,5 @@ KE_COUNTABLE_TABLES = (
     "ke_coverage_reports",
     "ke_roster_change_proposals",
     "ke_synthesis_handoffs",
+    "ke_person_search_cache",
 )

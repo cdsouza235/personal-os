@@ -147,6 +147,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     "00022",
                     "00023",
                     "00024",
+                    "00025",
                 ],
             )
 
@@ -161,7 +162,7 @@ class RuntimeBootstrapExecutionTest(unittest.TestCase):
                     ("runtime_bootstrap_runs",),
                 ).fetchone()
 
-                self.assertEqual(len(rows), 24)
+                self.assertEqual(len(rows), 25)
             self.assertIsNotNone(table)
 
     def test_bootstrap_enables_sqlite_foreign_keys(self) -> None:

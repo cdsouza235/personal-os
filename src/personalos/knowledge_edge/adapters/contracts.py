@@ -112,6 +112,13 @@ class AdapterFetchResult:
     ``healthy=False`` means the orchestrator must not advance this source's scan
     cursor and must record degraded/failed source health (amendment §17.2: "never
     advance a failed source cursor").
+
+    ``dropped_items`` counts items the adapter saw but did not surface in
+    ``items``, keyed by a short machine-readable reason (e.g. ``"missing_guid"``).
+    An adapter that never drops anything (every current fixture) leaves this at
+    its default empty mapping -- the field exists so a source that silently
+    filters malformed input has somewhere honest to say so, instead of that count
+    being indistinguishable from "the feed had nothing new."
     """
 
     source_id: str
@@ -119,6 +126,7 @@ class AdapterFetchResult:
     next_cursor_value: str | None
     healthy: bool
     error_summary: str | None = None
+    dropped_items: Mapping[str, int] = field(default_factory=dict)
 
 
 class PodcastFeedAdapter(Protocol):

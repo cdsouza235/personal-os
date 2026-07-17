@@ -25,7 +25,7 @@ from personalos.db.migrations import (
     discover_migrations,
 )
 
-NEW_MIGRATION_VERSIONS = ("00017", "00018", "00019", "00020", "00021", "00022")
+NEW_MIGRATION_VERSIONS = ("00017", "00018", "00019", "00020", "00021", "00022", "00023", "00024")
 
 EXPECTED_KE_TABLES = {
     "ke_sources",
@@ -128,7 +128,7 @@ class KnowledgeEdgeMigrationSchemaTest(unittest.TestCase):
 
         new_indexes = [versions.index(version) for version in NEW_MIGRATION_VERSIONS]
         self.assertEqual(new_indexes, sorted(new_indexes))
-        self.assertEqual(versions[-6:], list(NEW_MIGRATION_VERSIONS))
+        self.assertEqual(versions[-len(NEW_MIGRATION_VERSIONS):], list(NEW_MIGRATION_VERSIONS))
 
     def test_migrations_are_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -139,16 +139,17 @@ class KnowledgeEdgeMigrationSchemaTest(unittest.TestCase):
                 first_applied = apply_migrations(connection)
                 second_applied = apply_migrations(connection)
 
+                placeholders = ", ".join("?" for _ in NEW_MIGRATION_VERSIONS)
                 rows = connection.execute(
                     f"SELECT version, checksum FROM {MIGRATION_METADATA_TABLE} "
-                    "WHERE version IN (?, ?, ?, ?, ?, ?)",
+                    f"WHERE version IN ({placeholders})",
                     NEW_MIGRATION_VERSIONS,
                 ).fetchall()
 
         applied_new = [m.version for m in first_applied if m.version in NEW_MIGRATION_VERSIONS]
         self.assertEqual(applied_new, list(NEW_MIGRATION_VERSIONS))
         self.assertEqual(second_applied, [])
-        self.assertEqual(len(rows), 6)
+        self.assertEqual(len(rows), len(NEW_MIGRATION_VERSIONS))
         for row in rows:
             self.assertTrue(row["checksum"])
 

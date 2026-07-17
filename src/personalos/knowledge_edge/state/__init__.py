@@ -127,6 +127,8 @@ from personalos.knowledge_edge.state.media import (
     create_media_item,
     get_media_item,
     get_media_item_by_dedupe_key,
+    get_media_item_by_underlying_id,
+    update_media_item_identity,
     list_media_items,
     count_media_items,
     update_media_content_status,

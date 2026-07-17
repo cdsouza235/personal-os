@@ -27,6 +27,7 @@ from personalos.knowledge_edge.shadow_report import (
     PERSON_SEARCH_PER_SCAN_BUDGET,
     build_lane_a_coverage,
     compute_lane_metrics,
+    evaluate_recall_minimum,
     merge_precision_verdicts,
     render_shadow_report,
 )
@@ -212,6 +213,8 @@ class RenderShadowReportTest(unittest.TestCase):
             lane_a_metrics=self._metrics(),
             lane_b_metrics=self._metrics(),
             lane_c_metrics=self._metrics(),
+            lane_b_recall_minimum=1,
+            lane_c_recall_minimum=1,
             lane_d_event_count=0,
             lane_d_window_start="2026-07-01",
             lane_d_window_end="2026-07-14",
@@ -229,6 +232,8 @@ class RenderShadowReportTest(unittest.TestCase):
             lane_a_metrics=self._metrics(),
             lane_b_metrics=self._metrics(),
             lane_c_metrics=self._metrics(),
+            lane_b_recall_minimum=1,
+            lane_c_recall_minimum=1,
             lane_d_event_count=2,
             lane_d_window_start="2026-07-01",
             lane_d_window_end="2026-07-14",
@@ -246,12 +251,130 @@ class RenderShadowReportTest(unittest.TestCase):
             lane_a_metrics=self._metrics(),
             lane_b_metrics=self._metrics(),
             lane_c_metrics=self._metrics(),
+            lane_b_recall_minimum=1,
+            lane_c_recall_minimum=1,
             lane_d_event_count=1,
             lane_d_window_start="2026-07-01",
             lane_d_window_end="2026-07-14",
             person_search_calls_made=10,
         )
         self.assertEqual(render_shadow_report(**kwargs), render_shadow_report(**kwargs))
+
+
+class EvaluateRecallMinimumTest(unittest.TestCase):
+    def test_graded_count_at_or_above_minimum_passes(self) -> None:
+        metrics = compute_lane_metrics(
+            lane="market_voices",
+            precision_items=[],
+            recall_items=[{"found_by_system": True}] * 10 + [{"found_by_system": False}] * 5,
+        )
+        status = evaluate_recall_minimum(metrics, minimum=15)
+        self.assertEqual(status.graded_count, 15)
+        self.assertTrue(status.meets_minimum)
+
+    def test_graded_count_below_minimum_fails(self) -> None:
+        metrics = compute_lane_metrics(
+            lane="consequential_leaders",
+            precision_items=[],
+            recall_items=[{"found_by_system": True}] * 9,
+        )
+        status = evaluate_recall_minimum(metrics, minimum=10)
+        self.assertEqual(status.graded_count, 9)
+        self.assertFalse(status.meets_minimum)
+
+    def test_ungraded_entries_do_not_count_toward_the_minimum(self) -> None:
+        # 20 recall-check entries exist (recall_sample_size == 20) but only 5 have
+        # actually been graded -- Part 3 requires the minimum to be *checked*, not
+        # merely present in the array.
+        metrics = compute_lane_metrics(
+            lane="market_voices",
+            precision_items=[],
+            recall_items=[{"found_by_system": True}] * 5 + [{}] * 15,
+        )
+        status = evaluate_recall_minimum(metrics, minimum=15)
+        self.assertEqual(metrics.recall_sample_size, 20)
+        self.assertEqual(status.graded_count, 5)
+        self.assertFalse(status.meets_minimum)
+
+    def test_exactly_at_minimum_passes(self) -> None:
+        metrics = compute_lane_metrics(
+            lane="consequential_leaders",
+            precision_items=[],
+            recall_items=[{"found_by_system": False}] * 10,
+        )
+        status = evaluate_recall_minimum(metrics, minimum=10)
+        self.assertTrue(status.meets_minimum)
+
+
+class RenderShadowReportRecallMinimumTest(unittest.TestCase):
+    def _metrics_with_recall_count(self, count: int, **overrides):
+        base = dict(
+            lane="x",
+            precision_items=[{"verdict": "confirmed"}],
+            recall_items=[{"found_by_system": True}] * count,
+        )
+        base.update(overrides)
+        return compute_lane_metrics(**base)
+
+    def _report(self, *, lane_b_recall_minimum: int, lane_c_recall_minimum: int, lane_b_count: int, lane_c_count: int) -> str:
+        with _migrated_connection() as connection:
+            coverage = build_lane_a_coverage(connection)
+        return render_shadow_report(
+            report_date="2026-07-31",
+            lane_a_coverage=coverage,
+            lane_a_metrics=self._metrics_with_recall_count(0),
+            lane_b_metrics=self._metrics_with_recall_count(lane_b_count),
+            lane_c_metrics=self._metrics_with_recall_count(lane_c_count),
+            lane_b_recall_minimum=lane_b_recall_minimum,
+            lane_c_recall_minimum=lane_c_recall_minimum,
+            lane_d_event_count=0,
+            lane_d_window_start="2026-07-01",
+            lane_d_window_end="2026-07-14",
+            person_search_calls_made=None,
+        )
+
+    def test_both_lanes_meeting_minimum_show_pass_and_no_banner(self) -> None:
+        report = self._report(
+            lane_b_recall_minimum=15, lane_c_recall_minimum=10, lane_b_count=15, lane_c_count=10
+        )
+        self.assertIn("Recall check minimum (Part 3): 15/15", report)
+        self.assertIn("Recall check minimum (Part 3): 10/10", report)
+        self.assertEqual(report.count("PASS"), 2)
+        self.assertNotIn("FAIL", report)
+        self.assertNotIn("BELOW-MINIMUM RECALL SAMPLE", report)
+
+    def test_lane_b_below_minimum_fails_and_raises_banner(self) -> None:
+        report = self._report(
+            lane_b_recall_minimum=15, lane_c_recall_minimum=10, lane_b_count=12, lane_c_count=10
+        )
+        self.assertIn("Recall check minimum (Part 3): 12/15", report)
+        self.assertIn("FAIL", report)
+        self.assertIn("BELOW-MINIMUM RECALL SAMPLE", report)
+        self.assertIn("Lane B (12/15)", report)
+
+    def test_lane_c_below_minimum_fails_and_raises_banner(self) -> None:
+        report = self._report(
+            lane_b_recall_minimum=15, lane_c_recall_minimum=10, lane_b_count=15, lane_c_count=4
+        )
+        self.assertIn("Recall check minimum (Part 3): 4/10", report)
+        self.assertIn("BELOW-MINIMUM RECALL SAMPLE", report)
+        self.assertIn("Lane C (4/10)", report)
+
+    def test_both_lanes_below_minimum_names_both_in_banner(self) -> None:
+        report = self._report(
+            lane_b_recall_minimum=15, lane_c_recall_minimum=10, lane_b_count=1, lane_c_count=1
+        )
+        self.assertIn("Lane B (1/15)", report)
+        self.assertIn("Lane C (1/10)", report)
+        self.assertEqual(report.count("FAIL"), 2)
+
+    def test_banner_appears_before_the_provisional_thresholds_paragraph(self) -> None:
+        report = self._report(
+            lane_b_recall_minimum=15, lane_c_recall_minimum=10, lane_b_count=1, lane_c_count=10
+        )
+        banner_index = report.index("BELOW-MINIMUM RECALL SAMPLE")
+        thresholds_index = report.index("Amendment §19 Phase 2 acceptance")
+        self.assertLess(banner_index, thresholds_index)
 
 
 if __name__ == "__main__":

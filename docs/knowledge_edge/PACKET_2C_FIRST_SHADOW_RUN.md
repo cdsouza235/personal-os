@@ -301,6 +301,18 @@ Commit the resulting `SHADOW_REPORT_<date>.md` alongside the sample and grades
 files. This report measures against Phase 0's *provisional* thresholds only — it
 does not itself ratify anything; final thresholds remain a Session 2 decision.
 
+The report also reads each lane's `lane_b_recall_check_minimum`/
+`lane_c_recall_check_minimum` straight from the frozen sample (never a hardcoded
+guess) and surfaces, per lane, how many recall-check entries were actually graded
+against that minimum, marked `PASS`/`FAIL`. If §7's `lane_b_recall_check`/
+`lane_c_recall_check` graded count falls short of the minimum, the report opens
+with a **BELOW-MINIMUM RECALL SAMPLE** banner naming exactly which lane(s) are
+short — the recall numbers below the banner are still reported honestly (never
+hidden), but the shortfall itself is never allowed to render as a clean-looking
+report. Do not treat a below-minimum lane's recall percentage as a real
+measurement; go back to §7 and grade more independently-identified appearances
+before relying on it.
+
 ---
 
 ## 9. Combined STOP conditions

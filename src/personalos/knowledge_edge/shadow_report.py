@@ -62,6 +62,11 @@ LANE_A_SOURCE_IDS: tuple[str, ...] = tuple(
     flip.source_id for flip in LANE_A_SHADOW_VERIFICATION_FLIPS
 )
 
+LANE_LABELS_SHORT: dict[str, str] = {
+    "market_voices": "Lane B",
+    "consequential_leaders": "Lane C",
+}
+
 NAMED_COVERAGE_GAP_SEC10_3 = (
     "No §10.3-approved YouTube channel has been seeded yet in this repo (migration "
     "history seeds zero `youtube_channel` source rows) -- Lane B/C official-channel "
@@ -164,6 +169,33 @@ def compute_lane_metrics(
 
 
 @dataclass(frozen=True)
+class RecallMinimumStatus:
+    lane: str
+    graded_count: int
+    minimum: int
+    meets_minimum: bool
+
+
+def evaluate_recall_minimum(metrics: LaneGradingMetrics, *, minimum: int) -> RecallMinimumStatus:
+    """Compares a lane's *graded* recall-check count (Part 3: "independently-
+    identified known appearances **checked** for whether the system found them") --
+    not the raw `recall_sample_size`, since an ungraded recall entry has not
+    actually been checked yet -- against that lane's declared minimum from the
+    frozen sample (`lane_b_recall_check_minimum`/`lane_c_recall_check_minimum`).
+    Never silently dropped: `render_shadow_report` surfaces this next to the
+    measured recall rate and fails the report's overall banner if any lane is
+    short.
+    """
+    graded_count = metrics.recall_found + metrics.recall_missed
+    return RecallMinimumStatus(
+        lane=metrics.lane,
+        graded_count=graded_count,
+        minimum=minimum,
+        meets_minimum=graded_count >= minimum,
+    )
+
+
+@dataclass(frozen=True)
 class LaneACoverageRow:
     source_id: str
     name: str
@@ -252,6 +284,8 @@ def render_shadow_report(
     lane_a_metrics: LaneGradingMetrics,
     lane_b_metrics: LaneGradingMetrics,
     lane_c_metrics: LaneGradingMetrics,
+    lane_b_recall_minimum: int,
+    lane_c_recall_minimum: int,
     lane_d_event_count: int,
     lane_d_window_start: str,
     lane_d_window_end: str,
@@ -261,9 +295,30 @@ def render_shadow_report(
     sample_markdown_path: str = "",
     sample_checksum: str = "",
 ) -> str:
+    recall_statuses = {
+        "market_voices": evaluate_recall_minimum(lane_b_metrics, minimum=lane_b_recall_minimum),
+        "consequential_leaders": evaluate_recall_minimum(lane_c_metrics, minimum=lane_c_recall_minimum),
+    }
+    any_below_recall_minimum = any(not status.meets_minimum for status in recall_statuses.values())
+
     lines: list[str] = [
         f"# Knowledge Edge -- Shadow Report ({report_date})",
         "",
+    ]
+    if any_below_recall_minimum:
+        below = ", ".join(
+            f"{LANE_LABELS_SHORT[lane]} ({status.graded_count}/{status.minimum})"
+            for lane, status in recall_statuses.items()
+            if not status.meets_minimum
+        )
+        lines.append(
+            "**BELOW-MINIMUM RECALL SAMPLE** -- at least one lane's recall check has not "
+            f"reached its Part 3 minimum graded sample size: {below}. This report's recall "
+            "numbers below are honest about what was graded, but must not be read as a "
+            "complete recall measurement until the minimum is met."
+        )
+        lines.append("")
+    lines += [
         "Amendment §19 Phase 2 acceptance: per-lane precision/recall/duplicate-leakage "
         "measured against the frozen, Conductor-acknowledged ground-truth sample "
         f"(`{sample_markdown_path}`, sha256 `{sample_checksum}`); relative to provisional "
@@ -328,7 +383,11 @@ def render_shadow_report(
     lines.append("- No recall stratum for Lane A (Part 3: mechanics spot-check, not appearance recall).")
     lines.append("")
 
-    for label, metrics in (("Lane B -- Market Voices", lane_b_metrics), ("Lane C -- Consequential Leaders", lane_c_metrics)):
+    for lane_key, label, metrics in (
+        ("market_voices", "Lane B -- Market Voices", lane_b_metrics),
+        ("consequential_leaders", "Lane C -- Consequential Leaders", lane_c_metrics),
+    ):
+        status = recall_statuses[lane_key]
         lines.append(f"### {label}")
         lines.append("")
         precision_graded = metrics.precision_confirmed + metrics.precision_rejected + metrics.precision_duplicate_leak
@@ -339,6 +398,11 @@ def render_shadow_report(
         lines.append(
             f"Recall sample size: {metrics.recall_sample_size} "
             f"(graded: {metrics.recall_found + metrics.recall_missed}, ungraded: {metrics.recall_ungraded})."
+        )
+        lines.append(
+            f"- Recall check minimum (Part 3): {status.graded_count}/{status.minimum} "
+            f"independently-identified appearance(s) graded -- "
+            f"{'PASS' if status.meets_minimum else 'FAIL'}"
         )
         lines.append(
             f"- Precision: {_format_percent(metrics.precision)}"

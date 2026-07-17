@@ -89,6 +89,7 @@ from personalos.knowledge_edge.shadow_bootstrap import bootstrap_shadow_database
 from personalos.knowledge_edge.shadow_report import (
     build_lane_a_coverage,
     compute_lane_metrics,
+    evaluate_recall_minimum,
     merge_precision_verdicts,
     render_shadow_report,
 )
@@ -1060,12 +1061,21 @@ def _command_knowledge_edge_shadow_report(args: argparse.Namespace) -> int:
         recall_items=paired_grades.lane_c_recall_check,
     )
 
+    lane_b_recall_status = evaluate_recall_minimum(
+        lane_b_metrics, minimum=sample["lane_b_recall_check_minimum"]
+    )
+    lane_c_recall_status = evaluate_recall_minimum(
+        lane_c_metrics, minimum=sample["lane_c_recall_check_minimum"]
+    )
+
     report_text = render_shadow_report(
         report_date=args.report_date,
         lane_a_coverage=lane_a_coverage,
         lane_a_metrics=lane_a_metrics,
         lane_b_metrics=lane_b_metrics,
         lane_c_metrics=lane_c_metrics,
+        lane_b_recall_minimum=sample["lane_b_recall_check_minimum"],
+        lane_c_recall_minimum=sample["lane_c_recall_check_minimum"],
         lane_d_event_count=len(sample["lane_d_events"]),
         lane_d_window_start=sample["window_start"],
         lane_d_window_end=sample["lane_d_window_end"],
@@ -1088,8 +1098,14 @@ def _command_knowledge_edge_shadow_report(args: argparse.Namespace) -> int:
             "lane_a_precision": lane_a_metrics.precision,
             "lane_b_precision": lane_b_metrics.precision,
             "lane_b_recall": lane_b_metrics.recall,
+            "lane_b_recall_check_minimum": lane_b_recall_status.minimum,
+            "lane_b_recall_check_graded": lane_b_recall_status.graded_count,
+            "lane_b_recall_check_meets_minimum": lane_b_recall_status.meets_minimum,
             "lane_c_precision": lane_c_metrics.precision,
             "lane_c_recall": lane_c_metrics.recall,
+            "lane_c_recall_check_minimum": lane_c_recall_status.minimum,
+            "lane_c_recall_check_graded": lane_c_recall_status.graded_count,
+            "lane_c_recall_check_meets_minimum": lane_c_recall_status.meets_minimum,
             "lane_d_event_count": len(sample["lane_d_events"]),
         },
         workflow_name="Knowledge Edge shadow report generation",

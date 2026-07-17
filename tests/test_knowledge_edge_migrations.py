@@ -27,6 +27,7 @@ from personalos.db.migrations import (
 
 NEW_MIGRATION_VERSIONS = (
     "00017", "00018", "00019", "00020", "00021", "00022", "00023", "00024", "00025",
+    "00026",
 )
 
 EXPECTED_KE_TABLES = {
@@ -56,6 +57,7 @@ EXPECTED_KE_TABLES = {
     "ke_roster_change_proposals",
     "ke_synthesis_handoffs",
     "ke_person_search_cache",
+    "ke_company_edgar_identifiers",
 }
 
 FORBIDDEN_IMPORT_ROOTS = {

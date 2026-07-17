@@ -14,6 +14,7 @@ from personalos.knowledge_edge.state._shared import (
     _utc_now,
     _validate_bool,
     _validate_enum,
+    _validate_iso_datetime,
     _validate_optional_iso_date,
     _validate_optional_text,
     _validate_required_text,
@@ -39,6 +40,43 @@ SOURCE_LANES = (
 SOURCE_STATUSES = ("active", "trial", "paused", "retired")
 SOURCE_ENDPOINT_TYPES = ("rss", "atom", "channel_id", "api_endpoint", "page_url")
 SOURCE_ENDPOINT_STATUSES = ("active", "retired")
+
+# Verification-flip transitions a Conductor-supervised smoke procedure (P-KE-2A's
+# podcast smoke, this packet's YouTube smoke) is allowed to make, per source, one at a
+# time: trial -> active records "this endpoint passed its one-time supervised smoke";
+# active <-> paused is the operational lever to take a misbehaving source offline and
+# bring it back without re-running the smoke. Every other transition (including
+# anything touching 'retired') refuses -- this helper is deliberately narrow, matching
+# exactly the flip the 2A smoke transcript's deferred-flips defect needed and no more.
+#
+# Naming note: the packet brief that requested this helper describes the pause target
+# as "suspended". `ke_sources.status`'s CHECK constraint (migration 00017) only allows
+# ('active', 'trial', 'paused', 'retired') -- there is no 'suspended' value, and adding
+# one is a schema change this packet's hard constraints forbid ("no migrations").
+# Rather than accept a status value `validate_source_status` allows but the database
+# CHECK constraint would then reject with an opaque `sqlite3.IntegrityError` (worse
+# than a clean `ValueError`), this helper maps the requested "active -> suspended ->
+# active" shape onto the schema's existing 'paused' value, which already carries the
+# same reversible, temporarily-offline meaning. Flagged here for Conductor
+# confirmation that 'paused' is the intended target, not a fourth status value.
+SOURCE_STATUS_TRANSITIONS: dict[str, frozenset[str]] = {
+    "trial": frozenset({"active"}),
+    "active": frozenset({"paused"}),
+    "paused": frozenset({"active"}),
+    "retired": frozenset(),
+}
+
+
+class InvalidSourceStatusTransitionError(ValueError):
+    """Raised when a requested `ke_sources.status` transition is not in
+    `SOURCE_STATUS_TRANSITIONS`."""
+
+    def __init__(self, *, from_value: str, to_value: str) -> None:
+        super().__init__(
+            f"Invalid source status transition: {from_value!r} -> {to_value!r} is not allowed"
+        )
+        self.from_value = from_value
+        self.to_value = to_value
 
 PERSON_CATEGORIES = ("market_voice", "consequential_leader", "role_occupant")
 PERSON_STATUSES = ("active", "retired")
@@ -68,6 +106,14 @@ def validate_source_lane(value: str) -> str:
 
 def validate_source_status(value: str) -> str:
     return _validate_enum("status", value, SOURCE_STATUSES)
+
+
+def validate_source_status_transition(from_value: str, to_value: str) -> None:
+    validate_source_status(from_value)
+    validate_source_status(to_value)
+    allowed = SOURCE_STATUS_TRANSITIONS.get(from_value, frozenset())
+    if to_value not in allowed:
+        raise InvalidSourceStatusTransitionError(from_value=from_value, to_value=to_value)
 
 
 def validate_source_endpoint_type(value: str) -> str:
@@ -202,6 +248,39 @@ def count_sources(connection: sqlite3.Connection) -> int:
     return _count_rows(connection, "ke_sources")
 
 
+def update_source_status(
+    connection: sqlite3.Connection, *, source_id: str, new_status: str
+) -> dict[str, Any]:
+    """Flip `ke_sources.status` along one of `SOURCE_STATUS_TRANSITIONS`' allowed
+    edges. This is the update helper the P-KE-2A podcast smoke transcript's
+    deferred-flips defect named: prior to this, `registries.py` exposed create/get/
+    list only, so a Conductor-supervised smoke had no single-write-path-compliant way
+    to record a source moving from 'trial' to 'active' (see
+    docs/knowledge_edge/PACKET_2A_PODCAST_SUPERVISED_SMOKE.md Sec4, and
+    audits/knowledge-edge/2026-07-16-packet-2a-podcast-smoke-transcript.md). Generic
+    across every `source_type` -- podcast feeds and YouTube channels/person-search
+    sources share the same `ke_sources.status` column and transition rules.
+    """
+    source_id = _validate_required_text("source_id", source_id)
+    new_status = validate_source_status(new_status)
+    source = get_source(connection, source_id)
+    if source is None:
+        raise ValueError(f"Source does not exist: {source_id}")
+    validate_source_status_transition(source["status"], new_status)
+
+    now = _utc_now()
+    with connection:
+        connection.execute(
+            "UPDATE ke_sources SET status = ?, updated_at = ? WHERE source_id = ?",
+            (new_status, now, source_id),
+        )
+
+    updated = get_source(connection, source_id)
+    if updated is None:
+        raise RuntimeError(f"Source was not found after update: {source_id}")
+    return updated
+
+
 def create_source_endpoint(
     connection: sqlite3.Connection,
     *,
@@ -261,6 +340,67 @@ def _endpoint_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     item = dict(row)
     item["is_primary"] = bool(item["is_primary"])
     return item
+
+
+def record_endpoint_verification(
+    connection: sqlite3.Connection,
+    *,
+    source_id: str,
+    endpoint_url: str,
+    verified_at: str,
+    verified_by: str,
+) -> dict[str, Any]:
+    """Record a one-time Conductor-supervised smoke verification against the
+    `ke_source_endpoints` row identified by `(source_id, endpoint_url)` -- the
+    `UNIQUE (source_id, url)` constraint migration 00017 already puts on that table
+    makes this pair a valid lookup key. This is the second update helper the P-KE-2A
+    smoke transcript's deferred-flips defect named (see `update_source_status`'s
+    docstring); generic across podcast (rss/atom) and YouTube (channel_id/
+    api_endpoint) endpoint types alike.
+
+    `verified_at` must be a timezone-aware ISO 8601 datetime (matching every other
+    `_at` field this state package persists) and `verified_by` must be a non-empty
+    identifying string for the session that ran the smoke -- both requirements the
+    live adapters' own gates (`podcasts.py`/`youtube.py` `_evaluate_gates`) already
+    enforce on read; this helper enforces them on write so a malformed record can
+    never be persisted in the first place.
+    """
+    source_id = _validate_required_text("source_id", source_id)
+    endpoint_url = _validate_required_text("endpoint_url", endpoint_url)
+    verified_at = _validate_iso_datetime("verified_at", verified_at)
+    verified_by = _validate_required_text("verified_by", verified_by)
+
+    row = connection.execute(
+        "SELECT * FROM ke_source_endpoints WHERE source_id = ? AND url = ?",
+        (source_id, endpoint_url),
+    ).fetchone()
+    if row is None:
+        raise ValueError(
+            f"No ke_source_endpoints row for source_id={source_id!r}, "
+            f"endpoint_url={endpoint_url!r}"
+        )
+    source_endpoint_id = row["source_endpoint_id"]
+    now = _utc_now()
+
+    with connection:
+        connection.execute(
+            """
+            UPDATE ke_source_endpoints
+            SET endpoint_verified_at = ?, verified_by = ?, updated_at = ?
+            WHERE source_endpoint_id = ?
+            """,
+            (verified_at, verified_by, now, source_endpoint_id),
+        )
+
+    updated = connection.execute(
+        "SELECT * FROM ke_source_endpoints WHERE source_endpoint_id = ?",
+        (source_endpoint_id,),
+    ).fetchone()
+    if updated is None:
+        raise RuntimeError(
+            f"Source endpoint was not found after update: {source_endpoint_id}"
+        )
+    return _endpoint_row_to_dict(updated)
 
 
 # ------------------------------------------------------------------------------- people

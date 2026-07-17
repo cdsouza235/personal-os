@@ -426,6 +426,220 @@ class RegistryRoundTripTest(unittest.TestCase):
                 )
 
 
+class UpdateSourceStatusTest(unittest.TestCase):
+    """P-KE-2B: closes the P-KE-2A podcast smoke transcript's deferred-flips defect
+    (audits/knowledge-edge/2026-07-16-packet-2a-podcast-smoke-transcript.md)."""
+
+    def test_trial_to_active_flip_succeeds(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-trial",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Trial Source",
+                status="trial",
+            )
+            updated = ke.update_source_status(
+                connection, source_id="src-trial", new_status="active"
+            )
+            refetched = ke.get_source(connection, "src-trial")
+        self.assertEqual(updated["status"], "active")
+        self.assertEqual(refetched["status"], "active")
+
+    def test_active_to_paused_and_back_succeeds(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-active",
+                source_type="youtube_channel",
+                lane="market_voices",
+                name="Active Source",
+                status="active",
+            )
+            paused = ke.update_source_status(
+                connection, source_id="src-active", new_status="paused"
+            )
+            self.assertEqual(paused["status"], "paused")
+            reactivated = ke.update_source_status(
+                connection, source_id="src-active", new_status="active"
+            )
+            self.assertEqual(reactivated["status"], "active")
+
+    def test_trial_to_paused_is_refused(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-trial-2",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Trial Source 2",
+                status="trial",
+            )
+            with self.assertRaises(ke.InvalidSourceStatusTransitionError):
+                ke.update_source_status(connection, source_id="src-trial-2", new_status="paused")
+
+    def test_active_to_retired_is_refused(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-active-2",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Active Source 2",
+                status="active",
+            )
+            with self.assertRaises(ke.InvalidSourceStatusTransitionError):
+                ke.update_source_status(connection, source_id="src-active-2", new_status="retired")
+
+    def test_retired_is_a_terminal_state(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-retired",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Retired Source",
+                status="retired",
+            )
+            with self.assertRaises(ke.InvalidSourceStatusTransitionError):
+                ke.update_source_status(connection, source_id="src-retired", new_status="active")
+
+    def test_unknown_source_id_raises_value_error(self) -> None:
+        with _migrated_connection() as connection:
+            with self.assertRaises(ValueError):
+                ke.update_source_status(connection, source_id="does-not-exist", new_status="active")
+
+
+class RecordEndpointVerificationTest(unittest.TestCase):
+    """P-KE-2B: the second half of the deferred-flips defect close -- see
+    `UpdateSourceStatusTest`'s docstring."""
+
+    def test_valid_verification_is_recorded(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-verify",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Verify Source",
+                status="trial",
+            )
+            ke.create_source_endpoint(
+                connection,
+                source_endpoint_id="src-verify-endpoint",
+                source_id="src-verify",
+                endpoint_type="rss",
+                url="https://feeds.example.com/verify.xml",
+            )
+            updated = ke.record_endpoint_verification(
+                connection,
+                source_id="src-verify",
+                endpoint_url="https://feeds.example.com/verify.xml",
+                verified_at="2026-07-17T01:38:00+00:00",
+                verified_by="conductor:2026-07-17",
+            )
+        self.assertEqual(updated["endpoint_verified_at"], "2026-07-17T01:38:00+00:00")
+        self.assertEqual(updated["verified_by"], "conductor:2026-07-17")
+
+    def test_malformed_timestamp_is_refused(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-verify-2",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Verify Source 2",
+                status="trial",
+            )
+            ke.create_source_endpoint(
+                connection,
+                source_endpoint_id="src-verify-2-endpoint",
+                source_id="src-verify-2",
+                endpoint_type="rss",
+                url="https://feeds.example.com/verify-2.xml",
+            )
+            with self.assertRaises(ValueError):
+                ke.record_endpoint_verification(
+                    connection,
+                    source_id="src-verify-2",
+                    endpoint_url="https://feeds.example.com/verify-2.xml",
+                    verified_at="not-a-timestamp",
+                    verified_by="conductor:2026-07-17",
+                )
+
+    def test_timestamp_without_timezone_offset_is_refused(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-verify-3",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Verify Source 3",
+                status="trial",
+            )
+            ke.create_source_endpoint(
+                connection,
+                source_endpoint_id="src-verify-3-endpoint",
+                source_id="src-verify-3",
+                endpoint_type="rss",
+                url="https://feeds.example.com/verify-3.xml",
+            )
+            with self.assertRaises(ValueError):
+                ke.record_endpoint_verification(
+                    connection,
+                    source_id="src-verify-3",
+                    endpoint_url="https://feeds.example.com/verify-3.xml",
+                    verified_at="2026-07-17T01:38:00",
+                    verified_by="conductor:2026-07-17",
+                )
+
+    def test_empty_verified_by_is_refused(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-verify-4",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Verify Source 4",
+                status="trial",
+            )
+            ke.create_source_endpoint(
+                connection,
+                source_endpoint_id="src-verify-4-endpoint",
+                source_id="src-verify-4",
+                endpoint_type="rss",
+                url="https://feeds.example.com/verify-4.xml",
+            )
+            with self.assertRaises(ValueError):
+                ke.record_endpoint_verification(
+                    connection,
+                    source_id="src-verify-4",
+                    endpoint_url="https://feeds.example.com/verify-4.xml",
+                    verified_at="2026-07-17T01:38:00+00:00",
+                    verified_by="   ",
+                )
+
+    def test_unknown_endpoint_raises_value_error(self) -> None:
+        with _migrated_connection() as connection:
+            ke.create_source(
+                connection,
+                source_id="src-verify-5",
+                source_type="podcast_feed",
+                lane="curated_podcasts",
+                name="Verify Source 5",
+                status="trial",
+            )
+            with self.assertRaises(ValueError):
+                ke.record_endpoint_verification(
+                    connection,
+                    source_id="src-verify-5",
+                    endpoint_url="https://feeds.example.com/does-not-exist.xml",
+                    verified_at="2026-07-17T01:38:00+00:00",
+                    verified_by="conductor:2026-07-17",
+                )
+
+
 def _config_for(runtime_dir: Path, environment: Environment) -> PersonalOSConfig:
     directory_name = "dev" if environment is Environment.DEVELOPMENT else "test"
     return PersonalOSConfig(

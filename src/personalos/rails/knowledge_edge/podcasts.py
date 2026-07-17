@@ -101,6 +101,23 @@ STATUS_FETCH_REDIRECT_QUARANTINED = "podcast_rail_live_fetch_redirect_quarantine
 STATUS_FETCH_RESPONSE_TOO_LARGE = "podcast_rail_live_fetch_response_too_large"
 STATUS_FETCH_MALFORMED_FEED = "podcast_rail_live_fetch_malformed_feed"
 
+# Dropped-item reasons (F1): a per-item field that fails a structural requirement is
+# counted by one of these keys rather than being silently filtered. Keys are
+# machine-readable and stable -- callers key coverage/health reporting off them.
+DROP_REASON_MISSING_GUID = "missing_guid"
+DROP_REASON_MISSING_TITLE = "missing_title"
+DROP_REASON_MISSING_OR_UNPARSEABLE_PUBDATE = "missing_or_unparseable_pubdate"
+DROP_REASON_MISSING_CANONICAL_URL = "missing_canonical_url"
+DROP_REASON_DUPLICATE_GUID_IN_BATCH = "duplicate_guid_in_batch"
+
+
+def _merge_counts(*counters: Mapping[str, int]) -> dict[str, int]:
+    merged: dict[str, int] = {}
+    for counter in counters:
+        for reason, count in counter.items():
+            merged[reason] = merged.get(reason, 0) + count
+    return merged
+
 
 def validate_lane_a_feature_mode(value: str) -> str:
     if value not in LANE_A_FEATURE_MODES:
@@ -259,17 +276,21 @@ class LivePodcastFeedAdapter:
             return _unhealthy(source_id, cursor, reason)
 
         try:
-            episodes = _parse_feed_document(raw)
+            episodes, parse_dropped = _parse_feed_document(raw)
         except MalformedFeedError as parse_error:
             return _unhealthy(source_id, cursor, f"{STATUS_FETCH_MALFORMED_FEED}: {parse_error}")
 
-        discovered = _build_discovered_items(source_id=source_id, episodes=episodes)
+        discovered, batch_dropped = _build_discovered_items(source_id=source_id, episodes=episodes)
         due = tuple(item for item in discovered if cursor is None or item.cursor_value > cursor)
         due_sorted = tuple(sorted(due, key=lambda item: item.cursor_value))
         due_sorted = due_sorted[: self._max_items_per_fetch]
         next_cursor = due_sorted[-1].cursor_value if due_sorted else cursor
         return AdapterFetchResult(
-            source_id=source_id, items=due_sorted, next_cursor_value=next_cursor, healthy=True
+            source_id=source_id,
+            items=due_sorted,
+            next_cursor_value=next_cursor,
+            healthy=True,
+            dropped_items=_merge_counts(parse_dropped, batch_dropped),
         )
 
     def _evaluate_gates(
@@ -386,15 +407,20 @@ def _resolve_primary_endpoint(
 
 def _build_discovered_items(
     *, source_id: str, episodes: Sequence[_ParsedEpisode]
-) -> tuple[DiscoveredMediaItem, ...]:
+) -> tuple[tuple[DiscoveredMediaItem, ...], dict[str, int]]:
     seen_guids: set[str] = set()
     items: list[DiscoveredMediaItem] = []
+    dropped: dict[str, int] = {}
     for episode in episodes:
         # Defensive de-duplication within a single fetch batch: two items sharing a
         # guid would build the same dedupe_key/media_item_id downstream and the
         # second `create_media_item` call would collide on the primary key. A
-        # well-formed feed never does this; keep the first-seen occurrence only.
+        # well-formed feed never does this; keep the first-seen occurrence only,
+        # but count the rest instead of dropping them silently (F2).
         if episode.guid in seen_guids:
+            dropped[DROP_REASON_DUPLICATE_GUID_IN_BATCH] = (
+                dropped.get(DROP_REASON_DUPLICATE_GUID_IN_BATCH, 0) + 1
+            )
             continue
         seen_guids.add(episode.guid)
         items.append(
@@ -416,7 +442,7 @@ def _build_discovered_items(
                 raw_payload_summary=episode.raw_payload_summary,
             )
         )
-    return tuple(items)
+    return tuple(items), dropped
 
 
 # --------------------------------------------------------------------- feed parsing
@@ -446,7 +472,7 @@ def _text(elem: ElementTree.Element | None) -> str:
 _DOCTYPE_MARKER = b"<!DOCTYPE"
 
 
-def _parse_feed_document(raw: bytes) -> list[_ParsedEpisode]:
+def _parse_feed_document(raw: bytes) -> tuple[list[_ParsedEpisode], dict[str, int]]:
     # Cheap XXE/entity-expansion guard: a legitimate public podcast RSS/Atom document
     # never declares a DOCTYPE. Checked before handing anything to ElementTree.
     if _DOCTYPE_MARKER in raw:
@@ -473,7 +499,16 @@ def _parse_feed_document(raw: bytes) -> list[_ParsedEpisode]:
             f"unsupported feed root element <{root_name}>; expected an RSS <rss> or Atom <feed>"
         )
 
-    return [episode for episode in parsed if episode is not None]
+    # Every dropped item is counted by its reason (F1) rather than being filtered
+    # out indistinguishably from "the feed simply had nothing here."
+    episodes: list[_ParsedEpisode] = []
+    dropped: dict[str, int] = {}
+    for episode, reason in parsed:
+        if episode is not None:
+            episodes.append(episode)
+        else:
+            dropped[reason] = dropped.get(reason, 0) + 1
+    return episodes, dropped
 
 
 def _parse_rfc822_to_iso_utc(text: str) -> str | None:
@@ -511,11 +546,15 @@ def _parse_itunes_duration(text: str) -> int | None:
     return seconds
 
 
-def _parse_rss_item(item: ElementTree.Element) -> _ParsedEpisode | None:
+def _parse_rss_item(
+    item: ElementTree.Element,
+) -> tuple[_ParsedEpisode | None, str | None]:
     guid = _text(_find_local(item, "guid"))
+    if not guid:
+        return None, DROP_REASON_MISSING_GUID
     title = _text(_find_local(item, "title"))
-    if not guid or not title:
-        return None
+    if not title:
+        return None, DROP_REASON_MISSING_TITLE
 
     pub_date_raw = _text(_find_local(item, "pubDate"))
     published_at = _parse_rfc822_to_iso_utc(pub_date_raw) if pub_date_raw else None
@@ -523,7 +562,7 @@ def _parse_rss_item(item: ElementTree.Element) -> _ParsedEpisode | None:
         # Cannot be cursored reliably without a parseable publish time; skip this
         # item rather than fail the whole feed (a single malformed item is not the
         # same failure as a malformed document).
-        return None
+        return None, DROP_REASON_MISSING_OR_UNPARSEABLE_PUBDATE
 
     link = _text(_find_local(item, "link"))
     enclosure = _find_local(item, "enclosure")
@@ -532,7 +571,7 @@ def _parse_rss_item(item: ElementTree.Element) -> _ParsedEpisode | None:
 
     canonical_url = link or enclosure_url
     if not canonical_url:
-        return None
+        return None, DROP_REASON_MISSING_CANONICAL_URL
 
     alternate_urls = tuple(url for url in (enclosure_url,) if url and url != canonical_url)
     media_type = "video_interview" if enclosure_type.startswith("video/") else "podcast_episode"
@@ -545,54 +584,64 @@ def _parse_rss_item(item: ElementTree.Element) -> _ParsedEpisode | None:
 
     description = _text(_find_local(item, "description"))[:_EXCERPT_MAX_CHARS]
 
-    return _ParsedEpisode(
-        guid=guid,
-        title=title,
-        canonical_url=canonical_url,
-        description_excerpt=description,
-        published_at=published_at,
-        duration_seconds=duration_seconds,
-        media_type=media_type,
-        underlying_id=underlying_id,
-        alternate_urls=alternate_urls,
-        raw_payload_summary={
-            "guid": guid,
-            "pub_date": pub_date_raw,
-            "duration_raw": duration_raw,
-            "enclosure_type": enclosure_type,
-        },
+    return (
+        _ParsedEpisode(
+            guid=guid,
+            title=title,
+            canonical_url=canonical_url,
+            description_excerpt=description,
+            published_at=published_at,
+            duration_seconds=duration_seconds,
+            media_type=media_type,
+            underlying_id=underlying_id,
+            alternate_urls=alternate_urls,
+            raw_payload_summary={
+                "guid": guid,
+                "pub_date": pub_date_raw,
+                "duration_raw": duration_raw,
+                "enclosure_type": enclosure_type,
+            },
+        ),
+        None,
     )
 
 
-def _parse_atom_entry(entry: ElementTree.Element) -> _ParsedEpisode | None:
+def _parse_atom_entry(
+    entry: ElementTree.Element,
+) -> tuple[_ParsedEpisode | None, str | None]:
     guid = _text(_find_local(entry, "id"))
+    if not guid:
+        return None, DROP_REASON_MISSING_GUID
     title = _text(_find_local(entry, "title"))
-    if not guid or not title:
-        return None
+    if not title:
+        return None, DROP_REASON_MISSING_TITLE
 
     link_elem = _find_local(entry, "link")
     canonical_url = link_elem.get("href") if link_elem is not None else None
     if not canonical_url:
-        return None
+        return None, DROP_REASON_MISSING_CANONICAL_URL
 
     timestamp_raw = _text(_find_local(entry, "published")) or _text(_find_local(entry, "updated"))
     published_at = _parse_iso8601_to_iso_utc(timestamp_raw) if timestamp_raw else None
     if published_at is None:
-        return None
+        return None, DROP_REASON_MISSING_OR_UNPARSEABLE_PUBDATE
 
     description = (_text(_find_local(entry, "summary")) or _text(_find_local(entry, "content")))[
         :_EXCERPT_MAX_CHARS
     ]
 
-    return _ParsedEpisode(
-        guid=guid,
-        title=title,
-        canonical_url=canonical_url,
-        description_excerpt=description,
-        published_at=published_at,
-        duration_seconds=None,
-        media_type="podcast_episode",
-        underlying_id=guid,
-        alternate_urls=(),
-        raw_payload_summary={"guid": guid, "timestamp_raw": timestamp_raw},
+    return (
+        _ParsedEpisode(
+            guid=guid,
+            title=title,
+            canonical_url=canonical_url,
+            description_excerpt=description,
+            published_at=published_at,
+            duration_seconds=None,
+            media_type="podcast_episode",
+            underlying_id=guid,
+            alternate_urls=(),
+            raw_payload_summary={"guid": guid, "timestamp_raw": timestamp_raw},
+        ),
+        None,
     )

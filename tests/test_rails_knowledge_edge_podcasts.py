@@ -214,8 +214,9 @@ class _FakeHTTPResponse:
 
 class ParseFeedDocumentTest(unittest.TestCase):
     def test_parses_rss_basic_feed_in_document_order(self) -> None:
-        episodes = _parse_feed_document(RSS_FEED_BASIC)
+        episodes, dropped = _parse_feed_document(RSS_FEED_BASIC)
         self.assertEqual([episode.guid for episode in episodes], ["guid-ep-1", "guid-ep-2", "guid-ep-2-corrected"])
+        self.assertEqual(dropped, {})
         first = episodes[0]
         self.assertEqual(first.title, "Episode One")
         self.assertEqual(first.canonical_url, "https://feeds.example.com/ep-1")
@@ -225,7 +226,7 @@ class ParseFeedDocumentTest(unittest.TestCase):
         self.assertEqual(first.published_at, "2026-06-01T10:00:00+00:00")
 
     def test_corrected_reissue_shares_underlying_id_but_has_distinct_guid(self) -> None:
-        episodes = _parse_feed_document(RSS_FEED_BASIC)
+        episodes, _dropped = _parse_feed_document(RSS_FEED_BASIC)
         original = episodes[1]
         corrected = episodes[2]
         self.assertNotEqual(original.guid, corrected.guid)
@@ -233,16 +234,25 @@ class ParseFeedDocumentTest(unittest.TestCase):
         self.assertNotEqual(original.title, corrected.title)
 
     def test_video_enclosure_sets_video_media_type(self) -> None:
-        episodes = _parse_feed_document(RSS_FEED_VIDEO_ENCLOSURE)
+        episodes, _dropped = _parse_feed_document(RSS_FEED_VIDEO_ENCLOSURE)
         self.assertEqual(episodes[0].media_type, "video_interview")
 
-    def test_items_missing_required_fields_are_skipped_not_fatal(self) -> None:
-        episodes = _parse_feed_document(RSS_FEED_MISSING_FIELDS)
+    def test_items_missing_required_fields_are_skipped_and_counted_by_reason(self) -> None:
+        episodes, dropped = _parse_feed_document(RSS_FEED_MISSING_FIELDS)
         self.assertEqual(episodes, [])
+        self.assertEqual(
+            dropped,
+            {
+                "missing_guid": 1,
+                "missing_title": 1,
+                "missing_or_unparseable_pubdate": 1,
+            },
+        )
 
     def test_atom_feed_parses(self) -> None:
-        episodes = _parse_feed_document(ATOM_FEED_BASIC)
+        episodes, dropped = _parse_feed_document(ATOM_FEED_BASIC)
         self.assertEqual(len(episodes), 1)
+        self.assertEqual(dropped, {})
         entry = episodes[0]
         self.assertEqual(entry.guid, "atom-guid-1")
         self.assertEqual(entry.canonical_url, "https://feeds.example.com/atom-ep-1")
@@ -592,6 +602,41 @@ class LivePodcastFeedAdapterGateTest(unittest.TestCase):
             self.assertTrue(result.healthy)
             self.assertEqual(len(result.items), 1)
             self.assertEqual(result.items[0].title, "Episode One")
+            self.assertEqual(result.dropped_items, {"duplicate_guid_in_batch": 1})
+
+    def test_missing_field_items_are_dropped_and_counted_by_reason_in_result(self) -> None:
+        with _migrated_test_connection() as connection:
+            _seed_verified_source(
+                connection, source_id="src-verified", url="https://feeds.example.com/feed.xml"
+            )
+            client = _FakePodcastClient(body=RSS_FEED_MISSING_FIELDS)
+            adapter = LivePodcastFeedAdapter(connection, feature_mode="shadow_live", client=client)
+            with mock.patch.dict("os.environ", {PODCAST_RAIL_CREDENTIAL_ENV_VAR: FAKE_USER_AGENT}):
+                result = adapter.fetch_episodes(source_id="src-verified", cursor=None, now=NOW)
+
+            self.assertTrue(result.healthy)
+            self.assertEqual(result.items, ())
+            self.assertEqual(
+                result.dropped_items,
+                {
+                    "missing_guid": 1,
+                    "missing_title": 1,
+                    "missing_or_unparseable_pubdate": 1,
+                },
+            )
+
+    def test_well_formed_feed_reports_no_dropped_items(self) -> None:
+        with _migrated_test_connection() as connection:
+            _seed_verified_source(
+                connection, source_id="src-verified", url="https://feeds.example.com/feed.xml"
+            )
+            client = _FakePodcastClient(body=RSS_FEED_BASIC)
+            adapter = LivePodcastFeedAdapter(connection, feature_mode="shadow_live", client=client)
+            with mock.patch.dict("os.environ", {PODCAST_RAIL_CREDENTIAL_ENV_VAR: FAKE_USER_AGENT}):
+                result = adapter.fetch_episodes(source_id="src-verified", cursor=None, now=NOW)
+
+            self.assertTrue(result.healthy)
+            self.assertEqual(result.dropped_items, {})
 
     def test_malformed_feed_response_fails_closed_without_advancing_cursor(self) -> None:
         with _migrated_test_connection() as connection:

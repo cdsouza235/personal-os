@@ -140,6 +140,7 @@ def run_scan(
     events_reprocessed = 0
     sources_healthy = 0
     sources_failed = 0
+    dropped_items_by_source: dict[str, dict[str, int]] = {}
 
     sources = ke.list_sources(connection, status="active")
     event_records: list[tuple[Mapping, DiscoveredEvent]] = []
@@ -154,6 +155,8 @@ def run_scan(
         if source_type in _MEDIA_SOURCE_TYPES:
             fetch = podcast_adapter.fetch_episodes if source_type == "podcast_feed" else channel_adapter.fetch_uploads
             result = fetch(source_id=source_id, cursor=cursor_value, now=now)
+            if result.dropped_items:
+                dropped_items_by_source[source_id] = dict(result.dropped_items)
             healthy = _record_source_health(connection, source=source, result=result, scan_run_id=scan_run_id, now=now)
             if not healthy:
                 sources_failed += 1
@@ -202,7 +205,13 @@ def run_scan(
 
     queue_rows = _build_and_record_queue(connection, queue_date=queue_date, now=now, theses=theses)
 
-    _record_coverage_report(connection, scan_run_id=scan_run_id, queue_date=queue_date, sources=sources)
+    _record_coverage_report(
+        connection,
+        scan_run_id=scan_run_id,
+        queue_date=queue_date,
+        sources=sources,
+        dropped_items_by_source=dropped_items_by_source,
+    )
 
     ke.complete_scan_run(
         connection,
@@ -1102,7 +1111,15 @@ def _record_section(
     return newly_added
 
 
-def _record_coverage_report(connection, *, scan_run_id: str, queue_date: str, sources: Sequence[Mapping]) -> None:
+def _record_coverage_report(
+    connection,
+    *,
+    scan_run_id: str,
+    queue_date: str,
+    sources: Sequence[Mapping],
+    dropped_items_by_source: Mapping[str, Mapping[str, int]] | None = None,
+) -> None:
+    dropped_items_by_source = dropped_items_by_source or {}
     healthy = 0
     failed = 0
     for source in sources:
@@ -1114,12 +1131,27 @@ def _record_coverage_report(connection, *, scan_run_id: str, queue_date: str, so
         else:
             failed += 1
     total = healthy + failed
+    # Per-feed dropped-item counts (F1): measured and surfaced in the same coverage
+    # report a human/dashboard already reads, rather than only living in adapter logs.
+    dropped_items_total = sum(
+        count for reasons in dropped_items_by_source.values() for count in reasons.values()
+    )
     ke.create_coverage_report(
         connection,
         coverage_report_id=_sid("coverage", scan_run_id, queue_date),
         scan_run_id=scan_run_id,
         report_date=queue_date,
-        report={"sources_healthy": healthy, "sources_failed": failed, "sources_total": total},
+        report={
+            "sources_healthy": healthy,
+            "sources_failed": failed,
+            "sources_total": total,
+            "dropped_items_by_source": {
+                source_id: dict(reasons)
+                for source_id, reasons in dropped_items_by_source.items()
+                if reasons
+            },
+            "dropped_items_total": dropped_items_total,
+        },
         overall_summary=(
             f"{healthy}/{total} sources healthy" if total else "no sources configured"
         ),

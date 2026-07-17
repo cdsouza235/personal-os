@@ -23,6 +23,7 @@ from personalos.config import DEFAULT_TIMEZONE, Environment, PersonalOSConfig
 from personalos.db.connection import connect_sqlite
 from personalos.db.migrations import apply_migrations
 from personalos.knowledge_edge.adapters.contracts import (
+    AdapterFetchResult,
     DiscoveredEvent,
     DiscoveredFiling,
     DiscoveredMediaItem,
@@ -267,9 +268,49 @@ class FourLaneEndToEndTest(unittest.TestCase):
             reports = ke.list_coverage_reports(connection, report_date="2026-07-16")
             self.assertEqual(len(reports), 1)
             self.assertEqual(reports[0]["report"]["sources_healthy"], 5)
+            self.assertEqual(reports[0]["report"]["dropped_items_by_source"], {})
+            self.assertEqual(reports[0]["report"]["dropped_items_total"], 0)
             for source_id in ("src-dwarkesh", "src-cnbc", "src-frontier-ai", "src-calendar", "src-edgar"):
                 health = ke.get_source_health(connection, source_id=source_id)
                 self.assertEqual(health["status"], "healthy")
+
+    def test_coverage_report_surfaces_per_feed_dropped_item_counts(self) -> None:
+        """F1: an adapter that drops malformed items reports why -- the coverage
+        report a human/dashboard reads must show it, not just an empty batch."""
+
+        class _DroppedItemsPodcastAdapter:
+            def fetch_episodes(self, *, source_id, cursor, now):
+                del cursor, now
+                return AdapterFetchResult(
+                    source_id=source_id,
+                    items=(),
+                    next_cursor_value=None,
+                    healthy=True,
+                    dropped_items={"missing_guid": 2, "missing_title": 1},
+                )
+
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            records = _four_lane_records()
+            _podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=_DroppedItemsPodcastAdapter(),
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+            reports = ke.list_coverage_reports(connection, report_date="2026-07-16")
+            self.assertEqual(
+                reports[0]["report"]["dropped_items_by_source"],
+                {"src-dwarkesh": {"missing_guid": 2, "missing_title": 1}},
+            )
+            self.assertEqual(reports[0]["report"]["dropped_items_total"], 3)
 
 
 class IdempotencyTest(unittest.TestCase):

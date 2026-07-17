@@ -327,3 +327,25 @@
   in STATUS.md's Phase 1 entry and the phase-end checkpoint report. C5's other half
   (STATUS catch-up + truthful traceability) closed in P-KE-1D. — Chris (adoption) +
   Fable seat (record), 2026-07-16
+- **D-PO-021 Ground-truth sampling window runs ALL-LANES-CONCURRENTLY (Conductor
+  sequencing ruling, 2026-07-17).** The formal 14-day sampling window starts when the
+  LAST lane goes live (Lane B/C channel + person-search seeding, Lane D adapters —
+  Phase 3 + seeding packets), so every lane is measured concurrently by one clock —
+  not lane-by-lane as built. Chris's reasoning: one clean measurement of the system
+  as it will actually run; one grading effort. Standing guardrail: daily shadow
+  collection RUNS ANYWAY from 2026-07-17 as REHEARSAL (bug-flush + Conductor daily
+  digest + practice triage) — rehearsal days are excluded from the formal window,
+  which begins at last-lane-live. Phase 2's report deliverable and the Phase 2/3
+  phase-end checkpoint + Session 2 queue behind the all-lane window. The 14-day
+  minimum itself is UNCHANGED (a 7-day variant was considered and dropped as moot
+  under this sequencing). — Chris, 2026-07-17
+- **D-PO-022 Shadow-scheduler gate GRANTED early (Conductor, "Authorize the shadow
+  scheduler", 2026-07-17).** Scope: SCHEDULED (unattended) daily shadow scans ONLY —
+  shadow database only, live reads from Conductor-verified-active sources only; the
+  §14.4 fence stands in full (no notifications, no Obsidian, no production DB, no
+  other scheduled work). Session 2's remaining content (threshold ratification from
+  the all-lane report) is NOT granted here. Mechanism note: until P-KE-4A ships the
+  product-native dispatcher, the authorized mechanism is Conductor-operated host
+  scheduling (launchd) invoking the sanctioned `knowledge-edge shadow scan` CLI —
+  operator tooling outside the repo, same class as the supervised-smoke scripts;
+  P-KE-4A supersedes it. — Chris, 2026-07-17

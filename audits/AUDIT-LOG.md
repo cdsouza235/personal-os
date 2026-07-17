@@ -15,3 +15,4 @@
 2026-07-16 | KE Phase 1 | phase-end Fable: HOLD (C1-C5) → P-KE-1D → re-verification → SIGN_OFF | audits/ke-phase-1-phase-end-fable-report.md
 2026-07-16 | P-KE-2A | accept_with_conditions (i5; inertness+endpoints+gate-hardening+coverage-honesty+no-downgrade all closed; scope amendment ratified at G-GOV) | audits/knowledge-edge/packets/P-KE-2A/AUDIT.md
 2026-07-16 | P-KE-2B | accept_with_conditions (i5; YouTube RSS-first + search.list client + verification helpers; amendments 00025+paused ratified at G-GOV) | audits/knowledge-edge/packets/P-KE-2B/AUDIT.md
+2026-07-17 | P-KE-2C | accept (i4, 0 findings; checksum redesign + ack-ordering + recall-minimum enforcement closed) | audits/knowledge-edge/packets/P-KE-2C/AUDIT.md

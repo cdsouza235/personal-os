@@ -172,7 +172,12 @@ here as the operative rule for every future packet that reads this document:
 
 ---
 
-# Packet 3A vendor-domain list — POPULATED PROPOSAL (PENDING the named Conductor approval)
+# Packet 3A vendor-domain list — APPROVED (named Conductor gate, 2026-07-17)
+
+> **"Packet 3A vendor-domain-list approval" GRANTED** — Chris ("Approve vendor domain list"),
+> Conductor session 2026-07-17. The 21 listed domains are authorized for link-verification
+> and redirect-confinement per §8.4/§10.4; live fetching remains governed by P-KE-3B's own
+> gates and the bot-wall design note below. Keel remains excluded until its identity lands.
 
 Assembled 2026-07-17 by the Conductor session per the P-KE-3A frame doc and
 PHASE0_PROVIDERS_AND_ACCESS.md §6's named gate. Verification methods per row:

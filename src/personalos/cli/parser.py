@@ -16,6 +16,11 @@ from personalos.cli.knowledge_edge import (
     _command_knowledge_edge_flag_false_positive,
     _command_knowledge_edge_queue_show,
     _command_knowledge_edge_scan,
+    _command_knowledge_edge_shadow_bootstrap,
+    _command_knowledge_edge_shadow_grade_init,
+    _command_knowledge_edge_shadow_report,
+    _command_knowledge_edge_shadow_sample_freeze,
+    _command_knowledge_edge_shadow_scan,
     _command_knowledge_edge_synthesis_export,
     _command_knowledge_edge_synthesis_list,
 )
@@ -700,6 +705,96 @@ def build_parser() -> argparse.ArgumentParser:
     knowledge_edge_synthesis_export_parser.add_argument("--handoff-id", required=True)
     _add_json_arg(knowledge_edge_synthesis_export_parser)
     knowledge_edge_synthesis_export_parser.set_defaults(func=_command_knowledge_edge_synthesis_export)
+
+    knowledge_edge_shadow_parser = knowledge_edge_subparsers.add_parser(
+        "shadow",
+        help="P-KE-2C shadow_live bootstrap/scan/sample-freeze/report commands.",
+        description=(
+            "Knowledge Edge shadow_live commands (amendment §14.4). Every command "
+            "requires --db to resolve to exactly the one shadow database path and "
+            "refuses otherwise; no production database path or notification/Obsidian/"
+            "scheduler surface is ever reachable through this command group."
+        ),
+    )
+    knowledge_edge_shadow_subparsers = knowledge_edge_shadow_parser.add_subparsers(
+        dest="knowledge_edge_shadow_command",
+        required=True,
+    )
+
+    knowledge_edge_shadow_bootstrap_parser = knowledge_edge_shadow_subparsers.add_parser(
+        "bootstrap",
+        help="Create/migrate the shadow DB and re-apply the 9 Lane A verification flips.",
+    )
+    _add_db_arg(knowledge_edge_shadow_bootstrap_parser)
+    _add_json_arg(knowledge_edge_shadow_bootstrap_parser)
+    knowledge_edge_shadow_bootstrap_parser.set_defaults(func=_command_knowledge_edge_shadow_bootstrap)
+
+    knowledge_edge_shadow_scan_parser = knowledge_edge_shadow_subparsers.add_parser(
+        "scan",
+        help="Run one bounded shadow_live Lane A scan (live RSS, verified-active sources only).",
+    )
+    _add_db_arg(knowledge_edge_shadow_scan_parser)
+    knowledge_edge_shadow_scan_parser.add_argument(
+        "--date", required=True, help="Queue date in YYYY-MM-DD format."
+    )
+    knowledge_edge_shadow_scan_parser.add_argument(
+        "--now", default=None, help="ISO-8601 UTC instant to run the scan as of (default: current time)."
+    )
+    knowledge_edge_shadow_scan_parser.add_argument("--scan-run-id", default=None)
+    _add_json_arg(knowledge_edge_shadow_scan_parser)
+    knowledge_edge_shadow_scan_parser.set_defaults(func=_command_knowledge_edge_shadow_scan)
+
+    knowledge_edge_shadow_sample_freeze_parser = knowledge_edge_shadow_subparsers.add_parser(
+        "sample-freeze",
+        help="Construct and freeze the R3-04 ground-truth sample (PENDING acknowledgment).",
+    )
+    _add_db_arg(knowledge_edge_shadow_sample_freeze_parser)
+    knowledge_edge_shadow_sample_freeze_parser.add_argument("--window-start", required=True)
+    knowledge_edge_shadow_sample_freeze_parser.add_argument("--window-end", required=True)
+    knowledge_edge_shadow_sample_freeze_parser.add_argument("--lane-d-window-end", default=None)
+    knowledge_edge_shadow_sample_freeze_parser.add_argument("--sample-date", required=True)
+    knowledge_edge_shadow_sample_freeze_parser.add_argument("--now", default=None)
+    knowledge_edge_shadow_sample_freeze_parser.add_argument(
+        "--coverage-gap", action="append", default=None, help="May be repeated."
+    )
+    knowledge_edge_shadow_sample_freeze_parser.add_argument("--markdown-output-file", required=True)
+    knowledge_edge_shadow_sample_freeze_parser.add_argument("--json-output-file", required=True)
+    _add_json_arg(knowledge_edge_shadow_sample_freeze_parser)
+    knowledge_edge_shadow_sample_freeze_parser.set_defaults(
+        func=_command_knowledge_edge_shadow_sample_freeze
+    )
+
+    knowledge_edge_shadow_grade_init_parser = knowledge_edge_shadow_subparsers.add_parser(
+        "grade-init",
+        help=(
+            "Render a blank grades-file skeleton for an ACKNOWLEDGED frozen sample "
+            "(precision item ids pre-populated, referencing the frozen checksum). "
+            "Refuses if the sample is not yet Conductor-acknowledged (R3-04)."
+        ),
+    )
+    knowledge_edge_shadow_grade_init_parser.add_argument("--sample-markdown-file", required=True)
+    knowledge_edge_shadow_grade_init_parser.add_argument("--sample-json-file", required=True)
+    knowledge_edge_shadow_grade_init_parser.add_argument("--output-file", required=True)
+    _add_json_arg(knowledge_edge_shadow_grade_init_parser)
+    knowledge_edge_shadow_grade_init_parser.set_defaults(
+        func=_command_knowledge_edge_shadow_grade_init
+    )
+
+    knowledge_edge_shadow_report_parser = knowledge_edge_shadow_subparsers.add_parser(
+        "report",
+        help="Generate the shadow report from an ACKNOWLEDGED sample paired with a matching grades file (R3-04).",
+    )
+    _add_db_arg(knowledge_edge_shadow_report_parser)
+    knowledge_edge_shadow_report_parser.add_argument("--sample-markdown-file", required=True)
+    knowledge_edge_shadow_report_parser.add_argument("--sample-json-file", required=True)
+    knowledge_edge_shadow_report_parser.add_argument("--grades-json-file", required=True)
+    knowledge_edge_shadow_report_parser.add_argument("--report-date", required=True)
+    knowledge_edge_shadow_report_parser.add_argument(
+        "--person-search-calls-made", type=int, default=None
+    )
+    knowledge_edge_shadow_report_parser.add_argument("--output-file", required=True)
+    _add_json_arg(knowledge_edge_shadow_report_parser)
+    knowledge_edge_shadow_report_parser.set_defaults(func=_command_knowledge_edge_shadow_report)
 
     return parser
 

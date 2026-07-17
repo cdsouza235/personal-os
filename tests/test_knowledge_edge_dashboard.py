@@ -188,12 +188,25 @@ def _run_four_lane_scan(connection: sqlite3.Connection, *, extra_frontier_items=
 
 
 class FeatureModeValidationTest(unittest.TestCase):
-    def test_disabled_and_fixture_are_the_only_allowed_modes(self) -> None:
-        self.assertEqual(KNOWLEDGE_EDGE_FEATURE_MODES, ("disabled", "fixture"))
-        for mode in ("shadow_live", "active_read_only", "active_with_obsidian_handoff", "live", "bogus"):
+    def test_disabled_fixture_and_shadow_live_are_the_only_allowed_modes(self) -> None:
+        self.assertEqual(KNOWLEDGE_EDGE_FEATURE_MODES, ("disabled", "fixture", "shadow_live"))
+        for mode in ("active_read_only", "active_with_obsidian_handoff", "live", "bogus"):
             with self.subTest(mode=mode):
                 with self.assertRaises(ValueError):
                     validate_knowledge_edge_feature_mode(mode)
+
+    def test_shadow_live_mode_is_accepted_and_echoed_back(self) -> None:
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            _run_four_lane_scan(connection)
+            summary = build_knowledge_edge_queue_summary(
+                connection, queue_date=QUEUE_DATE, feature_mode="shadow_live"
+            )
+        self.assertTrue(summary["available"])
+        self.assertEqual(summary["feature_mode"], "shadow_live")
+        html = render_knowledge_edge_queue_html(summary)
+        self.assertIn("shadow_live", html)
+        self.assertIn("no production notification", html)
 
     def test_disabled_mode_returns_unavailable_without_reading_state(self) -> None:
         with _migrated_connection() as connection:

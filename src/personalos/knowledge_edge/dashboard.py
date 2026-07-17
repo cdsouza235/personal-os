@@ -8,9 +8,15 @@ feature-mode-gated section into the existing ``src/personalos/dashboard.py`` she
 (AD-1), not a standalone app (amendment Sec 14.1).
 
 No network-capable import appears anywhere in this module. Feature modes supported
-at this phase are ``disabled``/``fixture`` only (amendment Sec 14.4) --
-``shadow_live``/``active_read_only``/``active_with_obsidian_handoff`` are later-phase,
-Session-gated modes this packet must not enable.
+as of P-KE-2C are ``disabled``/``fixture``/``shadow_live`` (amendment Sec 14.4) --
+``active_read_only``/``active_with_obsidian_handoff`` remain later-phase,
+Session-3-gated modes this packet must not enable. ``shadow_live`` admission here is
+display-only: this module never writes, so composing a queue summary for
+``shadow_live`` carries no write-surface risk in itself. The actual §14.4 fence --
+shadow DB path, no notifications/Obsidian/scheduler/production writes -- is enforced
+by ``personalos.knowledge_edge.shadow_mode``, which every write-capable ``shadow_live``
+entrypoint (bootstrap, shadow scan, sample freeze, report generation) calls before
+doing anything else.
 """
 
 from __future__ import annotations
@@ -23,7 +29,7 @@ from typing import Any
 import personalos.knowledge_edge.state as ke
 from personalos.knowledge_edge.scan_orchestrator import build_queue_snapshot_view
 
-KNOWLEDGE_EDGE_FEATURE_MODES = ("disabled", "fixture")
+KNOWLEDGE_EDGE_FEATURE_MODES = ("disabled", "fixture", "shadow_live")
 DEFAULT_KNOWLEDGE_EDGE_FEATURE_MODE = "disabled"
 
 # Empty until Packet 3A's vendor-domain-list approval gate clears (Phase0 Architecture
@@ -52,7 +58,7 @@ def validate_knowledge_edge_feature_mode(value: str) -> str:
         allowed = ", ".join(KNOWLEDGE_EDGE_FEATURE_MODES)
         raise ValueError(
             f"knowledge_edge feature mode must be one of: {allowed} "
-            "(shadow_live/active_* are later-phase, Session-gated modes)"
+            "(active_* are later-phase, Session-3-gated modes)"
         )
     return value
 
@@ -103,7 +109,7 @@ def build_knowledge_edge_queue_summary(
     empty_state = _build_empty_state(sections, coverage)
 
     return {
-        "feature_mode": "fixture",
+        "feature_mode": feature_mode,
         "available": True,
         "queue_date": queue_date,
         "sections": sections,
@@ -296,11 +302,21 @@ def render_knowledge_edge_queue_html(summary: Mapping[str, Any]) -> str:
     if not summary.get("available"):
         return ""
 
+    mode_indicators = {
+        "fixture": "fixture data only -- no live network, no scheduler activation",
+        "shadow_live": (
+            "shadow database, live discovery data -- no production notification, no "
+            "Obsidian write, no scheduler activation (amendment Sec14.4)"
+        ),
+    }
     body = _definition_list(
         (
             ("Queue date", summary["queue_date"]),
             ("Feature mode", summary["feature_mode"]),
-            ("Mode indicator", "fixture data only -- no live network, no scheduler activation"),
+            (
+                "Mode indicator",
+                mode_indicators.get(summary["feature_mode"], "unrecognized mode"),
+            ),
         )
     )
     if summary.get("empty_state"):

@@ -703,6 +703,11 @@ class DashboardKnowledgeEdgeIntegrationTest(unittest.TestCase):
         )
 
     def test_invalid_knowledge_edge_feature_mode_is_rejected(self) -> None:
+        # "shadow_live" was rejected here through P-KE-2B; P-KE-2C's dashboard
+        # admission fence change (KNOWLEDGE_EDGE_FEATURE_MODES) now accepts it as
+        # display-only (see test_shadow_live_mode_renders_four_lane_queue below) --
+        # "active_read_only" remains a genuinely later-phase, Session-3-gated mode
+        # this entrypoint must still reject.
         with _seeded_runtime_db() as db_path:
             with _sqlite_connection(db_path) as connection:
                 _insert_dashboard_fixture_rows(connection)
@@ -711,8 +716,24 @@ class DashboardKnowledgeEdgeIntegrationTest(unittest.TestCase):
                         connection,
                         source_date=SOURCE_DATE,
                         timezone=DEFAULT_TIMEZONE,
-                        knowledge_edge_mode="shadow_live",
+                        knowledge_edge_mode="active_read_only",
                     )
+
+    def test_shadow_live_mode_renders_four_lane_queue(self) -> None:
+        with _seeded_runtime_db() as db_path:
+            with _sqlite_connection(db_path) as connection:
+                _insert_dashboard_fixture_rows(connection)
+                _seed_knowledge_edge_ambiguous_fixture(connection, queue_date=SOURCE_DATE)
+                html = dashboard.render_today_view_html_from_connection(
+                    connection,
+                    source_date=SOURCE_DATE,
+                    timezone=DEFAULT_TIMEZONE,
+                    knowledge_edge_mode="shadow_live",
+                )
+
+        self.assertIn("Knowledge Edge: Daily Intelligence Queue", html)
+        self.assertIn("shadow_live", html)
+        self.assertIn("no production notification", html)
 
 
 class DashboardSynthesisImportPreviewTest(unittest.TestCase):

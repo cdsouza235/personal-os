@@ -26,6 +26,7 @@ from personalos.db.migrations import apply_migrations
 from personalos.rails.knowledge_edge.podcasts import (
     DEFAULT_LANE_A_FEATURE_MODE,
     LANE_A_FEATURE_MODES,
+    MAX_RESPONSE_BYTES,
     PODCAST_RAIL_CREDENTIAL_ENV_VAR,
     STATUS_BLOCKED_CREDENTIAL_EMPTY,
     STATUS_BLOCKED_CREDENTIAL_MISSING,
@@ -184,13 +185,17 @@ class _FakePodcastClient:
 
 
 class _RecordingOpener:
-    def __init__(self, *, body: bytes = RSS_FEED_BASIC) -> None:
+    def __init__(self, *, body: bytes = RSS_FEED_BASIC, content_length: str | None = None) -> None:
         self.requests: list = []
+        self.responses: list["_FakeHTTPResponse"] = []
         self._body = body
+        self._content_length = content_length
 
     def __call__(self, request, timeout=None):
         self.requests.append(request)
-        return _FakeHTTPResponse(self._body)
+        response = _FakeHTTPResponse(self._body, content_length=self._content_length)
+        self.responses.append(response)
+        return response
 
 
 class _FailingOpener:
@@ -199,10 +204,13 @@ class _FailingOpener:
 
 
 class _FakeHTTPResponse:
-    def __init__(self, body: bytes) -> None:
+    def __init__(self, body: bytes, *, content_length: str | None = None) -> None:
         self._body = body
+        self.headers = {} if content_length is None else {"Content-Length": content_length}
+        self.read_calls = 0
 
     def read(self, amt: int | None = None) -> bytes:
+        self.read_calls += 1
         return self._body if amt is None else self._body[:amt]
 
     def __enter__(self) -> "_FakeHTTPResponse":
@@ -371,6 +379,50 @@ class PodcastFeedHttpClientTest(unittest.TestCase):
     def test_fetch_enforces_response_size_cap(self) -> None:
         big_body = b"x" * 100
         opener = _RecordingOpener(body=big_body)
+        client = PodcastFeedHttpClient(opener=opener, max_response_bytes=10)
+        with self.assertRaises(PodcastFeedResponseTooLarge):
+            client.fetch("https://feeds.example.com/feed.xml", user_agent=FAKE_USER_AGENT)
+
+    def test_fetch_allows_a_body_under_the_default_cap(self) -> None:
+        # Under-cap large feed parses: a body well past the old 2 MB cap but still
+        # under the new 64 MB ceiling is returned in full, not refused.
+        big_body = b"x" * (MAX_RESPONSE_BYTES - 1)
+        opener = _RecordingOpener(body=big_body)
+        client = PodcastFeedHttpClient(opener=opener)
+        body = client.fetch("https://feeds.example.com/feed.xml", user_agent=FAKE_USER_AGENT)
+        self.assertEqual(body, big_body)
+
+    def test_fetch_refuses_a_body_over_the_default_cap_without_content_length(self) -> None:
+        # Over-cap refused-and-counted: a response genuinely exceeding the new cap is
+        # still refused by the bounded-read check when no Content-Length is present.
+        big_body = b"x" * (MAX_RESPONSE_BYTES + 1)
+        opener = _RecordingOpener(body=big_body)
+        client = PodcastFeedHttpClient(opener=opener)
+        with self.assertRaises(PodcastFeedResponseTooLarge):
+            client.fetch("https://feeds.example.com/feed.xml", user_agent=FAKE_USER_AGENT)
+
+    def test_fetch_preflight_refuses_on_declared_content_length_before_reading_body(self) -> None:
+        # A Content-Length over the cap is refused before the body is ever read --
+        # the cheap preflight path, distinct from the bounded-read fallback above.
+        opener = _RecordingOpener(body=b"x" * 100, content_length="1000")
+        client = PodcastFeedHttpClient(opener=opener, max_response_bytes=10)
+        with self.assertRaises(PodcastFeedResponseTooLarge):
+            client.fetch("https://feeds.example.com/feed.xml", user_agent=FAKE_USER_AGENT)
+        self.assertEqual(opener.responses[-1].read_calls, 0)
+
+    def test_fetch_succeeds_when_declared_content_length_is_under_the_cap(self) -> None:
+        opener = _RecordingOpener(body=RSS_FEED_BASIC, content_length=str(len(RSS_FEED_BASIC)))
+        client = PodcastFeedHttpClient(opener=opener)
+        body = client.fetch("https://feeds.example.com/feed.xml", user_agent=FAKE_USER_AGENT)
+        self.assertEqual(body, RSS_FEED_BASIC)
+
+    def test_fetch_bounded_read_still_catches_a_body_exceeding_an_understated_content_length(
+        self,
+    ) -> None:
+        # A feed that under-declares Content-Length (honest or not) does not get a
+        # free pass: the bounded-read check after the preflight still applies.
+        big_body = b"x" * 100
+        opener = _RecordingOpener(body=big_body, content_length="5")
         client = PodcastFeedHttpClient(opener=opener, max_response_bytes=10)
         with self.assertRaises(PodcastFeedResponseTooLarge):
             client.fetch("https://feeds.example.com/feed.xml", user_agent=FAKE_USER_AGENT)

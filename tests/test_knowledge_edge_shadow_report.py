@@ -27,6 +27,7 @@ from personalos.knowledge_edge.shadow_report import (
     PERSON_SEARCH_PER_SCAN_BUDGET,
     build_lane_a_coverage,
     compute_lane_metrics,
+    merge_precision_verdicts,
     render_shadow_report,
 )
 
@@ -113,6 +114,29 @@ class PrecisionRecallLeakageMathTest(unittest.TestCase):
         items = [{"verdict": "confirmed"}, {"verdict": None}, {}]
         metrics = compute_lane_metrics(lane="market_voices", precision_items=items, recall_items=[])
         self.assertEqual(metrics.precision_sample_size, 3)
+
+
+class MergePrecisionVerdictsTest(unittest.TestCase):
+    def test_merges_verdict_by_media_item_id(self) -> None:
+        precision_items = [
+            {"media_item_id": "m1", "title": "One"},
+            {"media_item_id": "m2", "title": "Two"},
+        ]
+        verdicts = {"m1": "confirmed", "m2": "rejected"}
+        merged = merge_precision_verdicts(precision_items, verdicts)
+        self.assertEqual(merged[0]["verdict"], "confirmed")
+        self.assertEqual(merged[1]["verdict"], "rejected")
+        self.assertEqual(merged[0]["title"], "One")
+
+    def test_missing_verdict_key_yields_none_not_a_keyerror(self) -> None:
+        precision_items = [{"media_item_id": "m1", "title": "One"}]
+        merged = merge_precision_verdicts(precision_items, {})
+        self.assertIsNone(merged[0]["verdict"])
+
+    def test_does_not_mutate_the_original_items(self) -> None:
+        precision_items = [{"media_item_id": "m1", "title": "One"}]
+        merge_precision_verdicts(precision_items, {"m1": "confirmed"})
+        self.assertNotIn("verdict", precision_items[0])
 
 
 class LaneACoverageTest(unittest.TestCase):

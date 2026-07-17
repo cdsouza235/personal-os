@@ -271,8 +271,8 @@ class SampleConstructionTest(unittest.TestCase):
         self.assertEqual(len(sample.lane_a_precision_check), LANE_A_PRECISION_SAMPLE_SIZE)
         self.assertEqual(len(sample.lane_b_precision_check), 3)
         self.assertEqual(len(sample.lane_c_precision_check), 3)
-        self.assertEqual(sample.lane_b_recall_check, ())
-        self.assertEqual(sample.lane_c_recall_check, ())
+        self.assertEqual(sample.lane_b_recall_check_minimum, 15)
+        self.assertEqual(sample.lane_c_recall_check_minimum, 10)
         self.assertEqual(len(sample.lane_d_events), 1)  # only the tier_a company
         self.assertEqual(sample.lane_d_events[0]["company_id"], "company-tier-a")
         self.assertEqual(sample.coverage_gaps, ("no §10.3 channels seeded yet",))

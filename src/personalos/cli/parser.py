@@ -17,6 +17,7 @@ from personalos.cli.knowledge_edge import (
     _command_knowledge_edge_queue_show,
     _command_knowledge_edge_scan,
     _command_knowledge_edge_shadow_bootstrap,
+    _command_knowledge_edge_shadow_grade_init,
     _command_knowledge_edge_shadow_report,
     _command_knowledge_edge_shadow_sample_freeze,
     _command_knowledge_edge_shadow_scan,
@@ -763,13 +764,28 @@ def build_parser() -> argparse.ArgumentParser:
         func=_command_knowledge_edge_shadow_sample_freeze
     )
 
+    knowledge_edge_shadow_grade_init_parser = knowledge_edge_shadow_subparsers.add_parser(
+        "grade-init",
+        help=(
+            "Render a blank grades-file skeleton for an already-frozen sample "
+            "(precision item ids pre-populated, referencing the frozen checksum)."
+        ),
+    )
+    knowledge_edge_shadow_grade_init_parser.add_argument("--sample-json-file", required=True)
+    knowledge_edge_shadow_grade_init_parser.add_argument("--output-file", required=True)
+    _add_json_arg(knowledge_edge_shadow_grade_init_parser)
+    knowledge_edge_shadow_grade_init_parser.set_defaults(
+        func=_command_knowledge_edge_shadow_grade_init
+    )
+
     knowledge_edge_shadow_report_parser = knowledge_edge_shadow_subparsers.add_parser(
         "report",
-        help="Generate the shadow report from an ACKNOWLEDGED, hand-graded sample (R3-04).",
+        help="Generate the shadow report from an ACKNOWLEDGED sample paired with a matching grades file (R3-04).",
     )
     _add_db_arg(knowledge_edge_shadow_report_parser)
     knowledge_edge_shadow_report_parser.add_argument("--sample-markdown-file", required=True)
     knowledge_edge_shadow_report_parser.add_argument("--sample-json-file", required=True)
+    knowledge_edge_shadow_report_parser.add_argument("--grades-json-file", required=True)
     knowledge_edge_shadow_report_parser.add_argument("--report-date", required=True)
     knowledge_edge_shadow_report_parser.add_argument(
         "--person-search-calls-made", type=int, default=None

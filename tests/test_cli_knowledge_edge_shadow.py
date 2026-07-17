@@ -88,6 +88,7 @@ class ShadowAdmissionFenceTest(unittest.TestCase):
                     "knowledge-edge", "shadow", "report", "--db", str(wrong_path),
                     "--sample-markdown-file", str(Path(temp_dir) / "sample.md"),
                     "--sample-json-file", str(Path(temp_dir) / "sample.json"),
+                    "--grades-json-file", str(Path(temp_dir) / "grades.json"),
                     "--report-date", "2026-07-31",
                     "--output-file", str(Path(temp_dir) / "report.md"),
                 ]
@@ -186,12 +187,16 @@ class ShadowSampleFreezeAndReportCommandTest(unittest.TestCase):
                 self.assertTrue(json_path.exists())
                 self.assertIn("PENDING CONDUCTOR ACKNOWLEDGMENT", markdown_path.read_text())
 
+                # Acknowledgment is checked before the grades file is ever read, so
+                # a not-yet-existing grades path is fine here -- this proves the
+                # STOP-before-grading order, not grades-file validation.
                 report_path = Path(temp_dir) / "SHADOW_REPORT_2026-07-31.md"
                 report_result = _run_cli(
                     [
                         "knowledge-edge", "shadow", "report", "--db", str(shadow_path),
                         "--sample-markdown-file", str(markdown_path),
                         "--sample-json-file", str(json_path),
+                        "--grades-json-file", str(Path(temp_dir) / "does-not-exist-yet.json"),
                         "--report-date", "2026-07-31",
                         "--output-file", str(report_path),
                     ]
@@ -200,12 +205,108 @@ class ShadowSampleFreezeAndReportCommandTest(unittest.TestCase):
                 self.assertIn("not yet Conductor-acknowledged", report_result.stderr)
                 self.assertFalse(report_path.exists())
 
+    def _bootstrap_freeze_and_acknowledge(self, temp_dir: str, shadow_path: Path) -> tuple[Path, Path]:
+        _run_cli(["knowledge-edge", "shadow", "bootstrap", "--db", str(shadow_path)])
+
+        markdown_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.md"
+        json_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.json"
+        freeze_result = _run_cli(
+            [
+                "knowledge-edge", "shadow", "sample-freeze", "--db", str(shadow_path),
+                "--window-start", "2026-07-01", "--window-end", "2026-07-14",
+                "--sample-date", "2026-07-30",
+                "--markdown-output-file", str(markdown_path),
+                "--json-output-file", str(json_path),
+            ]
+        )
+        self.assertEqual(freeze_result.code, 0, freeze_result.stderr)
+
+        acknowledged_text = markdown_path.read_text().replace(
+            'status: "PENDING CONDUCTOR ACKNOWLEDGMENT (R3-04)"',
+            'status: "ACKNOWLEDGED"',
+        ).replace('acknowledged_by: ""', 'acknowledged_by: "chris"').replace(
+            'acknowledged_at: ""', 'acknowledged_at: "2026-07-31T00:00:00+00:00"'
+        )
+        markdown_path.write_text(acknowledged_text, encoding="utf-8")
+        return markdown_path, json_path
+
+    def test_report_refuses_without_a_paired_grades_file(self) -> None:
+        """A grades file grading a DIFFERENT (e.g. re-frozen) sample must be
+        refused, not silently accepted just because the markdown header says
+        ACKNOWLEDGED -- proves the grades-pairing arm is checked, not just the
+        frozen-file acknowledgment arm."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            shadow_path = Path(temp_dir) / "personalos-shadow.sqlite3"
+            with mock.patch.object(shadow_mode, "SHADOW_DB_PATH", shadow_path):
+                markdown_path, json_path = self._bootstrap_freeze_and_acknowledge(temp_dir, shadow_path)
+
+                grades_path = Path(temp_dir) / "grades.json"
+                grades_path.write_text(
+                    json.dumps({"frozen_checksum_sha256": "0" * 64, "precision_verdicts": {}}),
+                    encoding="utf-8",
+                )
+
+                report_path = Path(temp_dir) / "SHADOW_REPORT_2026-07-31.md"
+                report_result = _run_cli(
+                    [
+                        "knowledge-edge", "shadow", "report", "--db", str(shadow_path),
+                        "--sample-markdown-file", str(markdown_path),
+                        "--sample-json-file", str(json_path),
+                        "--grades-json-file", str(grades_path),
+                        "--report-date", "2026-07-31",
+                        "--output-file", str(report_path),
+                    ]
+                )
+                self.assertEqual(report_result.code, 1)
+                self.assertIn("frozen checksum", report_result.stderr)
+                self.assertFalse(report_path.exists())
+
     def test_report_succeeds_once_sample_is_acknowledged(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             shadow_path = Path(temp_dir) / "personalos-shadow.sqlite3"
             with mock.patch.object(shadow_mode, "SHADOW_DB_PATH", shadow_path):
-                _run_cli(["knowledge-edge", "shadow", "bootstrap", "--db", str(shadow_path)])
+                markdown_path, json_path = self._bootstrap_freeze_and_acknowledge(temp_dir, shadow_path)
 
+                grades_path = Path(temp_dir) / "grades.json"
+                grade_init_result = _run_cli(
+                    [
+                        "knowledge-edge", "shadow", "grade-init",
+                        "--sample-json-file", str(json_path),
+                        "--output-file", str(grades_path),
+                    ]
+                )
+                self.assertEqual(grade_init_result.code, 0, grade_init_result.stderr)
+
+                report_path = Path(temp_dir) / "SHADOW_REPORT_2026-07-31.md"
+                report_result = _run_cli(
+                    [
+                        "knowledge-edge", "shadow", "report", "--db", str(shadow_path),
+                        "--sample-markdown-file", str(markdown_path),
+                        "--sample-json-file", str(json_path),
+                        "--grades-json-file", str(grades_path),
+                        "--report-date", "2026-07-31",
+                        "--person-search-calls-made", "42",
+                        "--output-file", str(report_path),
+                        "--json",
+                    ]
+                )
+                self.assertEqual(report_result.code, 0, report_result.stderr)
+                self.assertTrue(report_path.exists())
+                report_text = report_path.read_text()
+                self.assertIn("Shadow Report", report_text)
+                self.assertIn("§10.3", report_text)
+                self.assertIn("42/174 calls used", report_text)
+
+
+class ShadowGradeInitCommandTest(unittest.TestCase):
+    def test_grade_init_produces_a_pairable_blank_grades_file(self) -> None:
+        """No --db is passed at all -- grade-init is a pure file transform and
+        needs none, proving it never touches the shadow admission fence because
+        there is nothing DB-shaped for that fence to guard here."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            shadow_path = Path(temp_dir) / "personalos-shadow.sqlite3"
+            with mock.patch.object(shadow_mode, "SHADOW_DB_PATH", shadow_path):
+                _run_cli(["knowledge-edge", "shadow", "bootstrap", "--db", str(shadow_path)])
                 markdown_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.md"
                 json_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.json"
                 freeze_result = _run_cli(
@@ -219,32 +320,19 @@ class ShadowSampleFreezeAndReportCommandTest(unittest.TestCase):
                 )
                 self.assertEqual(freeze_result.code, 0, freeze_result.stderr)
 
-                acknowledged_text = markdown_path.read_text().replace(
-                    'status: "PENDING CONDUCTOR ACKNOWLEDGMENT (R3-04)"',
-                    'status: "ACKNOWLEDGED"',
-                ).replace('acknowledged_by: ""', 'acknowledged_by: "chris"').replace(
-                    'acknowledged_at: ""', 'acknowledged_at: "2026-07-31T00:00:00+00:00"'
-                )
-                markdown_path.write_text(acknowledged_text, encoding="utf-8")
-
-                report_path = Path(temp_dir) / "SHADOW_REPORT_2026-07-31.md"
-                report_result = _run_cli(
-                    [
-                        "knowledge-edge", "shadow", "report", "--db", str(shadow_path),
-                        "--sample-markdown-file", str(markdown_path),
-                        "--sample-json-file", str(json_path),
-                        "--report-date", "2026-07-31",
-                        "--person-search-calls-made", "42",
-                        "--output-file", str(report_path),
-                        "--json",
-                    ]
-                )
-                self.assertEqual(report_result.code, 0, report_result.stderr)
-                self.assertTrue(report_path.exists())
-                report_text = report_path.read_text()
-                self.assertIn("Shadow Report", report_text)
-                self.assertIn("§10.3", report_text)
-                self.assertIn("42/174 calls used", report_text)
+            grades_path = Path(temp_dir) / "grades.json"
+            grade_init_result = _run_cli(
+                [
+                    "knowledge-edge", "shadow", "grade-init",
+                    "--sample-json-file", str(json_path),
+                    "--output-file", str(grades_path),
+                    "--json",
+                ]
+            )
+            self.assertEqual(grade_init_result.code, 0, grade_init_result.stderr)
+            grades = json.loads(grades_path.read_text())
+            self.assertIn("precision_verdicts", grades)
+            self.assertIn("frozen_checksum_sha256", grades)
 
 
 if __name__ == "__main__":

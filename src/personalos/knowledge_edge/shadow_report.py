@@ -9,22 +9,27 @@ silently absorbed; person-search quota usage vs the §5 per-scan budget). Emits
 
 ## Grading protocol
 
-A frozen sample (`ground_truth_sample.py`) starts fully ungraded. Between R3-04
-acknowledgment and report generation, the Conductor hand-edits the frozen JSON file
-(see `docs/knowledge_edge/PACKET_2C_FIRST_SHADOW_RUN.md`) to add:
+A frozen sample (`ground_truth_sample.py`) is never edited after freeze -- grading
+instead happens entirely in a separate, paired grades file (`sample_grades.py`),
+created strictly after R3-04 acknowledgment (see
+`docs/knowledge_edge/PACKET_2C_FIRST_SHADOW_RUN.md`):
 
-- Each precision-check item gets a `"verdict"` key, one of:
+- The grades file's `precision_verdicts` maps each frozen precision-check item's
+  `media_item_id` to one of:
     - `"confirmed"`      -- a genuine, correctly-surfaced appearance;
     - `"rejected"`       -- not a genuine direct appearance (false positive);
     - `"duplicate_leak"` -- a duplicate/repost that should have been suppressed or
       grouped but was not (this feeds precision AND leakage: a leaked duplicate is
-      never a "confirmed" correct surfacing).
-  An item with no `"verdict"` key (or `null`) is still ungraded -- excluded from
-  every metric, but counted and reported as `ungraded`, honestly. Grading never
-  invents a verdict for an item nobody reviewed.
-- Each recall-check item gets a `"found_by_system"` boolean (hand-populated
-  alongside the independently-identified appearance itself during acknowledgment,
-  per `PHASE0_THESIS_MATCHING.md` Part 3).
+      never a "confirmed" correct surfacing);
+    - `null`             -- still ungraded -- excluded from every metric, but
+      counted and reported as `ungraded`, honestly. Grading never invents a
+      verdict for an item nobody reviewed. `sample_grades.require_paired_grades`
+      requires every frozen item id to be present as a key (even if `null`) and
+      refuses any id that does not belong to the frozen sample.
+- Each recall-check entry in the grades file's `lane_b_recall_check`/
+  `lane_c_recall_check` gets a `"found_by_system"` boolean (hand-authored
+  independently of what the system surfaced, per `PHASE0_THESIS_MATCHING.md` Part 3
+  -- these entries exist only in the grades file, never in the frozen sample).
 
 This module never grades anything itself -- it only reads whatever verdicts are
 already present and reports honestly on what is and is not graded yet.
@@ -109,6 +114,21 @@ def _grade_recall(items: list[dict[str, Any]]) -> tuple[int, int, int]:
         else:
             ungraded += 1
     return found, missed, ungraded
+
+
+def merge_precision_verdicts(
+    precision_items: list[dict[str, Any]], precision_verdicts: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Combines a frozen sample's precision-check items (immutable, no `verdict`
+    key) with a paired grades file's `precision_verdicts` (`media_item_id ->
+    verdict`) into the shape `compute_lane_metrics` expects. Never mutates
+    `precision_items` -- returns new dicts, since the caller's frozen-sample data
+    must stay untouched.
+    """
+    return [
+        {**item, "verdict": precision_verdicts.get(item["media_item_id"])}
+        for item in precision_items
+    ]
 
 
 def compute_lane_metrics(

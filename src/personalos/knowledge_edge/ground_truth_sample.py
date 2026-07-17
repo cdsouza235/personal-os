@@ -6,9 +6,21 @@ already-persisted shadow-scan data: which surfaced candidates a human reviews an
 confirms/rejects. It cannot construct the RECALL side (§Part 3's "independently-
 identified known appearances") -- that requires a human to already know of
 appearances the system may have missed, which is not derivable from this repo's own
-state. The recall sections this module emits are therefore always empty lists with
-their required minimum size recorded alongside them; the Conductor fills them in by
-hand as part of acknowledging the sample (R3-04), before this same file is frozen.
+state. Unlike the precision candidates, recall entries are therefore never part of
+the FROZEN artifact at all -- they are entirely hand-authored by the Conductor in
+the separate grades file (`sample_grades.py`) produced *after* acknowledgment. This
+sample only records each lane's required recall minimum (`lane_b_recall_check_minimum`/
+`lane_c_recall_check_minimum`) so the grades file has something to be checked
+against.
+
+Two-artifact design (fixes the freeze/grade checksum contradiction: a checksum
+computed over ungraded content can never match itself post-grading if grading edits
+the same file): the FROZEN sample this module produces is immutable JSON, hashed
+once at freeze time and never edited again -- `require_acknowledged_sample` verifies
+that byte-for-byte. All human judgment (precision verdicts, recall entries) instead
+lands in a separate grades file that references the frozen checksum
+(`sample_grades.py`); `require_paired_grades` verifies the grades file is paired with
+exactly this frozen sample and covers exactly its item ids.
 
 No LLM call, no fuzzy matching, no vault access -- matches
 `PHASE0_THESIS_MATCHING.md`'s own "operate without vault access or an LLM"
@@ -34,7 +46,10 @@ from typing import Any
 
 import personalos.knowledge_edge.state as ke
 
-SAMPLE_SCHEMA_VERSION = 1
+# Bumped from 1 -> 2 by the freeze/grade redesign (iteration 2): the frozen sample
+# no longer carries `lane_b_recall_check`/`lane_c_recall_check` arrays at all --
+# recall entries live exclusively in the paired grades file (`sample_grades.py`).
+SAMPLE_SCHEMA_VERSION = 2
 
 # Provisional minimum/target sample sizes, PHASE0_THESIS_MATCHING.md Part 3.
 LANE_A_PRECISION_SAMPLE_SIZE = 10
@@ -50,6 +65,16 @@ LANE_LABELS: dict[str, str] = {
     "consequential_leaders": "Lane C -- Consequential Leaders",
     "earnings_events": "Lane D -- Earnings & Corporate Events",
 }
+
+# The three precision-check arrays a frozen sample dict carries -- every item in
+# each is keyed by `media_item_id`. Used both to enumerate ids for grading
+# (`sample_grades.py`) and by anything else that needs "every precision candidate
+# regardless of lane" without duplicating this list.
+PRECISION_CHECK_KEYS: tuple[str, ...] = (
+    "lane_a_precision_check",
+    "lane_b_precision_check",
+    "lane_c_precision_check",
+)
 
 
 class GroundTruthSampleError(ValueError):
@@ -121,10 +146,8 @@ class GroundTruthSample:
     lane_a_precision_check: tuple[dict[str, Any], ...]
     lane_b_precision_check: tuple[dict[str, Any], ...]
     lane_b_recall_check_minimum: int
-    lane_b_recall_check: tuple[dict[str, Any], ...]
     lane_c_precision_check: tuple[dict[str, Any], ...]
     lane_c_recall_check_minimum: int
-    lane_c_recall_check: tuple[dict[str, Any], ...]
     lane_d_events: tuple[dict[str, Any], ...]
     coverage_gaps: tuple[str, ...]
 
@@ -138,10 +161,8 @@ class GroundTruthSample:
             "lane_a_precision_check": list(self.lane_a_precision_check),
             "lane_b_precision_check": list(self.lane_b_precision_check),
             "lane_b_recall_check_minimum": self.lane_b_recall_check_minimum,
-            "lane_b_recall_check": list(self.lane_b_recall_check),
             "lane_c_precision_check": list(self.lane_c_precision_check),
             "lane_c_recall_check_minimum": self.lane_c_recall_check_minimum,
-            "lane_c_recall_check": list(self.lane_c_recall_check),
             "lane_d_events": list(self.lane_d_events),
             "coverage_gaps": list(self.coverage_gaps),
         }
@@ -245,13 +266,24 @@ def build_ground_truth_sample(
         lane_a_precision_check=tuple(lane_a),
         lane_b_precision_check=tuple(lane_b),
         lane_b_recall_check_minimum=LANE_B_RECALL_MINIMUM,
-        lane_b_recall_check=(),
         lane_c_precision_check=tuple(lane_c),
         lane_c_recall_check_minimum=LANE_C_RECALL_MINIMUM,
-        lane_c_recall_check=(),
         lane_d_events=tuple(lane_d_events),
         coverage_gaps=tuple(coverage_gaps),
     )
+
+
+def precision_item_ids(sample_dict: dict[str, Any]) -> set[str]:
+    """Every `media_item_id` across all three precision-check strata of a frozen
+    sample dict (i.e. already `json.loads`-ed from the frozen JSON file) -- the set
+    a paired grades file's `precision_verdicts` must cover exactly, no missing or
+    extra (`sample_grades.require_paired_grades`).
+    """
+    ids: set[str] = set()
+    for key in PRECISION_CHECK_KEYS:
+        for item in sample_dict[key]:
+            ids.add(item["media_item_id"])
+    return ids
 
 
 # ------------------------------------------------------------------- freeze artifact
@@ -357,15 +389,17 @@ def render_frozen_sample_files(
             )
         lines.append("")
         lines.append(
-            f"### Recall check -- PENDING, minimum {recall_minimum} independently-identified "
+            f"### Recall check -- minimum {recall_minimum} independently-identified "
             "known appearance(s)"
         )
         lines.append("")
         lines.append(
-            "This section cannot be constructed from repo state: it requires the reviewer "
-            "to independently know of appearances during the window (e.g. by manually "
-            "checking 2-3 known sources per Part 3), not just grade what the system already "
-            "surfaced. The Conductor fills this in as part of the acknowledgment above."
+            "Not part of this frozen artifact: it requires the reviewer to independently "
+            "know of appearances during the window (e.g. by manually checking 2-3 known "
+            "sources per Part 3), not just grade what the system already surfaced. Recorded "
+            "entirely in the separate grades file (`sample_grades.py`), produced *after* "
+            "this sample is acknowledged (R3-04) -- never in this frozen file, which is "
+            "immutable once its checksum above is recorded."
         )
         lines.append("")
 

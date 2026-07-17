@@ -7,8 +7,8 @@ in writing this document (hard constraint) — this is a plan to be executed lat
 human-supervised session, not a script run by this packet. Mirrors
 `PACKET_2A_PODCAST_SUPERVISED_SMOKE.md`/`PACKET_2B_YOUTUBE_SUPERVISED_SMOKE.md`'s
 structure and STOP-rule discipline, applied to the `personalos knowledge-edge shadow
-bootstrap|scan|sample-freeze|report` tooling this packet ships (all inert/unreachable
-by the test suite; see each module's own docstring for why).
+bootstrap|scan|sample-freeze|grade-init|report` tooling this packet ships (all
+inert/unreachable by the test suite; see each module's own docstring for why).
 
 ---
 
@@ -23,11 +23,17 @@ P-KE-2C ships, inert until this procedure runs it:
   `audits/knowledge-edge/2026-07-16-packet-2a-podcast-smoke-transcript.md` (literal
   config, no re-fetching).
 - `ground_truth_sample.py` — deterministic sample construction (`PHASE0_THESIS_MATCHING.md`
-  Part 3) + freeze artifact rendering + the R3-04 acknowledgment gate.
+  Part 3) + freeze artifact rendering + the R3-04 acknowledgment gate. The frozen
+  sample is immutable once its checksum is recorded — it is never edited again,
+  including during grading.
+- `sample_grades.py` — the separate, paired GRADES file human judgment lands in
+  (precision verdicts + recall entries), validated against the frozen sample's own
+  checksum and item ids so a grades file can never silently drift from the sample it
+  claims to grade.
 - `shadow_report.py` — per-lane precision/recall/duplicate-leakage math + coverage
-  reporting, reading a hand-graded, acknowledged sample.
-- `personalos knowledge-edge shadow bootstrap|scan|sample-freeze|report` — the CLI
-  surface wiring all of the above together.
+  reporting, reading an acknowledged frozen sample paired with a matching grades file.
+- `personalos knowledge-edge shadow bootstrap|scan|sample-freeze|grade-init|report`
+  — the CLI surface wiring all of the above together.
 
 This packet's own test suite exercises every one of these against fixtures and a
 migrated-but-unverified (or verified-with-no-credential) registry — proving the wiring
@@ -200,35 +206,63 @@ threshold tuning — including grading — begins against it.** Concretely:
    a fresh `--sample-date`, never edit a frozen file's *contents* in place).
 3. On acceptance, Chris hand-edits the frozen markdown file's header:
    `status: "PENDING CONDUCTOR ACKNOWLEDGMENT (R3-04)"` → `status: "ACKNOWLEDGED"`,
-   plus `acknowledged_by`/`acknowledged_at`, and commits that edit. **Do not edit the
-   paired JSON file's contents at this step** — its checksum is fixed at freeze time
-   and `shadow report` verifies it byte-for-byte (`require_acknowledged_sample`).
+   plus `acknowledged_by`/`acknowledged_at`, and commits that edit. **Never edit the
+   paired JSON file's contents, at this step or any later one** — its checksum is
+   fixed at freeze time and stays fixed forever; `shadow report` verifies it
+   byte-for-byte (`require_acknowledged_sample`). Grading (§7) happens entirely in a
+   *different* file, never this one — see below for why.
 
 **STOP — do not proceed to grading (§7) or report generation (§8) until this
 acknowledgment commit exists.**
 
 ---
 
-## 7. Grading — hand-editing the acknowledged sample (real review work, no shortcuts)
+## 7. Grading — a separate grades file, never the frozen sample (real review work, no shortcuts)
 
-Once acknowledged, grade each item by editing the **frozen JSON file** (not the
-markdown — the JSON is the machine-read source of truth for §8):
+Two artifacts, two lifecycles, by design: the frozen sample above is checksummed
+once and never touched again after freeze — editing it post-acknowledgment would
+silently invalidate the very acknowledgment §6 just recorded (a checksum computed
+over ungraded content cannot match itself again once grading edits the same bytes).
+Grading instead happens in a **separate GRADES file** that references the frozen
+sample's checksum and is validated against it independently
+(`sample_grades.require_paired_grades`).
 
-- Each `lane_a_precision_check`/`lane_b_precision_check`/`lane_c_precision_check` item:
-  add `"verdict"`, one of `"confirmed"`, `"rejected"`, `"duplicate_leak"` (see
-  `shadow_report.py`'s module docstring for exact semantics of each).
-- Each `lane_b_recall_check`/`lane_c_recall_check` item: this array starts **empty** —
-  Part 3's recall check requires the reviewer to *independently* identify known
-  appearances during the window (e.g. by checking 2-3 known sources by hand), not just
-  grade what the system already surfaced. Add one object per independently-found
-  appearance: `{"description": "...", "found_by_system": true|false}` —
-  `found_by_system: true` only if that exact appearance also shows up in the
-  corresponding `*_precision_check` list; `false` if the system missed it entirely.
-  `lane_b_recall_check_minimum`/`lane_c_recall_check_minimum` in the sample record the
-  required minimum count (15 / 10) — falling short is a real, reportable gap, not
-  something to pad artificially.
-- An item left ungraded (no `"verdict"`/`"found_by_system"` key) is fine — `shadow
-  report` excludes it from every metric and reports it honestly as `ungraded`.
+1. Generate a blank grades skeleton — every precision item id from the frozen
+   sample, pre-populated with `null` verdicts, so there is no way to typo an id into
+   (or out of) existence:
+
+   ```
+   personalos knowledge-edge shadow grade-init \
+     --sample-json-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.json \
+     --output-file docs/knowledge_edge/GROUND_TRUTH_GRADES_<date>.json \
+     --json
+   ```
+
+   This is a pure file-to-file transform (no `--db`, no shadow admission check —
+   there is no database or production surface here to guard).
+
+2. Hand-edit `GROUND_TRUTH_GRADES_<date>.json`:
+   - Each `precision_verdicts` entry: set the value to one of `"confirmed"`,
+     `"rejected"`, `"duplicate_leak"` (see `shadow_report.py`'s module docstring for
+     exact semantics of each), or leave it `null` if genuinely not yet reviewed.
+   - `lane_b_recall_check`/`lane_c_recall_check`: these arrays start **empty** —
+     Part 3's recall check requires the reviewer to *independently* identify known
+     appearances during the window (e.g. by checking 2-3 known sources by hand), not
+     just grade what the system already surfaced. Add one object per
+     independently-found appearance: `{"description": "...", "found_by_system":
+     true|false}` — `found_by_system: true` only if that exact appearance also shows
+     up in the corresponding frozen `*_precision_check` list; `false` if the system
+     missed it entirely. `lane_b_recall_check_minimum`/`lane_c_recall_check_minimum`
+     (carried over from the frozen sample into the skeleton) record the required
+     minimum count (15 / 10) — falling short is a real, reportable gap, not
+     something to pad artificially.
+   - Never add or remove a `precision_verdicts` key, and never edit
+     `frozen_checksum_sha256` — `shadow report` refuses a grades file whose keys
+     don't exactly match the frozen sample's item ids, or whose checksum doesn't
+     match the acknowledged sample.
+   - An item left `null`/ungraded is fine — `shadow report` excludes it from every
+     metric and reports it honestly as `ungraded`.
+3. Commit the completed grades file alongside the frozen sample.
 
 No LLM assistance, no automation for this step — this is exactly the "operate without
 ... an LLM" appearance-quality judgment `PHASE0_THESIS_MATCHING.md` reserves for a
@@ -242,17 +276,25 @@ human.
 personalos knowledge-edge shadow report --db var/shadow/personalos-shadow.sqlite3 \
   --sample-markdown-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.md \
   --sample-json-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.json \
+  --grades-json-file docs/knowledge_edge/GROUND_TRUTH_GRADES_<date>.json \
   --report-date <today's date> \
   --person-search-calls-made <sum from §4b, or omit> \
   --output-file docs/knowledge_edge/SHADOW_REPORT_<date>.md \
   --json
 ```
 
-This refuses (`SampleAcknowledgmentError` → `CliError`, exit 1) unless the sample's
-header says `ACKNOWLEDGED` and its checksum still matches the frozen JSON file
-byte-for-byte. Commit the resulting `SHADOW_REPORT_<date>.md` alongside the sample
-files. This report measures against Phase 0's *provisional* thresholds only — it does
-not itself ratify anything; final thresholds remain a Session 2 decision.
+This refuses (exit 1) on either of two independent arms:
+
+- `SampleAcknowledgmentError` — the frozen sample's header does not say
+  `ACKNOWLEDGED`, or its bytes no longer hash to the acknowledged checksum
+  (`require_acknowledged_sample`).
+- `SampleGradingError` — the grades file's `frozen_checksum_sha256` does not match
+  the acknowledged checksum, or its `precision_verdicts` do not cover exactly the
+  frozen sample's item ids (`require_paired_grades`).
+
+Commit the resulting `SHADOW_REPORT_<date>.md` alongside the sample and grades
+files. This report measures against Phase 0's *provisional* thresholds only — it
+does not itself ratify anything; final thresholds remain a Session 2 decision.
 
 ---
 
@@ -267,6 +309,10 @@ not itself ratify anything; final thresholds remain a Session 2 decision.
   tooling itself refuses this — `GroundTruthSampleError`) → halt, pick a valid window.
 - §6's acknowledgment has not landed as a commit → halt; §7/§8 never proceed on an
   unacknowledged sample (the tooling also refuses this mechanically).
+- §7's grades file was edited to add/remove a `precision_verdicts` id, or its
+  `frozen_checksum_sha256` no longer matches the acknowledged sample → halt; `shadow
+  report` refuses this mechanically (`SampleGradingError`) rather than silently
+  reporting against a mismatched pairing.
 - §8 (report) exit ≠ 0 → halt; do not hand-edit the report output to force a result the
   tool refused to produce.
 

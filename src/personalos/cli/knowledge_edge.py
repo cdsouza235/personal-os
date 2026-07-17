@@ -12,13 +12,15 @@ against a small built-in synthetic dataset; it is never a live scan and never
 activates a scheduler.
 
 The ``shadow`` command group (P-KE-2C) is the first production wiring of a live
-Knowledge Edge adapter: ``shadow bootstrap``/``scan``/``sample-freeze``/``report``
-implement the Conductor-supervised procedure in
+Knowledge Edge adapter: ``shadow bootstrap``/``scan``/``sample-freeze``/
+``grade-init``/``report`` implement the Conductor-supervised procedure in
 ``docs/knowledge_edge/PACKET_2C_FIRST_SHADOW_RUN.md``. Every one of these commands
-calls ``shadow_mode.validate_shadow_admission`` first -- the §14.4 fence -- which
-refuses unless ``--db`` resolves to exactly the one shadow database path
-(``shadow_mode.SHADOW_DB_PATH``); no other database, and never the production path,
-is ever reachable through this command group. ``shadow scan`` constructs
+except ``grade-init`` (a pure frozen-JSON-to-blank-grades-JSON file transform, no
+database of any kind involved) calls ``shadow_mode.validate_shadow_admission`` first
+-- the §14.4 fence -- which refuses unless ``--db`` resolves to exactly the one
+shadow database path (``shadow_mode.SHADOW_DB_PATH``); no other database, and never
+the production path, is ever reachable through this command group. ``shadow scan``
+constructs
 ``LivePodcastFeedAdapter`` with ``feature_mode="shadow_live"`` for Lane A only --
 structurally reachable, not actually reached by this suite: every test exercising
 this command does so against a freshly-bootstrapped-but-unverified (still ``trial``)
@@ -77,11 +79,17 @@ from personalos.knowledge_edge.ground_truth_sample import (
     require_acknowledged_sample,
     utc_now_iso,
 )
+from personalos.knowledge_edge.sample_grades import (
+    SampleGradingError,
+    render_blank_grades_file,
+    require_paired_grades,
+)
 from personalos.knowledge_edge.scan_orchestrator import run_scan
 from personalos.knowledge_edge.shadow_bootstrap import bootstrap_shadow_database
 from personalos.knowledge_edge.shadow_report import (
     build_lane_a_coverage,
     compute_lane_metrics,
+    merge_precision_verdicts,
     render_shadow_report,
 )
 from personalos.path_safety import validate_output_file_path
@@ -937,11 +945,65 @@ def _command_knowledge_edge_shadow_sample_freeze(args: argparse.Namespace) -> in
     return 0
 
 
+def _command_knowledge_edge_shadow_grade_init(args: argparse.Namespace) -> int:
+    """Renders a blank grades-file skeleton (`sample_grades.py`) for an already-
+    frozen sample: one `null`-valued `precision_verdicts` entry per frozen
+    precision-check item id, referencing the frozen file's own checksum, plus empty
+    recall arrays. Pure file-to-file transform -- reads only the frozen JSON file
+    the Conductor points it at and never touches any database, so this command (and
+    only this one in the `shadow` group) takes no `--db` and needs no shadow
+    admission check: there is no database or production surface for it to reach.
+    Run this only against an already-ACKNOWLEDGED sample (R3-04) -- grading before
+    acknowledgment is refused later at `shadow report` time regardless, but
+    generating the skeleton itself is harmless either way since it makes no claim
+    about acknowledgment.
+    """
+    frozen_json_text = Path(args.sample_json_file).read_text(encoding="utf-8")
+    try:
+        grades_text = render_blank_grades_file(frozen_json_text)
+    except SampleGradingError as error:
+        raise CliError(str(error)) from error
+
+    output_path = validate_output_file_path(args.output_file, path_label="operator output_file")
+    output_path.write_text(grades_text, encoding="utf-8")
+
+    report = _with_workflow_context(
+        {
+            "command": "knowledge-edge shadow grade-init",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "file_write": True,
+        },
+        workflow_name="Knowledge Edge ground-truth grades-file skeleton (R3-04)",
+        workflow_mode="inert / no-send / local file write only, no database access",
+        database_path=None,
+        database_access="no_database_knowledge_edge_shadow_grade_init",
+        local_sqlite_read=False,
+        local_sqlite_changed=False,
+        output_kind="file",
+        output_file=str(output_path),
+        safe_next_actions=(
+            "Hand-edit the grades file's precision_verdicts and recall arrays per "
+            "docs/knowledge_edge/PACKET_2C_FIRST_SHADOW_RUN.md §7, then run "
+            "personalos knowledge-edge shadow report.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
 def _command_knowledge_edge_shadow_report(args: argparse.Namespace) -> int:
-    """Generate the shadow report from an ACKNOWLEDGED, hand-graded sample
-    (refuses otherwise -- R3-04) plus live coverage read from ``--db``. See
-    ``shadow_report.py``'s module docstring for the grading protocol this command
-    expects the sample's JSON file to already carry.
+    """Generate the shadow report from an ACKNOWLEDGED frozen sample paired with a
+    matching, hand-graded grades file (refuses otherwise -- R3-04) plus live
+    coverage read from ``--db``. Three refusal arms, checked in order: (1) the
+    frozen sample itself is not ACKNOWLEDGED or its bytes no longer hash to the
+    acknowledged checksum (``require_acknowledged_sample``); (2) the grades file
+    does not reference that same acknowledged checksum, or its ``precision_verdicts``
+    do not cover exactly the frozen sample's item ids (``require_paired_grades``).
+    See ``shadow_report.py``'s module docstring and ``sample_grades.py`` for the
+    two-file grading protocol this command expects.
     """
     _require_shadow_admission(args.db)
 
@@ -951,6 +1013,17 @@ def _command_knowledge_edge_shadow_report(args: argparse.Namespace) -> int:
         header_fields = require_acknowledged_sample(markdown_text, frozen_json_text=frozen_json_text)
     except SampleAcknowledgmentError as error:
         raise CliError(str(error)) from error
+
+    grades_json_text = Path(args.grades_json_file).read_text(encoding="utf-8")
+    try:
+        paired_grades = require_paired_grades(
+            frozen_json_text=frozen_json_text,
+            acknowledged_checksum=header_fields["checksum_sha256"],
+            grades_json_text=grades_json_text,
+        )
+    except SampleGradingError as error:
+        raise CliError(str(error)) from error
+
     sample = json.loads(frozen_json_text)
 
     with closing(_connect_read_only(args.db)) as connection:
@@ -958,18 +1031,24 @@ def _command_knowledge_edge_shadow_report(args: argparse.Namespace) -> int:
 
     lane_a_metrics = compute_lane_metrics(
         lane="curated_podcasts",
-        precision_items=sample["lane_a_precision_check"],
+        precision_items=merge_precision_verdicts(
+            sample["lane_a_precision_check"], paired_grades.precision_verdicts
+        ),
         recall_items=[],
     )
     lane_b_metrics = compute_lane_metrics(
         lane="market_voices",
-        precision_items=sample["lane_b_precision_check"],
-        recall_items=sample["lane_b_recall_check"],
+        precision_items=merge_precision_verdicts(
+            sample["lane_b_precision_check"], paired_grades.precision_verdicts
+        ),
+        recall_items=paired_grades.lane_b_recall_check,
     )
     lane_c_metrics = compute_lane_metrics(
         lane="consequential_leaders",
-        precision_items=sample["lane_c_precision_check"],
-        recall_items=sample["lane_c_recall_check"],
+        precision_items=merge_precision_verdicts(
+            sample["lane_c_precision_check"], paired_grades.precision_verdicts
+        ),
+        recall_items=paired_grades.lane_c_recall_check,
     )
 
     report_text = render_shadow_report(

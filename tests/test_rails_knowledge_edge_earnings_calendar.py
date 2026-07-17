@@ -233,12 +233,28 @@ class DeriveEventsForCompanyTest(unittest.TestCase):
         self.assertEqual(events["10-K-0000320193-25-000095"].event_type, "annual_results")
         self.assertEqual(events["10-Q-0000320193-26-000010"].event_type, "quarterly_earnings")
 
-    def test_scheduled_date_prefers_report_date_over_filing_date(self) -> None:
+    def test_scheduled_date_is_filing_date_never_report_date(self) -> None:
+        # Confirmed events are dated by when EDGAR says the filing happened, not
+        # the fiscal period it covers -- report_date must never leak into
+        # scheduled_date, even though it's a real, useful field in its own right
+        # (asserted separately below as fiscal_period).
         filings = _parse_submissions_document(AAPL_SUBMISSIONS, expected_cik="0000320193")
         events = {e.event_id_hint: e for e in _derive_events_for_company(
             company_id="ke-company-aapl", cik="0000320193", filer_form_family="us_domestic", filings=filings
         )}
-        self.assertEqual(events["10-Q-0000320193-26-000010"].scheduled_date, "2026-03-31")
+        self.assertEqual(events["10-Q-0000320193-26-000010"].scheduled_date, "2026-05-01")
+
+    def test_confirmed_event_disambiguates_filing_date_from_covered_period(self) -> None:
+        # The AAPL fixture's 10-Q-...-000010 has filingDate 2026-05-01 and
+        # reportDate 2026-03-31 -- deliberately different, so this test fails if
+        # either field is wired to the wrong source value.
+        filings = _parse_submissions_document(AAPL_SUBMISSIONS, expected_cik="0000320193")
+        events = {e.event_id_hint: e for e in _derive_events_for_company(
+            company_id="ke-company-aapl", cik="0000320193", filer_form_family="us_domestic", filings=filings
+        )}
+        event = events["10-Q-0000320193-26-000010"]
+        self.assertEqual(event.scheduled_date, "2026-05-01")
+        self.assertEqual(event.fiscal_period, "2026-03-31")
 
     def test_eight_k_falls_back_to_filing_date_when_no_report_date(self) -> None:
         filings = _parse_submissions_document(AAPL_SUBMISSIONS, expected_cik="0000320193")

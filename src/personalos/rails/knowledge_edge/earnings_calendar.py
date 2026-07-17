@@ -493,7 +493,11 @@ def _derive_confirmed_events(
             continue
         ordered = sorted(form_filings, key=lambda filing: filing.filing_date, reverse=True)
         for filing in ordered[:MAX_CONFIRMED_FILINGS_PER_FORM]:
-            scheduled_date = filing.report_date or filing.filing_date
+            # The event date is when EDGAR says the filing happened, not the fiscal
+            # period it covers -- a 10-Q filed 2026-05-01 reporting on Q1 (period end
+            # 2026-03-31) is a 2026-05-01 event. report_date is preserved separately
+            # below as fiscal_period.
+            scheduled_date = filing.filing_date
             filing_url = _edgar_filing_index_url(
                 cik=cik, accession_number=filing.accession_number, primary_document=filing.primary_document
             )

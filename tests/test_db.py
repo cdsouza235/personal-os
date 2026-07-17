@@ -551,10 +551,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00024",
                     "00025",
                     "00026",
+                    "00027",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 26)
+            self.assertEqual(len(rows), 27)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -2396,6 +2397,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00024",
                 "00025",
                 "00026",
+                "00027",
             ],
         )
         self.assertEqual(
@@ -2427,6 +2429,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "knowledge_edge_media_cross_run_identity",
                 "knowledge_edge_person_search_cache",
                 "knowledge_edge_edgar_company_identifiers",
+                "knowledge_edge_lane_bc_source_seeding",
             ],
         )
 
@@ -2443,7 +2446,7 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
 
             post15_versions = {
                 "00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023", "00024",
-                "00025", "00026",
+                "00025", "00026", "00027",
             }
             pre16_migrations_dir = Path(pre16_dir_name)
             for migration in discover_migrations():
@@ -2519,7 +2522,7 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
                     [migration.version for migration in applied_16],
                     [
                         "00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023",
-                        "00024", "00025", "00026",
+                        "00024", "00025", "00026", "00027",
                     ],
                 )
 

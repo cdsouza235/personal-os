@@ -684,9 +684,30 @@ class LiveYoutubePersonSearchClientGateTest(unittest.TestCase):
             self.assertFalse(outcome.healthy)
             self.assertIn(STATUS_SEARCH_BLOCKED_CREDENTIAL_EMPTY, outcome.error_summary)
 
-    def test_unseeded_default_source_refuses(self) -> None:
-        # No migration in this packet seeds DEFAULT_PERSON_SEARCH_SOURCE_ID -- this is
-        # the expected, permanent (until a future packet's migration) state.
+    def test_unknown_default_source_id_refuses_source_not_found(self) -> None:
+        # Constructing the client against a source_id no migration seeds (a typo, or
+        # a future rename) still hits SOURCE_NOT_FOUND -- the general case
+        # DEFAULT_PERSON_SEARCH_SOURCE_ID itself no longer exercises since migration
+        # 00027 (P-KE-2F) seeded that exact row (see
+        # test_seeded_default_source_is_trial_and_unverified below).
+        with _migrated_test_connection() as connection:
+            client = _FakeSearchClient(error=AssertionError("client must not be called"))
+            search_client = LiveYoutubePersonSearchClient(
+                connection, feature_mode="shadow_live", client=client, source_id="ke-source-does-not-exist"
+            )
+            with mock.patch.dict("os.environ", {YOUTUBE_API_KEY_ENV_VAR: FAKE_API_KEY}):
+                outcome = search_client.search_person(person_id="p1", query="Kevin Warsh", now=NOW)
+            self.assertFalse(outcome.healthy)
+            self.assertIn(STATUS_SEARCH_BLOCKED_SOURCE_NOT_FOUND, outcome.error_summary)
+            self.assertIn("ke-source-does-not-exist", outcome.error_summary)
+            self.assertEqual(client.calls, [])
+
+    def test_seeded_default_source_is_trial_and_unverified(self) -> None:
+        # Migration 00027 (P-KE-2F) seeds DEFAULT_PERSON_SEARCH_SOURCE_ID as
+        # status='trial' with an unverified api_endpoint -- the row now exists (the
+        # 2B smoke's own STATUS_SEARCH_BLOCKED_SOURCE_NOT_FOUND block is closed), but
+        # it still refuses every live fetch until a Conductor-supervised smoke
+        # verifies it, exactly like every other trial source in this rail.
         with _migrated_test_connection() as connection:
             client = _FakeSearchClient(error=AssertionError("client must not be called"))
             search_client = LiveYoutubePersonSearchClient(
@@ -695,8 +716,7 @@ class LiveYoutubePersonSearchClientGateTest(unittest.TestCase):
             with mock.patch.dict("os.environ", {YOUTUBE_API_KEY_ENV_VAR: FAKE_API_KEY}):
                 outcome = search_client.search_person(person_id="p1", query="Kevin Warsh", now=NOW)
             self.assertFalse(outcome.healthy)
-            self.assertIn(STATUS_SEARCH_BLOCKED_SOURCE_NOT_FOUND, outcome.error_summary)
-            self.assertIn(DEFAULT_PERSON_SEARCH_SOURCE_ID, outcome.error_summary)
+            self.assertIn(STATUS_SEARCH_BLOCKED_SOURCE_NOT_VERIFIED, outcome.error_summary)
             self.assertEqual(client.calls, [])
 
     def test_source_with_no_endpoint_refuses(self) -> None:

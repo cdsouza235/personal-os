@@ -51,3 +51,39 @@ above (with these Session-#1 timestamps as the verification evidence), re-smokes
 five instrumentation-STOPs, and appends to this transcript.
 
 — Conductor session (Fable seat), 2026-07-16/17
+
+---
+
+# Session #2 addendum (2026-07-17 ~03:52 UTC, post-P-KE-2B merge `fdd7966`)
+
+## Re-smoke of the five instrumentation-STOPs — corrected cap (50 MB), one GET each
+
+| Feed | Result |
+|---|---|
+| ke-source-latent-space | **PASS** — 200, 214 items, stable guid+title |
+| ke-source-unchained | **PASS** — 200, 1210 items |
+| ke-source-bankless | **PASS** — 200, 1342 items |
+| ke-source-odd-lots | **PASS** — 200, 1242 items |
+| ke-source-compound-and-friends | **PASS** — 200, 587 items |
+
+Session #1's instrumentation diagnosis confirmed: all five are simply large feeds;
+none was malformed. **9/9 feeds verified.**
+
+## Flips executed — sanctioned path (2A defect CLOSED by P-KE-2B's helpers)
+
+All nine sources flipped `trial`→`active` and endpoints verification-stamped via
+`state.registries.record_endpoint_verification` + `update_source_status` (the
+single-write-path helpers P-KE-2B added), in the dev DB (fresh 25-migration apply),
+`verified_by="conductor:2026-07-16-supervised-smoke"`, `verified_at` = each feed's
+actual smoke GET timestamp (Session #1 stamps for its four passes, Session #2 stamps
+for its five). Post-flip state verified as data: active 9/9, verified endpoints 9/9.
+Durable record = this transcript; the shadow DB (created at Session 2 / P-KE-2C)
+re-applies from it through the same helpers.
+
+## YouTube verification (per PACKET_2B_YOUTUBE_SUPERVISED_SMOKE.md)
+
+One `search.list` call (q = Lane B roster person Mohamed El-Erian, maxResults=5):
+HTTP 200, 5 items, on-target results. Key valid and search.list-restricted. Still
+open: the Google-console quota screenshot (Conductor, closes the §5 TBC — carried).
+
+— Conductor session (Fable seat), Session #2

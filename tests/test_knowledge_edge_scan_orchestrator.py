@@ -1315,5 +1315,193 @@ class ExpirySweepProductionPathTest(unittest.TestCase):
             self.assertIn("replay-7d", expiry_row["reason"])
 
 
+class CrossRunCorrectionTest(unittest.TestCase):
+    """P-KE-2A iteration 2 (Conductor scope amendment): §8.1's "recognize
+    corrected/reissued episodes without producing duplicates" evaluated *across*
+    scan runs, not just within one batch -- the cross-run counterpart of
+    ``DedupeCollisionTest`` above."""
+
+    def test_reissued_episode_new_guid_matching_underlying_id_weeks_later_is_corrected_not_duplicated(
+        self,
+    ) -> None:
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            records = _four_lane_records()
+            original_episode = DiscoveredMediaItem(
+                source_id="src-dwarkesh",
+                source_specific_id="ep-100-guid-v1",
+                canonical_url="https://dwarkesh.com/ep-100",
+                title="Episode 100: A Long Conversation",
+                media_type="podcast_episode",
+                source_precedence="official",
+                format_hint="original_podcast_guest",
+                feed_guid="ep-100-guid-v1",
+                underlying_id="100",
+                published_at="2026-07-01T18:00:00+00:00",
+                duration_seconds=5400,
+                cursor_value="2026-07-01T18:00:00+00:00|ep-100-guid-v1",
+            )
+            records["podcast_items"] = (original_episode,)
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+
+            original = ke.get_media_item_by_dedupe_key(connection, "src-dwarkesh:ep-100-guid-v1")
+            self.assertIsNotNone(original)
+            self.assertEqual(original["content_status"], "ranked")
+            media_item_id = original["media_item_id"]
+            media_count_after_first = ke.count_media_items(connection)
+
+            # Two weeks later, the feed republishes the same episode (matched by
+            # itunes:episode -> underlying_id="100") under a corrected GUID/title.
+            corrected_episode = DiscoveredMediaItem(
+                source_id="src-dwarkesh",
+                source_specific_id="ep-100-guid-v2-corrected",
+                canonical_url="https://dwarkesh.com/ep-100-corrected",
+                title="Episode 100: A Long Conversation (Corrected Audio)",
+                media_type="podcast_episode",
+                source_precedence="official",
+                format_hint="original_podcast_guest",
+                feed_guid="ep-100-guid-v2-corrected",
+                underlying_id="100",
+                published_at="2026-07-01T18:00:00+00:00",
+                duration_seconds=5400,
+                cursor_value="2026-07-15T09:00:00+00:00|ep-100-guid-v2-corrected",
+            )
+            records["podcast_items"] = (corrected_episode,)
+            podcast_adapter_2, channel_adapter_2, earnings_adapter_2, filings_adapter_2 = _build_adapters(records)
+
+            summary = run_scan(
+                connection,
+                scan_run_id="run-2",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW + timedelta(weeks=2),
+                queue_date="2026-07-30",
+                podcast_adapter=podcast_adapter_2,
+                channel_adapter=channel_adapter_2,
+                earnings_adapter=earnings_adapter_2,
+                filings_adapter=filings_adapter_2,
+            )
+
+            self.assertEqual(summary.media_items_created, 0)
+            self.assertEqual(ke.count_media_items(connection), media_count_after_first)
+            self.assertIsNone(ke.get_media_item_by_dedupe_key(connection, "src-dwarkesh:ep-100-guid-v1"))
+
+            corrected = ke.get_media_item(connection, media_item_id)
+            self.assertEqual(corrected["source_specific_id"], "ep-100-guid-v2-corrected")
+            self.assertEqual(corrected["dedupe_key"], "src-dwarkesh:ep-100-guid-v2-corrected")
+            self.assertEqual(corrected["feed_guid"], "ep-100-guid-v2-corrected")
+            self.assertEqual(corrected["underlying_id"], "100")
+            self.assertEqual(corrected["title"], "Episode 100: A Long Conversation (Corrected Audio)")
+            self.assertEqual(corrected["canonical_url"], "https://dwarkesh.com/ep-100-corrected")
+            self.assertEqual(corrected["content_status"], "normalized")
+            # Untouched by the correction: it is an identity fix, not a re-classification.
+            self.assertEqual(corrected["directness_class"], original["directness_class"])
+            self.assertEqual(corrected["priority_score"], original["priority_score"])
+
+            history = ke.list_decision_history(connection, entity_type="media_item", entity_id=media_item_id)
+            content_status_transitions = [
+                (row["from_value"], row["to_value"]) for row in history if row["track"] == "content_status"
+            ]
+            self.assertIn(("ranked", "corrected"), content_status_transitions)
+            self.assertIn(("corrected", "normalized"), content_status_transitions)
+            correction_row = next(row for row in history if row["to_value"] == "corrected")
+            self.assertEqual(correction_row["changed_by"], "system:cross_run_identity_correction")
+            self.assertIn("ep-100-guid-v1", correction_row["reason"])
+            self.assertIn("ep-100-guid-v2-corrected", correction_row["reason"])
+
+    def test_new_episode_with_different_underlying_id_creates_new_row_not_corrected(self) -> None:
+        with _migrated_connection() as connection:
+            _seed_registries(connection)
+            records = _four_lane_records()
+            original_episode = DiscoveredMediaItem(
+                source_id="src-dwarkesh",
+                source_specific_id="ep-100-guid-v1",
+                canonical_url="https://dwarkesh.com/ep-100",
+                title="Episode 100: A Long Conversation",
+                media_type="podcast_episode",
+                source_precedence="official",
+                format_hint="original_podcast_guest",
+                feed_guid="ep-100-guid-v1",
+                underlying_id="100",
+                published_at="2026-07-01T18:00:00+00:00",
+                duration_seconds=5400,
+                cursor_value="2026-07-01T18:00:00+00:00|ep-100-guid-v1",
+            )
+            records["podcast_items"] = (original_episode,)
+            podcast_adapter, channel_adapter, earnings_adapter, filings_adapter = _build_adapters(records)
+
+            run_scan(
+                connection,
+                scan_run_id="run-1",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW,
+                queue_date="2026-07-16",
+                podcast_adapter=podcast_adapter,
+                channel_adapter=channel_adapter,
+                earnings_adapter=earnings_adapter,
+                filings_adapter=filings_adapter,
+            )
+            media_count_after_first = ke.count_media_items(connection)
+
+            new_episode = DiscoveredMediaItem(
+                source_id="src-dwarkesh",
+                source_specific_id="ep-101",
+                canonical_url="https://dwarkesh.com/ep-101",
+                title="Episode 101: A Different Conversation",
+                media_type="podcast_episode",
+                source_precedence="official",
+                format_hint="original_podcast_guest",
+                feed_guid="ep-101-guid",
+                underlying_id="101",
+                published_at="2026-07-08T18:00:00+00:00",
+                duration_seconds=4000,
+                cursor_value="2026-07-08T18:00:00+00:00|ep-101-guid",
+            )
+            records["podcast_items"] = (new_episode,)
+            podcast_adapter_2, channel_adapter_2, earnings_adapter_2, filings_adapter_2 = _build_adapters(records)
+
+            summary = run_scan(
+                connection,
+                scan_run_id="run-2",
+                run_type="full_scan",
+                triggered_by="scheduler",
+                now=NOW + timedelta(weeks=1),
+                queue_date="2026-07-23",
+                podcast_adapter=podcast_adapter_2,
+                channel_adapter=channel_adapter_2,
+                earnings_adapter=earnings_adapter_2,
+                filings_adapter=filings_adapter_2,
+            )
+
+            self.assertEqual(summary.media_items_created, 1)
+            self.assertEqual(ke.count_media_items(connection), media_count_after_first + 1)
+
+            original = ke.get_media_item_by_dedupe_key(connection, "src-dwarkesh:ep-100-guid-v1")
+            self.assertIsNotNone(original)
+            self.assertEqual(original["title"], "Episode 100: A Long Conversation")
+
+            new_row = ke.get_media_item_by_dedupe_key(connection, "src-dwarkesh:ep-101")
+            self.assertIsNotNone(new_row)
+            self.assertEqual(new_row["underlying_id"], "101")
+            self.assertEqual(new_row["title"], "Episode 101: A Different Conversation")
+
+            history = ke.list_decision_history(connection, entity_type="media_item", entity_id=new_row["media_item_id"])
+            self.assertEqual([row for row in history if row["track"] == "content_status" and row["to_value"] == "corrected"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

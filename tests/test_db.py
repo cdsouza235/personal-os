@@ -548,10 +548,11 @@ class SQLiteFoundationTest(unittest.TestCase):
                     "00021",
                     "00022",
                     "00023",
+                    "00024",
                 ],
             )
             self.assertEqual(second_applied, [])
-            self.assertEqual(len(rows), 23)
+            self.assertEqual(len(rows), 24)
             self.assertEqual(rows[0]["version"], "0001")
             self.assertEqual(rows[0]["name"], "bootstrap")
             self.assertTrue(rows[0]["checksum"])
@@ -2390,6 +2391,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "00021",
                 "00022",
                 "00023",
+                "00024",
             ],
         )
         self.assertEqual(
@@ -2418,6 +2420,7 @@ class SQLiteFoundationTest(unittest.TestCase):
                 "knowledge_edge_roster_synthesis",
                 "knowledge_edge_launch_rosters",
                 "knowledge_edge_lane_a_endpoints",
+                "knowledge_edge_media_cross_run_identity",
             ],
         )
 
@@ -2433,7 +2436,7 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
             config = _config_for(runtime_dir, Environment.TEST)
 
             post15_versions = {
-                "00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023",
+                "00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023", "00024",
             }
             pre16_migrations_dir = Path(pre16_dir_name)
             for migration in discover_migrations():
@@ -2507,7 +2510,7 @@ class LiveWriteLedgerStatesMigrationTest(unittest.TestCase):
                 applied_16 = apply_migrations(connection)
                 self.assertEqual(
                     [migration.version for migration in applied_16],
-                    ["00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023"],
+                    ["00016", "00017", "00018", "00019", "00020", "00021", "00022", "00023", "00024"],
                 )
 
                 post_intents = [dict(row) for row in connection.execute(

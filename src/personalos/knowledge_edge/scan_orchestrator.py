@@ -13,28 +13,41 @@ run's outcome is fully determined by (database state, adapter data, ``now``,
 Flagged here (and repeated in the Packet 1B handoff) rather than fixed by editing
 ``state/`` directly, per this packet's scope boundary:
 
-1. **No update-fields function for already-created media items or scheduled
-   events beyond the three state-transition updaters.** ``create_media_item`` and
-   ``create_scheduled_event`` accept their classification/ranking/link fields only
-   at creation time. This orchestrator therefore computes directness, ranking, and
-   (for events) any same-run filing enrichment *before* the row is ever inserted,
-   so nothing needs to be corrected afterward -- but it also means: (a) a
-   podcast episode's title/description correction on a later scan cannot be
-   applied to the existing row (only a new ``discovery_occurrence`` records the
-   corrected raw payload for audit purposes); (b) an event discovered before its
-   webcast link/confirmed schedule exists cannot later have that link/confidence
-   attached once created. (b) is a real Lane D gap for the amendment's own T-0
-   refresh requirement (§8.4) -- it is deferred to whichever of P-KE-3B/3C adds
-   this update path, since that is where live schedule/link refresh first becomes
-   load-bearing.
-2. **No query-by-natural-key helper for cross-scan-run dedup evidence.** Only
-   ``get_media_item_by_dedupe_key`` exists; there is no persisted ``feed_guid``/
-   ``underlying_id`` column on ``ke_media_items`` and no "list all recent
-   occurrences" helper. Deterministic dedup evidence (§11.4) is therefore only
-   evaluated *within* a single scan run's freshly-fetched batch here, not across
-   separate runs (e.g. a stale repost surfacing two weeks after the original would
-   not be caught by this packet). This is a real limitation, not an oversight;
-   flagged for a follow-up packet to consider adding those columns + lookups.
+1. **No general update-fields function for already-created media items or
+   scheduled events beyond the three state-transition updaters.**
+   ``create_media_item`` and ``create_scheduled_event`` accept their
+   classification/ranking/link fields only at creation time. This orchestrator
+   therefore computes directness, ranking, and (for events) any same-run filing
+   enrichment *before* the row is ever inserted, so nothing needs to be
+   corrected afterward. P-KE-2A iteration 2 (Conductor scope amendment) added
+   one narrow, purpose-built exception -- ``state.media.update_media_item_identity``
+   -- which lets ``_correct_media_item`` (below) update a media item's identity/
+   content columns (title, canonical_url, alternate_urls, description_excerpt,
+   source_specific_id, dedupe_key, feed_guid) when a cross-run corrected-episode
+   match fires (gap 2, now resolved for this one case; see there). It does *not*
+   touch directness_class/match_confidence/priority_score/priority_explanation --
+   a correction is an identity fix, not a re-classification -- and a same-run
+   reprocessed occurrence whose dedupe_key is unchanged (title/description drift
+   with no GUID change) still only records a new ``discovery_occurrence``, exactly
+   as before. An event discovered before its webcast link/confirmed schedule
+   exists still cannot later have that link/confidence attached once created --
+   that remains a real Lane D gap for the amendment's own T-0 refresh requirement
+   (§8.4), deferred to whichever of P-KE-3B/3C adds an update path for events,
+   since that is where live schedule/link refresh first becomes load-bearing.
+2. **No query-by-natural-key helper for cross-scan-run dedup evidence --
+   resolved for the corrected-episode case only.** P-KE-2A iteration 2 added
+   ``ke_media_items.feed_guid``/``underlying_id`` columns (migration 00024) and
+   ``state.media.get_media_item_by_underlying_id``, so a re-delivered episode
+   sharing a prior run's ``underlying_id`` under a *new* GUID is now recognized
+   and corrected in place (``_correct_media_item``) rather than duplicated --
+   directly closing the "stale repost surfacing two weeks after the original"
+   example this note used to give. What remains open: this only covers the
+   ``underlying_id``-shared case. A duplicate with *no* shared deterministic
+   identifier at all (evaluated today only by ``engine.dedup.find_suspected_duplicate``
+   within a batch) and cross-run ``shared_feed_guid``/``live_and_official_replay``
+   canonical-grouping (as opposed to same-item correction) are still evaluated
+   only within a single scan run's freshly-fetched batch, not against every prior
+   run. Flagged for a follow-up packet if that turns out to be load-bearing.
 3. **Filings only enrich an event created in the same scan run.** Since events
    cannot be updated after creation (gap 1), a filing discovered in a later run
    than its event cannot be attached at all in this packet. Both adapters run in
@@ -304,6 +317,35 @@ def _persist_media_batch(
             )
             reprocessed += 1
             continue
+
+        # Cross-run corrected-episode check (§8.1, Conductor iteration-2 scope
+        # amendment): a *different* dedupe_key (new source_specific_id/GUID) does
+        # not by itself mean a genuinely new episode -- a feed that re-issues an
+        # episode under a corrected GUID is required to be recognized, not
+        # duplicated. `underlying_id` is the adapter's own declared stable
+        # identifier for "same recorded content regardless of GUID" (e.g. an
+        # itunes:episode number the corrected GUID still shares); looking it up
+        # against every prior scan run's persisted rows -- not just this batch --
+        # is exactly the gap Phase 1 flagged (this module's own "orchestrator gap
+        # 2" docstring note) and Phase 1 explicitly deferred.
+        prior = (
+            ke.get_media_item_by_underlying_id(connection, source_id=source_id, underlying_id=item.underlying_id)
+            if item.underlying_id is not None
+            else None
+        )
+        if prior is not None and prior["dedupe_key"] != dedupe_key:
+            _correct_media_item(
+                connection,
+                existing=prior,
+                item=item,
+                dedupe_key=dedupe_key,
+                source_id=source_id,
+                scan_run_id=scan_run_id,
+                now=now,
+            )
+            reprocessed += 1
+            continue
+
         new_items.append((dedupe_key, item))
 
     new_items.sort(key=lambda pair: pair[0])
@@ -389,6 +431,8 @@ def _persist_media_batch(
             canonical_group_id=canonical_group_id,
             is_canonical=is_canonical,
             coverage_notes=suspected_reason or "",
+            feed_guid=item.feed_guid,
+            underlying_id=item.underlying_id,
         )
         created += 1
 
@@ -443,6 +487,90 @@ def _persist_media_batch(
             ke.update_media_queue_visibility(connection, media_item_id=media_item_id, queue_visibility_state="suppressed")
 
     return created, reprocessed
+
+
+def _correct_media_item(
+    connection,
+    *,
+    existing: Mapping,
+    item: DiscoveredMediaItem,
+    dedupe_key: str,
+    source_id: str,
+    scan_run_id: str,
+    now: datetime,
+) -> None:
+    """Correct an already-persisted media item's identity in place rather than
+    create a duplicate row (§8.1 "recognize corrected/reissued episodes without
+    producing duplicates"), superseding the earlier row's identity fields with
+    the newly-delivered ones.
+
+    Deliberately minimal: only identity/content fields move
+    (`update_media_item_identity`); directness, ranking, and entity matches are
+    untouched, since a corrected GUID/title is not a re-classification. The
+    correction is routed through the existing `content_status` track's own
+    `corrected` value (already modeled by `MEDIA_CONTENT_TRANSITIONS` since
+    Phase 1: `{normalized, ranked} -> corrected -> normalized`) so every step is
+    an ordinary, already-audited state transition -- each leaving its own
+    `ke_decision_history` row, per §13.4's "every ... automated state transition
+    must be traceable" -- rather than a bespoke correction record type.
+    """
+    media_item_id = existing["media_item_id"]
+    status_before_correction = existing["content_status"]
+
+    ke.update_media_item_identity(
+        connection,
+        media_item_id=media_item_id,
+        source_specific_id=item.source_specific_id,
+        dedupe_key=dedupe_key,
+        canonical_url=canonicalize.normalize_url(item.canonical_url),
+        title=item.title,
+        alternate_urls=[canonicalize.normalize_url(url) for url in item.alternate_urls],
+        description_excerpt=item.description_excerpt,
+        feed_guid=item.feed_guid,
+    )
+
+    ke.update_media_content_status(connection, media_item_id=media_item_id, content_status="corrected")
+    ke.record_decision_history(
+        connection,
+        history_id=_sid("ke-decision-history-correction", media_item_id, scan_run_id),
+        entity_type="media_item",
+        entity_id=media_item_id,
+        track="content_status",
+        from_value=status_before_correction,
+        to_value="corrected",
+        changed_at=_iso(now),
+        changed_by="system:cross_run_identity_correction",
+        reason=(
+            f"corrected-episode identity update (shared underlying_id={item.underlying_id!r}): "
+            f"source_specific_id {existing['source_specific_id']!r} -> {item.source_specific_id!r}, "
+            f"feed_guid {existing.get('feed_guid')!r} -> {item.feed_guid!r}, "
+            f"title {existing['title']!r} -> {item.title!r}"
+        ),
+    )
+
+    ke.update_media_content_status(connection, media_item_id=media_item_id, content_status="normalized")
+    ke.record_decision_history(
+        connection,
+        history_id=_sid("ke-decision-history-correction-resolved", media_item_id, scan_run_id),
+        entity_type="media_item",
+        entity_id=media_item_id,
+        track="content_status",
+        from_value="corrected",
+        to_value="normalized",
+        changed_at=_iso(now),
+        changed_by="system:cross_run_identity_correction",
+        reason="corrected-episode identity update applied; content normalized",
+    )
+
+    ke.create_discovery_occurrence(
+        connection,
+        occurrence_id=_sid("occ", media_item_id, scan_run_id, item.source_specific_id),
+        media_item_id=media_item_id,
+        source_id=source_id,
+        scan_run_id=scan_run_id,
+        discovered_at=_iso(now),
+        raw_payload_summary=dict(item.raw_payload_summary),
+    )
 
 
 def _group_duplicates(

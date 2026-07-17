@@ -177,6 +177,8 @@ def create_media_item(
     is_canonical: bool = True,
     pinned: bool = False,
     coverage_notes: str = "",
+    feed_guid: str | None = None,
+    underlying_id: str | None = None,
 ) -> dict[str, Any]:
     media_item_id = _validate_required_text("media_item_id", media_item_id)
     source_id = _validate_required_text("source_id", source_id)
@@ -197,6 +199,8 @@ def create_media_item(
         match_confidence = _validate_confidence("match_confidence", match_confidence)
     priority_explanation = _validate_text("priority_explanation", priority_explanation)
     coverage_notes = _validate_text("coverage_notes", coverage_notes)
+    feed_guid = _validate_optional_text("feed_guid", feed_guid)
+    underlying_id = _validate_optional_text("underlying_id", underlying_id)
     alternate_urls_json = _serialize_json(list(alternate_urls or []))
     now = _utc_now()
 
@@ -210,11 +214,11 @@ def create_media_item(
                 directness_class, match_confidence, priority_score, priority_explanation,
                 canonical_group_id, is_canonical, dedupe_key, content_status,
                 decision_state, queue_visibility_state, pinned, coverage_notes,
-                created_at, updated_at
+                feed_guid, underlying_id, created_at, updated_at
             )
             VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                'discovered', 'undecided', 'candidate', ?, ?, ?, ?
+                'discovered', 'undecided', 'candidate', ?, ?, ?, ?, ?, ?
             )
             """,
             (
@@ -223,7 +227,7 @@ def create_media_item(
                 published_at, discovered_at, media_type, duration_seconds,
                 directness_class, match_confidence, priority_score, priority_explanation,
                 canonical_group_id, int(bool(is_canonical)), dedupe_key,
-                int(bool(pinned)), coverage_notes, now, now,
+                int(bool(pinned)), coverage_notes, feed_guid, underlying_id, now, now,
             ),
         )
 
@@ -249,6 +253,86 @@ def get_media_item_by_dedupe_key(
         "SELECT * FROM ke_media_items WHERE dedupe_key = ?", (dedupe_key,)
     ).fetchone()
     return _media_item_row_to_dict(row) if row is not None else None
+
+
+def get_media_item_by_underlying_id(
+    connection: sqlite3.Connection, *, source_id: str, underlying_id: str
+) -> dict[str, Any] | None:
+    """Find the canonical row already persisted (any prior scan run) for this
+    source's ``underlying_id`` -- the cross-run counterpart of
+    ``get_media_item_by_dedupe_key``, added so a re-delivered episode carrying a
+    *new* GUID but the same declared ``underlying_id`` (amendment §8.1's
+    corrected/reissued-episode case, e.g. an itunes:episode match) can be found
+    and corrected in place instead of read as a new episode. Scoped to
+    ``is_canonical`` rows only: a non-canonical (suppressed, already-grouped)
+    duplicate is never the row a later correction should land on.
+    """
+    source_id = _validate_required_text("source_id", source_id)
+    underlying_id = _validate_required_text("underlying_id", underlying_id)
+    row = connection.execute(
+        """
+        SELECT * FROM ke_media_items
+        WHERE source_id = ? AND underlying_id = ? AND is_canonical = 1
+        ORDER BY discovered_at DESC, media_item_id DESC
+        LIMIT 1
+        """,
+        (source_id, underlying_id),
+    ).fetchone()
+    return _media_item_row_to_dict(row) if row is not None else None
+
+
+def update_media_item_identity(
+    connection: sqlite3.Connection,
+    *,
+    media_item_id: str,
+    source_specific_id: str,
+    dedupe_key: str,
+    canonical_url: str,
+    title: str,
+    alternate_urls: list[str] | None = None,
+    description_excerpt: str = "",
+    feed_guid: str | None = None,
+) -> dict[str, Any]:
+    """Update the mutable identity/content columns of an already-persisted media
+    item in place -- the write half of the §8.1 corrected-episode path found via
+    :func:`get_media_item_by_underlying_id`. ``underlying_id`` itself is not a
+    parameter here: it is the stable key the caller already matched on and never
+    changes as part of a correction. Directness/ranking/entity-match fields are
+    deliberately left untouched -- this is an identity fix, not a
+    re-classification; content-status and audit-history bookkeeping is the
+    caller's responsibility (``scan_orchestrator`` uses the existing
+    ``update_media_content_status`` / ``record_decision_history`` entry points
+    for that, matching every other automated transition in this package).
+    """
+    media_item_id = _validate_required_text("media_item_id", media_item_id)
+    source_specific_id = _validate_required_text("source_specific_id", source_specific_id)
+    dedupe_key = _validate_required_text("dedupe_key", dedupe_key)
+    canonical_url = _validate_required_text("canonical_url", canonical_url)
+    title = _validate_required_text("title", title)
+    description_excerpt = _validate_text("description_excerpt", description_excerpt)
+    feed_guid = _validate_optional_text("feed_guid", feed_guid)
+    alternate_urls_json = _serialize_json(list(alternate_urls or []))
+    now = _utc_now()
+
+    with connection:
+        connection.execute(
+            """
+            UPDATE ke_media_items
+            SET source_specific_id = ?, dedupe_key = ?, canonical_url = ?,
+                alternate_urls_json = ?, title = ?, description_excerpt = ?,
+                feed_guid = ?, updated_at = ?
+            WHERE media_item_id = ?
+            """,
+            (
+                source_specific_id, dedupe_key, canonical_url, alternate_urls_json,
+                title, description_excerpt, feed_guid, now, media_item_id,
+            ),
+        )
+
+    updated = get_media_item(connection, media_item_id)
+    if updated is None:
+        raise RuntimeError(f"Media item was not found after identity update: {media_item_id}")
+    return updated
 
 
 def list_media_items(

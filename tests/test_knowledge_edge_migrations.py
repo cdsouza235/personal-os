@@ -25,7 +25,7 @@ from personalos.db.migrations import (
     discover_migrations,
 )
 
-NEW_MIGRATION_VERSIONS = ("00017", "00018", "00019", "00020", "00021", "00022", "00023")
+NEW_MIGRATION_VERSIONS = ("00017", "00018", "00019", "00020", "00021", "00022", "00023", "00024")
 
 EXPECTED_KE_TABLES = {
     "ke_sources",

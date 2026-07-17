@@ -18,9 +18,13 @@ file. Two artifacts, two lifecycles:
       requires independently-known appearances that do not exist in the frozen
       sample at all).
 
-`shadow_report.py` is the only consumer: it requires an ACKNOWLEDGED frozen sample
-(`ground_truth_sample.require_acknowledged_sample`) *and* a grades file that passes
-`require_paired_grades` here before computing any metric.
+Gate order (R3-04): freeze -> CONDUCTOR ACK -> grade-init -> grading -> report. The
+CLI's `grade-init` command itself calls `ground_truth_sample.require_acknowledged_sample`
+before ever calling `render_blank_grades_file` below, so an unacknowledged sample can
+never acquire a grades file in the first place. `shadow_report.py` re-checks the same
+acknowledgment (defense in depth against a grades file authored some other way) *and*
+requires a grades file that passes `require_paired_grades` here before computing any
+metric.
 """
 
 from __future__ import annotations

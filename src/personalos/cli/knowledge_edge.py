@@ -946,19 +946,28 @@ def _command_knowledge_edge_shadow_sample_freeze(args: argparse.Namespace) -> in
 
 
 def _command_knowledge_edge_shadow_grade_init(args: argparse.Namespace) -> int:
-    """Renders a blank grades-file skeleton (`sample_grades.py`) for an already-
+    """Renders a blank grades-file skeleton (`sample_grades.py`) for an ACKNOWLEDGED
     frozen sample: one `null`-valued `precision_verdicts` entry per frozen
     precision-check item id, referencing the frozen file's own checksum, plus empty
-    recall arrays. Pure file-to-file transform -- reads only the frozen JSON file
-    the Conductor points it at and never touches any database, so this command (and
-    only this one in the `shadow` group) takes no `--db` and needs no shadow
-    admission check: there is no database or production surface for it to reach.
-    Run this only against an already-ACKNOWLEDGED sample (R3-04) -- grading before
-    acknowledgment is refused later at `shadow report` time regardless, but
-    generating the skeleton itself is harmless either way since it makes no claim
-    about acknowledgment.
+    recall arrays. Pure file-to-file transform -- reads only the frozen markdown +
+    JSON files the Conductor points it at and never touches any database, so this
+    command (and only this one in the `shadow` group) takes no `--db` and needs no
+    shadow admission check: there is no database or production surface for it to
+    reach.
+
+    Gate order (R3-04): freeze -> CONDUCTOR ACK -> grade-init -> grading -> report.
+    This command refuses to generate a grades skeleton for a sample that is not yet
+    Conductor-acknowledged -- same `require_acknowledged_sample` check `shadow
+    report` performs, applied one step earlier so an unacknowledged sample can never
+    even acquire a grades file, let alone a report.
     """
+    markdown_text = Path(args.sample_markdown_file).read_text(encoding="utf-8")
     frozen_json_text = Path(args.sample_json_file).read_text(encoding="utf-8")
+    try:
+        require_acknowledged_sample(markdown_text, frozen_json_text=frozen_json_text)
+    except SampleAcknowledgmentError as error:
+        raise CliError(str(error)) from error
+
     try:
         grades_text = render_blank_grades_file(frozen_json_text)
     except SampleGradingError as error:

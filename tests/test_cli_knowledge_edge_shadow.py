@@ -271,6 +271,7 @@ class ShadowSampleFreezeAndReportCommandTest(unittest.TestCase):
                 grade_init_result = _run_cli(
                     [
                         "knowledge-edge", "shadow", "grade-init",
+                        "--sample-markdown-file", str(markdown_path),
                         "--sample-json-file", str(json_path),
                         "--output-file", str(grades_path),
                     ]
@@ -299,31 +300,71 @@ class ShadowSampleFreezeAndReportCommandTest(unittest.TestCase):
 
 
 class ShadowGradeInitCommandTest(unittest.TestCase):
-    def test_grade_init_produces_a_pairable_blank_grades_file(self) -> None:
-        """No --db is passed at all -- grade-init is a pure file transform and
-        needs none, proving it never touches the shadow admission fence because
-        there is nothing DB-shaped for that fence to guard here."""
+    def _bootstrap_and_freeze(self, temp_dir: str, shadow_path: Path) -> tuple[Path, Path]:
+        _run_cli(["knowledge-edge", "shadow", "bootstrap", "--db", str(shadow_path)])
+        markdown_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.md"
+        json_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.json"
+        freeze_result = _run_cli(
+            [
+                "knowledge-edge", "shadow", "sample-freeze", "--db", str(shadow_path),
+                "--window-start", "2026-07-01", "--window-end", "2026-07-14",
+                "--sample-date", "2026-07-30",
+                "--markdown-output-file", str(markdown_path),
+                "--json-output-file", str(json_path),
+            ]
+        )
+        self.assertEqual(freeze_result.code, 0, freeze_result.stderr)
+        return markdown_path, json_path
+
+    def test_grade_init_refuses_an_unacknowledged_sample(self) -> None:
+        """Gate order (R3-04): freeze -> CONDUCTOR ACK -> grade-init -> grading ->
+        report. A freshly-frozen, still-PENDING sample must never be able to
+        acquire a grades file at all -- grade-init refuses before writing anything,
+        same acknowledgment check `shadow report` performs, applied one step
+        earlier."""
         with tempfile.TemporaryDirectory() as temp_dir:
             shadow_path = Path(temp_dir) / "personalos-shadow.sqlite3"
             with mock.patch.object(shadow_mode, "SHADOW_DB_PATH", shadow_path):
-                _run_cli(["knowledge-edge", "shadow", "bootstrap", "--db", str(shadow_path)])
-                markdown_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.md"
-                json_path = Path(temp_dir) / "GROUND_TRUTH_SAMPLE_2026-07-30.json"
-                freeze_result = _run_cli(
-                    [
-                        "knowledge-edge", "shadow", "sample-freeze", "--db", str(shadow_path),
-                        "--window-start", "2026-07-01", "--window-end", "2026-07-14",
-                        "--sample-date", "2026-07-30",
-                        "--markdown-output-file", str(markdown_path),
-                        "--json-output-file", str(json_path),
-                    ]
-                )
-                self.assertEqual(freeze_result.code, 0, freeze_result.stderr)
+                markdown_path, json_path = self._bootstrap_and_freeze(temp_dir, shadow_path)
+
+            self.assertIn("PENDING CONDUCTOR ACKNOWLEDGMENT", markdown_path.read_text())
 
             grades_path = Path(temp_dir) / "grades.json"
             grade_init_result = _run_cli(
                 [
                     "knowledge-edge", "shadow", "grade-init",
+                    "--sample-markdown-file", str(markdown_path),
+                    "--sample-json-file", str(json_path),
+                    "--output-file", str(grades_path),
+                ]
+            )
+            self.assertEqual(grade_init_result.code, 1)
+            self.assertIn("not yet Conductor-acknowledged", grade_init_result.stderr)
+            self.assertFalse(grades_path.exists())
+
+    def test_grade_init_produces_a_pairable_blank_grades_file(self) -> None:
+        """No --db is passed at all -- grade-init is a pure file transform and
+        needs none, proving it never touches the shadow admission fence because
+        there is nothing DB-shaped for that fence to guard here. Requires an
+        ACKNOWLEDGED sample (R3-04 gate order) before it will proceed."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            shadow_path = Path(temp_dir) / "personalos-shadow.sqlite3"
+            with mock.patch.object(shadow_mode, "SHADOW_DB_PATH", shadow_path):
+                markdown_path, json_path = self._bootstrap_and_freeze(temp_dir, shadow_path)
+
+            acknowledged_text = markdown_path.read_text().replace(
+                'status: "PENDING CONDUCTOR ACKNOWLEDGMENT (R3-04)"',
+                'status: "ACKNOWLEDGED"',
+            ).replace('acknowledged_by: ""', 'acknowledged_by: "chris"').replace(
+                'acknowledged_at: ""', 'acknowledged_at: "2026-07-31T00:00:00+00:00"'
+            )
+            markdown_path.write_text(acknowledged_text, encoding="utf-8")
+
+            grades_path = Path(temp_dir) / "grades.json"
+            grade_init_result = _run_cli(
+                [
+                    "knowledge-edge", "shadow", "grade-init",
+                    "--sample-markdown-file", str(markdown_path),
                     "--sample-json-file", str(json_path),
                     "--output-file", str(grades_path),
                     "--json",

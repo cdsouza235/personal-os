@@ -233,13 +233,18 @@ sample's checksum and is validated against it independently
 
    ```
    personalos knowledge-edge shadow grade-init \
+     --sample-markdown-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.md \
      --sample-json-file docs/knowledge_edge/GROUND_TRUTH_SAMPLE_<date>.json \
      --output-file docs/knowledge_edge/GROUND_TRUTH_GRADES_<date>.json \
      --json
    ```
 
    This is a pure file-to-file transform (no `--db`, no shadow admission check —
-   there is no database or production surface here to guard).
+   there is no database or production surface here to guard) *except* it re-checks
+   §6's acknowledgment first (`require_acknowledged_sample` against the markdown
+   header): the gate order is freeze → **CONDUCTOR ACK** → grade-init → grading →
+   report, and this command refuses (`SampleAcknowledgmentError`) rather than emit a
+   skeleton for a still-`PENDING` sample.
 
 2. Hand-edit `GROUND_TRUTH_GRADES_<date>.json`:
    - Each `precision_verdicts` entry: set the value to one of `"confirmed"`,
@@ -308,7 +313,9 @@ does not itself ratify anything; final thresholds remain a Session 2 decision.
 - Step 3 (sample-freeze) window does not actually satisfy the ≥14-day minimum (the
   tooling itself refuses this — `GroundTruthSampleError`) → halt, pick a valid window.
 - §6's acknowledgment has not landed as a commit → halt; §7/§8 never proceed on an
-  unacknowledged sample (the tooling also refuses this mechanically).
+  unacknowledged sample (`shadow grade-init` itself refuses first —
+  `SampleAcknowledgmentError` — before any grades skeleton can even be generated;
+  `shadow report` refuses again independently).
 - §7's grades file was edited to add/remove a `precision_verdicts` id, or its
   `frozen_checksum_sha256` no longer matches the acknowledged sample → halt; `shadow
   report` refuses this mechanically (`SampleGradingError`) rather than silently

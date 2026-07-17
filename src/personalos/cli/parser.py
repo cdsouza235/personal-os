@@ -767,10 +767,12 @@ def build_parser() -> argparse.ArgumentParser:
     knowledge_edge_shadow_grade_init_parser = knowledge_edge_shadow_subparsers.add_parser(
         "grade-init",
         help=(
-            "Render a blank grades-file skeleton for an already-frozen sample "
-            "(precision item ids pre-populated, referencing the frozen checksum)."
+            "Render a blank grades-file skeleton for an ACKNOWLEDGED frozen sample "
+            "(precision item ids pre-populated, referencing the frozen checksum). "
+            "Refuses if the sample is not yet Conductor-acknowledged (R3-04)."
         ),
     )
+    knowledge_edge_shadow_grade_init_parser.add_argument("--sample-markdown-file", required=True)
     knowledge_edge_shadow_grade_init_parser.add_argument("--sample-json-file", required=True)
     knowledge_edge_shadow_grade_init_parser.add_argument("--output-file", required=True)
     _add_json_arg(knowledge_edge_shadow_grade_init_parser)

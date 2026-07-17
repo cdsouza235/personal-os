@@ -169,6 +169,14 @@ class _HostConfinedRedirectHandler(urllib.request.HTTPRedirectHandler):
         headers: Any,
         newurl: str,
     ) -> urllib.request.Request | None:
+        # HTTPS->HTTP downgrade is refused unconditionally, same-host or not: a
+        # same-host match on `_extract_host` says nothing about scheme, and this rail
+        # never constructs an insecure request regardless of what host it lands on.
+        if not newurl.startswith("https://"):
+            raise PodcastFeedRedirectQuarantined(
+                f"refusing redirect from {req.full_url!r} to a non-https:// target "
+                f"({newurl!r}): HTTPS->HTTP downgrade is never followed"
+            )
         redirect_host = _extract_host(newurl)
         if redirect_host != self._allowed_host:
             raise PodcastFeedRedirectQuarantined(

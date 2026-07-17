@@ -311,6 +311,23 @@ class HostConfinedRedirectHandlerTest(unittest.TestCase):
                 _FakeRequest(), None, 302, "Found", {}, "https://evil.example.net/feed.xml"
             )
 
+    def test_same_host_https_to_http_downgrade_is_quarantined(self) -> None:
+        # A same-host redirect_host match says nothing about scheme: a feed host that
+        # redirects its own traffic down to plain http:// must be refused exactly like
+        # a cross-host redirect, never silently followed.
+        handler = _HostConfinedRedirectHandler("feeds.example.com")
+        with self.assertRaises(PodcastFeedRedirectQuarantined):
+            handler.redirect_request(
+                _FakeRequest(), None, 302, "Found", {}, "http://feeds.example.com/feed-new.xml"
+            )
+
+    def test_same_host_https_to_https_redirect_is_followed(self) -> None:
+        handler = _HostConfinedRedirectHandler("feeds.example.com")
+        result = handler.redirect_request(
+            _FakeRequest(), None, 302, "Found", {}, "https://feeds.example.com/feed-again.xml"
+        )
+        self.assertEqual(result.full_url, "https://feeds.example.com/feed-again.xml")
+
 
 class _FakeRequest:
     """Minimal stand-in for `urllib.request.Request`, enough for

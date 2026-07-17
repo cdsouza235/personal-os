@@ -4,10 +4,29 @@ decision surface, synthesis-handoff export (P-KE-1C, plus the ``decide``/
 condition -- audits/ke-phase-1-phase-end-fable-report.md).
 
 Mirrors ``cli/priorities.py``/``cli/routines.py`` conventions. No network-capable
-import appears anywhere in this module -- ``scan`` runs the same fixture-only
+import appears anywhere in this module except the ``shadow`` command group's own
+import of ``rails.knowledge_edge.podcasts.LivePodcastFeedAdapter`` (P-KE-2C) --
+``scan`` (this module's other, older command) runs the same fixture-only
 ``run_scan`` entrypoint Packet 1B's own tests exercise (``adapters/fixtures.py``)
 against a small built-in synthetic dataset; it is never a live scan and never
 activates a scheduler.
+
+The ``shadow`` command group (P-KE-2C) is the first production wiring of a live
+Knowledge Edge adapter: ``shadow bootstrap``/``scan``/``sample-freeze``/``report``
+implement the Conductor-supervised procedure in
+``docs/knowledge_edge/PACKET_2C_FIRST_SHADOW_RUN.md``. Every one of these commands
+calls ``shadow_mode.validate_shadow_admission`` first -- the §14.4 fence -- which
+refuses unless ``--db`` resolves to exactly the one shadow database path
+(``shadow_mode.SHADOW_DB_PATH``); no other database, and never the production path,
+is ever reachable through this command group. ``shadow scan`` constructs
+``LivePodcastFeedAdapter`` with ``feature_mode="shadow_live"`` for Lane A only --
+structurally reachable, not actually reached by this suite: every test exercising
+this command does so against a freshly-bootstrapped-but-unverified (still ``trial``)
+registry, so the adapter's own per-source verification gate
+(``rails/knowledge_edge/podcasts.py`` ``_evaluate_gates``) refuses before any HTTP
+client is ever constructed. The real live fetch only happens when the Conductor runs
+this command by hand, post-merge, against a registry the supervised procedure has
+already verified.
 
 ``decide`` is the first production caller of the decision APIs
 (``upsert_user_decision``, ``update_media_decision_state``,
@@ -25,15 +44,19 @@ for why both exist. ``synthesis export`` is the first production caller of
 from __future__ import annotations
 
 import argparse
+import json
+import sqlite3
 import uuid
 from contextlib import closing
 from datetime import UTC, datetime
+from pathlib import Path
 
 import personalos.knowledge_edge.state as ke
 from personalos.cli.db import _connect_read_only, _connect_read_write, _with_workflow_context
 from personalos.cli.errors import CliError
 from personalos.cli.reporting import _emit_report
 from personalos.idempotency import stable_side_effect_id
+from personalos.knowledge_edge import shadow_mode
 from personalos.knowledge_edge.adapters.contracts import (
     DiscoveredEvent,
     DiscoveredFiling,
@@ -47,7 +70,22 @@ from personalos.knowledge_edge.adapters.fixtures import (
 )
 from personalos.knowledge_edge.dashboard import build_knowledge_edge_queue_summary
 from personalos.knowledge_edge.engine import ranking
+from personalos.knowledge_edge.ground_truth_sample import (
+    SampleAcknowledgmentError,
+    build_ground_truth_sample,
+    render_frozen_sample_files,
+    require_acknowledged_sample,
+    utc_now_iso,
+)
 from personalos.knowledge_edge.scan_orchestrator import run_scan
+from personalos.knowledge_edge.shadow_bootstrap import bootstrap_shadow_database
+from personalos.knowledge_edge.shadow_report import (
+    build_lane_a_coverage,
+    compute_lane_metrics,
+    render_shadow_report,
+)
+from personalos.path_safety import validate_output_file_path
+from personalos.rails.knowledge_edge.podcasts import LivePodcastFeedAdapter
 
 BUILTIN_FIXTURE_SET_NAME = "cli-builtin-demo"
 
@@ -698,6 +736,285 @@ def _command_knowledge_edge_synthesis_export(args: argparse.Namespace) -> int:
         output_kind="stdout_json" if args.json else "stdout_human",
         safe_next_actions=(
             "Copy the synthesis_packet contents into the manual ChatGPT/Obsidian loop.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+# ------------------------------------------------------------------------- shadow
+
+
+def _require_shadow_admission(database_path: str) -> None:
+    """Wraps `shadow_mode.validate_shadow_admission` as a `CliError` -- that
+    function raises `shadow_mode.ShadowModeViolation` (a `RuntimeError` subclass),
+    which `cli.main`'s exception handling does not catch by default; every other
+    domain refusal in this module surfaces the same way (compare
+    `_command_knowledge_edge_flag_false_positive`'s `ValueError` -> `CliError`
+    wrapping), so this mirrors that house convention for the shadow_live fence.
+    """
+    try:
+        shadow_mode.validate_shadow_admission(
+            feature_mode=shadow_mode.SHADOW_LIVE_MODE, database_path=database_path
+        )
+    except shadow_mode.ShadowModeViolation as error:
+        raise CliError(str(error)) from error
+
+
+def _command_knowledge_edge_shadow_bootstrap(args: argparse.Namespace) -> int:
+    """Create/migrate the shadow DB and re-apply the nine Lane A verification flips
+    from the smoke transcript (literal config, no re-fetching -- see
+    ``shadow_bootstrap.py``). Unlike every other command in this module, this one
+    may create the database file if it does not exist yet (mirrors
+    ``config.bootstrap_production_database``'s own mkdir-then-connect shape), so it
+    cannot use ``_connect_read_write`` (which requires the file to already exist).
+    """
+    _require_shadow_admission(args.db)
+    database_path = Path(args.db).expanduser().resolve()
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+
+    connection = sqlite3.connect(database_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        connection.execute("PRAGMA foreign_keys = ON")
+        result = bootstrap_shadow_database(connection)
+    finally:
+        connection.close()
+
+    report = _with_workflow_context(
+        {
+            "command": "knowledge-edge shadow bootstrap",
+            "status": "completed",
+            "database_write": True,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "feature_mode": shadow_mode.SHADOW_LIVE_MODE,
+            "migrations_applied": list(result.migrations_applied),
+            "sources_flipped_to_active": list(result.sources_flipped_to_active),
+            "endpoints_verified": list(result.endpoints_verified),
+            "already_bootstrapped": list(result.already_bootstrapped),
+        },
+        workflow_name="Knowledge Edge shadow database bootstrap",
+        workflow_mode="inert / no-send / shadow-db-only local write",
+        database_path=args.db,
+        database_access="read_write_knowledge_edge_shadow_bootstrap",
+        local_sqlite_read=True,
+        local_sqlite_changed=True,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Run personalos knowledge-edge shadow scan for a bounded Lane A shadow scan.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_knowledge_edge_shadow_scan(args: argparse.Namespace) -> int:
+    """Run one bounded shadow scan: Lane A live RSS for whatever sources the
+    shadow registry currently has verified+active, via ``LivePodcastFeedAdapter``
+    in ``shadow_live`` mode. Lane B/C/D adapters are empty fixtures -- the shadow
+    registry seeds no youtube_channel/calendar_provider/sec_edgar sources (see
+    ``shadow_bootstrap.py``'s own scope note), so ``run_scan`` never calls them;
+    they are passed only because ``run_scan`` requires one of each contract.
+    """
+    _require_shadow_admission(args.db)
+    queue_date = args.date
+    now = datetime.fromisoformat(args.now) if args.now else datetime.now(UTC)
+    scan_run_id = args.scan_run_id or f"shadow-scan-{queue_date}-{uuid.uuid4().hex}"
+
+    with closing(_connect_read_write(args.db)) as connection:
+        podcast_adapter = LivePodcastFeedAdapter(connection, feature_mode=shadow_mode.SHADOW_LIVE_MODE)
+        summary = run_scan(
+            connection,
+            scan_run_id=scan_run_id,
+            run_type="full_scan",
+            triggered_by="conductor_supervised_shadow_run",
+            now=now,
+            queue_date=queue_date,
+            podcast_adapter=podcast_adapter,
+            channel_adapter=FixtureChannelVideoAdapter({}),
+            earnings_adapter=FixtureEarningsEventAdapter({}),
+            filings_adapter=FixtureFilingsAdapter({}),
+        )
+
+    report = _with_workflow_context(
+        {
+            "command": "knowledge-edge shadow scan",
+            "status": summary.status,
+            "database_write": True,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "feature_mode": shadow_mode.SHADOW_LIVE_MODE,
+            "scan_run_id": summary.scan_run_id,
+            "media_items_created": summary.media_items_created,
+            "media_items_reprocessed": summary.media_items_reprocessed,
+            "sources_healthy": summary.sources_healthy,
+            "sources_failed": summary.sources_failed,
+        },
+        workflow_name="Knowledge Edge bounded shadow scan (Lane A live RSS only)",
+        workflow_mode=(
+            "shadow_live / no-send / shadow-db-only write; live Lane A network reads "
+            "only from Conductor-verified-active sources"
+        ),
+        database_path=args.db,
+        database_access="read_write_knowledge_edge_shadow_scan",
+        local_sqlite_read=True,
+        local_sqlite_changed=True,
+        output_kind="stdout_json" if args.json else "stdout_human",
+        safe_next_actions=(
+            "Run personalos knowledge-edge shadow sample-freeze to construct the "
+            "ground-truth sample once the sampling window has elapsed.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0 if summary.status in ("completed", "partially_completed") else 1
+
+
+def _command_knowledge_edge_shadow_sample_freeze(args: argparse.Namespace) -> int:
+    """Construct and freeze the ground-truth sample (R3-04): writes the frozen
+    JSON + the human-readable ``PENDING CONDUCTOR ACKNOWLEDGMENT`` markdown doc to
+    two explicit, caller-provided output paths. This command never marks a sample
+    acknowledged -- that is a Conductor hand-edit-and-commit action, per
+    ``docs/knowledge_edge/PACKET_2C_FIRST_SHADOW_RUN.md``.
+    """
+    _require_shadow_admission(args.db)
+    generated_at = args.now or utc_now_iso()
+    coverage_gaps = tuple(args.coverage_gap or ())
+
+    with closing(_connect_read_only(args.db)) as connection:
+        sample = build_ground_truth_sample(
+            connection,
+            window_start=args.window_start,
+            window_end=args.window_end,
+            lane_d_window_end=args.lane_d_window_end,
+            generated_at=generated_at,
+            coverage_gaps=coverage_gaps,
+        )
+
+    markdown_output_path = validate_output_file_path(
+        args.markdown_output_file, path_label="operator markdown_output_file"
+    )
+    json_output_path = validate_output_file_path(
+        args.json_output_file, path_label="operator json_output_file"
+    )
+    files = render_frozen_sample_files(
+        sample,
+        sample_date=args.sample_date,
+        frozen_json_relative_path=args.json_output_file,
+        markdown_relative_path=args.markdown_output_file,
+    )
+    json_output_path.write_text(files.frozen_json_text, encoding="utf-8")
+    markdown_output_path.write_text(files.markdown_text, encoding="utf-8")
+
+    report = _with_workflow_context(
+        {
+            "command": "knowledge-edge shadow sample-freeze",
+            "status": "frozen_pending_acknowledgment",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "file_write": True,
+            "checksum_sha256": files.checksum_sha256,
+            "lane_a_sample_size": len(sample.lane_a_precision_check),
+            "lane_b_precision_sample_size": len(sample.lane_b_precision_check),
+            "lane_c_precision_sample_size": len(sample.lane_c_precision_check),
+            "lane_d_event_count": len(sample.lane_d_events),
+        },
+        workflow_name="Knowledge Edge ground-truth sample freeze (R3-04)",
+        workflow_mode="inert / no-send / local file write only",
+        database_path=args.db,
+        database_access="read_only_knowledge_edge_shadow_sample_freeze",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="file",
+        output_file=str(markdown_output_path),
+        safe_next_actions=(
+            f"Send {markdown_output_path} for Codex review and Chris's R3-04 "
+            "acknowledgment before any grading or threshold tuning begins.",
+        ),
+    )
+    _emit_report(report, json_output=args.json)
+    return 0
+
+
+def _command_knowledge_edge_shadow_report(args: argparse.Namespace) -> int:
+    """Generate the shadow report from an ACKNOWLEDGED, hand-graded sample
+    (refuses otherwise -- R3-04) plus live coverage read from ``--db``. See
+    ``shadow_report.py``'s module docstring for the grading protocol this command
+    expects the sample's JSON file to already carry.
+    """
+    _require_shadow_admission(args.db)
+
+    markdown_text = Path(args.sample_markdown_file).read_text(encoding="utf-8")
+    frozen_json_text = Path(args.sample_json_file).read_text(encoding="utf-8")
+    try:
+        header_fields = require_acknowledged_sample(markdown_text, frozen_json_text=frozen_json_text)
+    except SampleAcknowledgmentError as error:
+        raise CliError(str(error)) from error
+    sample = json.loads(frozen_json_text)
+
+    with closing(_connect_read_only(args.db)) as connection:
+        lane_a_coverage = build_lane_a_coverage(connection)
+
+    lane_a_metrics = compute_lane_metrics(
+        lane="curated_podcasts",
+        precision_items=sample["lane_a_precision_check"],
+        recall_items=[],
+    )
+    lane_b_metrics = compute_lane_metrics(
+        lane="market_voices",
+        precision_items=sample["lane_b_precision_check"],
+        recall_items=sample["lane_b_recall_check"],
+    )
+    lane_c_metrics = compute_lane_metrics(
+        lane="consequential_leaders",
+        precision_items=sample["lane_c_precision_check"],
+        recall_items=sample["lane_c_recall_check"],
+    )
+
+    report_text = render_shadow_report(
+        report_date=args.report_date,
+        lane_a_coverage=lane_a_coverage,
+        lane_a_metrics=lane_a_metrics,
+        lane_b_metrics=lane_b_metrics,
+        lane_c_metrics=lane_c_metrics,
+        lane_d_event_count=len(sample["lane_d_events"]),
+        lane_d_window_start=sample["window_start"],
+        lane_d_window_end=sample["lane_d_window_end"],
+        person_search_calls_made=args.person_search_calls_made,
+        sample_markdown_path=args.sample_markdown_file,
+        sample_checksum=header_fields["checksum_sha256"],
+    )
+
+    output_path = validate_output_file_path(args.output_file, path_label="operator output_file")
+    output_path.write_text(report_text, encoding="utf-8")
+
+    report = _with_workflow_context(
+        {
+            "command": "knowledge-edge shadow report",
+            "status": "completed",
+            "database_write": False,
+            "external_mutation": False,
+            "no_external_writes": True,
+            "file_write": True,
+            "lane_a_precision": lane_a_metrics.precision,
+            "lane_b_precision": lane_b_metrics.precision,
+            "lane_b_recall": lane_b_metrics.recall,
+            "lane_c_precision": lane_c_metrics.precision,
+            "lane_c_recall": lane_c_metrics.recall,
+            "lane_d_event_count": len(sample["lane_d_events"]),
+        },
+        workflow_name="Knowledge Edge shadow report generation",
+        workflow_mode="inert / no-send / local file write only",
+        database_path=args.db,
+        database_access="read_only_knowledge_edge_shadow_report",
+        local_sqlite_read=True,
+        local_sqlite_changed=False,
+        output_kind="file",
+        output_file=str(output_path),
+        safe_next_actions=(
+            "Review the shadow report; Session 2 approves final thresholds, this "
+            "report does not.",
         ),
     )
     _emit_report(report, json_output=args.json)

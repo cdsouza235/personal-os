@@ -74,11 +74,49 @@ class SeedDataTest(unittest.TestCase):
         self.assertEqual(titled, {"ke-company-mstr", "ke-company-cifr"})
 
     def test_specific_cik_values_are_byte_exact(self) -> None:
+        """Codex iteration-3 audit condition: equality of the FULL ticker->CIK
+        mapping against the task's Conductor-verified block, not a per-row spot
+        check -- so a single mistyped digit in any of the 21 CIKs fails this test
+        (2A-endpoint-style full-dict equality, matching
+        test_lane_a_endpoint_urls_are_byte_exact_pinned_to_the_ratified_table in
+        tests/test_knowledge_edge_registries.py)."""
+        expected_cik_by_company_id = {
+            "ke-company-nvda": "0001045810",
+            "ke-company-aapl": "0000320193",
+            "ke-company-googl": "0001652044",
+            "ke-company-msft": "0000789019",
+            "ke-company-amzn": "0001018724",
+            "ke-company-avgo": "0001730168",
+            "ke-company-meta": "0001326801",
+            "ke-company-tsla": "0001318605",
+            "ke-company-asml": "0000937966",
+            "ke-company-nflx": "0001065280",
+            "ke-company-coin": "0001679788",
+            "ke-company-mstr": "0001050446",
+            "ke-company-crcl": "0001876042",
+            "ke-company-cifr": "0001819989",
+            "ke-company-hut": "0001964789",
+            "ke-company-iren": "0001878848",
+            "ke-company-mara": "0001507605",
+            "ke-company-hive": "0001720424",
+            "ke-company-clsk": "0000827876",
+            "ke-company-riot": "0001167419",
+            "ke-company-btdr": "0001899123",
+        }
+        self.assertEqual(len(expected_cik_by_company_id), 21)
+
         with _migrated_connection() as connection:
-            nvda = ke.get_edgar_identifier(connection, company_id="ke-company-nvda")
-            aapl = ke.get_edgar_identifier(connection, company_id="ke-company-aapl")
-        self.assertEqual(nvda["cik"], "0001045810")
-        self.assertEqual(aapl["cik"], "0000320193")
+            confirmed = ke.list_confirmed_edgar_identifiers(connection)
+            actual_cik_by_company_id = {row["company_id"]: row["cik"] for row in confirmed}
+            keel = ke.get_edgar_identifier(connection, company_id="ke-company-keel-infrastructure")
+
+        self.assertEqual(actual_cik_by_company_id, expected_cik_by_company_id)
+
+        self.assertEqual(keel["identifier_status"], "tbc")
+        self.assertIsNone(keel["cik"])
+        self.assertIsNone(keel["sec_entity_title"])
+        self.assertIsNone(keel["sec_ticker"])
+        self.assertIsNone(keel["filer_form_family"])
 
     def test_generic_company_identifiers_table_also_has_cik_rows(self) -> None:
         # ke_company_identifiers (migration 00017) already reserves identifier_type=

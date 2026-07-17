@@ -19,3 +19,4 @@
 2026-07-17 | P-KE-2D | accept_with_conditions (i1; fetch-cap retune, scope confirmed by orchestrator diff) | audits/knowledge-edge/packets/P-KE-2D/AUDIT.md
 2026-07-17 | P-KE-2E | accept_with_conditions (shadow DB relocated outside repo; path_safety G-GOV ratified) | audits/knowledge-edge/packets/P-KE-2E/AUDIT.md
 2026-07-17 | P-KE-3A | accept (i5, 0 findings; CIK pinning + filingDate-semantics rejects closed) | audits/knowledge-edge/packets/P-KE-3A/AUDIT.md
+2026-07-17 | P-KE-2F | accept_with_conditions (0 findings; Lane B/C seeding — 4 channels + person-search; channel ack at G-GOV) | audits/knowledge-edge/packets/P-KE-2F/AUDIT.md

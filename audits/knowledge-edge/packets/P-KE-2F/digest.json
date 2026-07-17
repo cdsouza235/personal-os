@@ -1,0 +1,69 @@
+{
+  "auditor_objections": [],
+  "base_sha": "5cfae84d38a2c4cb8562e94be5cfe9d6cef2da5c",
+  "changed_files": 7,
+  "coverage": {
+    "scanned_clean": 5,
+    "unmatched": 1
+  },
+  "diff_size_lines": 730,
+  "family_concentration_note": null,
+  "files_not_covered_by_tests": [],
+  "gate_evidence": [
+    {
+      "blocking": true,
+      "command": "PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py'",
+      "exit_code": 0,
+      "id": "unittest",
+      "output_head": "....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................",
+      "tested_sha": "9985d879bd58cda74db2ffb8fe72df028dcb1629"
+    },
+    {
+      "blocking": true,
+      "command": "test -z \"$(find . -maxdepth 2 -name var -print)\" && test -z \"$(find . -path ./.git -prune -o \\( -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.db' \\) -print)\"",
+      "exit_code": 0,
+      "id": "artifact-hygiene",
+      "output_head": "",
+      "tested_sha": "9985d879bd58cda74db2ffb8fe72df028dcb1629"
+    },
+    {
+      "blocking": true,
+      "command": "gitleaks detect --no-git --source . --config .gitleaks.toml --exit-code 9",
+      "exit_code": 0,
+      "id": "secret-scan",
+      "output_head": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m7:07PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~7563823 bytes (7.56 MB) in 290ms\u001b[0m\n\u001b[90m7:07PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+      "tested_sha": "9985d879bd58cda74db2ffb8fe72df028dcb1629"
+    }
+  ],
+  "gate_states": {
+    "G-GOV": "pending",
+    "G0": "pending",
+    "G1": "pending"
+  },
+  "generated_at_target_head": "5cfae84d38a2c4cb8562e94be5cfe9d6cef2da5c",
+  "head_sha": "9985d879bd58cda74db2ffb8fe72df028dcb1629",
+  "header_status": "pass",
+  "iteration_count": 2,
+  "packet_id": "P-KE-2F",
+  "required_gates": [
+    "G0",
+    "G-GOV",
+    "G1"
+  ],
+  "review_tier_declared": "routine",
+  "review_tier_effective": "high_stakes",
+  "risk_flags": [
+    "new_top_level_dir:docs/knowledge_edge/PACKET_2F_YOUTUBE_LANE_BC_SUPERVISED_SMOKE.md",
+    "protected_path:migrations/00027_knowledge_edge_lane_bc_source_seeding.sql",
+    "new_top_level_dir:migrations/00027_knowledge_edge_lane_bc_source_seeding.sql",
+    "unknown_extension:migrations/00027_knowledge_edge_lane_bc_source_seeding.sql",
+    "test_weakening",
+    "project_governance_manifest"
+  ],
+  "rollback_note": "revert the merge commit",
+  "rubber_stamp_note": "",
+  "rubber_stamp_tripped": false,
+  "third_reviewer_reasoning": "The migration is purely additive (INSERT-only, no ALTER/DROP/UPDATE/DELETE), seeds all five rows as 'trial' with NULL verification fields, and the comprehensive test suite confirms byte-exact channel IDs, pre-verification refusal behavior, and post-verification admission through sanctioned state helpers \u2014 all with fake in-process HTTP clients and zero network calls. Existing tests are correctly updated for the migration version bump and the reclassification of the default person-search source from unseeded to seeded-trial. The first auditor found zero issues and their only condition was running quality gates in a full toolchain, which is a standard pre-merge execution step rather than a code defect.",
+  "verified_by": "orchestrator",
+  "ways_this_could_be_wrong": []
+}

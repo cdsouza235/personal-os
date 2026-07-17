@@ -29,6 +29,7 @@ from personalos.rails.knowledge_edge.podcasts import (
     PODCAST_RAIL_CREDENTIAL_ENV_VAR,
     STATUS_BLOCKED_CREDENTIAL_EMPTY,
     STATUS_BLOCKED_CREDENTIAL_MISSING,
+    STATUS_BLOCKED_ENDPOINT_INSECURE_SCHEME,
     STATUS_BLOCKED_FEATURE_MODE,
     STATUS_BLOCKED_NO_ENDPOINT,
     STATUS_BLOCKED_SOURCE_NOT_FOUND,
@@ -447,6 +448,73 @@ class LivePodcastFeedAdapterGateTest(unittest.TestCase):
             self.assertFalse(result.healthy)
             self.assertIn(STATUS_BLOCKED_NO_ENDPOINT, result.error_summary)
 
+    def test_verified_at_set_but_verified_by_empty_refuses(self) -> None:
+        # Codex iteration-3 audit condition 2: a timestamp alone is not a completed
+        # verification record -- an empty/blank verifier must refuse exactly like the
+        # both-NULL case, never treated as "close enough".
+        with _migrated_test_connection() as connection:
+            _seed_verified_source(
+                connection,
+                source_id="src-verified-by-empty",
+                url="https://feeds.example.com/feed.xml",
+                endpoint_verified_at="2026-07-16T00:00:00+00:00",
+                verified_by="   ",
+            )
+            client = _FakePodcastClient(error=AssertionError("client must not be called"))
+            adapter = LivePodcastFeedAdapter(connection, feature_mode="shadow_live", client=client)
+            with mock.patch.dict("os.environ", {PODCAST_RAIL_CREDENTIAL_ENV_VAR: FAKE_USER_AGENT}):
+                result = adapter.fetch_episodes(
+                    source_id="src-verified-by-empty", cursor=None, now=NOW
+                )
+
+            self.assertFalse(result.healthy)
+            self.assertIn(STATUS_BLOCKED_SOURCE_NOT_VERIFIED, result.error_summary)
+            self.assertEqual(client.calls, [])
+
+    def test_malformed_verification_timestamp_refuses(self) -> None:
+        # A non-empty verifier with an unparseable timestamp must not be trusted as a
+        # completed supervised-smoke record.
+        with _migrated_test_connection() as connection:
+            _seed_verified_source(
+                connection,
+                source_id="src-malformed-timestamp",
+                url="https://feeds.example.com/feed.xml",
+                endpoint_verified_at="not-a-timestamp",
+                verified_by="tests",
+            )
+            client = _FakePodcastClient(error=AssertionError("client must not be called"))
+            adapter = LivePodcastFeedAdapter(connection, feature_mode="shadow_live", client=client)
+            with mock.patch.dict("os.environ", {PODCAST_RAIL_CREDENTIAL_ENV_VAR: FAKE_USER_AGENT}):
+                result = adapter.fetch_episodes(
+                    source_id="src-malformed-timestamp", cursor=None, now=NOW
+                )
+
+            self.assertFalse(result.healthy)
+            self.assertIn(STATUS_BLOCKED_SOURCE_NOT_VERIFIED, result.error_summary)
+            self.assertIn("not a parseable timestamp", result.error_summary)
+            self.assertEqual(client.calls, [])
+
+    def test_http_endpoint_refuses_even_when_fully_verified(self) -> None:
+        # Codex iteration-3 audit condition 2: https:// is enforced independently of
+        # verification state -- a fully-verified http:// endpoint still refuses.
+        with _migrated_test_connection() as connection:
+            _seed_verified_source(
+                connection,
+                source_id="src-insecure-scheme",
+                url="http://feeds.example.com/feed.xml",
+            )
+            client = _FakePodcastClient(error=AssertionError("client must not be called"))
+            adapter = LivePodcastFeedAdapter(connection, feature_mode="shadow_live", client=client)
+            with mock.patch.dict("os.environ", {PODCAST_RAIL_CREDENTIAL_ENV_VAR: FAKE_USER_AGENT}):
+                result = adapter.fetch_episodes(
+                    source_id="src-insecure-scheme", cursor=None, now=NOW
+                )
+
+            self.assertFalse(result.healthy)
+            self.assertIn(STATUS_BLOCKED_ENDPOINT_INSECURE_SCHEME, result.error_summary)
+            self.assertIn("http://feeds.example.com/feed.xml", result.error_summary)
+            self.assertEqual(client.calls, [])
+
     def test_active_source_with_verified_endpoint_reaches_client_and_parses(self) -> None:
         with _migrated_test_connection() as connection:
             _seed_verified_source(
@@ -616,12 +684,19 @@ def _seed_source(
 
 
 def _seed_verified_source(
-    connection: sqlite3.Connection, *, source_id: str, url: str
+    connection: sqlite3.Connection,
+    *,
+    source_id: str,
+    url: str,
+    endpoint_verified_at: str | None = "2026-07-16T00:00:00+00:00",
+    verified_by: str | None = "tests",
 ) -> None:
     """Seeds a source in the one state that lets the adapter's gates all pass:
     status='active' and an rss endpoint with endpoint_verified_at recorded -- the
     exact state none of the 9 real launch feeds are in yet (see
-    docs/knowledge_edge/PACKET_2A_PODCAST_SUPERVISED_SMOKE.md)."""
+    docs/knowledge_edge/PACKET_2A_PODCAST_SUPERVISED_SMOKE.md). The
+    `endpoint_verified_at`/`verified_by` overrides let tests build the otherwise-fully-
+    seeded-but-for-one-field states the hardened gate must still refuse."""
     _seed_source(connection, source_id=source_id, status="active")
     now = "2026-07-16T00:00:00+00:00"
     connection.execute(
@@ -630,9 +705,9 @@ def _seed_verified_source(
             source_endpoint_id, source_id, endpoint_type, url, is_primary, status,
             endpoint_verified_at, verified_by, created_at, updated_at
         )
-        VALUES (?, ?, 'rss', ?, 1, 'active', ?, 'tests', ?, ?)
+        VALUES (?, ?, 'rss', ?, 1, 'active', ?, ?, ?, ?)
         """,
-        (f"{source_id}-endpoint", source_id, url, now, now, now),
+        (f"{source_id}-endpoint", source_id, url, endpoint_verified_at, verified_by, now, now),
     )
     connection.commit()
 

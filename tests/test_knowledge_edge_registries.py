@@ -241,6 +241,46 @@ class LaunchRosterSeedDataTest(unittest.TestCase):
                 self.assertIsNone(endpoint["endpoint_verified_at"])
                 self.assertIsNone(endpoint["verified_by"])
 
+    def test_lane_a_endpoint_urls_are_byte_exact_pinned_to_the_ratified_table(self) -> None:
+        """Codex iteration-3 audit condition 1: equality of the FULL source_id->URL
+        mapping against the packet's own ratified endpoint table, not a per-row
+        `startswith` check -- so a single mistyped character in any of the 9 URLs
+        fails this test even though every URL would still pass
+        `test_lane_a_sources_have_resolved_but_conductor_unverified_endpoint`'s
+        `startswith("https://")` check above."""
+        expected_urls_by_source_id = {
+            "ke-source-dwarkesh-podcast": "https://apple.dwarkesh-podcast.workers.dev/feed.rss",
+            "ke-source-latent-space": "https://api.substack.com/feed/podcast/1084089.rss",
+            "ke-source-no-priors": "https://feeds.megaphone.fm/nopriors",
+            "ke-source-unchained": "https://feeds.megaphone.fm/LSHML4761942757",
+            "ke-source-bankless": "https://feeds.flightcast.com/p83fuj0y0u58o82l41xei7zo.xml",
+            "ke-source-forward-guidance": "https://feeds.megaphone.fm/forwardguidance",
+            "ke-source-odd-lots": (
+                "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/"
+                "8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/982f5071-765c-403d-969d-ae27003a8d83/"
+                "podcast.rss"
+            ),
+            "ke-source-macro-voices": "https://feed.podbean.com/macrovoices/feed.xml",
+            "ke-source-compound-and-friends": "https://feeds.megaphone.fm/TCP4771071679",
+        }
+        self.assertEqual(len(expected_urls_by_source_id), 9)
+
+        with _migrated_connection() as connection:
+            sources = ke.list_sources(connection, lane="curated_podcasts")
+            self.assertEqual(len(sources), 9)
+
+            actual_urls_by_source_id: dict[str, str] = {}
+            for source in sources:
+                self.assertEqual(source["status"], "trial")
+                endpoints = ke.list_source_endpoints(connection, source_id=source["source_id"])
+                self.assertEqual(len(endpoints), 1)
+                endpoint = endpoints[0]
+                self.assertIsNone(endpoint["endpoint_verified_at"])
+                self.assertIsNone(endpoint["verified_by"])
+                actual_urls_by_source_id[source["source_id"]] = endpoint["url"]
+
+        self.assertEqual(actual_urls_by_source_id, expected_urls_by_source_id)
+
     def test_eight_lane_b_market_voices_are_seeded(self) -> None:
         with _migrated_connection() as connection:
             people = ke.list_people(connection, category="market_voice")

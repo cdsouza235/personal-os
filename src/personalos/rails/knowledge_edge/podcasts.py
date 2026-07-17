@@ -95,6 +95,7 @@ STATUS_BLOCKED_CREDENTIAL_EMPTY = "podcast_rail_live_fetch_blocked_credential_en
 STATUS_BLOCKED_SOURCE_NOT_FOUND = "podcast_rail_live_fetch_blocked_source_not_found"
 STATUS_BLOCKED_NO_ENDPOINT = "podcast_rail_live_fetch_blocked_no_active_endpoint"
 STATUS_BLOCKED_SOURCE_NOT_VERIFIED = "podcast_rail_live_fetch_blocked_source_not_verified"
+STATUS_BLOCKED_ENDPOINT_INSECURE_SCHEME = "podcast_rail_live_fetch_blocked_endpoint_insecure_scheme"
 STATUS_FETCH_TRANSPORT_FAILED = "podcast_rail_live_fetch_transport_failed"
 STATUS_FETCH_REDIRECT_QUARANTINED = "podcast_rail_live_fetch_redirect_quarantined"
 STATUS_FETCH_RESPONSE_TOO_LARGE = "podcast_rail_live_fetch_response_too_large"
@@ -319,17 +320,44 @@ class LivePodcastFeedAdapter:
                 None,
             )
 
-        if source["status"] != "active" or endpoint["endpoint_verified_at"] is None:
+        # "Verified" requires BOTH a recorded verifier identity AND a parseable
+        # verification timestamp -- Codex iteration-3 audit condition 2. A timestamp
+        # with no verifier, or a verifier with a malformed/unparseable timestamp, is
+        # not a completed supervised-smoke record and must refuse exactly like the
+        # both-NULL case does.
+        verified_at = endpoint["endpoint_verified_at"]
+        verified_by = endpoint["verified_by"]
+        verified_by_present = verified_by is not None and str(verified_by).strip() != ""
+        if source["status"] != "active" or verified_at is None or not verified_by_present:
             return (
                 f"{STATUS_BLOCKED_SOURCE_NOT_VERIFIED}: source status is {source['status']!r} "
-                f"(endpoint_verified_at={endpoint['endpoint_verified_at']!r}); refusing until "
-                "the Conductor-supervised smoke records a verification (see "
+                f"(endpoint_verified_at={verified_at!r}, verified_by={verified_by!r}); refusing "
+                "until the Conductor-supervised smoke records a verification (see "
                 "docs/knowledge_edge/PACKET_2A_PODCAST_SUPERVISED_SMOKE.md)",
                 None,
                 None,
             )
+        if _parse_iso8601_to_iso_utc(str(verified_at)) is None:
+            return (
+                f"{STATUS_BLOCKED_SOURCE_NOT_VERIFIED}: endpoint_verified_at={verified_at!r} is "
+                "not a parseable timestamp; refusing rather than trusting a malformed "
+                "verification record (see docs/knowledge_edge/PACKET_2A_PODCAST_SUPERVISED_SMOKE.md)",
+                None,
+                None,
+            )
 
-        return (None, endpoint["url"], user_agent)
+        # Enforced independently of verification state: even a fully-verified endpoint
+        # never gets a live request constructed against a non-https URL.
+        endpoint_url = endpoint["url"]
+        if not endpoint_url.startswith("https://"):
+            return (
+                f"{STATUS_BLOCKED_ENDPOINT_INSECURE_SCHEME}: endpoint url {endpoint_url!r} is "
+                "not https://; refusing to construct a live request over an insecure scheme",
+                None,
+                None,
+            )
+
+        return (None, endpoint_url, user_agent)
 
 
 def _unhealthy(source_id: str, cursor: str | None, error_summary: str) -> AdapterFetchResult:

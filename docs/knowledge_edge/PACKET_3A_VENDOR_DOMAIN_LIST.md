@@ -169,3 +169,55 @@ here as the operative rule for every future packet that reads this document:
 - No company's IR root is assumed reachable, official, or stable — §9.3's own
   "names and identifiers must not be assumed to remain static" applies to IR URLs
   exactly as it does to tickers/CIKs.
+
+---
+
+# Packet 3A vendor-domain list — POPULATED PROPOSAL (PENDING the named Conductor approval)
+
+Assembled 2026-07-17 by the Conductor session per the P-KE-3A frame doc and
+PHASE0_PROVIDERS_AND_ACCESS.md §6's named gate. Verification methods per row:
+LIVE-200 (fetched, followed https-only redirects, landed on the IR site);
+CERT (host bot-walls automated requests with 403, but serves a CA-issued TLS
+certificate for exactly that hostname on the company's own parent domain);
+both recorded with the 2026-07-17 probe results.
+
+| Ticker | IR root domain | Evidence |
+|---|---|---|
+| AAPL | investor.apple.com | CERT/parent apple.com (403 bot-wall) |
+| NVDA | investor.nvidia.com | CERT (Let's Encrypt, exact SAN) |
+| GOOGL | abc.xyz (path /investor) | parent = Alphabet's primary domain (403 bot-wall) |
+| MSFT | www.microsoft.com (path /en-us/Investor) | parent domain (403 bot-wall) |
+| AMZN | ir.aboutamazon.com | CERT (Let's Encrypt, exact SAN) |
+| AVGO | investors.broadcom.com | LIVE-200 |
+| META | investor.atmeta.com | CERT (DigiCert; SANs incl. historical investor.fb.com) |
+| TSLA | ir.tesla.com | LIVE-200 |
+| ASML | www.asml.com (path /en/investors) | LIVE-200 |
+| NFLX | ir.netflix.net | CERT (Let's Encrypt, exact SAN) |
+| COIN | investor.coinbase.com | CERT (Google Trust Services, exact SAN) |
+| MSTR | www.strategy.com (path /investor-relations) | LIVE-200 |
+| CRCL | investor.circle.com | CERT (Let's Encrypt, exact SAN) |
+| CIFR | investors.ciphermining.com → investors.cipherdigital.com | LIVE-200 (redirect matches SEC rename "Cipher Digital Inc."; BOTH hosts listed) |
+| HUT | www.hut8.com (path /investors) | LIVE-200 |
+| IREN | iren.com (path /investors) | LIVE-200 |
+| MARA | ir.mara.com | LIVE-200 |
+| HIVE | www.hivedigitaltechnologies.com (path /investors) | LIVE-200 |
+| CLSK | investors.cleanspark.com | CERT (Let's Encrypt, exact SAN) |
+| RIOT | www.riotplatforms.com (path /investors) | LIVE-200 |
+| BTDR | ir.bitdeer.com | LIVE-200 |
+| — | Keel Infrastructure Corp | NOT ASSEMBLED — CIK/ticker still TBC (WGMI pool); rides the roster-confirmation path |
+
+## Design note for P-KE-3B (recorded honestly)
+
+Ten of the 21 hosts bot-wall automated requests (403 to both curl and browser-UA
+GETs). Consequence: live IR-page FETCHING is impractical for those names; P-KE-3B
+should treat this list primarily as the LINK-verification / redirect-confinement
+fence (§8.4 quarantine semantics) with EDGAR remaining the data source, and
+§10.4's link-only fallback as the display posture for bot-walled hosts. Any 3B
+design that assumes fetchable IR pages for all 21 is contradicted by this evidence.
+
+## Gate
+
+Per PHASE0_PROVIDERS_AND_ACCESS.md §6 and PHASE0_PLAN's P-KE-3A row, no live fetch
+happens against any domain on this list until the Conductor grants the named
+"Packet 3A vendor-domain-list approval". Until then, every redirect destination
+remains quarantined as `Link pending (unknown vendor)`.

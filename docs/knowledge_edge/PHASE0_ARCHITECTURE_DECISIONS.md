@@ -147,10 +147,56 @@ the isolated shadow path."* Named exactly, grounded in `src/personalos/config.py
 |---|---|---|
 | Development | `config.DEV_DB_PATH` = `var/dev/personalos-dev.sqlite3` (existing, unchanged) | Knowledge Edge tables land here via the same additive migrations every other dev iteration uses — no new dev path. |
 | Test | `config.TEST_DB_PATH` = `var/test/personalos-test.sqlite3` (existing, unchanged) | Same reasoning; the existing test suite's DB. |
-| **Shadow (new)** | `config.SHADOW_DB_PATH` = `var/shadow/personalos-shadow.sqlite3` (proposed; Packet 1A adds the constant) | **Session 1 authorizes this path only** for `shadow_live`-mode runs (live discovery + persistence, no production notification, no Obsidian write — amendment §14.4). |
+| **Shadow (new)** | ~~`config.SHADOW_DB_PATH` = `var/shadow/personalos-shadow.sqlite3` (proposed; Packet 1A adds the constant)~~ **Amended P-KE-2E (2026-07-17): `path_safety.SHADOW_DB_PATH` = `~/.personalos/shadow/personalos-shadow.sqlite3`** — see amendment note below the table. | **Session 1 authorizes this path only** for `shadow_live`-mode runs (live discovery + persistence, no production notification, no Obsidian write — amendment §14.4). |
 | Production | `config.PRODUCTION_DB_PATH` = `/Users/coldstake/PersonalOS/personal_os.db` (existing, D-PO-011-approved, unchanged) | Knowledge Edge adds its own tables to this SAME single production file via the same additive migrations — **there is no second production database.** Session 3 authorizes writes here. |
 
+### Amendment (P-KE-2E, 2026-07-17): shadow path relocated outside the repo
+
+**Original text of this ADR (immediately below, "Why the shadow path is safe...")
+described and authorized `var/shadow/personalos-shadow.sqlite3`, a repo-local path.
+That text is preserved unmodified below for the historical record; it is superseded
+by this note for the current admitted value.**
+
+Defect found on day 1 of the Phase 2 shadow sampling window: the harness wipes
+untracked repo files on every packet run. `var/shadow/` is untracked (it must be —
+`QUALITY_GATES`' artifact-hygiene check requires no `var/` directory to exist in the
+repo tree at all), so the shadow database was destroyed between packet runs,
+observed concretely when the P-KE-2D run destroyed the P-KE-2C shadow DB mid-window
+(`audits/knowledge-edge/2026-07-17-packet-2c-first-shadow-run-transcript.md`
+"COLLISION"). A 14-day accumulation (Phase 2's own sampling requirement) cannot
+coexist with the repo-local layout under ANY packet run.
+
+**New admitted path:** `~/.personalos/shadow/personalos-shadow.sqlite3`, defined as
+`path_safety.SHADOW_DB_PATH` (expanduser'd at import time), imported unmodified by
+`knowledge_edge.shadow_mode.SHADOW_DB_PATH` — one source of truth, same discipline as
+before. Bootstrap creates `~/.personalos` and `~/.personalos/shadow` (whichever don't
+already exist) with mode `0700` — private to the owning user, mirroring how
+`~/.openclaw` and `~/PersonalOS` are already treated as sensitive home-directory
+locations elsewhere in this layer.
+
+**The fence's CLASS logic is unchanged by this amendment** — exactly one admitted
+shadow path; dev/test/production still refused — only the admitted value moved. What
+changes structurally: the old path rode the existing `is_under_repo` branch for free
+(see "Why the shadow path is safe" below); the new, outside-repo path cannot, so
+`path_safety.validate_existing_sqlite_path` gained a dedicated exact-match admission
+branch, `path_safety.is_admitted_shadow_path` — mirroring `config.PRODUCTION_DB_PATH`'s
+own exact-match-only precedent in the same module, not a general "anything under
+`~/.personalos`" escape hatch. `reject_protected_path`/`reject_sensitive_path`/
+`reject_production_path` still run unconditionally against the shadow path exactly as
+before, with no special-casing, and still pass: `.personalos` (lowercase, dot-prefixed)
+does not collide with the protected `~/PersonalOS` (capital, no dot) or `~/.openclaw`
+checks, and neither `"shadow"` nor `"personalos"` appears in `SENSITIVE_PATH_MARKERS`
+or `PRODUCTION_MARKERS`.
+
+**Rollback, updated:** delete `~/.personalos/shadow/personalos-shadow.sqlite3` and
+re-run `bootstrap`, exactly as AD-5 already describes for the old path — the shadow
+database still holds no data anyone depends on outside the soak itself.
+
 ### Why the shadow path is safe under the existing path-safety layer, stated explicitly
+
+**(Original text, preserved for the historical record — describes the pre-P-KE-2E
+repo-local path; see the amendment note above the table for the current admitted
+value and its own admission analysis.)**
 
 `path_safety.validate_existing_sqlite_path` (the function every DB-path-accepting CLI
 surface calls) admits `var/shadow/personalos-shadow.sqlite3` through the **same branch
@@ -218,10 +264,12 @@ mechanism, no second runner.
 - **Dev/test:** delete the SQLite file and re-run `apply_migrations`; zero-cost, exactly
   today's existing dev/test workflow.
 - **Shadow:** identical — the shadow database holds no data anyone depends on outside the
-  soak itself; if a soak needs to restart, delete `var/shadow/personalos-shadow.sqlite3`
-  and re-run migrations from empty. This is also the Packet 6A "an incorrectly handled
-  outage restarts the seven-cycle count" reset mechanism at the database level, not just
-  the cycle-count level.
+  soak itself; if a soak needs to restart, delete `path_safety.SHADOW_DB_PATH`
+  (`~/.personalos/shadow/personalos-shadow.sqlite3` as of the P-KE-2E amendment — AD-4
+  above; originally `var/shadow/personalos-shadow.sqlite3`) and re-run migrations from
+  empty. This is also the Packet 6A "an incorrectly handled outage restarts the
+  seven-cycle count" reset mechanism at the database level, not just the cycle-count
+  level.
 - **Production:** because the migrations are additive-only, applying them carries no data
   loss risk to the existing (non-Knowledge-Edge) production tables — there is nothing to
   "roll back" at the schema level in the destructive sense `governance/HUMAN_GATES.md`'s

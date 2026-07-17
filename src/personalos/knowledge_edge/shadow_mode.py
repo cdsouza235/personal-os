@@ -19,19 +19,30 @@ What `shadow_live` may never touch, enforced here:
     - Obsidian writes;
     - scheduler/LaunchAgent/background activation.
 
-`SHADOW_DB_PATH` mirrors `PHASE0_ARCHITECTURE_DECISIONS.md` AD-4's
-`config.SHADOW_DB_PATH` (`var/shadow/personalos-shadow.sqlite3`) exactly, but is
-defined here rather than in `src/personalos/config.py` -- AD-4's own suggested
-location -- because `config.py` sits outside this packet's declared
-`allowed_paths` (`src/personalos/knowledge_edge/**`, `src/personalos/cli/**`,
-`rails/knowledge_edge/**`, `docs/knowledge_edge/**`, `tests/**`, `migrations/**`).
-Landing this constant in `config.py` itself is flagged as a required follow-up for
-whichever future packet next legitimately touches `config.py`, mirroring
-`PHASE0_PLAN.md` §3's "required follow-up this packet cannot execute" pattern --
-not invented as a fait accompli here. `path_safety.validate_existing_sqlite_path`
-already admits this path unmodified (AD-4's own analysis: the existing
-`is_under_repo` branch, the same one that already admits `DEV_DB_PATH`/
-`TEST_DB_PATH`), so no `path_safety.py` change is needed either.
+`SHADOW_DB_PATH` mirrors `PHASE0_ARCHITECTURE_DECISIONS.md` AD-4's admitted shadow
+path exactly: originally `config.SHADOW_DB_PATH` = `var/shadow/personalos-shadow.sqlite3`
+(repo-local; Packet 1A), **amended by P-KE-2E (2026-07-17)** to
+`~/.personalos/shadow/personalos-shadow.sqlite3` -- the harness wipes untracked repo
+files on every packet run, which destroyed the repo-local shadow DB between runs and
+cannot coexist with the required 14-day accumulation (see
+`audits/knowledge-edge/2026-07-17-packet-2c-first-shadow-run-transcript.md`
+"COLLISION"). The fence's CLASS logic here is unchanged by that amendment -- exactly
+one admitted shadow path, dev/test/production still refused -- only the admitted value
+moved outside the repo tree.
+
+The constant itself now lives in `path_safety.SHADOW_DB_PATH` (imported here, not
+redefined) rather than in `src/personalos/config.py` -- AD-4's own originally-suggested
+location -- because `config.py` sits outside this packet's declared `allowed_paths`
+(`src/personalos/knowledge_edge/**`, `src/personalos/cli/**`, `rails/knowledge_edge/**`,
+`docs/knowledge_edge/**`, `tests/**`, `migrations/**`), same as at Packet 1A. Landing
+this constant in `config.py` itself remains a required follow-up for whichever future
+packet next legitimately touches `config.py`, mirroring `PHASE0_PLAN.md` §3's "required
+follow-up this packet cannot execute" pattern -- not invented as a fait accompli here.
+Because the new path sits outside the repo, `path_safety.validate_existing_sqlite_path`
+now needs (and has, as of P-KE-2E) a dedicated exact-match admission branch
+(`path_safety.is_admitted_shadow_path`) -- the old repo-local path's free ride on the
+generic `is_under_repo` branch no longer applies; see `path_safety.py`'s own
+`SHADOW_DB_PATH` module comment for the admission analysis.
 """
 
 from __future__ import annotations
@@ -39,13 +50,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from personalos import config
-from personalos.config import RUNTIME_DIR
+from personalos.path_safety import SHADOW_DB_PATH
 
 SHADOW_LIVE_MODE = "shadow_live"
-
-# Mirrors AD-4's config.SHADOW_DB_PATH exactly -- see module docstring for why this
-# constant lives here instead of in config.py.
-SHADOW_DB_PATH: Path = RUNTIME_DIR / "shadow" / "personalos-shadow.sqlite3"
 
 
 class ShadowModeViolation(RuntimeError):

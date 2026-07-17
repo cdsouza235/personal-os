@@ -18,7 +18,15 @@ class ShadowDatabasePathTest(unittest.TestCase):
     def test_shadow_db_path_matches_ad4_exactly(self) -> None:
         self.assertEqual(
             shadow_mode.SHADOW_DB_PATH,
-            config_module.RUNTIME_DIR / "shadow" / "personalos-shadow.sqlite3",
+            (Path.home() / ".personalos" / "shadow" / "personalos-shadow.sqlite3").expanduser(),
+        )
+
+    def test_shadow_db_path_is_outside_the_repo(self) -> None:
+        # P-KE-2E regression (the COLLISION defect): the shadow DB must not live
+        # under REPO_ROOT, or the harness's untracked-file wipe destroys it on every
+        # packet run -- exactly what happened to the original var/shadow/ location.
+        self.assertFalse(
+            shadow_mode.SHADOW_DB_PATH.is_relative_to(config_module.REPO_ROOT.resolve())
         )
 
     def test_require_shadow_database_path_accepts_the_exact_path(self) -> None:
@@ -34,6 +42,13 @@ class ShadowDatabasePathTest(unittest.TestCase):
     def test_require_shadow_database_path_refuses_dev_path(self) -> None:
         with self.assertRaises(shadow_mode.ShadowModeViolation):
             shadow_mode.require_shadow_database_path(config_module.DEV_DB_PATH)
+
+    def test_require_shadow_database_path_refuses_the_old_repo_local_path(self) -> None:
+        # Regression for the exact COLLISION defect (P-KE-2E): the pre-amendment
+        # repo-local path must now be refused, not silently still admitted.
+        old_repo_local_path = config_module.RUNTIME_DIR / "shadow" / "personalos-shadow.sqlite3"
+        with self.assertRaises(shadow_mode.ShadowModeViolation):
+            shadow_mode.require_shadow_database_path(old_repo_local_path)
 
 
 class RefusalSurfaceTest(unittest.TestCase):

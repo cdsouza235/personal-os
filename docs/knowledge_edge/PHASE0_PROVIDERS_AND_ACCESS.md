@@ -283,7 +283,8 @@ Session 1 bullet:
       supplied and confirmed at Session 1**, not invented by this packet.
 - [ ] **Scope limits** (apply to every credential/endpoint above): read-only access only;
       named endpoints and approved vendor domains only; isolated shadow database path
-      only (`var/shadow/personalos-shadow.sqlite3`, AD-4 in
+      only (`~/.personalos/shadow/personalos-shadow.sqlite3` as of the P-KE-2E amendment,
+      2026-07-17; originally `var/shadow/personalos-shadow.sqlite3` — AD-4 in
       `PHASE0_ARCHITECTURE_DECISIONS.md`) — no production database writes before
       Session 3; no production notifications; no Obsidian writes; no scheduler
       installation or loading before Session 2 (shadow) / Session 3 (production).

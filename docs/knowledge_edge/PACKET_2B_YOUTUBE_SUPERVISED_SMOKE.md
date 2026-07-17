@@ -20,9 +20,13 @@ Unlike the 2A podcast smoke (whose 9 feed endpoints migration 00023 already seed
   §1's channel-polling procedure to run against.
 - No `ke_sources` row exists for `youtube.py`'s
   `DEFAULT_PERSON_SEARCH_SOURCE_ID` (`ke-source-youtube-person-search`) either — no
-  migration in this packet inserts one, because inserting reference rows has, so far,
-  always meant a migration (see migrations 00022/00023), and this packet's hard
-  constraints forbid migrations.
+  migration in this packet inserts one. Conductor scope amendment #2 (iteration 4)
+  authorized additive migration 00025 for the provider-metadata cache tables that
+  F1 required, so migrations are no longer categorically forbidden in this packet —
+  but that authorization was scoped to the cache tables only, not to seeding
+  reference/endpoint rows. YouTube channel and person-search reference rows remain
+  deliberately unseeded pending a future Conductor-verified migration +
+  acknowledgment, exactly like the podcast endpoints (00022/00023) went through.
 
 **Section 2 (person-search) of this procedure therefore cannot run yet either.**
 Before it can, a future packet must, via its own migration:
